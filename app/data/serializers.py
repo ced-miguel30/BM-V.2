@@ -90,6 +90,7 @@ def appdata_to_dict(data: AppData) -> dict:
             }
             for a in data.alertas
         ],
+        "alertas_descartadas": list(data.alertas_descartadas),
         "usuarios": [
             {"id": u.id, "nombre": u.nombre, "rol": u.rol.value, "activo": u.activo}
             for u in data.usuarios
@@ -154,6 +155,7 @@ def dict_to_appdata(payload: dict) -> AppData:
             )
             for a in payload.get("alertas", [])
         ],
+        alertas_descartadas=list(payload.get("alertas_descartadas", [])),
         usuarios=[
             Usuario(u["id"], u["nombre"], RolUsuario(u["rol"]), u.get("activo", True))
             for u in payload.get("usuarios", [])

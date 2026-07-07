@@ -19,6 +19,7 @@ class AppData:
     desayunos: list[RegistroDesayuno] = field(default_factory=list)
     mermas: list[RegistroMerma] = field(default_factory=list)
     alertas: list[AlertaOperativa] = field(default_factory=list)
+    alertas_descartadas: list[str] = field(default_factory=list)
     actividades: list[Actividad] = field(default_factory=list)
     usuarios: list[Usuario] = field(default_factory=list)
     configuracion: ConfiguracionHotel | None = None

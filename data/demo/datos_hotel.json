@@ -186,6 +186,17 @@
       "fecha_expiracion": null,
       "marca_proveedor": "bimbo",
       "alerta_expiracion_dias": null
+    },
+    {
+      "id": "l12",
+      "producto_id": "p02",
+      "precio_total": 5.0,
+      "cantidad": 23.0,
+      "cantidad_restante": 23.0,
+      "fecha_compra": null,
+      "fecha_expiracion": null,
+      "marca_proveedor": "bimbo",
+      "alerta_expiracion_dias": null
     }
   ],
   "desayunos": [
@@ -405,15 +416,6 @@
     {
       "id": "a03",
       "tipo": "stock_bajo",
-      "titulo": "Stock bajo — Pan de molde",
-      "mensaje": "Quedan 8 Ud. Stock mínimo: 10.",
-      "fecha": "2026-07-07",
-      "activa": true,
-      "producto_id": "p02"
-    },
-    {
-      "id": "a04",
-      "tipo": "stock_bajo",
       "titulo": "Stock bajo — Jamón serrano",
       "mensaje": "Quedan 1.2 Kg. Stock mínimo: 2.",
       "fecha": "2026-07-07",
@@ -421,7 +423,7 @@
       "producto_id": "p03"
     },
     {
-      "id": "a05",
+      "id": "a04",
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Queso manchego",
       "mensaje": "Quedan 0.6 Kg. Stock mínimo: 1.5.",
@@ -430,7 +432,7 @@
       "producto_id": "p04"
     },
     {
-      "id": "a06",
+      "id": "a05",
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Yogur natural",
       "mensaje": "Quedan 10 Ud. Stock mínimo: 24.",
@@ -439,7 +441,7 @@
       "producto_id": "p05"
     },
     {
-      "id": "a07",
+      "id": "a06",
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Zumo de naranja",
       "mensaje": "Quedan 4.5 L. Stock mínimo: 5.",
@@ -448,7 +450,7 @@
       "producto_id": "p06"
     },
     {
-      "id": "a08",
+      "id": "a07",
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Café molido",
       "mensaje": "Quedan 0.1 Kg. Stock mínimo: 1.",
@@ -457,7 +459,7 @@
       "producto_id": "p07"
     },
     {
-      "id": "a09",
+      "id": "a08",
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Mantequilla",
       "mensaje": "Quedan 0.3 Kg. Stock mínimo: 0.5.",
@@ -466,7 +468,7 @@
       "producto_id": "p08"
     },
     {
-      "id": "a10",
+      "id": "a09",
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Fruta fresca",
       "mensaje": "Quedan 2.1 Kg. Stock mínimo: 3.",
@@ -475,7 +477,7 @@
       "producto_id": "p09"
     },
     {
-      "id": "a11",
+      "id": "a10",
       "tipo": "stock_cero",
       "titulo": "Stock agotado — Huevos",
       "mensaje": "No quedan unidades disponibles.",
@@ -484,7 +486,7 @@
       "producto_id": "p10"
     },
     {
-      "id": "a12",
+      "id": "a11",
       "tipo": "expiracion_proxima",
       "titulo": "Próximo a expirar — Croissant",
       "mensaje": "El lote l01 (compra 02/07/2026) expira en 3 día(s).",
@@ -493,7 +495,7 @@
       "producto_id": "p01"
     },
     {
-      "id": "a13",
+      "id": "a12",
       "tipo": "expiracion_proxima",
       "titulo": "Próximo a expirar — Yogur natural",
       "mensaje": "El lote l05 (compra 03/07/2026) expira en 2 día(s).",
@@ -523,6 +525,20 @@
     "logo_path": null
   },
   "actividades": [
+    {
+      "id": "act16",
+      "fecha_hora": "2026-07-07T19:01:31.938481",
+      "usuario": "María García",
+      "accion": "Registrar lote",
+      "detalle": "Lote de «Pan de molde» — 23.0 Ud — 5.00 €"
+    },
+    {
+      "id": "act15",
+      "fecha_hora": "2026-07-07T19:00:47.254374",
+      "usuario": "María García",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Stock bajo — Pan de molde» marcada como resuelta"
+    },
     {
       "id": "act14",
       "fecha_hora": "2026-07-07T19:00:20.785332",

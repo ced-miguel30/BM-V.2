@@ -54,6 +54,11 @@ def _registrar_actividad(data: AppData, accion: str, detalle: str) -> None:
     data.actividades.insert(0, actividad)
 
 
+def _firma_alerta(alerta: AlertaOperativa) -> str:
+    """Identificador estable para recordar alertas automáticas descartadas."""
+    return f"{alerta.tipo.value}|{alerta.producto_id or ''}|{alerta.mensaje}"
+
+
 def _conservar_alertas(data: AppData) -> list[AlertaOperativa]:
     """Mantiene alertas manuales y las que no se regeneran automáticamente."""
     return [
@@ -141,6 +146,18 @@ def _reasignar_ids(alertas: list[AlertaOperativa]) -> None:
         alerta.id = f"a{i:02d}"
 
 
+def _filtrar_auto_descartadas(
+    data: AppData,
+    candidatas: list[AlertaOperativa],
+) -> list[AlertaOperativa]:
+    firmas_vigentes = {_firma_alerta(a) for a in candidatas}
+    data.alertas_descartadas = [
+        firma for firma in data.alertas_descartadas if firma in firmas_vigentes
+    ]
+    descartadas = set(data.alertas_descartadas)
+    return [a for a in candidatas if _firma_alerta(a) not in descartadas]
+
+
 def sincronizar_alertas() -> AppData:
     """Regenera alertas automáticas de stock y desayuno; conserva las manuales."""
     data = get_data()
@@ -148,8 +165,8 @@ def sincronizar_alertas() -> AppData:
     hoy = date.today()
 
     conservadas = _conservar_alertas(data)
-    auto_stock = _generar_alertas_stock(data, repo, hoy)
-    auto_desayuno = _generar_alerta_desayuno(data, repo, hoy)
+    auto_stock = _filtrar_auto_descartadas(data, _generar_alertas_stock(data, repo, hoy))
+    auto_desayuno = _filtrar_auto_descartadas(data, _generar_alerta_desayuno(data, repo, hoy))
 
     data.alertas = conservadas + auto_stock + auto_desayuno
     _reasignar_ids(data.alertas)
@@ -186,15 +203,30 @@ def crear_alerta_manual(
     return ResultadoOperacion(True, "Alerta manual creada correctamente.")
 
 
-def resolver_alerta(alerta_id: str) -> ResultadoOperacion:
+def remover_alerta(alerta_id: str) -> ResultadoOperacion:
     data = get_data()
+    usuario = _nombre_usuario(data)
     for alerta in data.alertas:
         if alerta.id == alerta_id:
-            alerta.activa = False
-            _registrar_actividad(data, "Resolver alerta", f"Alerta «{alerta.titulo}» marcada como resuelta")
+            if alerta.tipo in _TIPOS_STOCK_AUTO:
+                firma = _firma_alerta(alerta)
+                if firma not in data.alertas_descartadas:
+                    data.alertas_descartadas.append(firma)
+            else:
+                alerta.activa = False
+            _registrar_actividad(
+                data,
+                "Remover alerta",
+                f"{usuario} eliminó la alerta «{alerta.titulo}»",
+            )
             persist_data(data)
-            return ResultadoOperacion(True, "Alerta resuelta.")
+            return ResultadoOperacion(True, "Alerta removida.")
     return ResultadoOperacion(False, "No se encontró la alerta.")
+
+
+def resolver_alerta(alerta_id: str) -> ResultadoOperacion:
+    """Alias de compatibilidad."""
+    return remover_alerta(alerta_id)
 
 
 def alertas_stock_activas(data: AppData) -> list[AlertaOperativa]:

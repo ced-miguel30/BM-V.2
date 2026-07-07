@@ -9,7 +9,7 @@ from app.core.models import TipoAlerta
 from app.core.services.alert_service import (
     alertas_stock_activas,
     crear_alerta_manual,
-    resolver_alerta,
+    remover_alerta,
     sincronizar_alertas,
 )
 from app.core.services.data_service import get_repository
@@ -249,8 +249,8 @@ def _render_alertas_stock() -> None:
                     f"*{formato_fecha(alerta.fecha)}*"
                 )
             with col_btn:
-                if st.button("Resolver", key=f"resolver_alerta_{alerta.id}", use_container_width=True):
-                    resultado = resolver_alerta(alerta.id)
+                if st.button("Remover", key=f"remover_alerta_{alerta.id}", use_container_width=True):
+                    resultado = remover_alerta(alerta.id)
                     if resultado.ok:
                         sincronizar_alertas()
                         st.rerun()
