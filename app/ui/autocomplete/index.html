@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: transparent;
+      color: #1A2332;
+      padding: 0;
+    }
+    .wrap { position: relative; width: 100%; }
+    label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 500;
+      margin-bottom: 0.35rem;
+      color: #1A2332;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 0.55rem 0.75rem;
+      border: 1px solid #E2E6EC;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      outline: none;
+      background: #fff;
+    }
+    input[type="text"]:focus {
+      border-color: #0B1F3A;
+      box-shadow: 0 0 0 2px rgba(11, 31, 58, 0.12);
+    }
+    .dropdown {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 2px);
+      background: #fff;
+      border: 1px solid #E2E6EC;
+      border-radius: 6px;
+      box-shadow: 0 6px 18px rgba(11, 31, 58, 0.12);
+      max-height: 220px;
+      overflow-y: auto;
+      z-index: 9999;
+      display: none;
+    }
+    .dropdown.open { display: block; }
+    .item {
+      padding: 0.55rem 0.75rem;
+      cursor: pointer;
+      font-size: 0.9rem;
+      border-bottom: 1px solid #F5F6F8;
+    }
+    .item:last-child { border-bottom: none; }
+    .item:hover, .item.active {
+      background: #F5F6F8;
+      color: #0B1F3A;
+    }
+    .empty {
+      padding: 0.65rem 0.75rem;
+      color: #8B95A5;
+      font-size: 0.85rem;
+    }
+    .selected-chip {
+      margin-top: 0.45rem;
+      font-size: 0.82rem;
+      color: #0B1F3A;
+      background: #F5F6F8;
+      border-radius: 4px;
+      padding: 0.35rem 0.55rem;
+      display: none;
+    }
+    .selected-chip.visible { display: block; }
+  </style>
+</head>
+<body>
+  <div class="wrap" id="wrap">
+    <label id="lbl"></label>
+    <input type="text" id="input" autocomplete="off" spellcheck="false" />
+    <div class="dropdown" id="dropdown"></div>
+    <div class="selected-chip" id="chip"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/streamlit-component-lib@2.0.0/dist/streamlit-component-lib.js"></script>
+  <script>
+    function normalizeText(text) {
+      return (text || "")
+        .trim()
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "");
+    }
+
+    function matchesQuery(label, query) {
+      const normLabel = normalizeText(label);
+      const normQuery = normalizeText(query);
+      if (!normQuery) return true;
+      if (normQuery.length >= 3) return normLabel.includes(normQuery);
+      return normLabel.startsWith(normQuery);
+    }
+
+    let allOptions = [];
+    let filtered = [];
+    let activeIndex = -1;
+    let selected = null;
+
+    const input = document.getElementById("input");
+    const dropdown = document.getElementById("dropdown");
+    const chip = document.getElementById("chip");
+    const lbl = document.getElementById("lbl");
+
+    function setFrameHeight() {
+      const open = dropdown.classList.contains("open");
+      const items = filtered.length;
+      const base = 72;
+      const extra = open ? Math.min(items, 6) * 36 + 12 : 0;
+      const chipH = selected ? 28 : 0;
+      Streamlit.setFrameHeight(base + extra + chipH);
+    }
+
+    function renderDropdown() {
+      dropdown.innerHTML = "";
+      if (!input.value.trim() && !selected) {
+        dropdown.classList.remove("open");
+        setFrameHeight();
+        return;
+      }
+      if (filtered.length === 0) {
+        dropdown.innerHTML = '<div class="empty">Sin coincidencias</div>';
+        dropdown.classList.add("open");
+        setFrameHeight();
+        return;
+      }
+      filtered.forEach((opt, idx) => {
+        const div = document.createElement("div");
+        div.className = "item" + (idx === activeIndex ? " active" : "");
+        div.textContent = opt.label;
+        div.addEventListener("mousedown", (e) => {
+          e.preventDefault();
+          pickOption(opt);
+        });
+        dropdown.appendChild(div);
+      });
+      dropdown.classList.add("open");
+      setFrameHeight();
+    }
+
+    function pickOption(opt) {
+      selected = opt;
+      input.value = opt.label;
+      dropdown.classList.remove("open");
+      activeIndex = -1;
+      chip.textContent = "Seleccionado: " + opt.label;
+      chip.classList.add("visible");
+      Streamlit.setComponentValue(opt);
+      setFrameHeight();
+    }
+
+    function filterOptions() {
+      const q = input.value;
+      filtered = allOptions.filter((o) => matchesQuery(o.label, q));
+      activeIndex = filtered.length ? 0 : -1;
+      renderDropdown();
+    }
+
+    input.addEventListener("input", () => {
+      selected = null;
+      chip.classList.remove("visible");
+      Streamlit.setComponentValue(null);
+      filterOptions();
+    });
+
+    input.addEventListener("focus", () => {
+      filterOptions();
+    });
+
+    input.addEventListener("keydown", (e) => {
+      if (!dropdown.classList.contains("open") || filtered.length === 0) {
+        if (e.key === "ArrowDown") filterOptions();
+        return;
+      }
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        activeIndex = Math.min(activeIndex + 1, filtered.length - 1);
+        renderDropdown();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        activeIndex = Math.max(activeIndex - 1, 0);
+        renderDropdown();
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (activeIndex >= 0 && filtered[activeIndex]) {
+          pickOption(filtered[activeIndex]);
+        }
+      } else if (e.key === "Escape") {
+        dropdown.classList.remove("open");
+        setFrameHeight();
+      }
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!document.getElementById("wrap").contains(e.target)) {
+        dropdown.classList.remove("open");
+        setFrameHeight();
+      }
+    });
+
+    function onRender(event) {
+      const args = event.detail.args;
+      lbl.textContent = args.label || "";
+      input.placeholder = args.placeholder || "Escriba para buscar...";
+
+      try {
+        allOptions = JSON.parse(args.options || "[]");
+      } catch (err) {
+        allOptions = [];
+      }
+
+      if (args.defaultLabel) {
+        const found = allOptions.find((o) => o.label === args.defaultLabel);
+        if (found) {
+          selected = found;
+          input.value = found.label;
+          chip.textContent = "Seleccionado: " + found.label;
+          chip.classList.add("visible");
+        }
+      }
+
+      setFrameHeight();
+    }
+
+    Streamlit.events.addEventListener(Streamlit.RENDER_EVENT, onRender);
+    Streamlit.setComponentReady();
+    Streamlit.setFrameHeight(72);
+  </script>
+</body>
+</html>

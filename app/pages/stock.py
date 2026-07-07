@@ -16,6 +16,7 @@ from app.core.services.data_service import get_repository
 from app.core.services.formatting import formato_fecha, formato_moneda
 from app.core.services.stock_service import UNIDADES, crear_producto, mapa_productos, registrar_lote
 from app.ui.components import empty_state, page_header, render_sub_tabs, section_divider
+from app.ui.search import render_autocomplete
 
 _TIPO_ETIQUETA = {
     TipoAlerta.STOCK_BAJO: "Stock bajo",
@@ -54,8 +55,16 @@ def _render_historial_compras(repo) -> None:
         return
 
     productos = sorted(repo.data.productos, key=lambda x: x.nombre)
-    opciones = ["Todos los productos"] + [p.nombre for p in productos]
-    filtro = st.selectbox("Filtrar por producto", opciones, key="historial_filtro_producto")
+    opciones_filtro = [{"id": "__all__", "label": "Todos los productos"}] + [
+        {"id": p.id, "label": p.nombre} for p in productos
+    ]
+    filtro_sel = render_autocomplete(
+        opciones_filtro,
+        "historial_filtro",
+        "Filtrar por producto",
+        "Buscar producto...",
+    )
+    filtro = filtro_sel["label"] if filtro_sel else "Todos los productos"
 
     filas = []
     for lote in sorted(
@@ -162,10 +171,22 @@ def _render_registro_producto() -> None:
             st.warning("Primero debe crear al menos un producto.")
         else:
             nombres = list(productos_map.keys())
+            opciones_prod = [
+                {"id": productos_map[n], "label": n} for n in nombres
+            ]
+            producto_sel = render_autocomplete(
+                opciones_prod,
+                "stock_lote_producto",
+                "Producto",
+                "Buscar producto registrado...",
+            )
             with st.form("form_registrar_lote", clear_on_submit=True):
                 col1, col2 = st.columns(2)
                 with col1:
-                    producto_nombre = st.selectbox("Producto", nombres)
+                    if producto_sel:
+                        st.caption(f"Producto: **{producto_sel['label']}**")
+                    else:
+                        st.warning("Seleccione un producto arriba antes de registrar el lote.")
                     usar_compra = st.checkbox("Usar fecha de compra", value=False)
                     fecha_compra_val = st.date_input("Fecha de compra", key="lote_fecha_compra")
                     usar_exp = st.checkbox("Usar fecha de expiración", value=False)
@@ -182,21 +203,24 @@ def _render_registro_producto() -> None:
                     )
                 enviado = st.form_submit_button("Registrar lote", type="primary")
                 if enviado:
-                    resultado = registrar_lote(
-                        producto_id=productos_map[producto_nombre],
-                        precio_total=precio,
-                        cantidad=cantidad,
-                        fecha_compra=fecha_compra_val if usar_compra else None,
-                        fecha_expiracion=fecha_exp_val if usar_exp else None,
-                        marca_proveedor=proveedor,
-                        alerta_expiracion_dias=alerta_dias if alerta_dias > 0 else None,
-                    )
-                    if resultado.ok:
-                        sincronizar_alertas()
-                        st.success(resultado.mensaje)
-                        st.rerun()
+                    if not producto_sel:
+                        st.error("Seleccione un producto antes de registrar el lote.")
                     else:
-                        st.error(resultado.mensaje)
+                        resultado = registrar_lote(
+                            producto_id=producto_sel["id"],
+                            precio_total=precio,
+                            cantidad=cantidad,
+                            fecha_compra=fecha_compra_val if usar_compra else None,
+                            fecha_expiracion=fecha_exp_val if usar_exp else None,
+                            marca_proveedor=proveedor,
+                            alerta_expiracion_dias=alerta_dias if alerta_dias > 0 else None,
+                        )
+                        if resultado.ok:
+                            sincronizar_alertas()
+                            st.success(resultado.mensaje)
+                            st.rerun()
+                        else:
+                            st.error(resultado.mensaje)
 
     section_divider()
     _render_inventario(repo)
@@ -258,15 +282,24 @@ def _render_alertas_stock() -> None:
     section_divider()
     st.markdown("#### Crear alerta manual")
     productos_map = mapa_productos(repo.data)
-    opciones_producto = ["(Ninguno)"] + list(productos_map.keys())
+    opciones_producto = [{"id": "__none__", "label": "(Ninguno)"}] + [
+        {"id": pid, "label": nombre} for nombre, pid in productos_map.items()
+    ]
+    producto_alerta = render_autocomplete(
+        opciones_producto,
+        "alerta_producto",
+        "Producto relacionado (opcional)",
+        "Buscar producto...",
+    )
 
     with st.form("form_alerta_manual", clear_on_submit=True):
         titulo = st.text_input("Título", placeholder="Ej: Revisar pedido de jamón")
         mensaje = st.text_area("Mensaje", placeholder="Detalle de la alerta...")
-        producto_sel = st.selectbox("Producto relacionado (opcional)", opciones_producto)
         enviado = st.form_submit_button("Crear alerta", type="primary")
         if enviado:
-            producto_id = productos_map.get(producto_sel) if producto_sel != "(Ninguno)" else None
+            producto_id = None
+            if producto_alerta and producto_alerta["id"] != "__none__":
+                producto_id = producto_alerta["id"]
             resultado = crear_alerta_manual(titulo, mensaje, producto_id)
             if resultado.ok:
                 sincronizar_alertas()

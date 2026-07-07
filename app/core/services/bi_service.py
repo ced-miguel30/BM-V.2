@@ -158,6 +158,10 @@ def responder_pregunta(pregunta_id: str) -> str:
     return "No reconozco la pregunta. Use una de las preguntas sugeridas."
 
 
+def opciones_preguntas_bi() -> list[dict]:
+    return [{"id": pid, "label": pregunta} for pid, pregunta in PREGUNTAS_SUGERIDAS]
+
+
 def sugerencias_preguntas(texto: str) -> list[tuple[str, str]]:
     texto = texto.strip()
     if not texto:

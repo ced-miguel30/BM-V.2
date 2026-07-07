@@ -283,10 +283,11 @@ def _render_business_intelligence() -> None:
     from app.core.services.bi_service import (
         PREGUNTAS_SUGERIDAS,
         buscar_pregunta,
+        opciones_preguntas_bi,
         responder_pregunta,
         resumen_automatico,
-        sugerencias_preguntas,
     )
+    from app.ui.search import render_autocomplete
 
     st.markdown("#### Business Intelligence")
     st.caption("Asistente interno basado en reglas sobre los datos del hotel.")
@@ -312,27 +313,23 @@ def _render_business_intelligence() -> None:
             st.session_state["bi_respuesta"] = responder_pregunta(pid)
             st.session_state["bi_pregunta_texto"] = pregunta
 
-    consulta = st.text_input(
+    consulta_sel = render_autocomplete(
+        opciones_preguntas_bi(),
+        "bi_consulta",
         "O escriba su pregunta",
-        placeholder="Ej: ¿Qué debería revisar esta semana?",
-        key="bi_consulta_libre",
+        "Ej: ¿Qué debería revisar esta semana?",
     )
 
-    if consulta.strip():
-        sugerencias = sugerencias_preguntas(consulta)
-        if sugerencias:
-            st.caption("Sugerencias:")
-            for pid, pregunta in sugerencias:
-                if st.button(pregunta, key=f"bi_sug_{pid}", use_container_width=True):
-                    st.session_state["bi_respuesta"] = responder_pregunta(pid)
-                    st.session_state["bi_pregunta_texto"] = pregunta
-                    st.rerun()
-
     if st.button("Consultar", key="bi_btn_consultar", type="primary"):
-        pid = buscar_pregunta(consulta)
+        consulta = consulta_sel["label"] if consulta_sel else ""
+        pid = None
+        if consulta_sel:
+            pid = str(consulta_sel["id"])
+        if not pid:
+            pid = buscar_pregunta(consulta)
         if pid:
             st.session_state["bi_respuesta"] = responder_pregunta(pid)
-            st.session_state["bi_pregunta_texto"] = consulta
+            st.session_state["bi_pregunta_texto"] = consulta_sel["label"] if consulta_sel else consulta
         else:
             st.session_state["bi_respuesta"] = (
                 "No he podido interpretar la pregunta. "

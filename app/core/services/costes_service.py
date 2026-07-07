@@ -6,6 +6,7 @@ from io import BytesIO
 import pandas as pd
 
 from app.core.services.data_service import get_repository
+from app.core.services.excel_format import formatear_libro
 from app.core.services.formatting import formato_fecha
 
 
@@ -128,5 +129,9 @@ def exportar_costes_excel(
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
         meta_df.to_excel(writer, sheet_name="Periodos", index=False)
         resumen_df.to_excel(writer, sheet_name="Comparación", index=False)
+        formatear_libro(writer, [
+            ("Periodos", "TablaCostesPeriodos", False),
+            ("Comparación", "TablaCostesComparacion", True),
+        ])
 
     return buffer.getvalue()
