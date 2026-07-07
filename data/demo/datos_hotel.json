@@ -197,6 +197,17 @@
       "fecha_expiracion": null,
       "marca_proveedor": "bimbo",
       "alerta_expiracion_dias": null
+    },
+    {
+      "id": "l13",
+      "producto_id": "p02",
+      "precio_total": 10.0,
+      "cantidad": 30.0,
+      "cantidad_restante": 30.0,
+      "fecha_compra": null,
+      "fecha_expiracion": null,
+      "marca_proveedor": "bimbo",
+      "alerta_expiracion_dias": null
     }
   ],
   "desayunos": [
@@ -416,24 +427,6 @@
     {
       "id": "a03",
       "tipo": "stock_bajo",
-      "titulo": "Stock bajo — Jamón serrano",
-      "mensaje": "Quedan 1.2 Kg. Stock mínimo: 2.",
-      "fecha": "2026-07-07",
-      "activa": true,
-      "producto_id": "p03"
-    },
-    {
-      "id": "a04",
-      "tipo": "stock_bajo",
-      "titulo": "Stock bajo — Queso manchego",
-      "mensaje": "Quedan 0.6 Kg. Stock mínimo: 1.5.",
-      "fecha": "2026-07-07",
-      "activa": true,
-      "producto_id": "p04"
-    },
-    {
-      "id": "a05",
-      "tipo": "stock_bajo",
       "titulo": "Stock bajo — Yogur natural",
       "mensaje": "Quedan 10 Ud. Stock mínimo: 24.",
       "fecha": "2026-07-07",
@@ -441,7 +434,7 @@
       "producto_id": "p05"
     },
     {
-      "id": "a06",
+      "id": "a04",
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Zumo de naranja",
       "mensaje": "Quedan 4.5 L. Stock mínimo: 5.",
@@ -450,7 +443,7 @@
       "producto_id": "p06"
     },
     {
-      "id": "a07",
+      "id": "a05",
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Café molido",
       "mensaje": "Quedan 0.1 Kg. Stock mínimo: 1.",
@@ -459,7 +452,7 @@
       "producto_id": "p07"
     },
     {
-      "id": "a08",
+      "id": "a06",
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Mantequilla",
       "mensaje": "Quedan 0.3 Kg. Stock mínimo: 0.5.",
@@ -468,7 +461,7 @@
       "producto_id": "p08"
     },
     {
-      "id": "a09",
+      "id": "a07",
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Fruta fresca",
       "mensaje": "Quedan 2.1 Kg. Stock mínimo: 3.",
@@ -477,7 +470,7 @@
       "producto_id": "p09"
     },
     {
-      "id": "a10",
+      "id": "a08",
       "tipo": "stock_cero",
       "titulo": "Stock agotado — Huevos",
       "mensaje": "No quedan unidades disponibles.",
@@ -486,7 +479,7 @@
       "producto_id": "p10"
     },
     {
-      "id": "a11",
+      "id": "a09",
       "tipo": "expiracion_proxima",
       "titulo": "Próximo a expirar — Croissant",
       "mensaje": "El lote l01 (compra 02/07/2026) expira en 3 día(s).",
@@ -495,7 +488,7 @@
       "producto_id": "p01"
     },
     {
-      "id": "a12",
+      "id": "a10",
       "tipo": "expiracion_proxima",
       "titulo": "Próximo a expirar — Yogur natural",
       "mensaje": "El lote l05 (compra 03/07/2026) expira en 2 día(s).",
@@ -504,10 +497,14 @@
       "producto_id": "p05"
     }
   ],
+  "alertas_descartadas": [
+    "stock_bajo|p03",
+    "stock_bajo|p04"
+  ],
   "usuarios": [
     {
       "id": "u01",
-      "nombre": "María García",
+      "nombre": "Miki",
       "rol": "Owner",
       "activo": true
     },
@@ -519,12 +516,215 @@
     }
   ],
   "configuracion": {
-    "nombre_establecimiento": "Hotel Boutique La Alameda",
+    "nombre_establecimiento": "Hotel Royal Marina Suites",
     "moneda": "EUR",
     "simbolo_moneda": "€",
-    "logo_path": null
+    "logo_path": "C:\\Users\\User\\Desktop\\HOTEL\\BM V.2\\data\\assets\\logo_hotel.jpg"
   },
   "actividades": [
+    {
+      "id": "act45",
+      "fecha_hora": "2026-07-07T20:09:20.352781",
+      "usuario": "Miki",
+      "accion": "Guardar configuración",
+      "detalle": "Establecimiento: «Hotel Royal Marina Suites», moneda EUR"
+    },
+    {
+      "id": "act44",
+      "fecha_hora": "2026-07-07T20:08:32.590168",
+      "usuario": "Miki",
+      "accion": "Subir logo",
+      "detalle": "Logo del establecimiento actualizado"
+    },
+    {
+      "id": "act43",
+      "fecha_hora": "2026-07-07T19:37:22.921421",
+      "usuario": "Miki",
+      "accion": "Remover alerta",
+      "detalle": "Miki eliminó la alerta «Stock bajo — Queso manchego»"
+    },
+    {
+      "id": "act42",
+      "fecha_hora": "2026-07-07T19:34:36.515661",
+      "usuario": "Miki",
+      "accion": "Remover alerta",
+      "detalle": "Miki eliminó la alerta «Stock bajo — Jamón serrano»"
+    },
+    {
+      "id": "act41",
+      "fecha_hora": "2026-07-07T19:32:51.871046",
+      "usuario": "Miki",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Próximo a expirar — Yogur natural» marcada como resuelta"
+    },
+    {
+      "id": "act40",
+      "fecha_hora": "2026-07-07T19:32:51.433347",
+      "usuario": "Miki",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Próximo a expirar — Croissant» marcada como resuelta"
+    },
+    {
+      "id": "act39",
+      "fecha_hora": "2026-07-07T19:32:49.934152",
+      "usuario": "Miki",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+    },
+    {
+      "id": "act38",
+      "fecha_hora": "2026-07-07T19:31:35.672437",
+      "usuario": "Miki",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+    },
+    {
+      "id": "act37",
+      "fecha_hora": "2026-07-07T19:31:35.110750",
+      "usuario": "Miki",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+    },
+    {
+      "id": "act36",
+      "fecha_hora": "2026-07-07T19:28:26.608131",
+      "usuario": "Miki",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+    },
+    {
+      "id": "act35",
+      "fecha_hora": "2026-07-07T19:27:50.097074",
+      "usuario": "Miki",
+      "accion": "Editar usuario",
+      "detalle": "«María García» renombrado a «Miki»"
+    },
+    {
+      "id": "act34",
+      "fecha_hora": "2026-07-07T19:18:09.102119",
+      "usuario": "María García",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+    },
+    {
+      "id": "act33",
+      "fecha_hora": "2026-07-07T19:18:06.330458",
+      "usuario": "María García",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+    },
+    {
+      "id": "act32",
+      "fecha_hora": "2026-07-07T19:16:46.069932",
+      "usuario": "María García",
+      "accion": "Registrar lote",
+      "detalle": "Lote de «Pan de molde» — 30.0 Ud — 10.00 €"
+    },
+    {
+      "id": "act31",
+      "fecha_hora": "2026-07-07T19:14:29.054914",
+      "usuario": "María García",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Stock bajo — Queso manchego» marcada como resuelta"
+    },
+    {
+      "id": "act30",
+      "fecha_hora": "2026-07-07T19:14:27.923968",
+      "usuario": "María García",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+    },
+    {
+      "id": "act29",
+      "fecha_hora": "2026-07-07T19:14:26.889505",
+      "usuario": "María García",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+    },
+    {
+      "id": "act28",
+      "fecha_hora": "2026-07-07T19:13:56.284142",
+      "usuario": "María García",
+      "accion": "Remover alerta",
+      "detalle": "María García eliminó la alerta «Stock bajo — Jamón serrano»"
+    },
+    {
+      "id": "act27",
+      "fecha_hora": "2026-07-07T19:13:29.064007",
+      "usuario": "María García",
+      "accion": "Remover alerta",
+      "detalle": "María García eliminó la alerta «Stock bajo — Jamón serrano»"
+    },
+    {
+      "id": "act26",
+      "fecha_hora": "2026-07-07T19:12:57.456840",
+      "usuario": "María García",
+      "accion": "Remover alerta",
+      "detalle": "María García eliminó la alerta «Stock bajo — Jamón serrano»"
+    },
+    {
+      "id": "act25",
+      "fecha_hora": "2026-07-07T19:12:07.946723",
+      "usuario": "María García",
+      "accion": "Remover alerta",
+      "detalle": "María García eliminó la alerta «Stock bajo — Yogur natural»"
+    },
+    {
+      "id": "act24",
+      "fecha_hora": "2026-07-07T19:11:36.254852",
+      "usuario": "María García",
+      "accion": "Remover alerta",
+      "detalle": "María García eliminó la alerta «Stock bajo — Jamón serrano»"
+    },
+    {
+      "id": "act23",
+      "fecha_hora": "2026-07-07T19:10:37.961484",
+      "usuario": "María García",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Próximo a expirar — Yogur natural» marcada como resuelta"
+    },
+    {
+      "id": "act22",
+      "fecha_hora": "2026-07-07T19:10:35.326087",
+      "usuario": "María García",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+    },
+    {
+      "id": "act21",
+      "fecha_hora": "2026-07-07T19:10:34.409283",
+      "usuario": "María García",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+    },
+    {
+      "id": "act20",
+      "fecha_hora": "2026-07-07T19:10:31.959275",
+      "usuario": "María García",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+    },
+    {
+      "id": "act19",
+      "fecha_hora": "2026-07-07T19:10:10.184606",
+      "usuario": "María García",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Stock bajo — Queso manchego» marcada como resuelta"
+    },
+    {
+      "id": "act18",
+      "fecha_hora": "2026-07-07T19:10:09.720080",
+      "usuario": "María García",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+    },
+    {
+      "id": "act17",
+      "fecha_hora": "2026-07-07T19:10:08.724665",
+      "usuario": "María García",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+    },
     {
       "id": "act16",
       "fecha_hora": "2026-07-07T19:01:31.938481",

@@ -56,7 +56,23 @@ def _registrar_actividad(data: AppData, accion: str, detalle: str) -> None:
 
 def _firma_alerta(alerta: AlertaOperativa) -> str:
     """Identificador estable para recordar alertas automáticas descartadas."""
+    if alerta.tipo in {TipoAlerta.STOCK_BAJO, TipoAlerta.STOCK_CERO}:
+        return f"{alerta.tipo.value}|{alerta.producto_id or ''}"
+    if alerta.tipo in {TipoAlerta.EXPIRADO, TipoAlerta.EXPIRACION_PROXIMA}:
+        lote_id = _lote_id_desde_mensaje(alerta.mensaje)
+        return f"{alerta.tipo.value}|{alerta.producto_id or ''}|{lote_id}"
+    if alerta.tipo == TipoAlerta.DESAYUNO_NO_REGISTRADO:
+        return alerta.tipo.value
     return f"{alerta.tipo.value}|{alerta.producto_id or ''}|{alerta.mensaje}"
+
+
+def _lote_id_desde_mensaje(mensaje: str) -> str:
+    marcador = "lote "
+    inicio = mensaje.find(marcador)
+    if inicio == -1:
+        return mensaje
+    resto = mensaje[inicio + len(marcador):]
+    return resto.split(" ", 1)[0]
 
 
 def _conservar_alertas(data: AppData) -> list[AlertaOperativa]:
@@ -147,15 +163,20 @@ def _reasignar_ids(alertas: list[AlertaOperativa]) -> None:
 
 
 def _filtrar_auto_descartadas(
+    candidatas: list[AlertaOperativa],
+    descartadas: set[str],
+) -> list[AlertaOperativa]:
+    return [a for a in candidatas if _firma_alerta(a) not in descartadas]
+
+
+def _limpiar_descartadas_obsoletas(
     data: AppData,
     candidatas: list[AlertaOperativa],
-) -> list[AlertaOperativa]:
+) -> None:
     firmas_vigentes = {_firma_alerta(a) for a in candidatas}
     data.alertas_descartadas = [
         firma for firma in data.alertas_descartadas if firma in firmas_vigentes
     ]
-    descartadas = set(data.alertas_descartadas)
-    return [a for a in candidatas if _firma_alerta(a) not in descartadas]
 
 
 def sincronizar_alertas() -> AppData:
@@ -165,8 +186,14 @@ def sincronizar_alertas() -> AppData:
     hoy = date.today()
 
     conservadas = _conservar_alertas(data)
-    auto_stock = _filtrar_auto_descartadas(data, _generar_alertas_stock(data, repo, hoy))
-    auto_desayuno = _filtrar_auto_descartadas(data, _generar_alerta_desayuno(data, repo, hoy))
+    auto_stock_raw = _generar_alertas_stock(data, repo, hoy)
+    auto_desayuno_raw = _generar_alerta_desayuno(data, repo, hoy)
+    todas_candidatas = auto_stock_raw + auto_desayuno_raw
+
+    _limpiar_descartadas_obsoletas(data, todas_candidatas)
+    descartadas = set(data.alertas_descartadas)
+    auto_stock = _filtrar_auto_descartadas(auto_stock_raw, descartadas)
+    auto_desayuno = _filtrar_auto_descartadas(auto_desayuno_raw, descartadas)
 
     data.alertas = conservadas + auto_stock + auto_desayuno
     _reasignar_ids(data.alertas)

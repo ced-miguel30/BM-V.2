@@ -1,3 +1,14 @@
 [client]
 toolbarMode = "minimal"
 showSidebarNavigation = false
+
+[server]
+# Recarga la app al guardar cambios en el código
+runOnSave = true
+fileWatcherType = "auto"
+headless = false
+
+[browser]
+gatherUsageStats = false
+serverAddress = "localhost"
+serverPort = 8501
