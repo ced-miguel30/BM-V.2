@@ -283,11 +283,9 @@ def _render_business_intelligence() -> None:
     from app.core.services.bi_service import (
         PREGUNTAS_SUGERIDAS,
         buscar_pregunta,
-        opciones_preguntas_bi,
         responder_pregunta,
         resumen_automatico,
     )
-    from app.ui.search import render_autocomplete
 
     st.markdown("#### Business Intelligence")
     st.caption("Asistente interno basado en reglas sobre los datos del hotel.")
@@ -307,35 +305,30 @@ def _render_business_intelligence() -> None:
         )
 
     section_divider()
-    st.markdown("##### Preguntas sugeridas")
-    for pid, pregunta in PREGUNTAS_SUGERIDAS:
-        if st.button(pregunta, key=f"bi_pregunta_{pid}", use_container_width=True):
-            st.session_state["bi_respuesta"] = responder_pregunta(pid)
-            st.session_state["bi_pregunta_texto"] = pregunta
 
-    consulta_sel = render_autocomplete(
-        opciones_preguntas_bi(),
-        "bi_consulta",
-        "O escriba su pregunta",
-        "Ej: ¿Qué debería revisar esta semana?",
+    consulta = st.text_input(
+        "Escriba su pregunta",
+        placeholder="Ej: ¿Qué debería revisar esta semana?",
+        key="bi_consulta_libre",
     )
-
     if st.button("Consultar", key="bi_btn_consultar", type="primary"):
-        consulta = consulta_sel["label"] if consulta_sel else ""
-        pid = None
-        if consulta_sel:
-            pid = str(consulta_sel["id"])
-        if not pid:
-            pid = buscar_pregunta(consulta)
+        pid = buscar_pregunta(consulta)
         if pid:
             st.session_state["bi_respuesta"] = responder_pregunta(pid)
-            st.session_state["bi_pregunta_texto"] = consulta_sel["label"] if consulta_sel else consulta
+            st.session_state["bi_pregunta_texto"] = consulta
         else:
             st.session_state["bi_respuesta"] = (
                 "No he podido interpretar la pregunta. "
                 "Pruebe con una de las sugeridas o use palabras como «merma», «caro» o «revisar»."
             )
             st.session_state["bi_pregunta_texto"] = consulta
+
+    section_divider()
+    st.markdown("##### Preguntas sugeridas")
+    for pid, pregunta in PREGUNTAS_SUGERIDAS:
+        if st.button(pregunta, key=f"bi_pregunta_{pid}", use_container_width=True):
+            st.session_state["bi_respuesta"] = responder_pregunta(pid)
+            st.session_state["bi_pregunta_texto"] = pregunta
 
 
 _SUBTABS = {

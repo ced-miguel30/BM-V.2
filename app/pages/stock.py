@@ -63,6 +63,7 @@ def _render_historial_compras(repo) -> None:
         "historial_filtro",
         "Filtrar por producto",
         "Buscar producto...",
+        etiqueta_selectbox="Producto",
     )
     filtro = filtro_sel["label"] if filtro_sel else "Todos los productos"
 
@@ -179,6 +180,7 @@ def _render_registro_producto() -> None:
                 "stock_lote_producto",
                 "Producto",
                 "Buscar producto registrado...",
+                etiqueta_selectbox="Producto",
             )
             with st.form("form_registrar_lote", clear_on_submit=True):
                 col1, col2 = st.columns(2)
@@ -290,6 +292,7 @@ def _render_alertas_stock() -> None:
         "alerta_producto",
         "Producto relacionado (opcional)",
         "Buscar producto...",
+        etiqueta_selectbox="Producto",
     )
 
     with st.form("form_alerta_manual", clear_on_submit=True):

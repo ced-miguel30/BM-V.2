@@ -170,6 +170,7 @@ def _render_registro_merma() -> None:
                     "merma_lote",
                     "Lote (fecha de compra)",
                     "Buscar lote por fecha o ID...",
+                    etiqueta_selectbox="Lote",
                 )
                 if not lote_sel:
                     st.caption("Seleccione un lote de la lista.")

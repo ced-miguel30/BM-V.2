@@ -48,10 +48,45 @@ def inject_global_styles() -> None:
             header[data-testid="stHeader"] {{
                 background: transparent;
             }}
+            [data-testid="stToolbar"] a[href*="streamlit.io"],
+            .stAppDeployButton,
+            [data-testid="stToolbar"] [data-testid="stToolbarDeployButton"] {{
+                display: none !important;
+            }}
 
             .stApp {{
                 background-color: {LIGHT_GRAY};
                 font-family: {FONT_FAMILY};
+            }}
+
+            [data-testid="stSidebarNav"],
+            [data-testid="stSidebarNavSeparator"],
+            section[data-testid="stSidebarNav"] {{
+                display: none !important;
+            }}
+
+            [data-testid="stSidebar"] > div:first-child {{
+                padding-top: 1.25rem;
+            }}
+
+            [data-testid="stSidebar"] .bm-sidebar-panel {{
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                width: 100%;
+                padding: 0.5rem 0.5rem 1rem;
+            }}
+
+            [data-testid="stSidebar"] .bm-sidebar-section-label {{
+                font-size: 0.72rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: {GOLD};
+                margin: 0.75rem 0 0.5rem 0;
+                text-align: center;
+                width: 100%;
             }}
 
             [data-testid="stSidebar"] {{
@@ -221,45 +256,80 @@ def inject_global_styles() -> None:
                 font-size: 0.88rem;
             }}
 
-            .bm-sidebar-brand {{
-                text-align: center;
-                padding: 1rem 0 1.5rem 0;
+            .bm-sidebar-alerts {{
+                padding: 0.5rem 0 1rem 0;
                 border-bottom: 1px solid rgba(201, 162, 39, 0.3);
-                margin-bottom: 1.5rem;
+                margin-bottom: 0.5rem;
+                width: 100%;
+                max-width: 240px;
             }}
 
-            .bm-sidebar-logo {{
-                width: 56px;
-                height: 56px;
-                border-radius: 50%;
-                background: rgba(201, 162, 39, 0.2);
-                border: 2px solid {GOLD};
+            .bm-sidebar-alerts-title {{
+                font-size: 0.72rem;
+                font-weight: 600;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: {GOLD};
+                margin: 0 0 0.85rem 0;
+                text-align: center;
+            }}
+
+            .bm-sidebar-metric {{
                 display: flex;
+                flex-direction: column;
                 align-items: center;
-                justify-content: center;
-                margin: 0 auto 0.75rem auto;
-                font-size: 1.5rem;
+                gap: 0.15rem;
+                margin-bottom: 0.65rem;
+                font-size: 0.82rem;
+                text-align: center;
             }}
 
-            .bm-sidebar-title {{
-                font-size: 1.1rem;
+            .bm-sidebar-metric-label {{
+                color: rgba(255, 255, 255, 0.75);
+            }}
+
+            .bm-sidebar-metric-value {{
                 font-weight: 700;
                 color: {WHITE};
-                margin: 0;
+                font-size: 0.95rem;
             }}
 
-            .bm-sidebar-hotel {{
-                font-size: 0.8rem;
-                color: rgba(255, 255, 255, 0.65);
-                margin: 0.25rem 0 0 0;
-            }}
-
-            .bm-sidebar-version {{
-                font-size: 0.75rem;
-                color: {GOLD};
-                margin-top: 2rem;
+            .bm-sidebar-alert {{
+                background: rgba(255, 255, 255, 0.08);
+                border-radius: 8px;
+                padding: 0.6rem 0.75rem;
+                margin: 0 auto 0.5rem auto;
+                border-left: none;
+                border-top: 3px solid {GOLD};
+                width: 100%;
+                max-width: 240px;
                 text-align: center;
-                opacity: 0.85;
+            }}
+
+            .bm-sidebar-alert-warning {{
+                border-left-color: {WARNING};
+            }}
+
+            .bm-sidebar-alert-danger {{
+                border-left-color: {DANGER};
+            }}
+
+            .bm-sidebar-alert-ok {{
+                border-left-color: {SUCCESS};
+            }}
+
+            .bm-sidebar-alert-title {{
+                font-size: 0.8rem;
+                font-weight: 600;
+                margin: 0 0 0.2rem 0;
+                color: {WHITE};
+            }}
+
+            .bm-sidebar-alert-detail {{
+                font-size: 0.72rem;
+                margin: 0;
+                color: rgba(255, 255, 255, 0.7);
+                line-height: 1.35;
             }}
 
             .bm-chart-placeholder {{

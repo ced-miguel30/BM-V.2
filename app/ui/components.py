@@ -2,27 +2,49 @@
 
 import streamlit as st
 
-from app.core.services.settings_service import nombre_hotel_sidebar
-from app.ui.theme import APP_NAME, APP_VERSION, NAV_SECTIONS
+from app.core.services.sidebar_service import resumen_sidebar
+from app.ui.theme import NAV_SECTIONS
 
 
-def render_sidebar() -> str:
-    """Renderiza la barra lateral y devuelve la sección seleccionada."""
-    hotel = nombre_hotel_sidebar()
-    with st.sidebar:
+def _render_sidebar_alertas() -> None:
+    datos = resumen_sidebar()
+    st.markdown('<div class="bm-sidebar-panel">', unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <div class="bm-sidebar-alerts">
+            <p class="bm-sidebar-alerts-title">Resumen del mes</p>
+            <div class="bm-sidebar-metric">
+                <span class="bm-sidebar-metric-label">Coste desayuno</span>
+                <span class="bm-sidebar-metric-value">{datos["coste_consumo_mes"]}</span>
+            </div>
+            <div class="bm-sidebar-metric">
+                <span class="bm-sidebar-metric-label">Coste total</span>
+                <span class="bm-sidebar-metric-value">{datos["coste_total_mes"]}</span>
+            </div>
+        </div>
+        <p class="bm-sidebar-section-label">Alertas</p>
+        """,
+        unsafe_allow_html=True,
+    )
+    for alerta in datos["alertas"]:
+        clase = f"bm-sidebar-alert bm-sidebar-alert-{alerta.tipo}"
         st.markdown(
             f"""
-            <div class="bm-sidebar-brand">
-                <div class="bm-sidebar-logo">☕</div>
-                <p class="bm-sidebar-title">{APP_NAME}</p>
-                <p class="bm-sidebar-hotel">{hotel}</p>
-                <p class="bm-sidebar-version">{APP_VERSION}</p>
+            <div class="{clase}">
+                <p class="bm-sidebar-alert-title">{alerta.titulo}</p>
+                <p class="bm-sidebar-alert-detail">{alerta.detalle}</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
+    st.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown("**Navegación**")
+
+def render_sidebar() -> str:
+    """Renderiza la barra lateral y devuelve la sección seleccionada."""
+    with st.sidebar:
+        _render_sidebar_alertas()
+        st.markdown('<p class="bm-sidebar-section-label">Navegación</p>', unsafe_allow_html=True)
         section = st.radio(
             label="Sección",
             options=list(NAV_SECTIONS.keys()),
