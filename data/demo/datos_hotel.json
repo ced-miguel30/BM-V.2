@@ -175,6 +175,28 @@
       "fecha_expiracion": "2026-07-06",
       "marca_proveedor": "Granja Local",
       "alerta_expiracion_dias": 3
+    },
+    {
+      "id": "l11",
+      "producto_id": "p01",
+      "precio_total": 5.0,
+      "cantidad": 5.0,
+      "cantidad_restante": 5.0,
+      "fecha_compra": null,
+      "fecha_expiracion": null,
+      "marca_proveedor": null,
+      "alerta_expiracion_dias": null
+    },
+    {
+      "id": "l12",
+      "producto_id": "p01",
+      "precio_total": 5.0,
+      "cantidad": 5.0,
+      "cantidad_restante": 5.0,
+      "fecha_compra": null,
+      "fecha_expiracion": null,
+      "marca_proveedor": null,
+      "alerta_expiracion_dias": null
     }
   ],
   "desayunos": [
@@ -261,45 +283,6 @@
       ],
       "coste_total": 9.62,
       "registrado_por": "Carlos Ruiz"
-    },
-    {
-      "id": "d04",
-      "fecha": "2026-07-03",
-      "lineas": [
-        {
-          "producto_id": "p01",
-          "cantidad": 12,
-          "coste": 13.4
-        }
-      ],
-      "coste_total": 13.4,
-      "registrado_por": "María García"
-    },
-    {
-      "id": "d05",
-      "fecha": "2026-07-02",
-      "lineas": [
-        {
-          "producto_id": "p01",
-          "cantidad": 12,
-          "coste": 17.1
-        }
-      ],
-      "coste_total": 17.1,
-      "registrado_por": "Carlos Ruiz"
-    },
-    {
-      "id": "d06",
-      "fecha": "2026-07-01",
-      "lineas": [
-        {
-          "producto_id": "p01",
-          "cantidad": 12,
-          "coste": 12.85
-        }
-      ],
-      "coste_total": 12.85,
-      "registrado_por": "María García"
     }
   ],
   "mermas": [
@@ -346,21 +329,6 @@
         }
       ],
       "coste_total": 0.6,
-      "registrado_por": "María García"
-    },
-    {
-      "id": "m04",
-      "fecha": "2026-07-01",
-      "lineas": [
-        {
-          "producto_id": "p02",
-          "cantidad": 2,
-          "coste": 0.75,
-          "motivo": "Merma",
-          "comentario": null
-        }
-      ],
-      "coste_total": 0.75,
       "registrado_por": "María García"
     }
   ],
@@ -450,6 +418,20 @@
     "logo_path": null
   },
   "actividades": [
+    {
+      "id": "act07",
+      "fecha_hora": "2026-07-07T16:15:33.164685",
+      "usuario": "María García",
+      "accion": "Registrar lote",
+      "detalle": "Lote de «Croissant» — 5.0 Ud — 5.00 €"
+    },
+    {
+      "id": "act06",
+      "fecha_hora": "2026-07-07T16:14:53.099072",
+      "usuario": "María García",
+      "accion": "Registrar lote",
+      "detalle": "Lote de «Croissant» — 5.0 Ud — 5.00 €"
+    },
     {
       "id": "act01",
       "fecha_hora": "2026-07-07T08:15:00",

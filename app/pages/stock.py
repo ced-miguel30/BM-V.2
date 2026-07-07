@@ -1,10 +1,12 @@
 """Stock — productos y alertas."""
 
+import pandas as pd
 import streamlit as st
 
 from app.core.models import TipoAlerta
 from app.core.services.data_service import get_repository
 from app.core.services.formatting import formato_fecha, formato_moneda
+from app.core.services.stock_service import UNIDADES, crear_producto, mapa_productos, registrar_lote
 from app.ui.components import empty_state, page_header, render_sub_tabs, section_divider
 
 
@@ -13,60 +15,85 @@ def _render_registro_producto() -> None:
 
     with st.expander("Crear producto", expanded=True):
         st.markdown("##### Nuevo producto")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.text_input("Nombre del producto", disabled=True, key="prod_nombre")
-            st.selectbox(
-                "Unidad",
-                ["Ud", "L", "gr", "Kg", "Otro"],
-                disabled=True,
-                key="prod_unidad",
-            )
-        with col2:
-            st.number_input(
-                "Stock mínimo (opcional)",
-                min_value=0.0,
-                value=0.0,
-                disabled=True,
-                key="prod_stock_min",
-            )
-        st.button("Crear producto", disabled=True, key="btn_crear_producto")
+        with st.form("form_crear_producto", clear_on_submit=True):
+            col1, col2 = st.columns(2)
+            with col1:
+                nombre = st.text_input("Nombre del producto", placeholder="Ej: Croissant")
+                unidad = st.selectbox("Unidad", UNIDADES)
+            with col2:
+                stock_min = st.number_input(
+                    "Stock mínimo (opcional)",
+                    min_value=0.0,
+                    value=0.0,
+                    step=1.0,
+                    help="Deje 0 si no desea definir stock mínimo.",
+                )
+            enviado = st.form_submit_button("Crear producto", type="primary")
+            if enviado:
+                resultado = crear_producto(nombre, unidad, stock_min if stock_min > 0 else None)
+                if resultado.ok:
+                    st.success(resultado.mensaje)
+                    st.rerun()
+                else:
+                    st.error(resultado.mensaje)
 
     with st.expander("Registrar lote / compra"):
         st.markdown("##### Nuevo lote")
-        opciones = ["— Seleccione un producto —"] + [p.nombre for p in repo.data.productos]
-        col1, col2 = st.columns(2)
-        with col1:
-            st.selectbox("Producto", opciones, disabled=True, key="lote_producto")
-            st.date_input("Fecha de compra (opcional)", disabled=True, key="lote_compra")
-            st.date_input("Fecha de expiración (opcional)", disabled=True, key="lote_exp")
-        with col2:
-            st.number_input("Precio total", min_value=0.0, value=0.0, disabled=True, key="lote_precio")
-            st.number_input("Cantidad", min_value=0.0, value=0.0, disabled=True, key="lote_cantidad")
-            st.text_input("Marca / proveedor (opcional)", disabled=True, key="lote_proveedor")
-            st.number_input(
-                "Alerta de expiración en X días (opcional)",
-                min_value=0,
-                value=0,
-                disabled=True,
-                key="lote_alerta_dias",
-            )
-        st.button("Registrar lote", disabled=True, key="btn_registrar_lote")
+        productos_map = mapa_productos(repo.data)
+        if not productos_map:
+            st.warning("Primero debe crear al menos un producto.")
+        else:
+            nombres = list(productos_map.keys())
+            with st.form("form_registrar_lote", clear_on_submit=True):
+                col1, col2 = st.columns(2)
+                with col1:
+                    producto_nombre = st.selectbox("Producto", nombres)
+                    usar_compra = st.checkbox("Usar fecha de compra", value=False)
+                    fecha_compra_val = st.date_input("Fecha de compra", key="lote_fecha_compra")
+                    usar_exp = st.checkbox("Usar fecha de expiración", value=False)
+                    fecha_exp_val = st.date_input("Fecha de expiración", key="lote_fecha_exp")
+                with col2:
+                    precio = st.number_input("Precio total", min_value=0.0, value=0.0, step=0.01, format="%.2f")
+                    cantidad = st.number_input("Cantidad", min_value=0.0, value=0.0, step=0.1, format="%.2f")
+                    proveedor = st.text_input("Marca / proveedor (opcional)")
+                    alerta_dias = st.number_input(
+                        "Alerta de expiración en X días (opcional)",
+                        min_value=0,
+                        value=0,
+                        step=1,
+                    )
+                enviado = st.form_submit_button("Registrar lote", type="primary")
+                if enviado:
+                    resultado = registrar_lote(
+                        producto_id=productos_map[producto_nombre],
+                        precio_total=precio,
+                        cantidad=cantidad,
+                        fecha_compra=fecha_compra_val if usar_compra else None,
+                        fecha_expiracion=fecha_exp_val if usar_exp else None,
+                        marca_proveedor=proveedor,
+                        alerta_expiracion_dias=alerta_dias if alerta_dias > 0 else None,
+                    )
+                    if resultado.ok:
+                        st.success(resultado.mensaje)
+                        st.rerun()
+                    else:
+                        st.error(resultado.mensaje)
 
     section_divider()
     st.markdown("#### Productos registrados")
 
     if repo.data.productos:
         filas = []
-        for p in repo.data.productos:
+        for p in sorted(repo.data.productos, key=lambda x: x.nombre):
             stock = repo.stock_total_producto(p.id)
             filas.append({
+                "ID": p.id,
                 "Producto": p.nombre,
                 "Unidad": p.unidad.value,
                 "Stock actual": stock,
                 "Stock mínimo": p.stock_minimo if p.stock_minimo is not None else "—",
             })
-        st.dataframe(filas, use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(filas), use_container_width=True, hide_index=True)
     else:
         empty_state("No hay productos registrados.", icon="📦")
 
@@ -77,6 +104,7 @@ def _render_registro_producto() -> None:
         filas = []
         for lote in repo.data.lotes:
             filas.append({
+                "ID": lote.id,
                 "Producto": repo.get_nombre_producto(lote.producto_id),
                 "Cantidad": lote.cantidad,
                 "Restante": lote.cantidad_restante,
@@ -85,7 +113,7 @@ def _render_registro_producto() -> None:
                 "Expiración": formato_fecha(lote.fecha_expiracion),
                 "Proveedor": lote.marca_proveedor or "—",
             })
-        st.dataframe(filas, use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(filas), use_container_width=True, hide_index=True)
     else:
         empty_state("No hay lotes registrados.", icon="🏷️")
 
@@ -141,15 +169,7 @@ def _render_alertas_stock() -> None:
 
     section_divider()
     st.markdown("#### Generar alerta manual")
-    opciones = ["— Seleccione un producto —"] + [p.nombre for p in repo.data.productos]
-    with st.form("form_alerta_manual", clear_on_submit=False):
-        st.selectbox("Producto", opciones, disabled=True, key="alerta_producto")
-        st.text_input("Motivo", disabled=True, key="alerta_motivo")
-        st.number_input("Días hasta alerta", min_value=0, value=0, disabled=True, key="alerta_dias")
-        st.text_area("Comentario (opcional)", disabled=True, key="alerta_comentario")
-        st.form_submit_button("Generar alerta", disabled=True)
-
-    st.caption("La creación de alertas estará disponible en Fase 5.")
+    st.caption("Disponible en Fase 5.")
 
 
 _SUBTABS = {

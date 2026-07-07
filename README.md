@@ -25,7 +25,7 @@ La aplicación se abrirá en el navegador (por defecto en `http://localhost:8501
 
 ## Estado actual
 
-**Fase 2** — Modelos internos y datos mock. Las pantallas muestran datos de ejemplo en memoria; sin base de datos ni persistencia entre sesiones.
+**Fase 4** — Stock: crear productos y registrar lotes con persistencia en `data/demo/datos_hotel.json`. Settings incluye pestaña «Datos demo» para recargar o restablecer.
 
 ## Estructura de carpetas
 

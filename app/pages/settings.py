@@ -118,10 +118,50 @@ def _render_actividad() -> None:
     st.caption("La exportación diaria en PDF se preparará en fases posteriores.")
 
 
+def _render_datos_demo() -> None:
+    from app.core.storage.session_store import get_demo_path, reload_from_disk, reset_data
+
+    repo = get_repository()
+    ruta = get_demo_path()
+
+    st.markdown("#### Datos de demostración")
+    st.caption("Los cambios de Stock y otras secciones se guardan en el archivo JSON local.")
+
+    st.code(ruta, language=None)
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.metric("Productos", len(repo.data.productos))
+    with col2:
+        st.metric("Lotes", len(repo.data.lotes))
+    with col3:
+        st.metric("Actividades", len(repo.data.actividades))
+
+    section_divider()
+
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button("Recargar desde disco", use_container_width=True, key="settings_reload_demo"):
+            reload_from_disk()
+            st.success("Datos recargados desde el archivo.")
+            st.rerun()
+    with col_b:
+        if st.button("Restablecer datos mock", use_container_width=True, key="settings_reset_demo"):
+            reset_data()
+            st.success("Datos restablecidos al conjunto de demostración.")
+            st.rerun()
+
+    st.caption(
+        "Use «Recargar» si editó el JSON manualmente. "
+        "«Restablecer» vuelve a los datos de ejemplo originales."
+    )
+
+
 _SUBTABS = {
     "Usuarios": _render_usuarios,
     "Configuración": _render_configuracion,
     "Actividad": _render_actividad,
+    "Datos demo": _render_datos_demo,
 }
 
 
