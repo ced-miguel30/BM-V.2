@@ -2,10 +2,15 @@
 
 import streamlit as st
 
+from app.core.models import TipoAlerta
+from app.core.services.data_service import get_repository
+from app.core.services.formatting import formato_fecha, formato_moneda
 from app.ui.components import empty_state, page_header, render_sub_tabs, section_divider
 
 
 def _render_registro_producto() -> None:
+    repo = get_repository()
+
     with st.expander("Crear producto", expanded=True):
         st.markdown("##### Nuevo producto")
         col1, col2 = st.columns(2)
@@ -29,14 +34,10 @@ def _render_registro_producto() -> None:
 
     with st.expander("Registrar lote / compra"):
         st.markdown("##### Nuevo lote")
+        opciones = ["— Seleccione un producto —"] + [p.nombre for p in repo.data.productos]
         col1, col2 = st.columns(2)
         with col1:
-            st.selectbox(
-                "Producto",
-                ["— Seleccione un producto —"],
-                disabled=True,
-                key="lote_producto",
-            )
+            st.selectbox("Producto", opciones, disabled=True, key="lote_producto")
             st.date_input("Fecha de compra (opcional)", disabled=True, key="lote_compra")
             st.date_input("Fecha de expiración (opcional)", disabled=True, key="lote_exp")
         with col2:
@@ -54,50 +55,95 @@ def _render_registro_producto() -> None:
 
     section_divider()
     st.markdown("#### Productos registrados")
-    empty_state(
-        "No hay productos registrados. Podrá crearlos en Fase 4.",
-        icon="📦",
-    )
+
+    if repo.data.productos:
+        filas = []
+        for p in repo.data.productos:
+            stock = repo.stock_total_producto(p.id)
+            filas.append({
+                "Producto": p.nombre,
+                "Unidad": p.unidad.value,
+                "Stock actual": stock,
+                "Stock mínimo": p.stock_minimo if p.stock_minimo is not None else "—",
+            })
+        st.dataframe(filas, use_container_width=True, hide_index=True)
+    else:
+        empty_state("No hay productos registrados.", icon="📦")
 
     section_divider()
     st.markdown("#### Lotes registrados")
-    empty_state(
-        "No hay lotes registrados.",
-        icon="🏷️",
-    )
+
+    if repo.data.lotes:
+        filas = []
+        for lote in repo.data.lotes:
+            filas.append({
+                "Producto": repo.get_nombre_producto(lote.producto_id),
+                "Cantidad": lote.cantidad,
+                "Restante": lote.cantidad_restante,
+                "Precio total": formato_moneda(lote.precio_total, repo.get_simbolo_moneda()),
+                "Compra": formato_fecha(lote.fecha_compra),
+                "Expiración": formato_fecha(lote.fecha_expiracion),
+                "Proveedor": lote.marca_proveedor or "—",
+            })
+        st.dataframe(filas, use_container_width=True, hide_index=True)
+    else:
+        empty_state("No hay lotes registrados.", icon="🏷️")
 
 
 def _render_alertas_stock() -> None:
+    repo = get_repository()
+
     st.markdown("#### Estado de alertas")
     st.caption("Productos con stock bajo, sin stock, próximos a expirar y alertas manuales.")
 
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("##### Stock bajo")
-        empty_state("Sin productos con stock bajo.", icon="⚠️")
+        stock_bajo = repo.productos_stock_bajo()
+        if stock_bajo:
+            for producto, stock in stock_bajo:
+                st.markdown(f"- **{producto.nombre}** — {stock} {producto.unidad.value}")
+        else:
+            empty_state("Sin productos con stock bajo.", icon="⚠️")
+
     with col2:
         st.markdown("##### Stock cero")
-        empty_state("Sin productos agotados.", icon="🚫")
+        agotados = repo.productos_stock_cero()
+        if agotados:
+            for producto in agotados:
+                st.markdown(f"- **{producto.nombre}**")
+        else:
+            empty_state("Sin productos agotados.", icon="🚫")
 
     section_divider()
 
     col3, col4 = st.columns(2)
     with col3:
         st.markdown("##### Próximos a expirar")
-        empty_state("Sin productos próximos a expirar.", icon="⏰")
+        proximos = repo.lotes_proximos_expirar()
+        if proximos:
+            for item in proximos:
+                st.markdown(
+                    f"- **{item['producto']}** — expira en {item['dias']} días "
+                    f"({formato_fecha(item['lote'].fecha_expiracion)})"
+                )
+        else:
+            empty_state("Sin productos próximos a expirar.", icon="⏰")
+
     with col4:
         st.markdown("##### Alertas manuales")
-        empty_state("Sin alertas manuales creadas.", icon="✋")
+        manuales = repo.alertas_por_tipo(TipoAlerta.MANUAL)
+        if manuales:
+            for alerta in manuales:
+                st.markdown(f"- **{alerta.titulo}** — {alerta.mensaje}")
+        else:
+            empty_state("Sin alertas manuales creadas.", icon="✋")
 
     section_divider()
     st.markdown("#### Generar alerta manual")
+    opciones = ["— Seleccione un producto —"] + [p.nombre for p in repo.data.productos]
     with st.form("form_alerta_manual", clear_on_submit=False):
-        st.selectbox(
-            "Producto",
-            ["— Seleccione un producto —"],
-            disabled=True,
-            key="alerta_producto",
-        )
+        st.selectbox("Producto", opciones, disabled=True, key="alerta_producto")
         st.text_input("Motivo", disabled=True, key="alerta_motivo")
         st.number_input("Días hasta alerta", min_value=0, value=0, disabled=True, key="alerta_dias")
         st.text_area("Comentario (opcional)", disabled=True, key="alerta_comentario")

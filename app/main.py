@@ -9,6 +9,7 @@ if str(ROOT) not in sys.path:
 
 import streamlit as st
 
+from app.core.storage.session_store import init_data
 from app.pages import analisis, dashboard, desayuno, settings, stock
 from app.ui.components import render_sidebar
 from app.ui.styles import inject_global_styles
@@ -31,6 +32,7 @@ def main() -> None:
         initial_sidebar_state="expanded",
     )
     inject_global_styles()
+    init_data()
 
     section = render_sidebar()
     PAGES[section]()

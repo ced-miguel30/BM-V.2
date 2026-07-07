@@ -2,18 +2,29 @@
 
 import streamlit as st
 
+from app.core.services.data_service import get_repository
+from app.core.services.formatting import formato_fecha_hora
 from app.ui.components import empty_state, page_header, render_sub_tabs, section_divider
+
+MONEDAS = {
+    "EUR": "EUR (€)",
+    "USD": "USD ($)",
+    "GBP": "GBP (£)",
+}
 
 
 def _render_usuarios() -> None:
+    repo = get_repository()
+    usuarios = repo.data.usuarios
+
     st.markdown("#### Usuarios del sistema")
     st.caption("Gestión temporal de usuarios. El login se implementará en la fase final.")
 
     st.dataframe(
         {
-            "Nombre": ["Usuario Owner"],
-            "Rol": ["Owner"],
-            "Estado": ["Activo"],
+            "Nombre": [u.nombre for u in usuarios],
+            "Rol": [u.rol.value for u in usuarios],
+            "Estado": ["Activo" if u.activo else "Inactivo" for u in usuarios],
         },
         use_container_width=True,
         hide_index=True,
@@ -28,7 +39,8 @@ def _render_usuarios() -> None:
 
     section_divider()
     st.markdown("##### Editar / eliminar")
-    st.selectbox("Seleccionar usuario", ["Usuario Owner"], disabled=True, key="settings_sel_usuario")
+    nombres = [u.nombre for u in usuarios]
+    st.selectbox("Seleccionar usuario", nombres, disabled=True, key="settings_sel_usuario")
     col1, col2 = st.columns(2)
     with col1:
         st.button("Editar nombre", disabled=True, use_container_width=True, key="settings_editar_usuario")
@@ -37,18 +49,26 @@ def _render_usuarios() -> None:
 
 
 def _render_configuracion() -> None:
+    repo = get_repository()
+    config = repo.data.configuracion
+
     st.markdown("#### Configuración del establecimiento")
     st.caption("Ajustes generales del hotel. Los cambios se persistirán en fases posteriores.")
 
+    nombre = config.nombre_establecimiento if config else "Hotel Boutique"
+    moneda_key = config.moneda if config else "EUR"
+    moneda_label = MONEDAS.get(moneda_key, "EUR (€)")
+
     st.text_input(
         "Nombre del establecimiento",
-        value="Hotel Boutique",
+        value=nombre,
         disabled=True,
         key="settings_nombre_establecimiento",
     )
     st.selectbox(
         "Moneda",
-        ["EUR (€)", "USD ($)", "GBP (£)"],
+        list(MONEDAS.values()),
+        index=list(MONEDAS.values()).index(moneda_label) if moneda_label in MONEDAS.values() else 0,
         disabled=True,
         key="settings_moneda",
     )
@@ -68,13 +88,25 @@ def _render_configuracion() -> None:
 
 
 def _render_actividad() -> None:
+    repo = get_repository()
+    actividades = sorted(repo.data.actividades, key=lambda a: a.fecha_hora, reverse=True)
+
     st.markdown("#### Registro de actividad")
     st.caption("Historial de acciones realizadas en la aplicación.")
 
-    empty_state(
-        "No hay actividad registrada todavía.",
-        icon="📝",
-    )
+    if actividades:
+        st.dataframe(
+            {
+                "Fecha y hora": [formato_fecha_hora(a.fecha_hora) for a in actividades],
+                "Usuario": [a.usuario for a in actividades],
+                "Acción": [a.accion for a in actividades],
+                "Detalle": [a.detalle for a in actividades],
+            },
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        empty_state("No hay actividad registrada todavía.", icon="📝")
 
     section_divider()
     st.button(

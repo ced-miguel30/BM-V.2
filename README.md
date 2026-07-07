@@ -25,7 +25,7 @@ La aplicación se abrirá en el navegador (por defecto en `http://localhost:8501
 
 ## Estado actual
 
-**Fase 1** — Base visual y navegación. Solo interfaz con placeholders; sin persistencia ni lógica de negocio.
+**Fase 2** — Modelos internos y datos mock. Las pantallas muestran datos de ejemplo en memoria; sin base de datos ni persistencia entre sesiones.
 
 ## Estructura de carpetas
 
@@ -35,7 +35,7 @@ app/
   pages/            # Pantallas de la aplicación
   ui/               # Tema, estilos y componentes reutilizables
   core/             # Modelos, servicios y persistencia (fases futuras)
-  data/             # Datos mock (Fase 2)
+  data/             # Datos mock (mock_data.py)
 exports/            # Archivos exportados
 logs/               # Registros de actividad
 ```

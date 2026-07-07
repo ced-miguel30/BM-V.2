@@ -1,0 +1,34 @@
+"""Enumeraciones del dominio."""
+
+from enum import Enum
+
+
+class UnidadProducto(str, Enum):
+    UD = "Ud"
+    L = "L"
+    GR = "gr"
+    KG = "Kg"
+    OTRO = "Otro"
+
+
+class RolUsuario(str, Enum):
+    OWNER = "Owner"
+    ADMIN = "Admin"
+
+
+class MotivoMerma(str, Enum):
+    MERMA = "Merma"
+    EXPIRACION = "Expiración"
+    PRODUCTO_MALO = "Producto malo"
+    PRODUCTO_ABIERTO = "Producto abierto"
+    OTRO = "Otro"
+
+
+class TipoAlerta(str, Enum):
+    STOCK_BAJO = "stock_bajo"
+    STOCK_CERO = "stock_cero"
+    EXPIRACION_PROXIMA = "expiracion_proxima"
+    EXPIRADO = "expirado"
+    MERMA_ELEVADA = "merma_elevada"
+    DESAYUNO_NO_REGISTRADO = "desayuno_no_registrado"
+    MANUAL = "manual"

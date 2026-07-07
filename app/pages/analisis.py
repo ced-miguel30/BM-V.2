@@ -2,6 +2,8 @@
 
 import streamlit as st
 
+from app.core.models import MotivoMerma
+from app.core.services.data_service import get_repository
 from app.ui.components import (
     chart_placeholder,
     empty_state,
@@ -14,6 +16,8 @@ from app.ui.components import (
 
 
 def _render_kpis() -> None:
+    repo = get_repository()
+
     st.markdown("#### Indicadores clave")
     col_f1, col_f2 = st.columns(2)
     with col_f1:
@@ -25,15 +29,19 @@ def _render_kpis() -> None:
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        metric_card("Coste total", "0,00 €", "Periodo seleccionado")
+        metric_card("Coste total", repo.formato_precio(repo.coste_total_mes()), "Mes actual")
     with col2:
-        metric_card("Coste por huésped", "0,00 €", "Estimación")
+        metric_card("Coste por huésped", "—", "Disponible en Fase 8")
     with col3:
-        metric_card("Merma total", "0,00 €", "Periodo seleccionado")
+        metric_card("Merma total", repo.formato_precio(repo.coste_merma_mes()), "Mes actual")
 
     col4, col5 = st.columns(2)
     with col4:
-        metric_card("Productos expirados", "0", "Este mes")
+        n_exp = sum(
+            1 for m in repo.data.mermas
+            for l in m.lineas if l.motivo == MotivoMerma.EXPIRACION
+        )
+        metric_card("Registros por expiración", str(n_exp), "Este mes")
     with col5:
         st.button("Exportar Excel", disabled=True, use_container_width=True, key="kpi_exportar_excel")
 
@@ -44,13 +52,26 @@ def _render_kpis() -> None:
     col_top1, col_top2 = st.columns(2)
     with col_top1:
         st.markdown("##### Top 5 — Más costosos")
-        empty_state("Sin datos disponibles.", icon="📊")
+        top = repo.top_productos_costosos(5)
+        if top:
+            for i, item in enumerate(top, 1):
+                st.markdown(f"{i}. **{item['producto']}** — {item['coste_fmt']}")
+        else:
+            empty_state("Sin datos disponibles.", icon="📊")
+
     with col_top2:
         st.markdown("##### Top 5 — Menos costosos")
-        empty_state("Sin datos disponibles.", icon="📊")
+        bottom = repo.top_productos_menos_costosos(5)
+        if bottom:
+            for i, item in enumerate(bottom, 1):
+                st.markdown(f"{i}. **{item['producto']}** — {item['coste_fmt']}")
+        else:
+            empty_state("Sin datos disponibles.", icon="📊")
 
 
 def _render_gestor_consumo() -> None:
+    repo = get_repository()
+
     st.markdown("#### Gestor de consumo")
     st.caption("Analice el consumo por producto y obtenga estimaciones según huéspedes esperados.")
 
@@ -67,10 +88,17 @@ def _render_gestor_consumo() -> None:
     col1, col2 = st.columns(2)
     with col1:
         st.markdown("##### Consumo por producto")
-        empty_state("Sin datos de consumo.", icon="🍽️")
+        consumo = repo.consumo_por_producto()
+        if consumo:
+            st.dataframe(consumo, use_container_width=True, hide_index=True)
+        else:
+            empty_state("Sin datos de consumo.", icon="🍽️")
+
     with col2:
         st.markdown("##### Consumo medio diario")
-        empty_state("Sin datos calculados.", icon="📈")
+        n_dias = len({d.fecha for d in repo.data.desayunos}) or 1
+        media = sum(d.coste_total for d in repo.data.desayunos) / n_dias
+        metric_card("Media diaria", repo.formato_precio(media), f"Basado en {n_dias} días")
 
     section_divider()
     placeholder_panel(
@@ -85,6 +113,8 @@ def _render_gestor_consumo() -> None:
 
 
 def _render_gestor_costes() -> None:
+    repo = get_repository()
+
     st.markdown("#### Gestor de costes")
     st.caption("Analice consumo, merma y expiración de forma conjunta o por categoría.")
 
@@ -105,11 +135,15 @@ def _render_gestor_costes() -> None:
         st.date_input("Periodo B — hasta", disabled=True, key="costes_b_hasta")
 
     section_divider()
-    empty_state(
-        "Seleccione categorías y periodos para ver el análisis comparativo. "
-        "Disponible en Fase 10.",
-        icon="💶",
-    )
+
+    st.markdown("##### Resumen del mes actual")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        metric_card("Consumo", repo.formato_precio(repo.coste_consumo_mes()), "Mes actual")
+    with c2:
+        metric_card("Merma", repo.formato_precio(repo.coste_merma_mes()), "Mes actual")
+    with c3:
+        metric_card("Expiración", repo.formato_precio(repo.coste_expiracion_mes()), "Mes actual")
 
     col_exp1, col_exp2 = st.columns(2)
     with col_exp1:
@@ -119,8 +153,21 @@ def _render_gestor_costes() -> None:
 
 
 def _render_business_intelligence() -> None:
+    repo = get_repository()
+
     st.markdown("#### Business Intelligence")
     st.caption("Asistente interno basado en reglas sobre los datos del hotel.")
+
+    st.markdown("##### Resumen automático (datos mock)")
+    top = repo.top_productos_costosos(1)
+    stock_bajo = repo.productos_stock_bajo()
+    resumen = (
+        f"Coste total del mes: **{repo.formato_precio(repo.coste_total_mes())}**. "
+        f"Producto más costoso: **{top[0]['producto']}** ({top[0]['coste_fmt']}). "
+        f"Alertas activas: **{len(repo.alertas_activas())}**. "
+        f"Productos con stock bajo: **{len(stock_bajo)}**."
+    )
+    st.info(resumen)
 
     st.markdown("##### Preguntas sugeridas")
     preguntas = [
