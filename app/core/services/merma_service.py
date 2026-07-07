@@ -6,6 +6,7 @@ from datetime import date, datetime
 from app.core.models import AppData, LineaMerma, LoteStock, MotivoMerma, RegistroMerma
 from app.core.repositories.data_repository import DataRepository
 from app.core.services.formatting import formato_fecha
+from app.core.services.text_search import coincide_busqueda
 from app.core.storage.session_store import get_data, persist_data
 
 CESTA_MERMA_KEY = "bm_cesta_merma"
@@ -105,14 +106,14 @@ def quitar_de_cesta_merma(lote_id: str, motivo: str) -> None:
 
 def productos_con_stock(buscar: str = "") -> list[dict]:
     data = get_data()
-    termino = buscar.strip().lower()
+    termino = buscar.strip()
     resultado = []
 
     for producto in sorted(data.productos, key=lambda p: p.nombre):
         lotes = [l for l in data.lotes if l.producto_id == producto.id and l.cantidad_restante > 0]
         if not lotes:
             continue
-        if termino and termino not in producto.nombre.lower():
+        if termino and not coincide_busqueda(producto.nombre, termino):
             continue
         stock = sum(l.cantidad_restante for l in lotes)
         resultado.append({

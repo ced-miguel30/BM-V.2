@@ -11,6 +11,7 @@ import streamlit as st
 
 from app.core.storage.session_store import init_data
 from app.core.services.alert_service import sincronizar_alertas
+from app.core.services.historial_compras_service import archivar_historial_semanal, debe_archivar_semanal
 from app.pages import analisis, dashboard, desayuno, settings, stock
 from app.ui.components import render_sidebar
 from app.ui.styles import inject_global_styles
@@ -36,10 +37,8 @@ def main() -> None:
     init_data()
     sincronizar_alertas()
 
-    if "bm_abrir_exportacion" not in st.session_state:
-        st.session_state["nav_section"] = "Settings"
-        st.session_state["settings_subtab"] = "Exportación"
-        st.session_state["bm_abrir_exportacion"] = True
+    if debe_archivar_semanal():
+        archivar_historial_semanal()
 
     section = render_sidebar()
     PAGES[section]()

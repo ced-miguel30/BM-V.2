@@ -31,16 +31,38 @@ def consumo_medio_diario_por_producto() -> dict[str, float]:
     return {pid: total / len(dias) for pid, total in totales.items()}
 
 
-def prediccion_necesidades(
-    huespedes_esperados: int,
-    referencia_huespedes: int = 30,
-) -> dict:
-    """
-    Estima productos, costes y recomendaciones según huéspedes esperados.
-    Escala el consumo medio histórico respecto a una referencia de ocupación.
-    """
+def consumo_medio_por_huesped_por_producto() -> dict[str, float]:
+    """Cantidad media consumida por huésped y producto según registros de desayuno."""
     repo = get_repository()
-    medias = consumo_medio_diario_por_producto()
+    totales: dict[str, float] = {}
+    total_huespedes = 0
+
+    for desayuno in repo.data.desayunos:
+        if desayuno.num_huespedes <= 0:
+            continue
+        total_huespedes += desayuno.num_huespedes
+        for linea in desayuno.lineas:
+            totales[linea.producto_id] = totales.get(linea.producto_id, 0) + linea.cantidad
+
+    if total_huespedes <= 0:
+        return {}
+
+    return {pid: total / total_huespedes for pid, total in totales.items()}
+
+
+def media_huespedes_historico() -> float | None:
+    repo = get_repository()
+    valores = [d.num_huespedes for d in repo.data.desayunos if d.num_huespedes > 0]
+    if not valores:
+        return None
+    return sum(valores) / len(valores)
+
+
+def prediccion_necesidades(huespedes_esperados: int) -> dict:
+    """Estima productos y costes según consumo histórico por huésped."""
+    repo = get_repository()
+    medias = consumo_medio_por_huesped_por_producto()
+    media_huespedes = media_huespedes_historico()
 
     if huespedes_esperados <= 0:
         return {
@@ -48,7 +70,8 @@ def prediccion_necesidades(
             "coste_estimado": 0.0,
             "coste_estimado_fmt": repo.formato_precio(0),
             "recomendaciones": ["Indique el número esperado de huéspedes."],
-            "factor": 0.0,
+            "media_huespedes": media_huespedes,
+            "dias_historico": len({d.fecha for d in repo.data.desayunos}),
         }
 
     if not medias:
@@ -56,11 +79,14 @@ def prediccion_necesidades(
             "productos": [],
             "coste_estimado": 0.0,
             "coste_estimado_fmt": repo.formato_precio(0),
-            "recomendaciones": ["No hay historial de desayunos para estimar necesidades."],
-            "factor": 0.0,
+            "recomendaciones": [
+                "No hay historial de desayunos con huéspedes para estimar necesidades. "
+                "Registre desayunos indicando el número de huéspedes.",
+            ],
+            "media_huespedes": media_huespedes,
+            "dias_historico": len({d.fecha for d in repo.data.desayunos}),
         }
 
-    factor = huespedes_esperados / referencia_huespedes if referencia_huespedes > 0 else 1.0
     productos = []
     coste_total = 0.0
     recomendaciones: list[str] = []
@@ -71,7 +97,7 @@ def prediccion_necesidades(
         if not media or media <= 0:
             continue
 
-        cantidad_est = round(media * factor, 2)
+        cantidad_est = round(media * huespedes_esperados, 2)
         stock = stock_disponible(repo.data, producto.id)
         coste_u = _coste_medio_unidad(repo, producto.id)
         coste_est = round(cantidad_est * coste_u, 2)
@@ -81,7 +107,7 @@ def prediccion_necesidades(
         productos.append({
             "producto": producto.nombre,
             "unidad": producto.unidad.value,
-            "media_diaria": round(media, 2),
+            "media_por_huesped": round(media, 4),
             "cantidad_estimada": cantidad_est,
             "stock_actual": stock,
             "coste_estimado": coste_est,
@@ -115,7 +141,7 @@ def prediccion_necesidades(
         "coste_estimado": round(coste_total, 2),
         "coste_estimado_fmt": repo.formato_precio(coste_total),
         "recomendaciones": recomendaciones,
-        "factor": factor,
+        "media_huespedes": media_huespedes,
         "dias_historico": len({d.fecha for d in repo.data.desayunos}),
     }
 

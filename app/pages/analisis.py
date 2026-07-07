@@ -124,19 +124,19 @@ def _render_gestor_consumo() -> None:
     with col_h1:
         huespedes = st.number_input(
             "Número esperado de huéspedes",
-            min_value=0,
+            min_value=1,
             value=30,
             step=1,
             key="consumo_huespedes",
         )
     with col_h2:
-        referencia = st.number_input(
-            "Referencia histórica (huéspedes)",
-            min_value=1,
-            value=30,
-            step=1,
-            help="Ocupación de referencia para escalar el consumo medio.",
-            key="consumo_referencia",
+        from app.core.services.consumo_service import media_huespedes_historico
+
+        media_hist = media_huespedes_historico()
+        metric_card(
+            "Media histórica",
+            f"{media_hist:.0f} huéspedes/día" if media_hist else "—",
+            "Según registros de desayuno",
         )
 
     section_divider()
@@ -159,16 +159,21 @@ def _render_gestor_consumo() -> None:
     section_divider()
     st.markdown("##### Predicción de necesidades")
 
-    pred = prediccion_necesidades(huespedes, referencia)
+    pred = prediccion_necesidades(huespedes)
 
     col_p1, col_p2 = st.columns(2)
     with col_p1:
         metric_card("Coste estimado", pred["coste_estimado_fmt"], f"{huespedes} huéspedes")
     with col_p2:
+        media_txt = (
+            f"{pred['media_huespedes']:.0f} huéspedes/día"
+            if pred.get("media_huespedes")
+            else "Sin datos"
+        )
         metric_card(
-            "Factor de escala",
-            f"{pred['factor']:.2f}x" if pred["factor"] else "—",
-            f"Ref. {referencia} huéspedes",
+            "Base histórica",
+            media_txt,
+            f"{pred['dias_historico']} días con registro",
         )
 
     if pred["productos"]:
@@ -280,6 +285,7 @@ def _render_business_intelligence() -> None:
         buscar_pregunta,
         responder_pregunta,
         resumen_automatico,
+        sugerencias_preguntas,
     )
 
     st.markdown("#### Business Intelligence")
@@ -288,6 +294,18 @@ def _render_business_intelligence() -> None:
     st.markdown("##### Resumen automático")
     st.info(resumen_automatico())
 
+    st.markdown("##### Respuesta")
+    if st.session_state.get("bi_respuesta"):
+        if st.session_state.get("bi_pregunta_texto"):
+            st.caption(f"Pregunta: {st.session_state['bi_pregunta_texto']}")
+        st.markdown(st.session_state["bi_respuesta"])
+    else:
+        empty_state(
+            "Seleccione una pregunta sugerida o escriba una consulta.",
+            icon="💬",
+        )
+
+    section_divider()
     st.markdown("##### Preguntas sugeridas")
     for pid, pregunta in PREGUNTAS_SUGERIDAS:
         if st.button(pregunta, key=f"bi_pregunta_{pid}", use_container_width=True):
@@ -299,6 +317,17 @@ def _render_business_intelligence() -> None:
         placeholder="Ej: ¿Qué debería revisar esta semana?",
         key="bi_consulta_libre",
     )
+
+    if consulta.strip():
+        sugerencias = sugerencias_preguntas(consulta)
+        if sugerencias:
+            st.caption("Sugerencias:")
+            for pid, pregunta in sugerencias:
+                if st.button(pregunta, key=f"bi_sug_{pid}", use_container_width=True):
+                    st.session_state["bi_respuesta"] = responder_pregunta(pid)
+                    st.session_state["bi_pregunta_texto"] = pregunta
+                    st.rerun()
+
     if st.button("Consultar", key="bi_btn_consultar", type="primary"):
         pid = buscar_pregunta(consulta)
         if pid:
@@ -310,18 +339,6 @@ def _render_business_intelligence() -> None:
                 "Pruebe con una de las sugeridas o use palabras como «merma», «caro» o «revisar»."
             )
             st.session_state["bi_pregunta_texto"] = consulta
-
-    section_divider()
-    st.markdown("##### Respuesta")
-    if st.session_state.get("bi_respuesta"):
-        if st.session_state.get("bi_pregunta_texto"):
-            st.caption(f"Pregunta: {st.session_state['bi_pregunta_texto']}")
-        st.markdown(st.session_state["bi_respuesta"])
-    else:
-        empty_state(
-            "Seleccione una pregunta sugerida o escriba una consulta.",
-            icon="💬",
-        )
 
 
 _SUBTABS = {

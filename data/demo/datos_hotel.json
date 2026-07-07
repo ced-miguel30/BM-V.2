@@ -137,7 +137,7 @@
       "producto_id": "p07",
       "precio_total": 22.0,
       "cantidad": 2,
-      "cantidad_restante": 0.3,
+      "cantidad_restante": 0.1,
       "fecha_compra": "2026-06-22",
       "fecha_expiracion": "2026-09-05",
       "marca_proveedor": "Cafés Origen",
@@ -215,7 +215,8 @@
         }
       ],
       "coste_total": 16.8,
-      "registrado_por": "María García"
+      "registrado_por": "María García",
+      "num_huespedes": 28
     },
     {
       "id": "d02",
@@ -243,7 +244,8 @@
         }
       ],
       "coste_total": 15.25,
-      "registrado_por": "María García"
+      "registrado_por": "María García",
+      "num_huespedes": 32
     },
     {
       "id": "d03",
@@ -271,7 +273,22 @@
         }
       ],
       "coste_total": 9.62,
-      "registrado_por": "Carlos Ruiz"
+      "registrado_por": "Carlos Ruiz",
+      "num_huespedes": 25
+    },
+    {
+      "id": "d04",
+      "fecha": "2026-07-07",
+      "lineas": [
+        {
+          "producto_id": "p07",
+          "cantidad": 0.2,
+          "coste": 2.2
+        }
+      ],
+      "coste_total": 2.2,
+      "registrado_por": "María García",
+      "num_huespedes": 30
     }
   ],
   "mermas": [
@@ -434,7 +451,7 @@
       "id": "a08",
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Café molido",
-      "mensaje": "Quedan 0.3 Kg. Stock mínimo: 1.",
+      "mensaje": "Quedan 0.1 Kg. Stock mínimo: 1.",
       "fecha": "2026-07-07",
       "activa": true,
       "producto_id": "p07"
@@ -483,15 +500,6 @@
       "fecha": "2026-07-07",
       "activa": true,
       "producto_id": "p05"
-    },
-    {
-      "id": "a14",
-      "tipo": "desayuno_no_registrado",
-      "titulo": "Desayuno de hoy no registrado",
-      "mensaje": "Aún no se ha registrado el consumo del desayuno de hoy.",
-      "fecha": "2026-07-07",
-      "activa": true,
-      "producto_id": null
     }
   ],
   "usuarios": [
@@ -515,6 +523,13 @@
     "logo_path": null
   },
   "actividades": [
+    {
+      "id": "act12",
+      "fecha_hora": "2026-07-07T17:48:32.014346",
+      "usuario": "María García",
+      "accion": "Registro desayuno",
+      "detalle": "Desayuno del 07/07/2026 — 2.20 € — 30 huéspedes"
+    },
     {
       "id": "act11",
       "fecha_hora": "2026-07-07T17:09:15.034681",

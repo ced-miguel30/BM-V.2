@@ -96,6 +96,7 @@ def exportar_informe_cliente(desde: date, hasta: date, huespedes: int = 30) -> t
     desay_df = pd.DataFrame([
         {
             "Fecha": formato_fecha(d.fecha),
+            "Huéspedes": d.num_huespedes,
             "Coste": d.coste_total,
             "Registrado por": d.registrado_por,
         }

@@ -4,6 +4,7 @@ from datetime import date, timedelta
 
 from app.core.models import MotivoMerma, TipoAlerta
 from app.core.services.data_service import get_repository
+from app.core.services.text_search import contiene_texto, empieza_por, normalizar_texto
 
 
 PREGUNTAS_SUGERIDAS = [
@@ -157,13 +158,27 @@ def responder_pregunta(pregunta_id: str) -> str:
     return "No reconozco la pregunta. Use una de las preguntas sugeridas."
 
 
-def buscar_pregunta(texto: str) -> str | None:
-    texto_norm = texto.strip().lower()
+def sugerencias_preguntas(texto: str) -> list[tuple[str, str]]:
+    texto = texto.strip()
+    if not texto:
+        return []
+    resultado = []
     for pid, pregunta in PREGUNTAS_SUGERIDAS:
-        if texto_norm in pregunta.lower() or pregunta.lower() in texto_norm:
+        limpia = pregunta.lstrip("¿").strip()
+        if empieza_por(limpia, texto) or contiene_texto(pregunta, texto):
+            resultado.append((pid, pregunta))
+    return resultado
+
+
+def buscar_pregunta(texto: str) -> str | None:
+    texto_norm = normalizar_texto(texto)
+    if not texto_norm:
+        return None
+    for pid, pregunta in PREGUNTAS_SUGERIDAS:
+        pregunta_norm = normalizar_texto(pregunta)
+        if texto_norm in pregunta_norm or pregunta_norm in texto_norm:
             return pid
     palabras_clave = {
-        "anomalía": "anomalia",
         "anomalia": "anomalia",
         "caro": "mas_caro",
         "merma": "mas_merma",

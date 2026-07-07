@@ -67,6 +67,7 @@ def appdata_to_dict(data: AppData) -> dict:
                 "id": d.id, "fecha": d.fecha.isoformat(),
                 "lineas": [{"producto_id": ln.producto_id, "cantidad": ln.cantidad, "coste": ln.coste} for ln in d.lineas],
                 "coste_total": d.coste_total, "registrado_por": d.registrado_por,
+                "num_huespedes": d.num_huespedes,
             }
             for d in data.desayunos
         ],
@@ -129,6 +130,7 @@ def dict_to_appdata(payload: dict) -> AppData:
                 d["id"], _parse_date(d["fecha"]),  # type: ignore[arg-type]
                 [LineaDesayuno(ln["producto_id"], ln["cantidad"], ln["coste"]) for ln in d.get("lineas", [])],
                 d.get("coste_total", 0), d.get("registrado_por", ""),
+                d.get("num_huespedes", 30),
             )
             for d in payload.get("desayunos", [])
         ],

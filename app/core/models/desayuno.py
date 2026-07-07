@@ -18,3 +18,4 @@ class RegistroDesayuno:
     lineas: list[LineaDesayuno] = field(default_factory=list)
     coste_total: float = 0.0
     registrado_por: str = ""
+    num_huespedes: int = 30

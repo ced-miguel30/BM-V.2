@@ -16,6 +16,7 @@ from app.core.services.desayuno_service import (
 )
 from app.core.services.formatting import formato_fecha
 from app.ui.components import empty_state, page_header, render_sub_tabs, section_divider
+from app.ui.search import render_buscador_producto
 
 
 def _lineas_desayuno_texto(repo, desayuno) -> str:
@@ -43,17 +44,18 @@ def _render_registro_desayuno() -> None:
     col_buscar, col_cesta = st.columns([2, 1])
 
     with col_buscar:
-        buscar = st.text_input(
-            "Buscar producto",
-            placeholder="Escriba el nombre del producto...",
-            key="desayuno_buscar",
-        )
+        todos_productos = productos_disponibles("")
+        producto_sel = render_buscador_producto(todos_productos, "desayuno")
         fecha = st.date_input("Fecha", value=date.today(), max_value=date.today(), key="desayuno_fecha")
+        num_huespedes = st.number_input(
+            "Nº de huéspedes",
+            min_value=1,
+            value=30,
+            step=1,
+            key="desayuno_num_huespedes",
+        )
 
-        disponibles = productos_disponibles(buscar)
-        if disponibles:
-            etiquetas = {p["etiqueta"]: p["id"] for p in disponibles}
-            seleccion = st.selectbox("Producto", list(etiquetas.keys()), key="desayuno_sel_producto")
+        if producto_sel:
             cantidad = st.number_input(
                 "Cantidad",
                 min_value=0.0,
@@ -63,12 +65,14 @@ def _render_registro_desayuno() -> None:
                 key="desayuno_cantidad",
             )
             if st.button("Añadir a la cesta", type="secondary", use_container_width=True, key="desayuno_btn_anadir"):
-                resultado = anadir_a_cesta(etiquetas[seleccion], cantidad)
+                resultado = anadir_a_cesta(producto_sel["id"], cantidad)
                 if resultado.ok:
                     st.success(resultado.mensaje)
                     st.rerun()
                 else:
                     st.error(resultado.mensaje)
+        elif todos_productos:
+            empty_state("No hay coincidencias para la búsqueda.", icon="🔍")
         else:
             empty_state("No hay productos con stock disponible.", icon="🔍")
 
@@ -103,7 +107,7 @@ def _render_registro_desayuno() -> None:
             empty_state("La cesta está vacía", icon="🧺")
 
         if st.button("Registrar desayuno", type="primary", use_container_width=True, key="btn_registrar_desayuno"):
-            resultado = registrar_desayuno(fecha)
+            resultado = registrar_desayuno(fecha, int(num_huespedes))
             if resultado.ok:
                 st.success(resultado.mensaje)
                 st.rerun()
@@ -118,6 +122,7 @@ def _render_registro_desayuno() -> None:
         st.dataframe(
             {
                 "Fecha": [formato_fecha(d.fecha) for d in desayunos],
+                "Huéspedes": [d.num_huespedes for d in desayunos],
                 "Productos": [_lineas_desayuno_texto(repo, d) for d in desayunos],
                 "Coste": [repo.formato_precio(d.coste_total) for d in desayunos],
                 "Registrado por": [d.registrado_por for d in desayunos],
@@ -150,18 +155,12 @@ def _render_registro_merma() -> None:
     col_buscar, col_cesta = st.columns([2, 1])
 
     with col_buscar:
-        buscar = st.text_input(
-            "Buscar producto",
-            placeholder="Escriba el nombre del producto...",
-            key="merma_buscar",
-        )
+        todos_productos = productos_con_stock("")
+        producto_sel = render_buscador_producto(todos_productos, "merma")
         fecha = st.date_input("Fecha", value=date.today(), max_value=date.today(), key="merma_fecha")
 
-        productos = productos_con_stock(buscar)
-        if productos:
-            mapa_prod = {p["etiqueta"]: p["id"] for p in productos}
-            sel_prod = st.selectbox("Producto", list(mapa_prod.keys()), key="merma_sel_producto")
-            producto_id = mapa_prod[sel_prod]
+        if producto_sel:
+            producto_id = producto_sel["id"]
 
             lotes = lotes_disponibles(producto_id)
             if lotes:
@@ -193,6 +192,8 @@ def _render_registro_merma() -> None:
                         st.error(resultado.mensaje)
             else:
                 empty_state("No hay lotes con stock para este producto.", icon="🏷️")
+        elif todos_productos:
+            empty_state("No hay coincidencias para la búsqueda.", icon="🔍")
         else:
             empty_state("No hay productos con stock disponible.", icon="🔍")
 

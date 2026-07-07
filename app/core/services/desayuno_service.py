@@ -5,6 +5,7 @@ from datetime import date, datetime
 
 from app.core.models import AppData, LineaDesayuno, LoteStock, RegistroDesayuno
 from app.core.repositories.data_repository import DataRepository
+from app.core.services.text_search import coincide_busqueda
 from app.core.storage.session_store import get_data, persist_data
 
 CESTA_SESSION_KEY = "bm_cesta_desayuno"
@@ -164,13 +165,16 @@ def coste_total_cesta() -> float:
     return sum(calcular_coste_linea(data, l.producto_id, l.cantidad) for l in cesta)
 
 
-def registrar_desayuno(fecha: date) -> ResultadoOperacion:
+def registrar_desayuno(fecha: date, num_huespedes: int) -> ResultadoOperacion:
     cesta = get_cesta()
     if not cesta:
         return ResultadoOperacion(False, "La cesta está vacía. Añada productos antes de registrar.")
 
     if fecha > date.today():
         return ResultadoOperacion(False, "No puede registrar desayunos en fechas futuras.")
+
+    if num_huespedes < 1:
+        return ResultadoOperacion(False, "Indique al menos 1 huésped.")
 
     data = get_data()
     if _desayuno_existe(data, fecha):
@@ -200,12 +204,13 @@ def registrar_desayuno(fecha: date) -> ResultadoOperacion:
         lineas,
         coste_total,
         _nombre_usuario(data),
+        num_huespedes,
     )
     data.desayunos.append(registro)
     _registrar_actividad(
         data,
         "Registro desayuno",
-        f"Desayuno del {fecha.strftime('%d/%m/%Y')} — {coste_total:.2f} €",
+        f"Desayuno del {fecha.strftime('%d/%m/%Y')} — {coste_total:.2f} € — {num_huespedes} huéspedes",
     )
     persist_data(data)
     limpiar_cesta()
@@ -223,13 +228,13 @@ def productos_disponibles(buscar: str = "") -> list[dict]:
     """Productos con stock > 0, opcionalmente filtrados por nombre."""
     data = get_data()
     resultado = []
-    termino = buscar.strip().lower()
+    termino = buscar.strip()
 
     for producto in sorted(data.productos, key=lambda p: p.nombre):
         stock = stock_disponible(data, producto.id)
         if stock <= 0:
             continue
-        if termino and termino not in producto.nombre.lower():
+        if termino and not coincide_busqueda(producto.nombre, termino):
             continue
         resultado.append({
             "id": producto.id,

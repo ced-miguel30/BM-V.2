@@ -64,6 +64,7 @@ def crear_datos_mock() -> AppData:
             ],
             16.80,
             "María García",
+            28,
         ),
         RegistroDesayuno(
             "d02",
@@ -76,6 +77,7 @@ def crear_datos_mock() -> AppData:
             ],
             15.25,
             "María García",
+            32,
         ),
         RegistroDesayuno(
             "d03",
@@ -88,6 +90,7 @@ def crear_datos_mock() -> AppData:
             ],
             9.62,
             "Carlos Ruiz",
+            25,
         ),
     ]
 

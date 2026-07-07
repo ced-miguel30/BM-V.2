@@ -25,7 +25,7 @@ La aplicación se abrirá en el navegador (por defecto en `http://localhost:8501
 
 ## Estado actual
 
-**Fase 13** — Settings funcional y exportación de informes para cliente (Excel en `exports/`).
+**Pre-Fase 14** — Adaptaciones: buscadores con sugerencias, historial de compras semanal en Excel, BI reordenado y huéspedes en desayuno para predicción.
 
 ## Estructura de carpetas
 

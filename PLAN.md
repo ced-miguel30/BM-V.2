@@ -53,6 +53,12 @@ Trabajar por fases. Parar al final de cada fase para revisión del usuario.
 - Informe cliente con KPIs, desayunos, mermas, inventario y alertas
 - Accesos rápidos: últimos 7 días y mes en curso
 
+## Adaptaciones pre-Fase 14 ✅
+- Buscadores con sugerencias por prefijo (sin tildes ni mayúsculas)
+- Historial de compras: archivo semanal (lunes) + exportación manual a Excel
+- Business Intelligence: respuesta arriba, sugerencias abajo
+- Nº de huéspedes en registro de desayuno y predicción basada en historial real
+
 ## Fase 14 — SQLite (NO antes)
 - Eliminar mock_data.py y carpeta demo
 
