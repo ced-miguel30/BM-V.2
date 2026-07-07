@@ -399,7 +399,7 @@
       "titulo": "Revisar proveedor de jamón",
       "mensaje": "Verificar precio del próximo pedido con Embutidos Norte.",
       "fecha": "2026-07-09",
-      "activa": true,
+      "activa": false,
       "producto_id": "p03"
     },
     {
@@ -523,6 +523,20 @@
     "logo_path": null
   },
   "actividades": [
+    {
+      "id": "act14",
+      "fecha_hora": "2026-07-07T19:00:20.785332",
+      "usuario": "María García",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Stock bajo — Pan de molde» marcada como resuelta"
+    },
+    {
+      "id": "act13",
+      "fecha_hora": "2026-07-07T19:00:20.015688",
+      "usuario": "María García",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Revisar proveedor de jamón» marcada como resuelta"
+    },
     {
       "id": "act12",
       "fecha_hora": "2026-07-07T17:48:32.014346",
