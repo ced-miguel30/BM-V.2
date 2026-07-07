@@ -1,8 +1,19 @@
 """Desayuno — registro de consumo y merma."""
 
+from datetime import date
+
 import streamlit as st
 
 from app.core.services.data_service import get_repository
+from app.core.services.desayuno_service import (
+    anadir_a_cesta,
+    coste_total_cesta,
+    get_cesta,
+    limpiar_cesta,
+    productos_disponibles,
+    quitar_de_cesta,
+    registrar_desayuno,
+)
 from app.core.services.formatting import formato_fecha
 from app.ui.components import empty_state, page_header, render_sub_tabs, section_divider
 
@@ -11,7 +22,7 @@ def _lineas_desayuno_texto(repo, desayuno) -> str:
     partes = []
     for linea in desayuno.lineas:
         nombre = repo.get_nombre_producto(linea.producto_id)
-        partes.append(f"{nombre} ({linea.cantidad})")
+        partes.append(f"{nombre} ({linea.cantidad:g})")
     return ", ".join(partes)
 
 
@@ -27,21 +38,37 @@ def _render_registro_desayuno() -> None:
     repo = get_repository()
 
     st.markdown("#### Registro rápido de desayuno")
-    st.caption("Seleccione productos y añádalos a la cesta para registrar el consumo del día.")
+    st.caption("Seleccione productos y añádalos a la cesta. El stock se descuenta por FIFO al registrar.")
 
     col_buscar, col_cesta = st.columns([2, 1])
 
     with col_buscar:
-        st.text_input(
+        buscar = st.text_input(
             "Buscar producto",
             placeholder="Escriba el nombre del producto...",
-            disabled=True,
             key="desayuno_buscar",
         )
-        st.date_input("Fecha", disabled=True, key="desayuno_fecha")
-        productos_disp = [p.nombre for p in repo.data.productos if repo.stock_total_producto(p.id) > 0]
-        if productos_disp:
-            st.caption(f"Productos disponibles: {', '.join(productos_disp[:5])}{'...' if len(productos_disp) > 5 else ''}")
+        fecha = st.date_input("Fecha", value=date.today(), max_value=date.today(), key="desayuno_fecha")
+
+        disponibles = productos_disponibles(buscar)
+        if disponibles:
+            etiquetas = {p["etiqueta"]: p["id"] for p in disponibles}
+            seleccion = st.selectbox("Producto", list(etiquetas.keys()), key="desayuno_sel_producto")
+            cantidad = st.number_input(
+                "Cantidad",
+                min_value=0.0,
+                value=1.0,
+                step=0.1,
+                format="%.2f",
+                key="desayuno_cantidad",
+            )
+            if st.button("Añadir a la cesta", type="secondary", use_container_width=True, key="desayuno_btn_anadir"):
+                resultado = anadir_a_cesta(etiquetas[seleccion], cantidad)
+                if resultado.ok:
+                    st.success(resultado.mensaje)
+                    st.rerun()
+                else:
+                    st.error(resultado.mensaje)
         else:
             empty_state("No hay productos con stock disponible.", icon="🔍")
 
@@ -54,8 +81,34 @@ def _render_registro_desayuno() -> None:
             """,
             unsafe_allow_html=True,
         )
-        empty_state("La cesta está vacía", icon="🧺")
-        st.button("Registrar desayuno", type="primary", disabled=True, use_container_width=True, key="btn_registrar_desayuno")
+        cesta = get_cesta()
+        if cesta:
+            for linea in cesta:
+                col_nombre, col_quitar = st.columns([4, 1])
+                with col_nombre:
+                    st.markdown(f"**{linea.nombre}** — {linea.cantidad:g} {linea.unidad}")
+                with col_quitar:
+                    if st.button("✕", key=f"quitar_cesta_{linea.producto_id}", help="Quitar"):
+                        quitar_de_cesta(linea.producto_id)
+                        st.rerun()
+
+            total = coste_total_cesta()
+            st.markdown(f"**Coste estimado:** {repo.formato_precio(total)}")
+            st.caption("Coste calculado por FIFO según lotes actuales.")
+
+            if st.button("Vaciar cesta", use_container_width=True, key="desayuno_vaciar_cesta"):
+                limpiar_cesta()
+                st.rerun()
+        else:
+            empty_state("La cesta está vacía", icon="🧺")
+
+        if st.button("Registrar desayuno", type="primary", use_container_width=True, key="btn_registrar_desayuno"):
+            resultado = registrar_desayuno(fecha)
+            if resultado.ok:
+                st.success(resultado.mensaje)
+                st.rerun()
+            else:
+                st.error(resultado.mensaje)
 
     section_divider()
     st.markdown("#### Historial de desayunos")
@@ -111,6 +164,8 @@ def _render_registro_merma() -> None:
         )
         empty_state("La cesta está vacía", icon="🧺")
         st.button("Registrar merma", type="primary", disabled=True, use_container_width=True, key="btn_registrar_merma")
+
+    st.caption("Disponible en Fase 7 — con selector de lote y fecha de compra.")
 
     section_divider()
     st.markdown("#### Historial de merma")

@@ -71,7 +71,7 @@
       "producto_id": "p01",
       "precio_total": 18.0,
       "cantidad": 60,
-      "cantidad_restante": 42,
+      "cantidad_restante": 37.0,
       "fecha_compra": "2026-07-02",
       "fecha_expiracion": "2026-07-10",
       "marca_proveedor": "Panadería Sol",
@@ -137,7 +137,7 @@
       "producto_id": "p07",
       "precio_total": 22.0,
       "cantidad": 2,
-      "cantidad_restante": 0.8,
+      "cantidad_restante": 0.7,
       "fecha_compra": "2026-06-22",
       "fecha_expiracion": "2026-09-05",
       "marca_proveedor": "Cafés Origen",
@@ -178,17 +178,6 @@
     },
     {
       "id": "l11",
-      "producto_id": "p01",
-      "precio_total": 5.0,
-      "cantidad": 5.0,
-      "cantidad_restante": 5.0,
-      "fecha_compra": null,
-      "fecha_expiracion": null,
-      "marca_proveedor": null,
-      "alerta_expiracion_dias": null
-    },
-    {
-      "id": "l12",
       "producto_id": "p01",
       "precio_total": 5.0,
       "cantidad": 5.0,
@@ -283,6 +272,24 @@
       ],
       "coste_total": 9.62,
       "registrado_por": "Carlos Ruiz"
+    },
+    {
+      "id": "d04",
+      "fecha": "2026-07-07",
+      "lineas": [
+        {
+          "producto_id": "p01",
+          "cantidad": 5.0,
+          "coste": 1.5
+        },
+        {
+          "producto_id": "p07",
+          "cantidad": 0.1,
+          "coste": 1.1
+        }
+      ],
+      "coste_total": 2.6,
+      "registrado_por": "María García"
     }
   ],
   "mermas": [
@@ -400,7 +407,7 @@
       "id": "a08",
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Café molido",
-      "mensaje": "Quedan 0.8 Kg. Stock mínimo: 1.",
+      "mensaje": "Quedan 0.7 Kg. Stock mínimo: 1.",
       "fecha": "2026-07-07",
       "activa": true,
       "producto_id": "p07"
@@ -449,15 +456,6 @@
       "fecha": "2026-07-07",
       "activa": true,
       "producto_id": "p05"
-    },
-    {
-      "id": "a14",
-      "tipo": "desayuno_no_registrado",
-      "titulo": "Desayuno de hoy no registrado",
-      "mensaje": "Aún no se ha registrado el consumo del desayuno de hoy.",
-      "fecha": "2026-07-07",
-      "activa": true,
-      "producto_id": null
     }
   ],
   "usuarios": [
@@ -483,17 +481,17 @@
   "actividades": [
     {
       "id": "act07",
-      "fecha_hora": "2026-07-07T16:15:33.164685",
+      "fecha_hora": "2026-07-07T17:00:07.055744",
       "usuario": "María García",
       "accion": "Registrar lote",
       "detalle": "Lote de «Croissant» — 5.0 Ud — 5.00 €"
     },
     {
       "id": "act06",
-      "fecha_hora": "2026-07-07T16:14:53.099072",
+      "fecha_hora": "2026-07-07T16:59:47.098306",
       "usuario": "María García",
-      "accion": "Registrar lote",
-      "detalle": "Lote de «Croissant» — 5.0 Ud — 5.00 €"
+      "accion": "Registro desayuno",
+      "detalle": "Desayuno del 07/07/2026 — 2.60 €"
     },
     {
       "id": "act01",

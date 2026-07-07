@@ -13,8 +13,10 @@ Trabajar por fases. Parar al final de cada fase para revisión del usuario.
 - Crear y resolver alertas manuales
 - Dashboard y Stock muestran alertas actualizadas
 
-## Fase 6 — Registro desayuno (cesta)
-- Consumo por producto; descuento FIFO automático de lotes
+## Fase 6 — Registro desayuno (cesta) ✅
+- Cesta funcional con búsqueda y añadir productos
+- Registro diario con coste FIFO automático
+- Descuento de stock por lotes (más antiguo primero)
 
 ## Fase 7 — Registro merma / expiración
 - Selector de lote concreto con fecha de compra visible

@@ -25,7 +25,7 @@ La aplicación se abrirá en el navegador (por defecto en `http://localhost:8501
 
 ## Estado actual
 
-**Fase 5** — Alertas de stock automáticas y manuales. Inventario por producto; historial de compras por lote en Stock.
+**Fase 6** — Registro de desayuno con cesta, coste FIFO y descuento automático de stock.
 
 ## Estructura de carpetas
 

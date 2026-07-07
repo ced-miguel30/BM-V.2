@@ -14,7 +14,7 @@ from app.core.services.alert_service import sincronizar_alertas
 from app.pages import analisis, dashboard, desayuno, settings, stock
 from app.ui.components import render_sidebar
 from app.ui.styles import inject_global_styles
-from app.ui.theme import APP_NAME
+from app.ui.theme import APP_NAME, APP_VERSION
 
 PAGES = {
     "dashboard": dashboard.render,
@@ -27,7 +27,7 @@ PAGES = {
 
 def main() -> None:
     st.set_page_config(
-        page_title=APP_NAME,
+        page_title=f"{APP_NAME} · {APP_VERSION}",
         page_icon="☕",
         layout="wide",
         initial_sidebar_state="expanded",
