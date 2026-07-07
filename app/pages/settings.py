@@ -1,16 +1,22 @@
-"""Settings — usuarios, configuración y actividad."""
+"""Settings — usuarios, configuración, actividad y exportación."""
+
+from datetime import date, timedelta
+from pathlib import Path
 
 import streamlit as st
 
 from app.core.services.data_service import get_repository
+from app.core.services.export_service import EXPORTS_DIR, exportar_actividad_hoy, exportar_informe_cliente
 from app.core.services.formatting import formato_fecha_hora
+from app.core.services.settings_service import (
+    MONEDAS,
+    crear_usuario,
+    editar_usuario,
+    eliminar_usuario,
+    guardar_configuracion,
+    guardar_logo,
+)
 from app.ui.components import empty_state, page_header, render_sub_tabs, section_divider
-
-MONEDAS = {
-    "EUR": "EUR (€)",
-    "USD": "USD ($)",
-    "GBP": "GBP (£)",
-}
 
 
 def _render_usuarios() -> None:
@@ -18,7 +24,7 @@ def _render_usuarios() -> None:
     usuarios = repo.data.usuarios
 
     st.markdown("#### Usuarios del sistema")
-    st.caption("Gestión temporal de usuarios. El login se implementará en la fase final.")
+    st.caption("Gestión de usuarios. El login se implementará en la fase final.")
 
     st.dataframe(
         {
@@ -32,20 +38,45 @@ def _render_usuarios() -> None:
 
     section_divider()
     st.markdown("##### Crear usuario")
-    with st.form("form_usuario", clear_on_submit=False):
-        st.text_input("Nombre", disabled=True, key="settings_usuario_nombre")
-        st.selectbox("Rol", ["Owner", "Admin"], disabled=True, key="settings_usuario_rol")
-        st.form_submit_button("Crear usuario", disabled=True)
+    with st.form("form_usuario", clear_on_submit=True):
+        nombre = st.text_input("Nombre", key="settings_usuario_nombre")
+        rol = st.selectbox("Rol", ["Owner", "Admin"], key="settings_usuario_rol")
+        if st.form_submit_button("Crear usuario", type="primary"):
+            resultado = crear_usuario(nombre, rol)
+            if resultado.ok:
+                st.success(resultado.mensaje)
+                st.rerun()
+            else:
+                st.error(resultado.mensaje)
 
     section_divider()
     st.markdown("##### Editar / eliminar")
-    nombres = [u.nombre for u in usuarios]
-    st.selectbox("Seleccionar usuario", nombres, disabled=True, key="settings_sel_usuario")
-    col1, col2 = st.columns(2)
-    with col1:
-        st.button("Editar nombre", disabled=True, use_container_width=True, key="settings_editar_usuario")
-    with col2:
-        st.button("Eliminar usuario", disabled=True, use_container_width=True, key="settings_eliminar_usuario")
+    if usuarios:
+        opciones = {u.nombre: u.id for u in usuarios}
+        sel_nombre = st.selectbox(
+            "Seleccionar usuario",
+            list(opciones.keys()),
+            key="settings_sel_usuario",
+        )
+        usuario_id = opciones[sel_nombre]
+
+        with st.form("form_editar_usuario"):
+            nuevo_nombre = st.text_input("Nuevo nombre", value=sel_nombre, key="settings_edit_nombre")
+            if st.form_submit_button("Guardar nombre", use_container_width=True):
+                resultado = editar_usuario(usuario_id, nuevo_nombre)
+                if resultado.ok:
+                    st.success(resultado.mensaje)
+                    st.rerun()
+                else:
+                    st.error(resultado.mensaje)
+
+        if st.button("Eliminar usuario", use_container_width=True, key="settings_eliminar_usuario"):
+            resultado = eliminar_usuario(usuario_id)
+            if resultado.ok:
+                st.success(resultado.mensaje)
+                st.rerun()
+            else:
+                st.error(resultado.mensaje)
 
 
 def _render_configuracion() -> None:
@@ -53,38 +84,59 @@ def _render_configuracion() -> None:
     config = repo.data.configuracion
 
     st.markdown("#### Configuración del establecimiento")
-    st.caption("Ajustes generales del hotel. Los cambios se persistirán en fases posteriores.")
+    st.caption("Los cambios se guardan en el archivo JSON local.")
 
     nombre = config.nombre_establecimiento if config else "Hotel Boutique"
     moneda_key = config.moneda if config else "EUR"
-    moneda_label = MONEDAS.get(moneda_key, "EUR (€)")
+    moneda_labels = [v[0] for v in MONEDAS.values()]
+    moneda_keys = list(MONEDAS.keys())
+    idx_moneda = moneda_keys.index(moneda_key) if moneda_key in moneda_keys else 0
 
-    st.text_input(
-        "Nombre del establecimiento",
-        value=nombre,
-        disabled=True,
-        key="settings_nombre_establecimiento",
-    )
-    st.selectbox(
-        "Moneda",
-        list(MONEDAS.values()),
-        index=list(MONEDAS.values()).index(moneda_label) if moneda_label in MONEDAS.values() else 0,
-        disabled=True,
-        key="settings_moneda",
-    )
+    with st.form("form_configuracion"):
+        nuevo_nombre = st.text_input(
+            "Nombre del establecimiento",
+            value=nombre,
+            key="settings_nombre_establecimiento",
+        )
+        moneda_sel = st.selectbox(
+            "Moneda",
+            moneda_labels,
+            index=idx_moneda,
+            key="settings_moneda",
+        )
+        if st.form_submit_button("Guardar configuración", type="primary"):
+            key = moneda_keys[moneda_labels.index(moneda_sel)]
+            resultado = guardar_configuracion(nuevo_nombre, key)
+            if resultado.ok:
+                st.success(resultado.mensaje)
+                st.rerun()
+            else:
+                st.error(resultado.mensaje)
 
     section_divider()
     st.markdown("##### Logo / foto")
-    st.info("Placeholder — podrá subir el logo del hotel en una fase posterior.")
-    st.file_uploader(
-        "Subir imagen",
-        disabled=True,
+
+    if config and config.logo_path:
+        logo_path = Path(config.logo_path)
+        if logo_path.is_file():
+            st.image(str(logo_path), width=160, caption="Logo actual")
+
+    archivo = st.file_uploader(
+        "Subir imagen (PNG o JPG)",
         type=["png", "jpg", "jpeg"],
         key="settings_logo",
     )
-
-    section_divider()
-    st.button("Guardar configuración", disabled=True, type="primary", key="settings_guardar")
+    if archivo is not None:
+        ext = archivo.name.rsplit(".", 1)[-1].lower()
+        if ext == "jpeg":
+            ext = "jpg"
+        if st.button("Guardar logo", type="primary", key="settings_guardar_logo"):
+            resultado = guardar_logo(archivo.getvalue(), ext)
+            if resultado.ok:
+                st.success(resultado.mensaje)
+                st.rerun()
+            else:
+                st.error(resultado.mensaje)
 
 
 def _render_actividad() -> None:
@@ -109,13 +161,81 @@ def _render_actividad() -> None:
         empty_state("No hay actividad registrada todavía.", icon="📝")
 
     section_divider()
-    st.button(
+    if st.button(
         "Exportar actividad (desde 00:00 hasta ahora)",
-        disabled=True,
         use_container_width=True,
         key="settings_exportar_actividad",
+    ):
+        contenido, nombre = exportar_actividad_hoy()
+        st.session_state["settings_dl_actividad"] = (contenido, nombre)
+        st.success(f"Exportado y guardado en exports/{nombre}")
+
+    if "settings_dl_actividad" in st.session_state:
+        data, fname = st.session_state["settings_dl_actividad"]
+        st.download_button(
+            "Descargar Excel de actividad",
+            data=data,
+            file_name=fname,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+            key="settings_dl_actividad_btn",
+        )
+
+
+def _render_exportacion() -> None:
+    st.markdown("#### Exportación para cliente")
+    st.caption(
+        "Genera un informe Excel con resumen de costes, desayunos, mermas, inventario y alertas. "
+        "Se guarda automáticamente en la carpeta `exports/`."
     )
-    st.caption("La exportación diaria en PDF se preparará en fases posteriores.")
+
+    hoy = date.today()
+    inicio_mes = hoy.replace(day=1)
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        desde = st.date_input("Desde", value=inicio_mes, key="export_cliente_desde")
+    with col2:
+        hasta = st.date_input("Hasta", value=hoy, key="export_cliente_hasta")
+    with col3:
+        huespedes = st.number_input("Huéspedes (KPI)", min_value=1, value=30, key="export_cliente_huespedes")
+
+    if st.button("Generar informe cliente", type="primary", use_container_width=True, key="export_cliente_btn"):
+        if desde > hasta:
+            st.error("La fecha «Desde» no puede ser posterior a «Hasta».")
+        else:
+            contenido, nombre = exportar_informe_cliente(desde, hasta, int(huespedes))
+            st.session_state["settings_dl_cliente"] = (contenido, nombre)
+            st.success(f"Informe generado: exports/{nombre}")
+
+    if "settings_dl_cliente" in st.session_state:
+        data, fname = st.session_state["settings_dl_cliente"]
+        st.download_button(
+            "Descargar informe cliente (Excel)",
+            data=data,
+            file_name=fname,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+            key="settings_dl_cliente_btn",
+        )
+
+    section_divider()
+    st.markdown("##### Acceso rápido")
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button("Últimos 7 días", use_container_width=True, key="export_7d"):
+            hasta = hoy
+            desde = hoy - timedelta(days=6)
+            contenido, nombre = exportar_informe_cliente(desde, hasta, 30)
+            st.session_state["settings_dl_cliente"] = (contenido, nombre)
+            st.rerun()
+    with col_b:
+        if st.button("Mes en curso", use_container_width=True, key="export_mes"):
+            contenido, nombre = exportar_informe_cliente(inicio_mes, hoy, 30)
+            st.session_state["settings_dl_cliente"] = (contenido, nombre)
+            st.rerun()
+
+    st.caption(f"Carpeta de exportaciones: `{EXPORTS_DIR}`")
 
 
 def _render_datos_demo() -> None:
@@ -161,12 +281,13 @@ _SUBTABS = {
     "Usuarios": _render_usuarios,
     "Configuración": _render_configuracion,
     "Actividad": _render_actividad,
+    "Exportación": _render_exportacion,
     "Datos demo": _render_datos_demo,
 }
 
 
 def render() -> None:
-    page_header("Settings", "Usuarios, configuración y registro de actividad")
+    page_header("Settings", "Usuarios, configuración, actividad y exportación")
 
     selected = render_sub_tabs(list(_SUBTABS.keys()), key="settings_subtab")
     _SUBTABS[selected]()

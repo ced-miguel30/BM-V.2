@@ -25,7 +25,7 @@ La aplicación se abrirá en el navegador (por defecto en `http://localhost:8501
 
 ## Estado actual
 
-**Fase 11** — Business Intelligence con preguntas sugeridas y consultas por reglas.
+**Fase 13** — Settings funcional y exportación de informes para cliente (Excel en `exports/`).
 
 ## Estructura de carpetas
 

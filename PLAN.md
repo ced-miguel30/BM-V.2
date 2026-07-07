@@ -42,8 +42,16 @@ Trabajar por fases. Parar al final de cada fase para revisión del usuario.
 - Consulta libre con palabras clave
 - Resumen automático del mes
 
-## Fases 12–13
-- Settings funcional, exportación cliente
+## Fase 12 — Settings funcional ✅
+- CRUD de usuarios (crear, editar, eliminar)
+- Guardar configuración (nombre hotel, moneda)
+- Subida y persistencia de logo
+- Nombre del hotel dinámico en la barra lateral
+
+## Fase 13 — Exportación cliente ✅
+- Exportar actividad del día (Excel) → `exports/`
+- Informe cliente con KPIs, desayunos, mermas, inventario y alertas
+- Accesos rápidos: últimos 7 días y mes en curso
 
 ## Fase 14 — SQLite (NO antes)
 - Eliminar mock_data.py y carpeta demo

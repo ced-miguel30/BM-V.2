@@ -2,18 +2,20 @@
 
 import streamlit as st
 
-from app.ui.theme import APP_NAME, APP_VERSION, HOTEL_NAME, NAV_SECTIONS
+from app.core.services.settings_service import nombre_hotel_sidebar
+from app.ui.theme import APP_NAME, APP_VERSION, NAV_SECTIONS
 
 
 def render_sidebar() -> str:
     """Renderiza la barra lateral y devuelve la sección seleccionada."""
+    hotel = nombre_hotel_sidebar()
     with st.sidebar:
         st.markdown(
             f"""
             <div class="bm-sidebar-brand">
                 <div class="bm-sidebar-logo">☕</div>
                 <p class="bm-sidebar-title">{APP_NAME}</p>
-                <p class="bm-sidebar-hotel">{HOTEL_NAME}</p>
+                <p class="bm-sidebar-hotel">{hotel}</p>
                 <p class="bm-sidebar-version">{APP_VERSION}</p>
             </div>
             """,

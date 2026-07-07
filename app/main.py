@@ -36,6 +36,11 @@ def main() -> None:
     init_data()
     sincronizar_alertas()
 
+    if "bm_abrir_exportacion" not in st.session_state:
+        st.session_state["nav_section"] = "Settings"
+        st.session_state["settings_subtab"] = "Exportación"
+        st.session_state["bm_abrir_exportacion"] = True
+
     section = render_sidebar()
     PAGES[section]()
 
