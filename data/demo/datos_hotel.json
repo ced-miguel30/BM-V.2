@@ -1,0 +1,489 @@
+{
+  "meta": {
+    "usuario_actual_id": "u01",
+    "origen": "demo"
+  },
+  "productos": [
+    {
+      "id": "p01",
+      "nombre": "Croissant",
+      "unidad": "Ud",
+      "stock_minimo": 20
+    },
+    {
+      "id": "p02",
+      "nombre": "Pan de molde",
+      "unidad": "Ud",
+      "stock_minimo": 10
+    },
+    {
+      "id": "p03",
+      "nombre": "Jamón serrano",
+      "unidad": "Kg",
+      "stock_minimo": 2
+    },
+    {
+      "id": "p04",
+      "nombre": "Queso manchego",
+      "unidad": "Kg",
+      "stock_minimo": 1.5
+    },
+    {
+      "id": "p05",
+      "nombre": "Yogur natural",
+      "unidad": "Ud",
+      "stock_minimo": 24
+    },
+    {
+      "id": "p06",
+      "nombre": "Zumo de naranja",
+      "unidad": "L",
+      "stock_minimo": 5
+    },
+    {
+      "id": "p07",
+      "nombre": "Café molido",
+      "unidad": "Kg",
+      "stock_minimo": 1
+    },
+    {
+      "id": "p08",
+      "nombre": "Mantequilla",
+      "unidad": "Kg",
+      "stock_minimo": 0.5
+    },
+    {
+      "id": "p09",
+      "nombre": "Fruta fresca",
+      "unidad": "Kg",
+      "stock_minimo": 3
+    },
+    {
+      "id": "p10",
+      "nombre": "Huevos",
+      "unidad": "Ud",
+      "stock_minimo": 36
+    }
+  ],
+  "lotes": [
+    {
+      "id": "l01",
+      "producto_id": "p01",
+      "precio_total": 18.0,
+      "cantidad": 60,
+      "cantidad_restante": 42,
+      "fecha_compra": "2026-07-02",
+      "fecha_expiracion": "2026-07-10",
+      "marca_proveedor": "Panadería Sol",
+      "alerta_expiracion_dias": 3
+    },
+    {
+      "id": "l02",
+      "producto_id": "p02",
+      "precio_total": 4.5,
+      "cantidad": 12,
+      "cantidad_restante": 8,
+      "fecha_compra": "2026-07-04",
+      "fecha_expiracion": "2026-07-14",
+      "marca_proveedor": "Bimbo",
+      "alerta_expiracion_dias": 5
+    },
+    {
+      "id": "l03",
+      "producto_id": "p03",
+      "precio_total": 45.0,
+      "cantidad": 2.5,
+      "cantidad_restante": 1.2,
+      "fecha_compra": "2026-06-27",
+      "fecha_expiracion": "2026-07-21",
+      "marca_proveedor": "Embutidos Norte",
+      "alerta_expiracion_dias": 5
+    },
+    {
+      "id": "l04",
+      "producto_id": "p04",
+      "precio_total": 28.0,
+      "cantidad": 1.8,
+      "cantidad_restante": 0.6,
+      "fecha_compra": "2026-06-29",
+      "fecha_expiracion": "2026-07-17",
+      "marca_proveedor": "Quesería Manchega",
+      "alerta_expiracion_dias": 5
+    },
+    {
+      "id": "l05",
+      "producto_id": "p05",
+      "precio_total": 12.0,
+      "cantidad": 48,
+      "cantidad_restante": 12,
+      "fecha_compra": "2026-07-03",
+      "fecha_expiracion": "2026-07-09",
+      "marca_proveedor": "Danone",
+      "alerta_expiracion_dias": 3
+    },
+    {
+      "id": "l06",
+      "producto_id": "p06",
+      "precio_total": 15.0,
+      "cantidad": 10,
+      "cantidad_restante": 4.5,
+      "fecha_compra": "2026-07-05",
+      "fecha_expiracion": "2026-07-12",
+      "marca_proveedor": "Cítricos Valle",
+      "alerta_expiracion_dias": 3
+    },
+    {
+      "id": "l07",
+      "producto_id": "p07",
+      "precio_total": 22.0,
+      "cantidad": 2,
+      "cantidad_restante": 0.8,
+      "fecha_compra": "2026-06-22",
+      "fecha_expiracion": "2026-09-05",
+      "marca_proveedor": "Cafés Origen",
+      "alerta_expiracion_dias": 14
+    },
+    {
+      "id": "l08",
+      "producto_id": "p08",
+      "precio_total": 8.5,
+      "cantidad": 1,
+      "cantidad_restante": 0.3,
+      "fecha_compra": "2026-07-01",
+      "fecha_expiracion": "2026-07-27",
+      "marca_proveedor": "Lácteos Sur",
+      "alerta_expiracion_dias": 5
+    },
+    {
+      "id": "l09",
+      "producto_id": "p09",
+      "precio_total": 12.0,
+      "cantidad": 5,
+      "cantidad_restante": 2.1,
+      "fecha_compra": "2026-07-06",
+      "fecha_expiracion": "2026-07-11",
+      "marca_proveedor": "Frutas del Mercado",
+      "alerta_expiracion_dias": 2
+    },
+    {
+      "id": "l10",
+      "producto_id": "p10",
+      "precio_total": 6.0,
+      "cantidad": 60,
+      "cantidad_restante": 0,
+      "fecha_compra": "2026-06-30",
+      "fecha_expiracion": "2026-07-06",
+      "marca_proveedor": "Granja Local",
+      "alerta_expiracion_dias": 3
+    }
+  ],
+  "desayunos": [
+    {
+      "id": "d01",
+      "fecha": "2026-07-06",
+      "lineas": [
+        {
+          "producto_id": "p01",
+          "cantidad": 18,
+          "coste": 5.4
+        },
+        {
+          "producto_id": "p03",
+          "cantidad": 0.4,
+          "coste": 7.2
+        },
+        {
+          "producto_id": "p06",
+          "cantidad": 2.0,
+          "coste": 3.0
+        },
+        {
+          "producto_id": "p10",
+          "cantidad": 12,
+          "coste": 1.2
+        }
+      ],
+      "coste_total": 16.8,
+      "registrado_por": "María García"
+    },
+    {
+      "id": "d02",
+      "fecha": "2026-07-05",
+      "lineas": [
+        {
+          "producto_id": "p01",
+          "cantidad": 20,
+          "coste": 6.0
+        },
+        {
+          "producto_id": "p05",
+          "cantidad": 16,
+          "coste": 4.0
+        },
+        {
+          "producto_id": "p07",
+          "cantidad": 0.15,
+          "coste": 1.65
+        },
+        {
+          "producto_id": "p09",
+          "cantidad": 1.5,
+          "coste": 3.6
+        }
+      ],
+      "coste_total": 15.25,
+      "registrado_por": "María García"
+    },
+    {
+      "id": "d03",
+      "fecha": "2026-07-04",
+      "lineas": [
+        {
+          "producto_id": "p02",
+          "cantidad": 6,
+          "coste": 2.25
+        },
+        {
+          "producto_id": "p04",
+          "cantidad": 0.3,
+          "coste": 4.67
+        },
+        {
+          "producto_id": "p08",
+          "cantidad": 0.2,
+          "coste": 1.7
+        },
+        {
+          "producto_id": "p10",
+          "cantidad": 10,
+          "coste": 1.0
+        }
+      ],
+      "coste_total": 9.62,
+      "registrado_por": "Carlos Ruiz"
+    },
+    {
+      "id": "d04",
+      "fecha": "2026-07-03",
+      "lineas": [
+        {
+          "producto_id": "p01",
+          "cantidad": 12,
+          "coste": 13.4
+        }
+      ],
+      "coste_total": 13.4,
+      "registrado_por": "María García"
+    },
+    {
+      "id": "d05",
+      "fecha": "2026-07-02",
+      "lineas": [
+        {
+          "producto_id": "p01",
+          "cantidad": 12,
+          "coste": 17.1
+        }
+      ],
+      "coste_total": 17.1,
+      "registrado_por": "Carlos Ruiz"
+    },
+    {
+      "id": "d06",
+      "fecha": "2026-07-01",
+      "lineas": [
+        {
+          "producto_id": "p01",
+          "cantidad": 12,
+          "coste": 12.85
+        }
+      ],
+      "coste_total": 12.85,
+      "registrado_por": "María García"
+    }
+  ],
+  "mermas": [
+    {
+      "id": "m01",
+      "fecha": "2026-07-06",
+      "lineas": [
+        {
+          "producto_id": "p05",
+          "cantidad": 4,
+          "coste": 1.0,
+          "motivo": "Expiración",
+          "comentario": "Yogures caducados"
+        }
+      ],
+      "coste_total": 1.0,
+      "registrado_por": "María García"
+    },
+    {
+      "id": "m02",
+      "fecha": "2026-07-04",
+      "lineas": [
+        {
+          "producto_id": "p01",
+          "cantidad": 3,
+          "coste": 0.9,
+          "motivo": "Merma",
+          "comentario": "Rotos en manipulación"
+        }
+      ],
+      "coste_total": 0.9,
+      "registrado_por": "Carlos Ruiz"
+    },
+    {
+      "id": "m03",
+      "fecha": "2026-07-02",
+      "lineas": [
+        {
+          "producto_id": "p10",
+          "cantidad": 6,
+          "coste": 0.6,
+          "motivo": "Expiración",
+          "comentario": "Huevos fuera de fecha"
+        }
+      ],
+      "coste_total": 0.6,
+      "registrado_por": "María García"
+    },
+    {
+      "id": "m04",
+      "fecha": "2026-07-01",
+      "lineas": [
+        {
+          "producto_id": "p02",
+          "cantidad": 2,
+          "coste": 0.75,
+          "motivo": "Merma",
+          "comentario": null
+        }
+      ],
+      "coste_total": 0.75,
+      "registrado_por": "María García"
+    }
+  ],
+  "alertas": [
+    {
+      "id": "a01",
+      "tipo": "stock_bajo",
+      "titulo": "Stock bajo — Yogur natural",
+      "mensaje": "Quedan 12 unidades. Stock mínimo: 24.",
+      "fecha": "2026-07-07",
+      "activa": true,
+      "producto_id": "p05"
+    },
+    {
+      "id": "a02",
+      "tipo": "stock_cero",
+      "titulo": "Stock agotado — Huevos",
+      "mensaje": "No quedan unidades disponibles.",
+      "fecha": "2026-07-07",
+      "activa": true,
+      "producto_id": "p10"
+    },
+    {
+      "id": "a03",
+      "tipo": "expiracion_proxima",
+      "titulo": "Próximo a expirar — Croissant",
+      "mensaje": "El lote l01 expira en 3 días.",
+      "fecha": "2026-07-07",
+      "activa": true,
+      "producto_id": "p01"
+    },
+    {
+      "id": "a04",
+      "tipo": "expirado",
+      "titulo": "Producto expirado — Huevos",
+      "mensaje": "El lote l10 expiró ayer. Retirar del stock.",
+      "fecha": "2026-07-07",
+      "activa": true,
+      "producto_id": "p10"
+    },
+    {
+      "id": "a05",
+      "tipo": "merma_elevada",
+      "titulo": "Merma superior al mes anterior",
+      "mensaje": "La merma acumulada supera un 15% respecto al mes pasado.",
+      "fecha": "2026-07-07",
+      "activa": true,
+      "producto_id": null
+    },
+    {
+      "id": "a06",
+      "tipo": "desayuno_no_registrado",
+      "titulo": "Desayuno de hoy no registrado",
+      "mensaje": "Aún no se ha registrado el consumo del desayuno de hoy.",
+      "fecha": "2026-07-07",
+      "activa": true,
+      "producto_id": null
+    },
+    {
+      "id": "a07",
+      "tipo": "manual",
+      "titulo": "Revisar proveedor de jamón",
+      "mensaje": "Verificar precio del próximo pedido con Embutidos Norte.",
+      "fecha": "2026-07-09",
+      "activa": true,
+      "producto_id": "p03"
+    }
+  ],
+  "usuarios": [
+    {
+      "id": "u01",
+      "nombre": "María García",
+      "rol": "Owner",
+      "activo": true
+    },
+    {
+      "id": "u02",
+      "nombre": "Carlos Ruiz",
+      "rol": "Admin",
+      "activo": true
+    }
+  ],
+  "configuracion": {
+    "nombre_establecimiento": "Hotel Boutique La Alameda",
+    "moneda": "EUR",
+    "simbolo_moneda": "€",
+    "logo_path": null
+  },
+  "actividades": [
+    {
+      "id": "act01",
+      "fecha_hora": "2026-07-07T08:15:00",
+      "usuario": "María García",
+      "accion": "Inicio de sesión",
+      "detalle": "Acceso temporal sin login"
+    },
+    {
+      "id": "act02",
+      "fecha_hora": "2026-07-06T09:30:00",
+      "usuario": "María García",
+      "accion": "Registro desayuno",
+      "detalle": "Desayuno del día registrado — 16,80 €"
+    },
+    {
+      "id": "act03",
+      "fecha_hora": "2026-07-06T10:05:00",
+      "usuario": "María García",
+      "accion": "Registro merma",
+      "detalle": "4 yogures por expiración — 1,00 €"
+    },
+    {
+      "id": "act04",
+      "fecha_hora": "2026-07-05T09:45:00",
+      "usuario": "Carlos Ruiz",
+      "accion": "Registro desayuno",
+      "detalle": "Desayuno del día registrado — 15,25 €"
+    },
+    {
+      "id": "act05",
+      "fecha_hora": "2026-07-04T11:00:00",
+      "usuario": "Carlos Ruiz",
+      "accion": "Registro merma",
+      "detalle": "3 croissants por merma — 0,90 €"
+    }
+  ]
+}
