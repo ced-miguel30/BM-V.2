@@ -37,8 +37,13 @@ Trabajar por fases. Parar al final de cada fase para revisión del usuario.
 - Comparación de periodos A / B por categoría
 - Gráfico comparativo y exportación Excel
 
-## Fases 11–13
-- Business Intelligence, settings, exportación cliente
+## Fase 11 — Business Intelligence ✅
+- Preguntas sugeridas con respuestas por reglas
+- Consulta libre con palabras clave
+- Resumen automático del mes
+
+## Fases 12–13
+- Settings funcional, exportación cliente
 
 ## Fase 14 — SQLite (NO antes)
 - Eliminar mock_data.py y carpeta demo

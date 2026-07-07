@@ -275,41 +275,53 @@ def _render_gestor_costes() -> None:
 
 
 def _render_business_intelligence() -> None:
-    repo = get_repository()
+    from app.core.services.bi_service import (
+        PREGUNTAS_SUGERIDAS,
+        buscar_pregunta,
+        responder_pregunta,
+        resumen_automatico,
+    )
 
     st.markdown("#### Business Intelligence")
     st.caption("Asistente interno basado en reglas sobre los datos del hotel.")
 
-    st.markdown("##### Resumen automático (datos mock)")
-    top = repo.top_productos_costosos(1)
-    stock_bajo = repo.productos_stock_bajo()
-    resumen = (
-        f"Coste total del mes: **{repo.formato_precio(repo.coste_total_mes())}**. "
-        f"Producto más costoso: **{top[0]['producto']}** ({top[0]['coste_fmt']}). "
-        f"Alertas activas: **{len(repo.alertas_activas())}**. "
-        f"Productos con stock bajo: **{len(stock_bajo)}**."
-    )
-    st.info(resumen)
+    st.markdown("##### Resumen automático")
+    st.info(resumen_automatico())
 
     st.markdown("##### Preguntas sugeridas")
-    preguntas = [
-        "¿Hay alguna anomalía de costes?",
-        "¿Qué es lo más caro de este mes?",
-        "¿Qué producto ha generado más merma?",
-        "¿Qué productos están subiendo de coste?",
-        "¿Qué debería revisar esta semana?",
-    ]
+    for pid, pregunta in PREGUNTAS_SUGERIDAS:
+        if st.button(pregunta, key=f"bi_pregunta_{pid}", use_container_width=True):
+            st.session_state["bi_respuesta"] = responder_pregunta(pid)
+            st.session_state["bi_pregunta_texto"] = pregunta
 
-    for i, pregunta in enumerate(preguntas):
-        st.button(pregunta, disabled=True, key=f"bi_pregunta_{i}", use_container_width=True)
+    consulta = st.text_input(
+        "O escriba su pregunta",
+        placeholder="Ej: ¿Qué debería revisar esta semana?",
+        key="bi_consulta_libre",
+    )
+    if st.button("Consultar", key="bi_btn_consultar", type="primary"):
+        pid = buscar_pregunta(consulta)
+        if pid:
+            st.session_state["bi_respuesta"] = responder_pregunta(pid)
+            st.session_state["bi_pregunta_texto"] = consulta
+        else:
+            st.session_state["bi_respuesta"] = (
+                "No he podido interpretar la pregunta. "
+                "Pruebe con una de las sugeridas o use palabras como «merma», «caro» o «revisar»."
+            )
+            st.session_state["bi_pregunta_texto"] = consulta
 
     section_divider()
     st.markdown("##### Respuesta")
-    empty_state(
-        "Seleccione una pregunta sugerida para obtener una respuesta. "
-        "El chatbox con reglas estará activo en Fase 11.",
-        icon="💬",
-    )
+    if st.session_state.get("bi_respuesta"):
+        if st.session_state.get("bi_pregunta_texto"):
+            st.caption(f"Pregunta: {st.session_state['bi_pregunta_texto']}")
+        st.markdown(st.session_state["bi_respuesta"])
+    else:
+        empty_state(
+            "Seleccione una pregunta sugerida o escriba una consulta.",
+            icon="💬",
+        )
 
 
 _SUBTABS = {
