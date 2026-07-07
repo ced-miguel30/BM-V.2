@@ -87,6 +87,128 @@ class DataRepository:
     def coste_total_mes(self) -> float:
         return self.coste_consumo_mes() + self.coste_merma_mes() + self.coste_expiracion_mes()
 
+    def _periodo_mes_actual(self) -> tuple[date, date]:
+        hoy = date.today()
+        return hoy.replace(day=1), hoy
+
+    def coste_consumo_periodo(self, inicio: date, fin: date) -> float:
+        return sum(
+            d.coste_total for d in self._data.desayunos if inicio <= d.fecha <= fin
+        )
+
+    def coste_merma_periodo(self, inicio: date, fin: date) -> float:
+        total = 0.0
+        for merma in self._data.mermas:
+            if inicio <= merma.fecha <= fin:
+                for linea in merma.lineas:
+                    if linea.motivo != MotivoMerma.EXPIRACION:
+                        total += linea.coste
+        return total
+
+    def coste_expiracion_periodo(self, inicio: date, fin: date) -> float:
+        total = 0.0
+        for merma in self._data.mermas:
+            if inicio <= merma.fecha <= fin:
+                for linea in merma.lineas:
+                    if linea.motivo == MotivoMerma.EXPIRACION:
+                        total += linea.coste
+        return total
+
+    def coste_total_periodo(self, inicio: date, fin: date) -> float:
+        return (
+            self.coste_consumo_periodo(inicio, fin)
+            + self.coste_merma_periodo(inicio, fin)
+            + self.coste_expiracion_periodo(inicio, fin)
+        )
+
+    def registros_expiracion_periodo(self, inicio: date, fin: date) -> int:
+        n = 0
+        for merma in self._data.mermas:
+            if inicio <= merma.fecha <= fin:
+                n += sum(1 for l in merma.lineas if l.motivo == MotivoMerma.EXPIRACION)
+        return n
+
+    def evolucion_diaria(self, inicio: date, fin: date) -> list[dict]:
+        from datetime import timedelta
+
+        if inicio > fin:
+            inicio, fin = fin, inicio
+
+        datos: dict[date, dict] = {}
+        cursor = inicio
+        while cursor <= fin:
+            datos[cursor] = {
+                "fecha": cursor,
+                "consumo": 0.0,
+                "merma": 0.0,
+                "expiracion": 0.0,
+            }
+            cursor += timedelta(days=1)
+
+        for desayuno in self._data.desayunos:
+            if inicio <= desayuno.fecha <= fin:
+                datos[desayuno.fecha]["consumo"] += desayuno.coste_total
+
+        for merma in self._data.mermas:
+            if inicio <= merma.fecha <= fin:
+                exp = sum(l.coste for l in merma.lineas if l.motivo == MotivoMerma.EXPIRACION)
+                datos[merma.fecha]["expiracion"] += exp
+                datos[merma.fecha]["merma"] += merma.coste_total - exp
+
+        return [
+            {
+                **datos[d],
+                "total": datos[d]["consumo"] + datos[d]["merma"] + datos[d]["expiracion"],
+            }
+            for d in sorted(datos.keys())
+        ]
+
+    def top_productos_costosos_periodo(
+        self, inicio: date, fin: date, n: int = 5,
+    ) -> list[dict]:
+        costes: dict[str, float] = {}
+        for desayuno in self._data.desayunos:
+            if inicio <= desayuno.fecha <= fin:
+                for linea in desayuno.lineas:
+                    costes[linea.producto_id] = costes.get(linea.producto_id, 0) + linea.coste
+        for merma in self._data.mermas:
+            if inicio <= merma.fecha <= fin:
+                for linea in merma.lineas:
+                    costes[linea.producto_id] = costes.get(linea.producto_id, 0) + linea.coste
+        ordenado = sorted(costes.items(), key=lambda x: x[1], reverse=True)
+        return [
+            {
+                "producto": self.get_nombre_producto(pid),
+                "coste": coste,
+                "coste_fmt": self.formato_precio(coste),
+            }
+            for pid, coste in ordenado[:n]
+        ]
+
+    def top_productos_menos_costosos_periodo(
+        self, inicio: date, fin: date, n: int = 5,
+    ) -> list[dict]:
+        costes: dict[str, float] = {}
+        for desayuno in self._data.desayunos:
+            if inicio <= desayuno.fecha <= fin:
+                for linea in desayuno.lineas:
+                    costes[linea.producto_id] = costes.get(linea.producto_id, 0) + linea.coste
+        for merma in self._data.mermas:
+            if inicio <= merma.fecha <= fin:
+                for linea in merma.lineas:
+                    costes[linea.producto_id] = costes.get(linea.producto_id, 0) + linea.coste
+        if not costes:
+            return []
+        ordenado = sorted(costes.items(), key=lambda x: x[1])
+        return [
+            {
+                "producto": self.get_nombre_producto(pid),
+                "coste": coste,
+                "coste_fmt": self.formato_precio(coste),
+            }
+            for pid, coste in ordenado[:n]
+        ]
+
     def productos_stock_bajo(self) -> list[tuple[Producto, float]]:
         resultado = []
         for producto in self._data.productos:

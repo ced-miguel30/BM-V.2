@@ -1,10 +1,13 @@
 """Dashboard — vista principal."""
 
+from datetime import date
+
 import streamlit as st
 
 from app.core.models import TipoAlerta
 from app.core.services.data_service import get_repository
 from app.core.services.formatting import formato_fecha
+from app.ui.charts import chart_evolucion_costes
 from app.ui.components import (
     badge_info,
     badge_warning,
@@ -41,7 +44,16 @@ def render() -> None:
     section_divider()
 
     st.markdown("#### Evolución mensual")
-    chart_placeholder("Gráfico mensual — disponible en Fase 3 (Consumo · Merma · Expiración)")
+    hoy = date.today()
+    inicio_mes = hoy.replace(day=1)
+    evolucion = repo.evolucion_diaria(inicio_mes, hoy)
+    if any(e["total"] > 0 for e in evolucion):
+        st.altair_chart(
+            chart_evolucion_costes(evolucion, "Mes en curso — Consumo · Merma · Expiración"),
+            use_container_width=True,
+        )
+    else:
+        chart_placeholder("Sin datos de costes en el mes actual.")
 
     section_divider()
 

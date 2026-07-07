@@ -23,8 +23,13 @@ Trabajar por fases. Parar al final de cada fase para revisión del usuario.
 - Cesta de merma y registro con descuento del lote elegido
 - Inventario sigue mostrando solo total por producto
 
-## Fases 8–13
-- KPIs, análisis, settings, exportación cliente
+## Fase 8 — KPIs y gráficos ✅
+- Filtro por periodo (desde / hasta) en Análisis → KPIs
+- Coste por huésped, evolución diaria con gráfico Altair
+- Exportar Excel de KPIs
+- Gráfico mensual en Dashboard
+
+## Fases 9–13
 
 ## Fase 14 — SQLite (NO antes)
 - Eliminar mock_data.py y carpeta demo

@@ -25,7 +25,7 @@ La aplicación se abrirá en el navegador (por defecto en `http://localhost:8501
 
 ## Estado actual
 
-**Fase 7** — Registro de merma con selector de lote, fecha de compra visible y cesta funcional.
+**Fase 8** — KPIs por periodo, coste por huésped, gráficos de evolución y exportación Excel.
 
 ## Estructura de carpetas
 
