@@ -44,3 +44,22 @@ def chart_evolucion_costes(datos: list[dict], titulo: str = "Evolución de coste
         .properties(title=titulo, height=320)
         .configure_axis(labelFontSize=11, titleFontSize=12)
     )
+
+
+def chart_comparacion_periodos(datos: list[dict], titulo: str = "Comparación de costes") -> alt.Chart:
+    df = pd.DataFrame(datos)
+    if df.empty or df["coste"].sum() == 0:
+        return alt.Chart(pd.DataFrame({"msg": ["Sin datos"]})).mark_text().encode(text="msg")
+
+    return (
+        alt.Chart(df)
+        .mark_bar()
+        .encode(
+            x=alt.X("categoria:N", title="Categoría"),
+            y=alt.Y("coste:Q", title="Coste (€)"),
+            color=alt.Color("periodo:N", title="Periodo"),
+            xOffset="periodo:N",
+            tooltip=["periodo", "categoria", alt.Tooltip("coste:Q", format=".2f")],
+        )
+        .properties(title=titulo, height=300)
+    )

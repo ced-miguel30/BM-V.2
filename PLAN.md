@@ -29,7 +29,16 @@ Trabajar por fases. Parar al final de cada fase para revisión del usuario.
 - Exportar Excel de KPIs
 - Gráfico mensual en Dashboard
 
-## Fases 9–13
+## Fase 9 — Gestor de consumo ✅
+- Predicción de necesidades según huéspedes esperados
+- Coste estimado y recomendaciones operativas
+
+## Fase 10 — Gestor de costes ✅
+- Comparación de periodos A / B por categoría
+- Gráfico comparativo y exportación Excel
+
+## Fases 11–13
+- Business Intelligence, settings, exportación cliente
 
 ## Fase 14 — SQLite (NO antes)
 - Eliminar mock_data.py y carpeta demo

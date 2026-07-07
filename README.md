@@ -25,7 +25,7 @@ La aplicación se abrirá en el navegador (por defecto en `http://localhost:8501
 
 ## Estado actual
 
-**Fase 8** — KPIs por periodo, coste por huésped, gráficos de evolución y exportación Excel.
+**Fase 10** — Gestor de consumo con predicción y gestor de costes comparativo con exportación Excel.
 
 ## Estructura de carpetas
 

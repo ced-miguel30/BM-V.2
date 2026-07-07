@@ -14,6 +14,7 @@ def render_sidebar() -> str:
                 <div class="bm-sidebar-logo">☕</div>
                 <p class="bm-sidebar-title">{APP_NAME}</p>
                 <p class="bm-sidebar-hotel">{HOTEL_NAME}</p>
+                <p class="bm-sidebar-version">{APP_VERSION}</p>
             </div>
             """,
             unsafe_allow_html=True,
@@ -25,11 +26,6 @@ def render_sidebar() -> str:
             options=list(NAV_SECTIONS.keys()),
             label_visibility="collapsed",
             key="nav_section",
-        )
-
-        st.markdown(
-            f'<p class="bm-sidebar-version">{APP_VERSION}</p>',
-            unsafe_allow_html=True,
         )
 
     return NAV_SECTIONS[section]

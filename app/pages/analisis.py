@@ -13,7 +13,6 @@ from app.ui.components import (
     empty_state,
     metric_card,
     page_header,
-    placeholder_panel,
     render_sub_tabs,
     section_divider,
 )
@@ -110,27 +109,44 @@ def _render_kpis() -> None:
 
 
 def _render_gestor_consumo() -> None:
+    import pandas as pd
+
+    from app.core.services.consumo_service import prediccion_necesidades
+
     repo = get_repository()
+    hoy = date.today()
+    inicio_mes = hoy.replace(day=1)
 
     st.markdown("#### Gestor de consumo")
-    st.caption("Analice el consumo por producto y obtenga estimaciones según huéspedes esperados.")
+    st.caption("Analice el consumo y estime necesidades según huéspedes esperados.")
 
-    st.number_input(
-        "Número esperado de huéspedes",
-        min_value=0,
-        value=0,
-        disabled=True,
-        key="consumo_huespedes",
-    )
+    col_h1, col_h2 = st.columns(2)
+    with col_h1:
+        huespedes = st.number_input(
+            "Número esperado de huéspedes",
+            min_value=0,
+            value=30,
+            step=1,
+            key="consumo_huespedes",
+        )
+    with col_h2:
+        referencia = st.number_input(
+            "Referencia histórica (huéspedes)",
+            min_value=1,
+            value=30,
+            step=1,
+            help="Ocupación de referencia para escalar el consumo medio.",
+            key="consumo_referencia",
+        )
 
     section_divider()
 
     col1, col2 = st.columns(2)
     with col1:
-        st.markdown("##### Consumo por producto")
+        st.markdown("##### Consumo por producto (histórico)")
         consumo = repo.consumo_por_producto()
         if consumo:
-            st.dataframe(consumo, use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame(consumo), use_container_width=True, hide_index=True)
         else:
             empty_state("Sin datos de consumo.", icon="🍽️")
 
@@ -141,55 +157,121 @@ def _render_gestor_consumo() -> None:
         metric_card("Media diaria", repo.formato_precio(media), f"Basado en {n_dias} días")
 
     section_divider()
-    placeholder_panel(
-        "Predicción de necesidades",
-        "En Fase 9 se mostrarán productos estimados, coste previsto y recomendaciones.",
-        [
-            "Productos estimados necesarios",
-            "Coste estimado del desayuno",
-            "Recomendación operativa en lenguaje claro",
-        ],
-    )
+    st.markdown("##### Predicción de necesidades")
+
+    pred = prediccion_necesidades(huespedes, referencia)
+
+    col_p1, col_p2 = st.columns(2)
+    with col_p1:
+        metric_card("Coste estimado", pred["coste_estimado_fmt"], f"{huespedes} huéspedes")
+    with col_p2:
+        metric_card(
+            "Factor de escala",
+            f"{pred['factor']:.2f}x" if pred["factor"] else "—",
+            f"Ref. {referencia} huéspedes",
+        )
+
+    if pred["productos"]:
+        st.dataframe(
+            pd.DataFrame([
+                {
+                    "Producto": p["producto"],
+                    "Estimado": f"{p['cantidad_estimada']:g} {p['unidad']}",
+                    "Stock actual": f"{p['stock_actual']:g} {p['unidad']}",
+                    "Coste est.": p["coste_estimado_fmt"],
+                }
+                for p in pred["productos"]
+            ]),
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        empty_state("Sin estimaciones disponibles.", icon="📋")
+
+    st.markdown("##### Recomendación operativa")
+    for rec in pred["recomendaciones"]:
+        st.markdown(f"- {rec}")
 
 
 def _render_gestor_costes() -> None:
+    from app.core.services.costes_service import (
+        CATEGORIAS,
+        comparar_periodos,
+        datos_grafico_comparacion,
+        exportar_costes_excel,
+    )
+    from app.ui.charts import chart_comparacion_periodos
+
     repo = get_repository()
+    hoy = date.today()
+    inicio_mes = hoy.replace(day=1)
 
     st.markdown("#### Gestor de costes")
-    st.caption("Analice consumo, merma y expiración de forma conjunta o por categoría.")
+    st.caption("Compare periodos y analice consumo, merma y expiración por categoría.")
 
-    st.multiselect(
+    categorias = st.multiselect(
         "Categorías a analizar",
-        ["Consumo", "Merma", "Expiración"],
-        default=["Consumo", "Merma", "Expiración"],
-        disabled=True,
+        CATEGORIAS,
+        default=CATEGORIAS,
         key="costes_categorias",
     )
+    if not categorias:
+        st.warning("Seleccione al menos una categoría.")
+        return
 
     col1, col2 = st.columns(2)
     with col1:
-        st.date_input("Periodo A — desde", disabled=True, key="costes_a_desde")
-        st.date_input("Periodo A — hasta", disabled=True, key="costes_a_hasta")
+        st.markdown("**Periodo A**")
+        a_desde = st.date_input("Desde", value=inicio_mes, key="costes_a_desde")
+        a_hasta = st.date_input("Hasta", value=hoy, max_value=hoy, key="costes_a_hasta")
     with col2:
-        st.date_input("Periodo B — desde", disabled=True, key="costes_b_desde")
-        st.date_input("Periodo B — hasta", disabled=True, key="costes_b_hasta")
+        st.markdown("**Periodo B**")
+        b_inicio = inicio_mes.replace(year=inicio_mes.year - 1, month=12, day=1) if inicio_mes.month == 1 else inicio_mes.replace(month=inicio_mes.month - 1, day=1)
+        b_desde = st.date_input("Desde", value=b_inicio, key="costes_b_desde")
+        b_hasta = st.date_input("Hasta", value=a_hasta, max_value=hoy, key="costes_b_hasta")
+
+    if a_desde > a_hasta or b_desde > b_hasta:
+        st.error("Revise las fechas de los periodos.")
+        return
+
+    comparacion = comparar_periodos(a_desde, a_hasta, b_desde, b_hasta, categorias)
 
     section_divider()
+    st.markdown("##### Comparación de periodos")
 
-    st.markdown("##### Resumen del mes actual")
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        metric_card("Consumo", repo.formato_precio(repo.coste_consumo_mes()), "Mes actual")
-    with c2:
-        metric_card("Merma", repo.formato_precio(repo.coste_merma_mes()), "Mes actual")
-    with c3:
-        metric_card("Expiración", repo.formato_precio(repo.coste_expiracion_mes()), "Mes actual")
+    cols = st.columns(len(categorias) + 1)
+    for i, cat in enumerate(categorias):
+        with cols[i]:
+            va = comparacion["periodo_a"]["costes"].get(cat, 0)
+            vb = comparacion["periodo_b"]["costes"].get(cat, 0)
+            var = comparacion["variaciones"].get(cat, 0)
+            metric_card(cat, repo.formato_precio(va), f"vs B: {var:+.1f}%")
+    with cols[-1]:
+        metric_card(
+            "Total A",
+            comparacion["periodo_a"]["total_fmt"],
+            comparacion["variacion_total_fmt"],
+        )
 
+    grafico = datos_grafico_comparacion(comparacion)
+    if any(g["coste"] > 0 for g in grafico):
+        st.altair_chart(chart_comparacion_periodos(grafico), use_container_width=True)
+
+    section_divider()
     col_exp1, col_exp2 = st.columns(2)
     with col_exp1:
+        st.caption("Exportación PDF — disponible en fase posterior.")
         st.button("Exportar PDF", disabled=True, use_container_width=True, key="costes_exportar_pdf")
     with col_exp2:
-        st.button("Exportar Excel", disabled=True, use_container_width=True, key="costes_exportar_excel")
+        nombre = f"costes_{a_desde.isoformat()}_{b_hasta.isoformat()}.xlsx"
+        st.download_button(
+            "Exportar Excel",
+            data=exportar_costes_excel(a_desde, a_hasta, b_desde, b_hasta, categorias),
+            file_name=nombre,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+            key="costes_exportar_excel",
+        )
 
 
 def _render_business_intelligence() -> None:
