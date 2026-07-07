@@ -1,13 +1,86 @@
 """Stock — productos y alertas."""
 
+from datetime import date
+
 import pandas as pd
 import streamlit as st
 
 from app.core.models import TipoAlerta
+from app.core.services.alert_service import (
+    alertas_stock_activas,
+    crear_alerta_manual,
+    resolver_alerta,
+    sincronizar_alertas,
+)
 from app.core.services.data_service import get_repository
 from app.core.services.formatting import formato_fecha, formato_moneda
 from app.core.services.stock_service import UNIDADES, crear_producto, mapa_productos, registrar_lote
 from app.ui.components import empty_state, page_header, render_sub_tabs, section_divider
+
+_TIPO_ETIQUETA = {
+    TipoAlerta.STOCK_BAJO: "Stock bajo",
+    TipoAlerta.STOCK_CERO: "Stock cero",
+    TipoAlerta.EXPIRACION_PROXIMA: "Expiración próxima",
+    TipoAlerta.EXPIRADO: "Expirado",
+    TipoAlerta.MANUAL: "Manual",
+}
+
+
+def _render_inventario(repo) -> None:
+    st.markdown("#### Inventario")
+    st.caption("Stock total por producto. Las compras se registran por lote pero se muestran agregadas aquí.")
+
+    if repo.data.productos:
+        filas = []
+        for p in sorted(repo.data.productos, key=lambda x: x.nombre):
+            stock = repo.stock_total_producto(p.id)
+            filas.append({
+                "Producto": p.nombre,
+                "Unidad": p.unidad.value,
+                "Stock actual": stock,
+                "Stock mínimo": p.stock_minimo if p.stock_minimo is not None else "—",
+            })
+        st.dataframe(pd.DataFrame(filas), use_container_width=True, hide_index=True)
+    else:
+        empty_state("No hay productos registrados.", icon="📦")
+
+
+def _render_historial_compras(repo) -> None:
+    st.markdown("#### Historial de compras")
+    st.caption("Detalle por lote. Use esta vista para ver cada compra, no el inventario diario.")
+
+    if not repo.data.lotes:
+        empty_state("No hay compras registradas.", icon="🏷️")
+        return
+
+    productos = sorted(repo.data.productos, key=lambda x: x.nombre)
+    opciones = ["Todos los productos"] + [p.nombre for p in productos]
+    filtro = st.selectbox("Filtrar por producto", opciones, key="historial_filtro_producto")
+
+    filas = []
+    for lote in sorted(
+        repo.data.lotes,
+        key=lambda l: (l.producto_id, l.fecha_compra or date.min),
+        reverse=True,
+    ):
+        nombre = repo.get_nombre_producto(lote.producto_id)
+        if filtro != "Todos los productos" and nombre != filtro:
+            continue
+        filas.append({
+            "Producto": nombre,
+            "Lote": lote.id,
+            "Compra": formato_fecha(lote.fecha_compra),
+            "Expiración": formato_fecha(lote.fecha_expiracion),
+            "Cantidad": lote.cantidad,
+            "Restante": lote.cantidad_restante,
+            "Precio total": formato_moneda(lote.precio_total, repo.get_simbolo_moneda()),
+            "Proveedor": lote.marca_proveedor or "—",
+        })
+
+    if filas:
+        st.dataframe(pd.DataFrame(filas), use_container_width=True, hide_index=True)
+    else:
+        empty_state("No hay compras para este producto.", icon="🔍")
 
 
 def _render_registro_producto() -> None:
@@ -32,6 +105,7 @@ def _render_registro_producto() -> None:
             if enviado:
                 resultado = crear_producto(nombre, unidad, stock_min if stock_min > 0 else None)
                 if resultado.ok:
+                    sincronizar_alertas()
                     st.success(resultado.mensaje)
                     st.rerun()
                 else:
@@ -74,55 +148,49 @@ def _render_registro_producto() -> None:
                         alerta_expiracion_dias=alerta_dias if alerta_dias > 0 else None,
                     )
                     if resultado.ok:
+                        sincronizar_alertas()
                         st.success(resultado.mensaje)
                         st.rerun()
                     else:
                         st.error(resultado.mensaje)
 
     section_divider()
-    st.markdown("#### Productos registrados")
-
-    if repo.data.productos:
-        filas = []
-        for p in sorted(repo.data.productos, key=lambda x: x.nombre):
-            stock = repo.stock_total_producto(p.id)
-            filas.append({
-                "ID": p.id,
-                "Producto": p.nombre,
-                "Unidad": p.unidad.value,
-                "Stock actual": stock,
-                "Stock mínimo": p.stock_minimo if p.stock_minimo is not None else "—",
-            })
-        st.dataframe(pd.DataFrame(filas), use_container_width=True, hide_index=True)
-    else:
-        empty_state("No hay productos registrados.", icon="📦")
-
+    _render_inventario(repo)
     section_divider()
-    st.markdown("#### Lotes registrados")
-
-    if repo.data.lotes:
-        filas = []
-        for lote in repo.data.lotes:
-            filas.append({
-                "ID": lote.id,
-                "Producto": repo.get_nombre_producto(lote.producto_id),
-                "Cantidad": lote.cantidad,
-                "Restante": lote.cantidad_restante,
-                "Precio total": formato_moneda(lote.precio_total, repo.get_simbolo_moneda()),
-                "Compra": formato_fecha(lote.fecha_compra),
-                "Expiración": formato_fecha(lote.fecha_expiracion),
-                "Proveedor": lote.marca_proveedor or "—",
-            })
-        st.dataframe(pd.DataFrame(filas), use_container_width=True, hide_index=True)
-    else:
-        empty_state("No hay lotes registrados.", icon="🏷️")
+    _render_historial_compras(repo)
 
 
 def _render_alertas_stock() -> None:
+    sincronizar_alertas()
     repo = get_repository()
+    alertas = alertas_stock_activas(repo.data)
 
-    st.markdown("#### Estado de alertas")
-    st.caption("Productos con stock bajo, sin stock, próximos a expirar y alertas manuales.")
+    st.markdown("#### Alertas activas")
+    st.caption("Alertas generadas automáticamente desde el stock y las que cree manualmente.")
+
+    if alertas:
+        for alerta in alertas:
+            etiqueta = _TIPO_ETIQUETA.get(alerta.tipo, alerta.tipo.value)
+            col_info, col_btn = st.columns([5, 1])
+            with col_info:
+                st.markdown(
+                    f"**{alerta.titulo}** `{etiqueta}`  \n"
+                    f"{alerta.mensaje}  \n"
+                    f"*{formato_fecha(alerta.fecha)}*"
+                )
+            with col_btn:
+                if st.button("Resolver", key=f"resolver_alerta_{alerta.id}", use_container_width=True):
+                    resultado = resolver_alerta(alerta.id)
+                    if resultado.ok:
+                        sincronizar_alertas()
+                        st.rerun()
+                    else:
+                        st.error(resultado.mensaje)
+    else:
+        empty_state("No hay alertas de stock activas.", icon="✅")
+
+    section_divider()
+    st.markdown("#### Resumen rápido")
 
     col1, col2 = st.columns(2)
     with col1:
@@ -130,7 +198,7 @@ def _render_alertas_stock() -> None:
         stock_bajo = repo.productos_stock_bajo()
         if stock_bajo:
             for producto, stock in stock_bajo:
-                st.markdown(f"- **{producto.nombre}** — {stock} {producto.unidad.value}")
+                st.markdown(f"- **{producto.nombre}** — {stock:g} {producto.unidad.value}")
         else:
             empty_state("Sin productos con stock bajo.", icon="⚠️")
 
@@ -144,32 +212,24 @@ def _render_alertas_stock() -> None:
             empty_state("Sin productos agotados.", icon="🚫")
 
     section_divider()
+    st.markdown("#### Crear alerta manual")
+    productos_map = mapa_productos(repo.data)
+    opciones_producto = ["(Ninguno)"] + list(productos_map.keys())
 
-    col3, col4 = st.columns(2)
-    with col3:
-        st.markdown("##### Próximos a expirar")
-        proximos = repo.lotes_proximos_expirar()
-        if proximos:
-            for item in proximos:
-                st.markdown(
-                    f"- **{item['producto']}** — expira en {item['dias']} días "
-                    f"({formato_fecha(item['lote'].fecha_expiracion)})"
-                )
-        else:
-            empty_state("Sin productos próximos a expirar.", icon="⏰")
-
-    with col4:
-        st.markdown("##### Alertas manuales")
-        manuales = repo.alertas_por_tipo(TipoAlerta.MANUAL)
-        if manuales:
-            for alerta in manuales:
-                st.markdown(f"- **{alerta.titulo}** — {alerta.mensaje}")
-        else:
-            empty_state("Sin alertas manuales creadas.", icon="✋")
-
-    section_divider()
-    st.markdown("#### Generar alerta manual")
-    st.caption("Disponible en Fase 5.")
+    with st.form("form_alerta_manual", clear_on_submit=True):
+        titulo = st.text_input("Título", placeholder="Ej: Revisar pedido de jamón")
+        mensaje = st.text_area("Mensaje", placeholder="Detalle de la alerta...")
+        producto_sel = st.selectbox("Producto relacionado (opcional)", opciones_producto)
+        enviado = st.form_submit_button("Crear alerta", type="primary")
+        if enviado:
+            producto_id = productos_map.get(producto_sel) if producto_sel != "(Ninguno)" else None
+            resultado = crear_alerta_manual(titulo, mensaje, producto_id)
+            if resultado.ok:
+                sincronizar_alertas()
+                st.success(resultado.mensaje)
+                st.rerun()
+            else:
+                st.error(resultado.mensaje)
 
 
 _SUBTABS = {
@@ -179,7 +239,7 @@ _SUBTABS = {
 
 
 def render() -> None:
-    page_header("Stock", "Gestión de productos, lotes y alertas de inventario")
+    page_header("Stock", "Inventario por producto, compras por lote y alertas")
 
     selected = render_sub_tabs(list(_SUBTABS.keys()), key="stock_subtab")
     _SUBTABS[selected]()

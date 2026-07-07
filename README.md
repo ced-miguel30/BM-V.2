@@ -25,7 +25,7 @@ La aplicación se abrirá en el navegador (por defecto en `http://localhost:8501
 
 ## Estado actual
 
-**Fase 4** — Stock: crear productos y registrar lotes con persistencia en `data/demo/datos_hotel.json`. Settings incluye pestaña «Datos demo» para recargar o restablecer.
+**Fase 5** — Alertas de stock automáticas y manuales. Inventario por producto; historial de compras por lote en Stock.
 
 ## Estructura de carpetas
 
