@@ -130,28 +130,71 @@ def _render_registro_desayuno() -> None:
 
 
 def _render_registro_merma() -> None:
+    from app.core.services.merma_service import (
+        MOTIVOS,
+        anadir_a_cesta_merma,
+        coste_total_cesta_merma,
+        get_cesta_merma,
+        limpiar_cesta_merma,
+        lotes_disponibles,
+        productos_con_stock,
+        quitar_de_cesta_merma,
+        registrar_merma,
+    )
+
     repo = get_repository()
 
     st.markdown("#### Registro de merma")
-    st.caption("Registre productos perdidos por merma, expiración u otros motivos.")
+    st.caption("Seleccione el lote concreto (con fecha de compra) y añádalo a la cesta.")
 
     col_buscar, col_cesta = st.columns([2, 1])
 
     with col_buscar:
-        st.text_input(
+        buscar = st.text_input(
             "Buscar producto",
             placeholder="Escriba el nombre del producto...",
-            disabled=True,
             key="merma_buscar",
         )
-        st.date_input("Fecha", disabled=True, key="merma_fecha")
-        st.selectbox(
-            "Motivo",
-            ["Merma", "Expiración", "Producto malo", "Producto abierto", "Otro"],
-            disabled=True,
-            key="merma_motivo",
-        )
-        st.text_area("Comentario (opcional)", disabled=True, key="merma_comentario")
+        fecha = st.date_input("Fecha", value=date.today(), max_value=date.today(), key="merma_fecha")
+
+        productos = productos_con_stock(buscar)
+        if productos:
+            mapa_prod = {p["etiqueta"]: p["id"] for p in productos}
+            sel_prod = st.selectbox("Producto", list(mapa_prod.keys()), key="merma_sel_producto")
+            producto_id = mapa_prod[sel_prod]
+
+            lotes = lotes_disponibles(producto_id)
+            if lotes:
+                mapa_lotes = {l["etiqueta"]: l["id"] for l in lotes}
+                sel_lote = st.selectbox(
+                    "Lote (fecha de compra)",
+                    list(mapa_lotes.keys()),
+                    key="merma_sel_lote",
+                )
+                lote_id = mapa_lotes[sel_lote]
+
+                motivo = st.selectbox("Motivo", MOTIVOS, key="merma_motivo")
+                cantidad = st.number_input(
+                    "Cantidad",
+                    min_value=0.0,
+                    value=0.0,
+                    step=0.1,
+                    format="%.2f",
+                    key="merma_cantidad",
+                )
+                comentario = st.text_area("Comentario (opcional)", key="merma_comentario")
+
+                if st.button("Añadir a la cesta", type="secondary", use_container_width=True, key="merma_btn_anadir"):
+                    resultado = anadir_a_cesta_merma(lote_id, cantidad, motivo, comentario)
+                    if resultado.ok:
+                        st.success(resultado.mensaje)
+                        st.rerun()
+                    else:
+                        st.error(resultado.mensaje)
+            else:
+                empty_state("No hay lotes con stock para este producto.", icon="🏷️")
+        else:
+            empty_state("No hay productos con stock disponible.", icon="🔍")
 
     with col_cesta:
         st.markdown(
@@ -162,10 +205,37 @@ def _render_registro_merma() -> None:
             """,
             unsafe_allow_html=True,
         )
-        empty_state("La cesta está vacía", icon="🧺")
-        st.button("Registrar merma", type="primary", disabled=True, use_container_width=True, key="btn_registrar_merma")
+        cesta = get_cesta_merma()
+        if cesta:
+            for linea in cesta:
+                col_info, col_quitar = st.columns([4, 1])
+                with col_info:
+                    st.markdown(
+                        f"**{linea.nombre}** — {linea.cantidad:g} {linea.unidad}  \n"
+                        f"Lote {linea.lote_id} · compra {linea.fecha_compra_txt}  \n"
+                        f"*{linea.motivo}*"
+                    )
+                with col_quitar:
+                    if st.button("✕", key=f"quitar_merma_{linea.lote_id}_{linea.motivo}", help="Quitar"):
+                        quitar_de_cesta_merma(linea.lote_id, linea.motivo)
+                        st.rerun()
 
-    st.caption("Disponible en Fase 7 — con selector de lote y fecha de compra.")
+            total = coste_total_cesta_merma()
+            st.markdown(f"**Coste estimado:** {repo.formato_precio(total)}")
+
+            if st.button("Vaciar cesta", use_container_width=True, key="merma_vaciar_cesta"):
+                limpiar_cesta_merma()
+                st.rerun()
+        else:
+            empty_state("La cesta está vacía", icon="🧺")
+
+        if st.button("Registrar merma", type="primary", use_container_width=True, key="btn_registrar_merma"):
+            resultado = registrar_merma(fecha)
+            if resultado.ok:
+                st.success(resultado.mensaje)
+                st.rerun()
+            else:
+                st.error(resultado.mensaje)
 
     section_divider()
     st.markdown("#### Historial de merma")

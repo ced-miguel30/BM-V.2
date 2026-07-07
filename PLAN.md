@@ -18,8 +18,9 @@ Trabajar por fases. Parar al final de cada fase para revisión del usuario.
 - Registro diario con coste FIFO automático
 - Descuento de stock por lotes (más antiguo primero)
 
-## Fase 7 — Registro merma / expiración
+## Fase 7 — Registro merma / expiración ✅
 - Selector de lote concreto con fecha de compra visible
+- Cesta de merma y registro con descuento del lote elegido
 - Inventario sigue mostrando solo total por producto
 
 ## Fases 8–13

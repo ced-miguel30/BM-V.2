@@ -71,7 +71,7 @@
       "producto_id": "p01",
       "precio_total": 18.0,
       "cantidad": 60,
-      "cantidad_restante": 37.0,
+      "cantidad_restante": 42,
       "fecha_compra": "2026-07-02",
       "fecha_expiracion": "2026-07-10",
       "marca_proveedor": "Panadería Sol",
@@ -115,7 +115,7 @@
       "producto_id": "p05",
       "precio_total": 12.0,
       "cantidad": 48,
-      "cantidad_restante": 12,
+      "cantidad_restante": 10,
       "fecha_compra": "2026-07-03",
       "fecha_expiracion": "2026-07-09",
       "marca_proveedor": "Danone",
@@ -137,7 +137,7 @@
       "producto_id": "p07",
       "precio_total": 22.0,
       "cantidad": 2,
-      "cantidad_restante": 0.7,
+      "cantidad_restante": 0.3,
       "fecha_compra": "2026-06-22",
       "fecha_expiracion": "2026-09-05",
       "marca_proveedor": "Cafés Origen",
@@ -179,12 +179,12 @@
     {
       "id": "l11",
       "producto_id": "p01",
-      "precio_total": 5.0,
+      "precio_total": 10.0,
       "cantidad": 5.0,
-      "cantidad_restante": 5.0,
-      "fecha_compra": null,
+      "cantidad_restante": 0.0,
+      "fecha_compra": "2026-07-07",
       "fecha_expiracion": null,
-      "marca_proveedor": null,
+      "marca_proveedor": "bimbo",
       "alerta_expiracion_dias": null
     }
   ],
@@ -272,24 +272,6 @@
       ],
       "coste_total": 9.62,
       "registrado_por": "Carlos Ruiz"
-    },
-    {
-      "id": "d04",
-      "fecha": "2026-07-07",
-      "lineas": [
-        {
-          "producto_id": "p01",
-          "cantidad": 5.0,
-          "coste": 1.5
-        },
-        {
-          "producto_id": "p07",
-          "cantidad": 0.1,
-          "coste": 1.1
-        }
-      ],
-      "coste_total": 2.6,
-      "registrado_por": "María García"
     }
   ],
   "mermas": [
@@ -336,6 +318,51 @@
         }
       ],
       "coste_total": 0.6,
+      "registrado_por": "María García"
+    },
+    {
+      "id": "m04",
+      "fecha": "2026-07-07",
+      "lineas": [
+        {
+          "producto_id": "p05",
+          "cantidad": 2,
+          "coste": 0.5,
+          "motivo": "Expiración",
+          "comentario": "test"
+        }
+      ],
+      "coste_total": 0.5,
+      "registrado_por": "María García"
+    },
+    {
+      "id": "m05",
+      "fecha": "2026-07-07",
+      "lineas": [
+        {
+          "producto_id": "p01",
+          "cantidad": 5.0,
+          "coste": 10.0,
+          "motivo": "Merma",
+          "comentario": null
+        }
+      ],
+      "coste_total": 10.0,
+      "registrado_por": "María García"
+    },
+    {
+      "id": "m06",
+      "fecha": "2026-07-07",
+      "lineas": [
+        {
+          "producto_id": "p07",
+          "cantidad": 0.5,
+          "coste": 5.5,
+          "motivo": "Expiración",
+          "comentario": null
+        }
+      ],
+      "coste_total": 5.5,
       "registrado_por": "María García"
     }
   ],
@@ -389,7 +416,7 @@
       "id": "a06",
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Yogur natural",
-      "mensaje": "Quedan 12 Ud. Stock mínimo: 24.",
+      "mensaje": "Quedan 10 Ud. Stock mínimo: 24.",
       "fecha": "2026-07-07",
       "activa": true,
       "producto_id": "p05"
@@ -407,7 +434,7 @@
       "id": "a08",
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Café molido",
-      "mensaje": "Quedan 0.7 Kg. Stock mínimo: 1.",
+      "mensaje": "Quedan 0.3 Kg. Stock mínimo: 1.",
       "fecha": "2026-07-07",
       "activa": true,
       "producto_id": "p07"
@@ -456,6 +483,15 @@
       "fecha": "2026-07-07",
       "activa": true,
       "producto_id": "p05"
+    },
+    {
+      "id": "a14",
+      "tipo": "desayuno_no_registrado",
+      "titulo": "Desayuno de hoy no registrado",
+      "mensaje": "Aún no se ha registrado el consumo del desayuno de hoy.",
+      "fecha": "2026-07-07",
+      "activa": true,
+      "producto_id": null
     }
   ],
   "usuarios": [
@@ -480,18 +516,46 @@
   },
   "actividades": [
     {
+      "id": "act11",
+      "fecha_hora": "2026-07-07T17:09:15.034681",
+      "usuario": "María García",
+      "accion": "Registro merma",
+      "detalle": "Merma del 07/07/2026 — 5.50 €"
+    },
+    {
+      "id": "act10",
+      "fecha_hora": "2026-07-07T17:08:53.024282",
+      "usuario": "María García",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Stock agotado — Huevos» marcada como resuelta"
+    },
+    {
+      "id": "act09",
+      "fecha_hora": "2026-07-07T17:08:51.339165",
+      "usuario": "María García",
+      "accion": "Resolver alerta",
+      "detalle": "Alerta «Stock agotado — Huevos» marcada como resuelta"
+    },
+    {
+      "id": "act08",
+      "fecha_hora": "2026-07-07T17:08:34.236446",
+      "usuario": "María García",
+      "accion": "Registro merma",
+      "detalle": "Merma del 07/07/2026 — 10.00 €"
+    },
+    {
       "id": "act07",
-      "fecha_hora": "2026-07-07T17:00:07.055744",
+      "fecha_hora": "2026-07-07T17:06:52.276921",
       "usuario": "María García",
       "accion": "Registrar lote",
-      "detalle": "Lote de «Croissant» — 5.0 Ud — 5.00 €"
+      "detalle": "Lote de «Croissant» — 5.0 Ud — 10.00 €"
     },
     {
       "id": "act06",
-      "fecha_hora": "2026-07-07T16:59:47.098306",
+      "fecha_hora": "2026-07-07T17:04:09.318749",
       "usuario": "María García",
-      "accion": "Registro desayuno",
-      "detalle": "Desayuno del 07/07/2026 — 2.60 €"
+      "accion": "Registro merma",
+      "detalle": "Merma del 07/07/2026 — 0.50 €"
     },
     {
       "id": "act01",
