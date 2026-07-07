@@ -58,6 +58,8 @@ Trabajar por fases. Parar al final de cada fase para revisión del usuario.
 - Historial de compras: archivo semanal (lunes) + exportación manual a Excel
 - Business Intelligence: respuesta arriba, sugerencias abajo
 - Nº de huéspedes en registro de desayuno y predicción basada en historial real
+- Autocompletado en tiempo real (dropdown al escribir) en selectores de datos registrados
+- Excel exportados con tablas, cabeceras navy y columnas autoajustadas
 
 ## Fase 14 — SQLite (NO antes)
 - Eliminar mock_data.py y carpeta demo

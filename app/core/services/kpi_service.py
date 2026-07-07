@@ -7,6 +7,7 @@ import pandas as pd
 
 from app.core.repositories.data_repository import DataRepository
 from app.core.services.data_service import get_repository
+from app.core.services.excel_format import formatear_libro
 from app.core.services.formatting import formato_fecha
 
 
@@ -69,5 +70,10 @@ def exportar_kpis_excel(inicio: date, fin: date, huespedes: int) -> bytes:
         evol_df.to_excel(writer, sheet_name="Evolución", index=False)
         if not top_df.empty:
             top_df.to_excel(writer, sheet_name="Top productos", index=False)
+        formatear_libro(writer, [
+            ("Resumen", "TablaKPIResumen", True),
+            ("Evolución", "TablaKPIEvolucion", True),
+            ("Top productos", "TablaKPITop", True),
+        ])
 
     return buffer.getvalue()

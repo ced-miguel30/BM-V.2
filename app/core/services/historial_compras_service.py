@@ -8,9 +8,9 @@ from io import BytesIO
 from pathlib import Path
 
 import pandas as pd
-from openpyxl.utils import get_column_letter
 
 from app.core.services.data_service import get_repository
+from app.core.services.excel_format import formatear_libro
 from app.core.services.formatting import formato_fecha, formato_moneda
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
@@ -109,10 +109,10 @@ def _generar_excel_bytes(
 
         df = pd.DataFrame(export)
         df.to_excel(writer, sheet_name="Historial", index=False)
-
-        ws = writer.sheets["Historial"]
-        if not df.empty:
-            ws.auto_filter.ref = f"A1:{get_column_letter(len(df.columns))}{len(df) + 1}"
+        formatear_libro(writer, [
+            ("Info", "TablaHistorialInfo", False),
+            ("Historial", "TablaHistorialCompras", True),
+        ])
 
     return buffer.getvalue()
 

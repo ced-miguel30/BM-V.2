@@ -16,7 +16,7 @@ from app.core.services.desayuno_service import (
 )
 from app.core.services.formatting import formato_fecha
 from app.ui.components import empty_state, page_header, render_sub_tabs, section_divider
-from app.ui.search import render_buscador_producto
+from app.ui.search import opciones_desde_etiquetas, render_autocomplete, render_buscador_producto
 
 
 def _lineas_desayuno_texto(repo, desayuno) -> str:
@@ -164,32 +164,36 @@ def _render_registro_merma() -> None:
 
             lotes = lotes_disponibles(producto_id)
             if lotes:
-                mapa_lotes = {l["etiqueta"]: l["id"] for l in lotes}
-                sel_lote = st.selectbox(
+                opciones_lotes = opciones_desde_etiquetas(lotes)
+                lote_sel = render_autocomplete(
+                    opciones_lotes,
+                    "merma_lote",
                     "Lote (fecha de compra)",
-                    list(mapa_lotes.keys()),
-                    key="merma_sel_lote",
+                    "Buscar lote por fecha o ID...",
                 )
-                lote_id = mapa_lotes[sel_lote]
+                if not lote_sel:
+                    st.caption("Seleccione un lote de la lista.")
+                else:
+                    lote_id = lote_sel["id"]
 
-                motivo = st.selectbox("Motivo", MOTIVOS, key="merma_motivo")
-                cantidad = st.number_input(
-                    "Cantidad",
-                    min_value=0.0,
-                    value=0.0,
-                    step=0.1,
-                    format="%.2f",
-                    key="merma_cantidad",
-                )
-                comentario = st.text_area("Comentario (opcional)", key="merma_comentario")
+                    motivo = st.selectbox("Motivo", MOTIVOS, key="merma_motivo")
+                    cantidad = st.number_input(
+                        "Cantidad",
+                        min_value=0.0,
+                        value=0.0,
+                        step=0.1,
+                        format="%.2f",
+                        key="merma_cantidad",
+                    )
+                    comentario = st.text_area("Comentario (opcional)", key="merma_comentario")
 
-                if st.button("Añadir a la cesta", type="secondary", use_container_width=True, key="merma_btn_anadir"):
-                    resultado = anadir_a_cesta_merma(lote_id, cantidad, motivo, comentario)
-                    if resultado.ok:
-                        st.success(resultado.mensaje)
-                        st.rerun()
-                    else:
-                        st.error(resultado.mensaje)
+                    if st.button("Añadir a la cesta", type="secondary", use_container_width=True, key="merma_btn_anadir"):
+                        resultado = anadir_a_cesta_merma(lote_id, cantidad, motivo, comentario)
+                        if resultado.ok:
+                            st.success(resultado.mensaje)
+                            st.rerun()
+                        else:
+                            st.error(resultado.mensaje)
             else:
                 empty_state("No hay lotes con stock para este producto.", icon="🏷️")
         elif todos_productos:

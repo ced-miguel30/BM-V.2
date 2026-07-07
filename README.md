@@ -25,7 +25,7 @@ La aplicación se abrirá en el navegador (por defecto en `http://localhost:8501
 
 ## Estado actual
 
-**Pre-Fase 14** — Adaptaciones: buscadores con sugerencias, historial de compras semanal en Excel, BI reordenado y huéspedes en desayuno para predicción.
+**Pre-Fase 14** — Adaptaciones: autocompletado en tiempo real, Excel formateado con tablas, huéspedes en desayuno e historial de compras semanal.
 
 ## Estructura de carpetas
 

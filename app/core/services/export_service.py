@@ -7,6 +7,7 @@ from pathlib import Path
 import pandas as pd
 
 from app.core.services.data_service import get_repository
+from app.core.services.excel_format import formatear_libro
 from app.core.services.formatting import formato_fecha, formato_fecha_hora
 from app.core.services.kpi_service import resumen_kpis
 from app.core.services.settings_service import nombre_hotel_sidebar
@@ -49,6 +50,10 @@ def exportar_actividad_hoy() -> tuple[bytes, str]:
         ])
         meta.to_excel(writer, sheet_name="Info", index=False)
         df.to_excel(writer, sheet_name="Actividad", index=False)
+        formatear_libro(writer, [
+            ("Info", "TablaActividadInfo", False),
+            ("Actividad", "TablaActividad", True),
+        ])
 
     contenido = buffer.getvalue()
     nombre = f"actividad_{hoy.isoformat()}.xlsx"
@@ -146,6 +151,14 @@ def exportar_informe_cliente(desde: date, hasta: date, huespedes: int = 30) -> t
         inv_df.to_excel(writer, sheet_name="Inventario", index=False)
         if not alertas_df.empty:
             alertas_df.to_excel(writer, sheet_name="Alertas", index=False)
+        formatear_libro(writer, [
+            ("Resumen", "TablaInformeResumen", False),
+            ("Evolución", "TablaInformeEvolucion", True),
+            ("Desayunos", "TablaInformeDesayunos", True),
+            ("Mermas", "TablaInformeMermas", True),
+            ("Inventario", "TablaInformeInventario", True),
+            ("Alertas", "TablaInformeAlertas", True),
+        ])
 
     contenido = buffer.getvalue()
     nombre = f"informe_cliente_{desde.isoformat()}_{hasta.isoformat()}.xlsx"
