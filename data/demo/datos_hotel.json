@@ -63,6 +63,12 @@
       "nombre": "Huevos",
       "unidad": "Ud",
       "stock_minimo": 36
+    },
+    {
+      "id": "p11",
+      "nombre": "leche",
+      "unidad": "L",
+      "stock_minimo": 6.0
     }
   ],
   "lotes": [
@@ -207,6 +213,17 @@
       "fecha_compra": null,
       "fecha_expiracion": null,
       "marca_proveedor": "bimbo",
+      "alerta_expiracion_dias": null
+    },
+    {
+      "id": "l14",
+      "producto_id": "p11",
+      "precio_total": 11.0,
+      "cantidad": 10.0,
+      "cantidad_restante": 10.0,
+      "fecha_compra": null,
+      "fecha_expiracion": null,
+      "marca_proveedor": "hiperdino",
       "alerta_expiracion_dias": null
     }
   ],
@@ -427,79 +444,80 @@
     {
       "id": "a03",
       "tipo": "stock_bajo",
-      "titulo": "Stock bajo — Yogur natural",
-      "mensaje": "Quedan 10 Ud. Stock mínimo: 24.",
-      "fecha": "2026-07-07",
-      "activa": true,
-      "producto_id": "p05"
-    },
-    {
-      "id": "a04",
-      "tipo": "stock_bajo",
       "titulo": "Stock bajo — Zumo de naranja",
       "mensaje": "Quedan 4.5 L. Stock mínimo: 5.",
-      "fecha": "2026-07-07",
+      "fecha": "2026-07-08",
       "activa": true,
       "producto_id": "p06"
     },
     {
-      "id": "a05",
+      "id": "a04",
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Café molido",
       "mensaje": "Quedan 0.1 Kg. Stock mínimo: 1.",
-      "fecha": "2026-07-07",
+      "fecha": "2026-07-08",
       "activa": true,
       "producto_id": "p07"
     },
     {
-      "id": "a06",
+      "id": "a05",
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Mantequilla",
       "mensaje": "Quedan 0.3 Kg. Stock mínimo: 0.5.",
-      "fecha": "2026-07-07",
+      "fecha": "2026-07-08",
       "activa": true,
       "producto_id": "p08"
     },
     {
-      "id": "a07",
+      "id": "a06",
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Fruta fresca",
       "mensaje": "Quedan 2.1 Kg. Stock mínimo: 3.",
-      "fecha": "2026-07-07",
+      "fecha": "2026-07-08",
       "activa": true,
       "producto_id": "p09"
     },
     {
-      "id": "a08",
+      "id": "a07",
       "tipo": "stock_cero",
       "titulo": "Stock agotado — Huevos",
       "mensaje": "No quedan unidades disponibles.",
-      "fecha": "2026-07-07",
+      "fecha": "2026-07-08",
       "activa": true,
       "producto_id": "p10"
     },
     {
-      "id": "a09",
+      "id": "a08",
       "tipo": "expiracion_proxima",
       "titulo": "Próximo a expirar — Croissant",
-      "mensaje": "El lote l01 (compra 02/07/2026) expira en 3 día(s).",
-      "fecha": "2026-07-07",
+      "mensaje": "El lote l01 (compra 02/07/2026) expira en 2 día(s).",
+      "fecha": "2026-07-08",
       "activa": true,
       "producto_id": "p01"
     },
     {
-      "id": "a10",
+      "id": "a09",
       "tipo": "expiracion_proxima",
       "titulo": "Próximo a expirar — Yogur natural",
-      "mensaje": "El lote l05 (compra 03/07/2026) expira en 2 día(s).",
-      "fecha": "2026-07-07",
+      "mensaje": "El lote l05 (compra 03/07/2026) expira en 1 día(s).",
+      "fecha": "2026-07-08",
       "activa": true,
       "producto_id": "p05"
+    },
+    {
+      "id": "a10",
+      "tipo": "desayuno_no_registrado",
+      "titulo": "Desayuno de hoy no registrado",
+      "mensaje": "Aún no se ha registrado el consumo del desayuno de hoy.",
+      "fecha": "2026-07-08",
+      "activa": true,
+      "producto_id": null
     }
   ],
   "alertas_descartadas": [
     "stock_bajo|p03",
-    "stock_bajo|p04"
+    "stock_bajo|p04",
+    "stock_bajo|p05"
   ],
   "usuarios": [
     {
@@ -522,6 +540,27 @@
     "logo_path": "C:\\Users\\User\\Desktop\\HOTEL\\BM V.2\\data\\assets\\logo_hotel.jpg"
   },
   "actividades": [
+    {
+      "id": "act48",
+      "fecha_hora": "2026-07-08T11:50:20.492026",
+      "usuario": "Miki",
+      "accion": "Remover alerta",
+      "detalle": "Miki eliminó la alerta «Stock bajo — Yogur natural»"
+    },
+    {
+      "id": "act47",
+      "fecha_hora": "2026-07-08T11:48:59.791052",
+      "usuario": "Miki",
+      "accion": "Registrar lote",
+      "detalle": "Lote de «leche» — 10.0 L — 11.00 €"
+    },
+    {
+      "id": "act46",
+      "fecha_hora": "2026-07-08T11:47:57.605771",
+      "usuario": "Miki",
+      "accion": "Crear producto",
+      "detalle": "Producto «leche» (L) creado"
+    },
     {
       "id": "act45",
       "fecha_hora": "2026-07-07T20:09:20.352781",
