@@ -27,10 +27,12 @@ def render_autocomplete(
     mostrar_seleccion: bool = True,
     permitir_limpiar: bool = True,
     etiqueta_selectbox: str = "Selección",
+    requiere_busqueda: bool = False,
 ) -> dict[str, Any] | None:
     """
     Buscador con sugerencias por prefijo y selectbox filtrado.
     opciones: [{id, label, ...campos extra}]
+    requiere_busqueda: si True, no muestra opciones hasta que el usuario escriba.
     """
     if not opciones:
         return None
@@ -46,6 +48,11 @@ def render_autocomplete(
             st.session_state[sel_key] = picked["label"]
 
     termino = st.text_input(label, placeholder=placeholder, key=buscar_key)
+
+    if requiere_busqueda and not termino.strip():
+        if sel_key in st.session_state:
+            del st.session_state[sel_key]
+        return None
 
     if termino.strip():
         sugerencias = _filtrar_por_label(opciones, termino)[:8]

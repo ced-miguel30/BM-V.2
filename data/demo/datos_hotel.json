@@ -365,6 +365,20 @@
           "cantidad": 0.001
         }
       ]
+    },
+    {
+      "id": "r02",
+      "nombre": "cafe con leche",
+      "ingredientes": [
+        {
+          "producto_id": "p07",
+          "cantidad": 0.0005
+        },
+        {
+          "producto_id": "p11",
+          "cantidad": 0.5
+        }
+      ]
     }
   ],
   "mermas": [
@@ -604,6 +618,13 @@
     "logo_path": "C:\\Users\\User\\Desktop\\HOTEL\\BM V.2\\data\\assets\\logo_hotel.jpg"
   },
   "actividades": [
+    {
+      "id": "act52",
+      "fecha_hora": "2026-07-09T11:57:14.254164",
+      "usuario": "Miki",
+      "accion": "Crear receta",
+      "detalle": "«cafe con leche» creada con 2 ingrediente(s)"
+    },
     {
       "id": "act51",
       "fecha_hora": "2026-07-09T11:47:43.716923",

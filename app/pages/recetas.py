@@ -43,6 +43,13 @@ def _cargar_ingredientes(session_key: str, ingredientes: list[IngredienteReceta]
     st.session_state[session_key] = filas
 
 
+def _limpiar_autocomplete(key: str) -> None:
+    for suffix in ("_buscar", "_sel", "_sug_pick"):
+        state_key = f"{key}{suffix}"
+        if state_key in st.session_state:
+            del st.session_state[state_key]
+
+
 def _sembrar_autocomplete(opciones: list[dict], key: str, producto_id: str) -> None:
     if not producto_id:
         return
@@ -100,6 +107,7 @@ def _render_editor_ingredientes(session_key: str, key_prefix: str) -> None:
                 f"Ingrediente {idx + 1}",
                 "Buscar producto...",
                 etiqueta_selectbox="Producto",
+                requiere_busqueda=not bool(fila.get("producto_id")),
             )
             if producto_sel:
                 if fila.get("producto_id") != producto_sel["id"]:
@@ -140,8 +148,10 @@ def _render_editor_ingredientes(session_key: str, key_prefix: str) -> None:
                 st.rerun()
 
     if st.button("Añadir ingrediente", key=f"{key_prefix}_anadir"):
+        nuevo_idx = len(filas)
         filas.append({"producto_id": "", "cantidad": 0.5, "unidad": UnidadProducto.UD.value})
         st.session_state[session_key] = filas
+        _limpiar_autocomplete(f"{key_prefix}_ing_{nuevo_idx}")
         st.rerun()
 
 
