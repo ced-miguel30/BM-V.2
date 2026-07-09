@@ -41,6 +41,7 @@ class LineaCesta:
     cantidad: float
     es_extra: bool = False
     es_omision: bool = False
+    paso_edicion: float = 0
 
 
 @dataclass
@@ -340,12 +341,17 @@ def anadir_a_cesta(producto_id: str, cantidad: float) -> ResultadoOperacion:
         return ResultadoOperacion(False, "Producto no encontrado.")
 
     cesta = get_cesta()
+    paso = abs(cantidad) if cantidad != 0 else PASO_CANTIDAD
     for linea in cesta:
         if linea.producto_id == producto_id:
             linea.cantidad = round(linea.cantidad + cantidad, 4)
             linea.es_extra = linea.cantidad > 0
             linea.es_omision = linea.cantidad < 0
+            if linea.paso_edicion <= 0:
+                linea.paso_edicion = paso
             etiqueta = etiqueta_linea_suelta(linea)
+            import streamlit as st
+            st.session_state[CESTA_SESSION_KEY] = cesta
             return ResultadoOperacion(True, f"{etiqueta} actualizado en la cesta.")
 
     cesta.append(LineaCesta(
@@ -356,6 +362,7 @@ def anadir_a_cesta(producto_id: str, cantidad: float) -> ResultadoOperacion:
         cantidad,
         es_extra=cantidad > 0,
         es_omision=cantidad < 0,
+        paso_edicion=paso,
     ))
     import streamlit as st
     st.session_state[CESTA_SESSION_KEY] = cesta
@@ -554,6 +561,18 @@ def ajustar_porciones_grupo(grupo_id: str, delta: float) -> ResultadoOperacion:
 
 def _buscar_linea_suelta(linea_id: str) -> LineaCesta | None:
     return next((l for l in get_cesta() if l.linea_id == linea_id), None)
+
+
+def paso_linea_suelta(linea_id: str) -> float:
+    """Incremento al editar un producto suelto en la cesta."""
+    linea = _buscar_linea_suelta(linea_id)
+    if not linea:
+        return PASO_CANTIDAD
+    if linea.paso_edicion > 0:
+        return linea.paso_edicion
+    if linea.cantidad != 0:
+        return abs(linea.cantidad)
+    return PASO_CANTIDAD
 
 
 def quitar_linea_suelta(linea_id: str) -> None:

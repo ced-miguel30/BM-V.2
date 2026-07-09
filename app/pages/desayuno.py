@@ -22,6 +22,7 @@ from app.core.services.desayuno_service import (
     limpiar_cesta,
     modificar_porciones_grupo,
     paso_linea_grupo,
+    paso_linea_suelta,
     productos_catalogo,
     quitar_grupo_receta,
     quitar_linea_grupo,
@@ -151,15 +152,17 @@ def _render_cesta_desayuno(repo) -> None:
             with col_info:
                 st.markdown(etiqueta_linea_suelta(linea))
             with col_ctrl:
-                def _menos(l=linea):
-                    r = ajustar_cantidad_suelto(l.linea_id, -PASO_CANTIDAD)
+                paso = paso_linea_suelta(linea.linea_id)
+
+                def _menos(l=linea, p=paso):
+                    r = ajustar_cantidad_suelto(l.linea_id, -p)
                     if r.ok:
                         st.rerun()
                     else:
                         st.error(r.mensaje)
 
-                def _mas(l=linea):
-                    r = ajustar_cantidad_suelto(l.linea_id, PASO_CANTIDAD)
+                def _mas(l=linea, p=paso):
+                    r = ajustar_cantidad_suelto(l.linea_id, p)
                     if r.ok:
                         st.rerun()
                     else:
