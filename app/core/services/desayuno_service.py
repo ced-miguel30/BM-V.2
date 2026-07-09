@@ -53,6 +53,7 @@ class LineaCestaIngrediente:
     es_base_receta: bool = True
     es_extra: bool = False
     es_omision: bool = False
+    paso_edicion: float = 0
 
 
 @dataclass
@@ -362,6 +363,7 @@ def anadir_a_cesta(producto_id: str, cantidad: float) -> ResultadoOperacion:
 
 
 def _linea_ingrediente_desde_mod(mod: ModPendienteReceta) -> LineaCestaIngrediente:
+    paso = abs(mod.cantidad) if mod.cantidad != 0 else PASO_CANTIDAD
     return LineaCestaIngrediente(
         _nueva_linea_id(),
         mod.producto_id,
@@ -371,6 +373,7 @@ def _linea_ingrediente_desde_mod(mod: ModPendienteReceta) -> LineaCestaIngredien
         es_base_receta=False,
         es_extra=mod.es_extra,
         es_omision=mod.es_omision,
+        paso_edicion=paso,
     )
 
 
@@ -405,6 +408,7 @@ def anadir_receta_a_cesta(
             es_base_receta=True,
             es_extra=False,
             es_omision=False,
+            paso_edicion=ing.cantidad if ing.cantidad > 0 else PASO_CANTIDAD,
         ))
 
     for mod in mods_pendientes or []:
@@ -446,6 +450,33 @@ def quitar_linea_grupo(grupo_id: str, linea_id: str) -> None:
         return
     grupo.ingredientes = [i for i in grupo.ingredientes if i.linea_id != linea_id]
     _guardar_cesta_recetas(get_cesta_recetas())
+
+
+def paso_linea_grupo(grupo_id: str, linea_id: str) -> float:
+    """Incremento al editar un ingrediente del desglose de receta en la cesta."""
+    grupo = _buscar_grupo(grupo_id)
+    linea = _buscar_linea_grupo(grupo_id, linea_id)
+    if not linea or not grupo:
+        return PASO_CANTIDAD
+
+    if linea.paso_edicion > 0:
+        return linea.paso_edicion
+
+    if linea.es_base_receta:
+        repo = DataRepository(get_data())
+        receta = repo.get_receta(grupo.receta_id)
+        if receta:
+            ing_template = next(
+                (i for i in receta.ingredientes if i.producto_id == linea.producto_id),
+                None,
+            )
+            if ing_template and ing_template.cantidad > 0:
+                return ing_template.cantidad
+
+    if linea.cantidad != 0:
+        return abs(linea.cantidad)
+
+    return PASO_CANTIDAD
 
 
 def ajustar_linea_grupo(grupo_id: str, linea_id: str, delta: float) -> ResultadoOperacion:
