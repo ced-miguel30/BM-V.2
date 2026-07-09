@@ -7,6 +7,7 @@ from app.core.models import (
     AppData,
     MotivoMerma,
     Producto,
+    Receta,
     RegistroDesayuno,
     RegistroMerma,
     TipoAlerta,
@@ -33,6 +34,12 @@ class DataRepository:
 
     def get_producto(self, producto_id: str) -> Producto | None:
         return next((p for p in self._data.productos if p.id == producto_id), None)
+
+    def get_receta(self, receta_id: str) -> Receta | None:
+        return next((r for r in self._data.recetas if r.id == receta_id), None)
+
+    def recetas_ordenadas(self) -> list[Receta]:
+        return sorted(self._data.recetas, key=lambda r: r.nombre.lower())
 
     def get_nombre_producto(self, producto_id: str) -> str:
         producto = self.get_producto(producto_id)

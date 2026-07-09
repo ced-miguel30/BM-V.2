@@ -12,7 +12,7 @@ import streamlit as st
 from app.core.storage.session_store import init_data
 from app.core.services.alert_service import sincronizar_alertas
 from app.core.services.historial_compras_service import archivar_historial_semanal, debe_archivar_semanal
-from app.pages import analisis, dashboard, desayuno, settings, stock
+from app.pages import analisis, dashboard, desayuno, recetas, settings, stock
 from app.ui.components import render_sidebar
 from app.ui.styles import inject_global_styles
 from app.ui.theme import APP_NAME, APP_VERSION
@@ -20,6 +20,7 @@ from app.ui.theme import APP_NAME, APP_VERSION
 PAGES = {
     "dashboard": dashboard.render,
     "desayuno": desayuno.render,
+    "recetas": recetas.render,
     "stock": stock.render,
     "analisis": analisis.render,
     "settings": settings.render,

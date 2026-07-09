@@ -29,6 +29,7 @@ FONT_FAMILY = "'Segoe UI', system-ui, -apple-system, sans-serif"
 NAV_SECTIONS = {
     "Dashboard": "dashboard",
     "Desayuno": "desayuno",
+    "Recetas": "recetas",
     "Stock": "stock",
     "Análisis": "analisis",
     "Settings": "settings",

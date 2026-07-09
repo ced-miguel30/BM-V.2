@@ -9,6 +9,7 @@ from app.core.models.desayuno import RegistroDesayuno
 from app.core.models.lote import LoteStock
 from app.core.models.merma import RegistroMerma
 from app.core.models.producto import Producto
+from app.core.models.receta import Receta
 from app.core.models.usuario import Usuario
 
 
@@ -16,6 +17,7 @@ from app.core.models.usuario import Usuario
 class AppData:
     productos: list[Producto] = field(default_factory=list)
     lotes: list[LoteStock] = field(default_factory=list)
+    recetas: list[Receta] = field(default_factory=list)
     desayunos: list[RegistroDesayuno] = field(default_factory=list)
     mermas: list[RegistroMerma] = field(default_factory=list)
     alertas: list[AlertaOperativa] = field(default_factory=list)

@@ -235,27 +235,32 @@
         {
           "producto_id": "p01",
           "cantidad": 18,
-          "coste": 5.4
+          "coste": 5.4,
+          "es_extra": false
         },
         {
           "producto_id": "p03",
           "cantidad": 0.4,
-          "coste": 7.2
+          "coste": 7.2,
+          "es_extra": false
         },
         {
           "producto_id": "p06",
           "cantidad": 2.0,
-          "coste": 3.0
+          "coste": 3.0,
+          "es_extra": false
         },
         {
           "producto_id": "p10",
           "cantidad": 12,
-          "coste": 1.2
+          "coste": 1.2,
+          "es_extra": false
         }
       ],
       "coste_total": 16.8,
       "registrado_por": "María García",
-      "num_huespedes": 28
+      "num_huespedes": 28,
+      "registros_recetas": []
     },
     {
       "id": "d02",
@@ -264,27 +269,32 @@
         {
           "producto_id": "p01",
           "cantidad": 20,
-          "coste": 6.0
+          "coste": 6.0,
+          "es_extra": false
         },
         {
           "producto_id": "p05",
           "cantidad": 16,
-          "coste": 4.0
+          "coste": 4.0,
+          "es_extra": false
         },
         {
           "producto_id": "p07",
           "cantidad": 0.15,
-          "coste": 1.65
+          "coste": 1.65,
+          "es_extra": false
         },
         {
           "producto_id": "p09",
           "cantidad": 1.5,
-          "coste": 3.6
+          "coste": 3.6,
+          "es_extra": false
         }
       ],
       "coste_total": 15.25,
       "registrado_por": "María García",
-      "num_huespedes": 32
+      "num_huespedes": 32,
+      "registros_recetas": []
     },
     {
       "id": "d03",
@@ -293,27 +303,32 @@
         {
           "producto_id": "p02",
           "cantidad": 6,
-          "coste": 2.25
+          "coste": 2.25,
+          "es_extra": false
         },
         {
           "producto_id": "p04",
           "cantidad": 0.3,
-          "coste": 4.67
+          "coste": 4.67,
+          "es_extra": false
         },
         {
           "producto_id": "p08",
           "cantidad": 0.2,
-          "coste": 1.7
+          "coste": 1.7,
+          "es_extra": false
         },
         {
           "producto_id": "p10",
           "cantidad": 10,
-          "coste": 1.0
+          "coste": 1.0,
+          "es_extra": false
         }
       ],
       "coste_total": 9.62,
       "registrado_por": "Carlos Ruiz",
-      "num_huespedes": 25
+      "num_huespedes": 25,
+      "registros_recetas": []
     },
     {
       "id": "d04",
@@ -322,12 +337,34 @@
         {
           "producto_id": "p07",
           "cantidad": 0.2,
-          "coste": 2.2
+          "coste": 2.2,
+          "es_extra": false
         }
       ],
       "coste_total": 2.2,
       "registrado_por": "María García",
-      "num_huespedes": 30
+      "num_huespedes": 30,
+      "registros_recetas": []
+    }
+  ],
+  "recetas": [
+    {
+      "id": "r01",
+      "nombre": "Sandwich mixto",
+      "ingredientes": [
+        {
+          "producto_id": "p02",
+          "cantidad": 2.0
+        },
+        {
+          "producto_id": "p03",
+          "cantidad": 1.0
+        },
+        {
+          "producto_id": "p04",
+          "cantidad": 1.0
+        }
+      ]
     }
   ],
   "mermas": [
@@ -446,7 +483,7 @@
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Zumo de naranja",
       "mensaje": "Quedan 4.5 L. Stock mínimo: 5.",
-      "fecha": "2026-07-08",
+      "fecha": "2026-07-09",
       "activa": true,
       "producto_id": "p06"
     },
@@ -455,7 +492,7 @@
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Café molido",
       "mensaje": "Quedan 0.1 Kg. Stock mínimo: 1.",
-      "fecha": "2026-07-08",
+      "fecha": "2026-07-09",
       "activa": true,
       "producto_id": "p07"
     },
@@ -464,7 +501,7 @@
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Mantequilla",
       "mensaje": "Quedan 0.3 Kg. Stock mínimo: 0.5.",
-      "fecha": "2026-07-08",
+      "fecha": "2026-07-09",
       "activa": true,
       "producto_id": "p08"
     },
@@ -473,7 +510,7 @@
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Fruta fresca",
       "mensaje": "Quedan 2.1 Kg. Stock mínimo: 3.",
-      "fecha": "2026-07-08",
+      "fecha": "2026-07-09",
       "activa": true,
       "producto_id": "p09"
     },
@@ -482,7 +519,7 @@
       "tipo": "stock_cero",
       "titulo": "Stock agotado — Huevos",
       "mensaje": "No quedan unidades disponibles.",
-      "fecha": "2026-07-08",
+      "fecha": "2026-07-09",
       "activa": true,
       "producto_id": "p10"
     },
@@ -490,26 +527,53 @@
       "id": "a08",
       "tipo": "expiracion_proxima",
       "titulo": "Próximo a expirar — Croissant",
-      "mensaje": "El lote l01 (compra 02/07/2026) expira en 2 día(s).",
-      "fecha": "2026-07-08",
+      "mensaje": "El lote l01 (compra 02/07/2026) expira en 1 día(s).",
+      "fecha": "2026-07-09",
       "activa": true,
       "producto_id": "p01"
     },
     {
       "id": "a09",
       "tipo": "expiracion_proxima",
+      "titulo": "Próximo a expirar — Pan de molde",
+      "mensaje": "El lote l02 (compra 04/07/2026) expira en 5 día(s).",
+      "fecha": "2026-07-09",
+      "activa": true,
+      "producto_id": "p02"
+    },
+    {
+      "id": "a10",
+      "tipo": "expiracion_proxima",
       "titulo": "Próximo a expirar — Yogur natural",
-      "mensaje": "El lote l05 (compra 03/07/2026) expira en 1 día(s).",
-      "fecha": "2026-07-08",
+      "mensaje": "El lote l05 (compra 03/07/2026) expira en 0 día(s).",
+      "fecha": "2026-07-09",
       "activa": true,
       "producto_id": "p05"
     },
     {
-      "id": "a10",
+      "id": "a11",
+      "tipo": "expiracion_proxima",
+      "titulo": "Próximo a expirar — Zumo de naranja",
+      "mensaje": "El lote l06 (compra 05/07/2026) expira en 3 día(s).",
+      "fecha": "2026-07-09",
+      "activa": true,
+      "producto_id": "p06"
+    },
+    {
+      "id": "a12",
+      "tipo": "expiracion_proxima",
+      "titulo": "Próximo a expirar — Fruta fresca",
+      "mensaje": "El lote l09 (compra 06/07/2026) expira en 2 día(s).",
+      "fecha": "2026-07-09",
+      "activa": true,
+      "producto_id": "p09"
+    },
+    {
+      "id": "a13",
       "tipo": "desayuno_no_registrado",
       "titulo": "Desayuno de hoy no registrado",
       "mensaje": "Aún no se ha registrado el consumo del desayuno de hoy.",
-      "fecha": "2026-07-08",
+      "fecha": "2026-07-09",
       "activa": true,
       "producto_id": null
     }
@@ -540,6 +604,13 @@
     "logo_path": "C:\\Users\\User\\Desktop\\HOTEL\\BM V.2\\data\\assets\\logo_hotel.jpg"
   },
   "actividades": [
+    {
+      "id": "act49",
+      "fecha_hora": "2026-07-09T11:38:58.346530",
+      "usuario": "Miki",
+      "accion": "Crear receta",
+      "detalle": "«Sandwich mixto» creada con 3 ingrediente(s)"
+    },
     {
       "id": "act48",
       "fecha_hora": "2026-07-08T11:50:20.492026",

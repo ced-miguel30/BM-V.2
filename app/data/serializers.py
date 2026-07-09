@@ -13,13 +13,18 @@ from app.core.models import (
     AlertaOperativa,
     AppData,
     ConfiguracionHotel,
+    ExtraRecetaDesayuno,
+    IngredienteReceta,
     LineaDesayuno,
     LineaMerma,
     LoteStock,
     MotivoMerma,
+    OmisionRecetaDesayuno,
     Producto,
+    Receta,
     RegistroDesayuno,
     RegistroMerma,
+    RegistroRecetaDesayuno,
     RolUsuario,
     TipoAlerta,
     UnidadProducto,
@@ -65,11 +70,46 @@ def appdata_to_dict(data: AppData) -> dict:
         "desayunos": [
             {
                 "id": d.id, "fecha": d.fecha.isoformat(),
-                "lineas": [{"producto_id": ln.producto_id, "cantidad": ln.cantidad, "coste": ln.coste} for ln in d.lineas],
+                "lineas": [
+                    {
+                        "producto_id": ln.producto_id,
+                        "cantidad": ln.cantidad,
+                        "coste": ln.coste,
+                        "es_extra": ln.es_extra,
+                    }
+                    for ln in d.lineas
+                ],
                 "coste_total": d.coste_total, "registrado_por": d.registrado_por,
                 "num_huespedes": d.num_huespedes,
+                "registros_recetas": [
+                    {
+                        "receta_id": rr.receta_id,
+                        "nombre_receta": rr.nombre_receta,
+                        "porciones": rr.porciones,
+                        "extras": [
+                            {"producto_id": e.producto_id, "cantidad": e.cantidad}
+                            for e in rr.extras
+                        ],
+                        "omisiones": [
+                            {"producto_id": o.producto_id}
+                            for o in rr.omisiones
+                        ],
+                    }
+                    for rr in d.registros_recetas
+                ],
             }
             for d in data.desayunos
+        ],
+        "recetas": [
+            {
+                "id": r.id,
+                "nombre": r.nombre,
+                "ingredientes": [
+                    {"producto_id": i.producto_id, "cantidad": i.cantidad}
+                    for i in r.ingredientes
+                ],
+            }
+            for r in data.recetas
         ],
         "mermas": [
             {
@@ -129,11 +169,46 @@ def dict_to_appdata(payload: dict) -> AppData:
         desayunos=[
             RegistroDesayuno(
                 d["id"], _parse_date(d["fecha"]),  # type: ignore[arg-type]
-                [LineaDesayuno(ln["producto_id"], ln["cantidad"], ln["coste"]) for ln in d.get("lineas", [])],
+                [
+                    LineaDesayuno(
+                        ln["producto_id"],
+                        ln["cantidad"],
+                        ln["coste"],
+                        ln.get("es_extra", False),
+                    )
+                    for ln in d.get("lineas", [])
+                ],
                 d.get("coste_total", 0), d.get("registrado_por", ""),
                 d.get("num_huespedes", 30),
+                [
+                    RegistroRecetaDesayuno(
+                        rr["receta_id"],
+                        rr["nombre_receta"],
+                        rr["porciones"],
+                        [
+                            ExtraRecetaDesayuno(e["producto_id"], e["cantidad"])
+                            for e in rr.get("extras", [])
+                        ],
+                        [
+                            OmisionRecetaDesayuno(o["producto_id"])
+                            for o in rr.get("omisiones", [])
+                        ],
+                    )
+                    for rr in d.get("registros_recetas", [])
+                ],
             )
             for d in payload.get("desayunos", [])
+        ],
+        recetas=[
+            Receta(
+                r["id"],
+                r["nombre"],
+                [
+                    IngredienteReceta(i["producto_id"], i["cantidad"])
+                    for i in r.get("ingredientes", [])
+                ],
+            )
+            for r in payload.get("recetas", [])
         ],
         mermas=[
             RegistroMerma(

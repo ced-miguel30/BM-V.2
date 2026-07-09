@@ -7,11 +7,13 @@ from app.core.models import (
     AlertaOperativa,
     AppData,
     ConfiguracionHotel,
+    IngredienteReceta,
     LineaDesayuno,
     LineaMerma,
     LoteStock,
     MotivoMerma,
     Producto,
+    Receta,
     RegistroDesayuno,
     RegistroMerma,
     RolUsuario,
@@ -50,6 +52,26 @@ def crear_datos_mock() -> AppData:
         LoteStock("l08", "p08", 8.50, 1, 0.3, HOY - timedelta(days=6), HOY + timedelta(days=20), "Lácteos Sur", 5),
         LoteStock("l09", "p09", 12.00, 5, 2.1, HOY - timedelta(days=1), HOY + timedelta(days=4), "Frutas del Mercado", 2),
         LoteStock("l10", "p10", 6.00, 60, 0, HOY - timedelta(days=7), HOY - timedelta(days=1), "Granja Local", 3),
+    ]
+
+    recetas = [
+        Receta(
+            "r01",
+            "Sándwich mixto",
+            [
+                IngredienteReceta("p02", 2),
+                IngredienteReceta("p03", 0.01),
+                IngredienteReceta("p04", 0.01),
+            ],
+        ),
+        Receta(
+            "r02",
+            "Tostada con mantequilla",
+            [
+                IngredienteReceta("p02", 1),
+                IngredienteReceta("p08", 0.01),
+            ],
+        ),
     ]
 
     desayunos = [
@@ -198,6 +220,7 @@ def crear_datos_mock() -> AppData:
     return AppData(
         productos=productos,
         lotes=lotes,
+        recetas=recetas,
         desayunos=desayunos,
         mermas=mermas,
         alertas=alertas,

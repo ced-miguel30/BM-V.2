@@ -108,6 +108,39 @@ def exportar_informe_cliente(desde: date, hasta: date, huespedes: int = 30) -> t
         for d in desayunos
     ])
 
+    recetas_desayuno_filas = []
+    productos_desayuno_filas = []
+    for d in desayunos:
+        for rr in d.registros_recetas:
+            extras_txt = ", ".join(
+                f"{repo.get_nombre_producto(e.producto_id)} {e.cantidad:g}"
+                for e in rr.extras
+            ) or "—"
+            omisiones_txt = ", ".join(
+                repo.get_nombre_producto(o.producto_id)
+                for o in rr.omisiones
+            ) or "—"
+            recetas_desayuno_filas.append({
+                "Fecha": formato_fecha(d.fecha),
+                "Receta": rr.nombre_receta,
+                "Porciones": rr.porciones,
+                "Extras": extras_txt,
+                "Sin ingrediente": omisiones_txt,
+            })
+        for ln in d.lineas:
+            producto = repo.get_producto(ln.producto_id)
+            productos_desayuno_filas.append({
+                "Fecha": formato_fecha(d.fecha),
+                "Producto": repo.get_nombre_producto(ln.producto_id),
+                "Cantidad": ln.cantidad,
+                "Unidad": producto.unidad.value if producto else "",
+                "Coste": ln.coste,
+                "Notas": "[extra]" if ln.es_extra else "",
+            })
+
+    recetas_desayuno_df = pd.DataFrame(recetas_desayuno_filas)
+    productos_desayuno_df = pd.DataFrame(productos_desayuno_filas)
+
     mermas = [m for m in repo.mermas_ordenadas() if desde <= m.fecha <= hasta]
     merma_df = pd.DataFrame([
         {
@@ -146,6 +179,10 @@ def exportar_informe_cliente(desde: date, hasta: date, huespedes: int = 30) -> t
             evol_df.to_excel(writer, sheet_name="Evolución", index=False)
         if not desay_df.empty:
             desay_df.to_excel(writer, sheet_name="Desayunos", index=False)
+        if not recetas_desayuno_df.empty:
+            recetas_desayuno_df.to_excel(writer, sheet_name="Recetas desayuno", index=False)
+        if not productos_desayuno_df.empty:
+            productos_desayuno_df.to_excel(writer, sheet_name="Productos desayuno", index=False)
         if not merma_df.empty:
             merma_df.to_excel(writer, sheet_name="Mermas", index=False)
         inv_df.to_excel(writer, sheet_name="Inventario", index=False)
@@ -155,6 +192,8 @@ def exportar_informe_cliente(desde: date, hasta: date, huespedes: int = 30) -> t
             ("Resumen", "TablaInformeResumen", False),
             ("Evolución", "TablaInformeEvolucion", True),
             ("Desayunos", "TablaInformeDesayunos", True),
+            ("Recetas desayuno", "TablaInformeRecetasDesayuno", True),
+            ("Productos desayuno", "TablaInformeProductosDesayuno", True),
             ("Mermas", "TablaInformeMermas", True),
             ("Inventario", "TablaInformeInventario", True),
             ("Alertas", "TablaInformeAlertas", True),
