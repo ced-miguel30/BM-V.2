@@ -2,11 +2,15 @@
 
 from app.core.models import UnidadProducto
 
+UNIDAD_ML = "ml"
+
 
 def unidades_seleccionables(unidad_producto: UnidadProducto) -> list[str]:
     """Unidades que el usuario puede elegir según la unidad del producto."""
     if unidad_producto in {UnidadProducto.KG, UnidadProducto.GR}:
         return [UnidadProducto.KG.value, UnidadProducto.GR.value]
+    if unidad_producto == UnidadProducto.L:
+        return [UnidadProducto.L.value, UNIDAD_ML]
     return [unidad_producto.value]
 
 
@@ -23,6 +27,8 @@ def convertir_a_unidad_producto(
         return round(cantidad / 1000, 6)
     if unidad_producto == UnidadProducto.GR and unidad_seleccionada == UnidadProducto.KG.value:
         return round(cantidad * 1000, 6)
+    if unidad_producto == UnidadProducto.L and unidad_seleccionada == UNIDAD_ML:
+        return round(cantidad / 1000, 6)
 
     return round(cantidad, 6)
 
@@ -40,5 +46,7 @@ def cantidad_para_mostrar(
         return round(cantidad_producto * 1000, 4)
     if unidad_producto == UnidadProducto.GR and unidad_ui == UnidadProducto.KG.value:
         return round(cantidad_producto / 1000, 4)
+    if unidad_producto == UnidadProducto.L and unidad_ui == UNIDAD_ML:
+        return round(cantidad_producto * 1000, 4)
 
     return cantidad_producto

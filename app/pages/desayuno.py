@@ -169,7 +169,7 @@ def _render_registro_desayuno() -> None:
 
     st.markdown("#### Registro rápido de desayuno")
     st.caption(
-        "Añada productos sueltos o recetas a la cesta. Puede modificar ingredientes "
+        "Añada recetas o productos sueltos a la cesta. Puede modificar ingredientes "
         "de cada receta antes de registrar. El stock se descuenta por FIFO."
     )
 
@@ -184,31 +184,6 @@ def _render_registro_desayuno() -> None:
             step=1,
             key="desayuno_num_huespedes",
         )
-
-        section_divider()
-        st.markdown("##### Añadir producto suelto")
-        todos_productos = productos_disponibles("")
-        producto_sel = render_buscador_producto(todos_productos, "desayuno")
-        if producto_sel:
-            cantidad = st.number_input(
-                "Cantidad",
-                min_value=0.0,
-                value=1.0,
-                step=0.1,
-                format="%.2f",
-                key="desayuno_cantidad",
-            )
-            if st.button("Añadir producto a la cesta", type="secondary", use_container_width=True, key="desayuno_btn_anadir"):
-                resultado = anadir_a_cesta(producto_sel["id"], cantidad)
-                if resultado.ok:
-                    st.success(resultado.mensaje)
-                    st.rerun()
-                else:
-                    st.error(resultado.mensaje)
-        elif todos_productos:
-            empty_state("No hay coincidencias para la búsqueda.", icon="🔍")
-        else:
-            empty_state("No hay productos con stock disponible.", icon="🔍")
 
         section_divider()
         st.markdown("##### Añadir receta")
@@ -242,6 +217,31 @@ def _render_registro_desayuno() -> None:
                     st.error("Seleccione una receta.")
         else:
             empty_state("No hay recetas definidas. Créelas en la sección Recetas.", icon="📖")
+
+        section_divider()
+        st.markdown("##### Añadir producto suelto")
+        todos_productos = productos_disponibles("")
+        producto_sel = render_buscador_producto(todos_productos, "desayuno")
+        if producto_sel:
+            cantidad = st.number_input(
+                "Cantidad",
+                min_value=0.0,
+                value=1.0,
+                step=0.1,
+                format="%.2f",
+                key="desayuno_cantidad",
+            )
+            if st.button("Añadir producto a la cesta", type="secondary", use_container_width=True, key="desayuno_btn_anadir"):
+                resultado = anadir_a_cesta(producto_sel["id"], cantidad)
+                if resultado.ok:
+                    st.success(resultado.mensaje)
+                    st.rerun()
+                else:
+                    st.error(resultado.mensaje)
+        elif todos_productos:
+            empty_state("No hay coincidencias para la búsqueda.", icon="🔍")
+        else:
+            empty_state("No hay productos con stock disponible.", icon="🔍")
 
     with col_cesta:
         _render_cesta_desayuno(repo)
