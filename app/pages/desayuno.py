@@ -76,8 +76,8 @@ def _render_cesta_desayuno(repo) -> None:
                         "Cant.",
                         min_value=0.01,
                         value=float(ing.cantidad),
-                        step=0.01,
-                        format="%.2f",
+                        step=0.5,
+                        format="%.1f",
                         key=cant_key,
                         label_visibility="collapsed",
                     )
@@ -114,8 +114,8 @@ def _render_cesta_desayuno(repo) -> None:
                         "Cantidad extra",
                         min_value=0.01,
                         value=1.0,
-                        step=0.01,
-                        format="%.2f",
+                        step=0.5,
+                        format="%.1f",
                         key=f"extra_cant_{grupo.grupo_id}",
                     )
                     if st.button(

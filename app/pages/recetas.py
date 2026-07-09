@@ -2,7 +2,7 @@
 
 import streamlit as st
 
-from app.core.models import IngredienteReceta
+from app.core.models import IngredienteReceta, UnidadProducto
 from app.core.services.data_service import get_repository
 from app.core.services.receta_service import (
     crear_receta,
@@ -13,6 +13,11 @@ from app.core.services.receta_service import (
     resumen_ingredientes,
 )
 from app.core.services.stock_service import mapa_productos
+from app.core.services.unidad_service import (
+    cantidad_para_mostrar,
+    convertir_a_unidad_producto,
+    unidades_seleccionables,
+)
 from app.ui.components import empty_state, page_header, section_divider
 from app.ui.search import render_autocomplete
 
@@ -24,49 +29,109 @@ def _ingredientes_desde_sesion(session_key: str) -> list[dict]:
 
 
 def _cargar_ingredientes(session_key: str, ingredientes: list[IngredienteReceta]) -> None:
-    st.session_state[session_key] = [
-        {"producto_id": i.producto_id, "cantidad": i.cantidad}
-        for i in ingredientes
-    ]
+    repo = get_repository()
+    filas = []
+    for ing in ingredientes:
+        producto = repo.get_producto(ing.producto_id)
+        unidad_producto = producto.unidad if producto else UnidadProducto.UD
+        unidad_ui = unidad_producto.value
+        filas.append({
+            "producto_id": ing.producto_id,
+            "cantidad": cantidad_para_mostrar(ing.cantidad, unidad_producto, unidad_ui),
+            "unidad": unidad_ui,
+        })
+    st.session_state[session_key] = filas
+
+
+def _sembrar_autocomplete(opciones: list[dict], key: str, producto_id: str) -> None:
+    if not producto_id:
+        return
+    opcion = next((o for o in opciones if o["id"] == producto_id), None)
+    if not opcion:
+        return
+    st.session_state[f"{key}_buscar"] = opcion["label"]
+    st.session_state[f"{key}_sel"] = opcion["label"]
 
 
 def _ingredientes_a_modelo(session_key: str) -> list[IngredienteReceta]:
+    repo = get_repository()
     resultado: list[IngredienteReceta] = []
     for fila in _ingredientes_desde_sesion(session_key):
-        if fila.get("producto_id"):
-            resultado.append(IngredienteReceta(fila["producto_id"], float(fila["cantidad"])))
+        producto_id = fila.get("producto_id")
+        if not producto_id:
+            continue
+        producto = repo.get_producto(producto_id)
+        if not producto:
+            continue
+        unidad_ui = fila.get("unidad", producto.unidad.value)
+        cantidad_nativa = convertir_a_unidad_producto(
+            float(fila["cantidad"]),
+            unidad_ui,
+            producto.unidad,
+        )
+        resultado.append(IngredienteReceta(producto_id, cantidad_nativa))
     return resultado
 
 
 def _render_editor_ingredientes(session_key: str, key_prefix: str) -> None:
     repo = get_repository()
     productos_map = mapa_productos(repo.data)
-    opciones = [{"id": pid, "label": nombre} for nombre, pid in sorted(productos_map.items())]
+    opciones = [
+        {
+            "id": pid,
+            "label": nombre,
+            "unidad": repo.get_producto(pid).unidad if repo.get_producto(pid) else UnidadProducto.UD,
+        }
+        for nombre, pid in sorted(productos_map.items())
+    ]
     filas = _ingredientes_desde_sesion(session_key)
 
     if not filas:
         st.caption("Sin ingredientes. Pulse «Añadir ingrediente».")
     for idx, fila in enumerate(filas):
-        col_prod, col_cant, col_btn = st.columns([3, 1, 1])
+        autocomplete_key = f"{key_prefix}_ing_{idx}"
+        _sembrar_autocomplete(opciones, autocomplete_key, fila.get("producto_id", ""))
+
+        col_prod, col_cant, col_unidad, col_btn = st.columns([3, 1, 1, 1])
         with col_prod:
             producto_sel = render_autocomplete(
                 opciones,
-                f"{key_prefix}_ing_{idx}",
+                autocomplete_key,
                 f"Ingrediente {idx + 1}",
                 "Buscar producto...",
                 etiqueta_selectbox="Producto",
             )
             if producto_sel:
-                fila["producto_id"] = producto_sel["id"]
+                if fila.get("producto_id") != producto_sel["id"]:
+                    fila["producto_id"] = producto_sel["id"]
+                    fila["unidad"] = producto_sel["unidad"].value
+                else:
+                    fila["producto_id"] = producto_sel["id"]
         with col_cant:
             fila["cantidad"] = st.number_input(
                 "Cantidad",
                 min_value=0.0,
-                value=float(fila.get("cantidad", 1.0)),
-                step=0.01,
-                format="%.2f",
+                value=float(fila.get("cantidad", 0.5)),
+                step=0.5,
+                format="%.1f",
                 key=f"{key_prefix}_cant_{idx}",
             )
+        with col_unidad:
+            producto = repo.get_producto(fila.get("producto_id", ""))
+            if producto:
+                opciones_unidad = unidades_seleccionables(producto.unidad)
+                unidad_actual = fila.get("unidad", producto.unidad.value)
+                if unidad_actual not in opciones_unidad:
+                    unidad_actual = producto.unidad.value
+                fila["unidad"] = st.selectbox(
+                    "Unidad",
+                    opciones_unidad,
+                    index=opciones_unidad.index(unidad_actual),
+                    key=f"{key_prefix}_unidad_{idx}",
+                    label_visibility="collapsed",
+                )
+            else:
+                st.caption("—")
         with col_btn:
             st.markdown("<div style='height:1.6rem'></div>", unsafe_allow_html=True)
             if st.button("✕", key=f"{key_prefix}_quitar_{idx}", help="Quitar ingrediente"):
@@ -75,7 +140,7 @@ def _render_editor_ingredientes(session_key: str, key_prefix: str) -> None:
                 st.rerun()
 
     if st.button("Añadir ingrediente", key=f"{key_prefix}_anadir"):
-        filas.append({"producto_id": "", "cantidad": 1.0})
+        filas.append({"producto_id": "", "cantidad": 0.5, "unidad": UnidadProducto.UD.value})
         st.session_state[session_key] = filas
         st.rerun()
 
@@ -86,7 +151,6 @@ def _render_listado() -> None:
     st.caption("Platos definidos con productos del catálogo de stock.")
 
     if recetas:
-        repo = get_repository()
         filas = []
         for receta in recetas:
             filas.append({
@@ -133,11 +197,12 @@ def _render_editar_eliminar() -> None:
         return
 
     session_key = f"receta_edit_ingredientes_{receta_id}"
-    if st.session_state.get("receta_edit_loaded") != receta_id:
+    if st.session_state.get("receta_edit_prev_id") != receta_id:
         _cargar_ingredientes(session_key, receta.ingredientes)
-        st.session_state["receta_edit_loaded"] = receta_id
+        st.session_state["receta_edit_prev_id"] = receta_id
+        st.rerun()
 
-    nuevo_nombre = st.text_input("Nombre", value=receta.nombre, key="receta_edit_nombre")
+    nuevo_nombre = st.text_input("Nombre", value=receta.nombre, key=f"receta_edit_nombre_{receta_id}")
     st.markdown("##### Ingredientes")
     _render_editor_ingredientes(session_key, f"receta_edit_{receta_id}")
 
@@ -153,7 +218,7 @@ def _render_editar_eliminar() -> None:
     if st.button("Eliminar receta", use_container_width=True, key="receta_btn_eliminar"):
         resultado = eliminar_receta(receta_id)
         if resultado.ok:
-            st.session_state.pop("receta_edit_loaded", None)
+            st.session_state.pop("receta_edit_prev_id", None)
             st.success(resultado.mensaje)
             st.rerun()
         else:

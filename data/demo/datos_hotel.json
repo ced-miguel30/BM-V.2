@@ -362,7 +362,7 @@
         },
         {
           "producto_id": "p04",
-          "cantidad": 1.0
+          "cantidad": 0.001
         }
       ]
     }
@@ -604,6 +604,20 @@
     "logo_path": "C:\\Users\\User\\Desktop\\HOTEL\\BM V.2\\data\\assets\\logo_hotel.jpg"
   },
   "actividades": [
+    {
+      "id": "act51",
+      "fecha_hora": "2026-07-09T11:47:43.716923",
+      "usuario": "Miki",
+      "accion": "Editar receta",
+      "detalle": "«Sandwich mixto» actualizada"
+    },
+    {
+      "id": "act50",
+      "fecha_hora": "2026-07-09T11:47:41.987730",
+      "usuario": "Miki",
+      "accion": "Editar receta",
+      "detalle": "«Sandwich mixto» actualizada"
+    },
     {
       "id": "act49",
       "fecha_hora": "2026-07-09T11:38:58.346530",
