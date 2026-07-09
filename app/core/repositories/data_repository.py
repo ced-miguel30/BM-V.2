@@ -226,9 +226,17 @@ class DataRepository:
                 resultado.append((producto, stock))
         return resultado
 
+    def productos_stock_negativo(self) -> list[tuple[Producto, float]]:
+        resultado = []
+        for producto in self._data.productos:
+            stock = self.stock_total_producto(producto.id)
+            if stock < 0:
+                resultado.append((producto, stock))
+        return resultado
+
     def productos_stock_cero(self) -> list[Producto]:
         return [
-            p for p in self._data.productos if self.stock_total_producto(p.id) <= 0
+            p for p in self._data.productos if self.stock_total_producto(p.id) == 0
         ]
 
     def lotes_proximos_expirar(self, dias: int = 5) -> list[dict]:

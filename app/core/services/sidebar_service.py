@@ -16,6 +16,7 @@ class AlertaSidebar:
 
 def resumen_sidebar() -> dict:
     repo = get_repository()
+    negativos = repo.productos_stock_negativo()
     agotados = repo.productos_stock_cero()
     stock_bajo = repo.productos_stock_bajo()
 
@@ -26,6 +27,17 @@ def resumen_sidebar() -> dict:
             "warning",
             "Desayuno pendiente",
             "Hoy no se ha registrado el desayuno.",
+        ))
+
+    if negativos:
+        nombres = ", ".join(
+            f"{p.nombre} ({stock:g})" for p, stock in negativos[:3]
+        )
+        extra = f" (+{len(negativos) - 3})" if len(negativos) > 3 else ""
+        alertas.append(AlertaSidebar(
+            "danger",
+            f"Stock negativo ({len(negativos)})",
+            nombres + extra,
         ))
 
     if agotados:

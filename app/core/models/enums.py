@@ -27,6 +27,7 @@ class MotivoMerma(str, Enum):
 class TipoAlerta(str, Enum):
     STOCK_BAJO = "stock_bajo"
     STOCK_CERO = "stock_cero"
+    STOCK_NEGATIVO = "stock_negativo"
     EXPIRACION_PROXIMA = "expiracion_proxima"
     EXPIRADO = "expirado"
     MERMA_ELEVADA = "merma_elevada"

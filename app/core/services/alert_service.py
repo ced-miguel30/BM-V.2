@@ -12,6 +12,7 @@ DIAS_EXPIRACION_DEFECTO = 5
 _TIPOS_STOCK_AUTO = {
     TipoAlerta.STOCK_BAJO,
     TipoAlerta.STOCK_CERO,
+    TipoAlerta.STOCK_NEGATIVO,
     TipoAlerta.EXPIRACION_PROXIMA,
     TipoAlerta.EXPIRADO,
 }
@@ -56,7 +57,7 @@ def _registrar_actividad(data: AppData, accion: str, detalle: str) -> None:
 
 def _firma_alerta(alerta: AlertaOperativa) -> str:
     """Identificador estable para recordar alertas automáticas descartadas."""
-    if alerta.tipo in {TipoAlerta.STOCK_BAJO, TipoAlerta.STOCK_CERO}:
+    if alerta.tipo in {TipoAlerta.STOCK_BAJO, TipoAlerta.STOCK_CERO, TipoAlerta.STOCK_NEGATIVO}:
         return f"{alerta.tipo.value}|{alerta.producto_id or ''}"
     if alerta.tipo in {TipoAlerta.EXPIRADO, TipoAlerta.EXPIRACION_PROXIMA}:
         lote_id = _lote_id_desde_mensaje(alerta.mensaje)
@@ -104,6 +105,17 @@ def _generar_alertas_stock(data: AppData, repo: DataRepository, hoy: date) -> li
             TipoAlerta.STOCK_CERO,
             f"Stock agotado — {producto.nombre}",
             "No quedan unidades disponibles.",
+            hoy,
+            producto_id=producto.id,
+        ))
+        contador += 1
+
+    for producto, stock in repo.productos_stock_negativo():
+        nuevas.append(AlertaOperativa(
+            f"a_tmp{contador:02d}",
+            TipoAlerta.STOCK_NEGATIVO,
+            f"Stock negativo — {producto.nombre}",
+            f"Inventario en −{abs(stock):g} {producto.unidad.value}.",
             hoy,
             producto_id=producto.id,
         ))

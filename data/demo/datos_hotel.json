@@ -77,7 +77,7 @@
       "producto_id": "p01",
       "precio_total": 18.0,
       "cantidad": 60,
-      "cantidad_restante": 42,
+      "cantidad_restante": -5.0,
       "fecha_compra": "2026-07-02",
       "fecha_expiracion": "2026-07-10",
       "marca_proveedor": "Panadería Sol",
@@ -356,6 +356,22 @@
       "registrado_por": "María García",
       "num_huespedes": 30,
       "registros_recetas": []
+    },
+    {
+      "id": "d05",
+      "fecha": "2026-07-08",
+      "lineas": [
+        {
+          "producto_id": "p01",
+          "cantidad": 47.0,
+          "coste": 12.6,
+          "es_extra": true
+        }
+      ],
+      "coste_total": 12.6,
+      "registrado_por": "Miki",
+      "num_huespedes": 30,
+      "registros_recetas": []
     }
   ],
   "recetas": [
@@ -541,9 +557,9 @@
     },
     {
       "id": "a07",
-      "tipo": "expiracion_proxima",
-      "titulo": "Próximo a expirar — Croissant",
-      "mensaje": "El lote l01 (compra 02/07/2026) expira en 1 día(s).",
+      "tipo": "stock_negativo",
+      "titulo": "Stock negativo — Croissant",
+      "mensaje": "Inventario en −5 Ud.",
       "fecha": "2026-07-09",
       "activa": true,
       "producto_id": "p01"
@@ -620,6 +636,13 @@
     "logo_path": "C:\\Users\\User\\Desktop\\HOTEL\\BM V.2\\data\\assets\\logo_hotel.jpg"
   },
   "actividades": [
+    {
+      "id": "act54",
+      "fecha_hora": "2026-07-09T12:54:58.192334",
+      "usuario": "Miki",
+      "accion": "Registro desayuno",
+      "detalle": "Desayuno del 08/07/2026 — 12.60 € — 30 huéspedes"
+    },
     {
       "id": "act53",
       "fecha_hora": "2026-07-09T12:02:53.914915",

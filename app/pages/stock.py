@@ -21,6 +21,7 @@ from app.ui.search import render_autocomplete
 _TIPO_ETIQUETA = {
     TipoAlerta.STOCK_BAJO: "Stock bajo",
     TipoAlerta.STOCK_CERO: "Stock cero",
+    TipoAlerta.STOCK_NEGATIVO: "Stock negativo",
     TipoAlerta.EXPIRACION_PROXIMA: "Expiración próxima",
     TipoAlerta.EXPIRADO: "Expirado",
     TipoAlerta.MANUAL: "Manual",
@@ -262,7 +263,7 @@ def _render_alertas_stock() -> None:
     section_divider()
     st.markdown("#### Resumen rápido")
 
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
         st.markdown("##### Stock bajo")
         stock_bajo = repo.productos_stock_bajo()
@@ -280,6 +281,15 @@ def _render_alertas_stock() -> None:
                 st.markdown(f"- **{producto.nombre}**")
         else:
             empty_state("Sin productos agotados.", icon="🚫")
+
+    with col3:
+        st.markdown("##### Stock negativo")
+        negativos = repo.productos_stock_negativo()
+        if negativos:
+            for producto, stock in negativos:
+                st.markdown(f"- **{producto.nombre}** — {stock:g} {producto.unidad.value}")
+        else:
+            empty_state("Sin productos en negativo.", icon="✅")
 
     section_divider()
     st.markdown("#### Crear alerta manual")

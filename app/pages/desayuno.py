@@ -22,7 +22,6 @@ from app.core.services.desayuno_service import (
     limpiar_cesta,
     modificar_porciones_grupo,
     productos_catalogo,
-    productos_disponibles,
     quitar_grupo_receta,
     quitar_linea_grupo,
     quitar_linea_suelta,
@@ -33,6 +32,8 @@ from app.core.services.formatting import formato_fecha
 from app.core.services.receta_service import listar_recetas
 from app.ui.components import empty_state, page_header, render_sub_tabs, section_divider
 from app.ui.search import render_autocomplete, render_buscador_producto
+
+STOCK_PENDIENTE_KEY = "bm_stock_pendiente_registro"
 
 
 def _lineas_desayuno_texto(repo, desayuno) -> str:
@@ -279,7 +280,7 @@ def _render_registro_desayuno() -> None:
 
         section_divider()
         st.markdown("##### Añadir producto suelto")
-        todos_productos = productos_disponibles("")
+        todos_productos = productos_catalogo("")
         producto_sel = render_buscador_producto(
             todos_productos,
             "desayuno",
@@ -317,10 +318,34 @@ def _render_registro_desayuno() -> None:
         if st.button("Registrar desayuno", type="primary", use_container_width=True, key="btn_registrar_desayuno"):
             resultado = registrar_desayuno(fecha, int(num_huespedes))
             if resultado.ok:
+                st.session_state.pop(STOCK_PENDIENTE_KEY, None)
                 st.success(resultado.mensaje)
                 st.rerun()
-            else:
+            elif resultado.codigo == "STOCK_INSUFICIENTE":
+                st.session_state[STOCK_PENDIENTE_KEY] = True
                 st.error(resultado.mensaje)
+                if resultado.detalle_stock:
+                    for linea in resultado.detalle_stock:
+                        st.markdown(f"- {linea}")
+            else:
+                st.session_state.pop(STOCK_PENDIENTE_KEY, None)
+                st.error(resultado.mensaje)
+
+        if st.session_state.get(STOCK_PENDIENTE_KEY):
+            st.warning("Hay productos sin stock suficiente. Puede ignorar la validación y registrar igual.")
+            if st.button(
+                "Ignorar y registrar igual",
+                type="secondary",
+                use_container_width=True,
+                key="btn_ignorar_stock",
+            ):
+                resultado = registrar_desayuno(fecha, int(num_huespedes), ignorar_stock=True)
+                if resultado.ok:
+                    st.session_state.pop(STOCK_PENDIENTE_KEY, None)
+                    st.success(resultado.mensaje)
+                    st.rerun()
+                else:
+                    st.error(resultado.mensaje)
 
     section_divider()
     st.markdown("#### Historial de desayunos")

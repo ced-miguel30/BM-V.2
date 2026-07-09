@@ -123,6 +123,13 @@ def _lotes_fifo(data: AppData, producto_id: str) -> list[LoteStock]:
     )
 
 
+def _ultimo_lote_producto(data: AppData, producto_id: str) -> LoteStock | None:
+    lotes = [l for l in data.lotes if l.producto_id == producto_id]
+    if not lotes:
+        return None
+    return sorted(lotes, key=lambda l: (l.fecha_compra or date.min, l.id))[-1]
+
+
 def _coste_unidad_lote(lote: LoteStock) -> float:
     if lote.cantidad <= 0:
         return 0.0
@@ -147,11 +154,18 @@ def calcular_coste_linea(data: AppData, producto_id: str, cantidad: float) -> fl
     return round(coste, 2)
 
 
-def _descontar_fifo(data: AppData, producto_id: str, cantidad: float) -> float:
+def _descontar_fifo(
+    data: AppData,
+    producto_id: str,
+    cantidad: float,
+    *,
+    permitir_negativo: bool = False,
+) -> float:
     if cantidad <= 0:
         return 0.0
     restante = cantidad
     coste = 0.0
+    ultimo_lote_tocado: LoteStock | None = None
     for lote in _lotes_fifo(data, producto_id):
         if restante <= 0:
             break
@@ -159,6 +173,13 @@ def _descontar_fifo(data: AppData, producto_id: str, cantidad: float) -> float:
         coste += tomar * _coste_unidad_lote(lote)
         lote.cantidad_restante = round(lote.cantidad_restante - tomar, 4)
         restante -= tomar
+        ultimo_lote_tocado = lote
+
+    if restante > 0 and permitir_negativo:
+        lote_destino = ultimo_lote_tocado or _ultimo_lote_producto(data, producto_id)
+        if lote_destino:
+            lote_destino.cantidad_restante = round(lote_destino.cantidad_restante - restante, 4)
+
     return round(coste, 2)
 
 
@@ -249,37 +270,6 @@ def etiqueta_linea_receta(ing: LineaCestaIngrediente) -> str:
     return f"{ing.nombre} — {cant:g} {ing.unidad}"
 
 
-def _cantidad_en_cesta_producto(producto_id: str) -> float:
-    total = sum(l.cantidad for l in get_cesta() if l.producto_id == producto_id)
-    for grupo in get_cesta_recetas():
-        for ing in grupo.ingredientes:
-            if ing.producto_id == producto_id:
-                total += ing.cantidad
-    return total
-
-
-def _validar_stock_producto(
-    data: AppData,
-    producto_id: str,
-    cantidad_adicional: float,
-) -> ResultadoOperacion | None:
-    if cantidad_adicional <= 0:
-        return None
-    repo = DataRepository(data)
-    producto = repo.get_producto(producto_id)
-    if not producto:
-        return ResultadoOperacion(False, "Producto no encontrado.")
-
-    disponible = stock_disponible(data, producto_id)
-    en_cesta = _cantidad_en_cesta_producto(producto_id)
-    if en_cesta + cantidad_adicional > disponible:
-        return ResultadoOperacion(
-            False,
-            f"Stock insuficiente de «{producto.nombre}». Disponible: {disponible:g} {producto.unidad.value}.",
-        )
-    return None
-
-
 def productos_catalogo(buscar: str = "") -> list[dict]:
     """Todos los productos del catálogo (sin filtrar por stock)."""
     data = get_data()
@@ -343,11 +333,6 @@ def anadir_a_cesta(producto_id: str, cantidad: float) -> ResultadoOperacion:
         return ResultadoOperacion(False, "La cantidad no puede ser 0.")
 
     data = get_data()
-    if cantidad > 0:
-        error = _validar_stock_producto(data, producto_id, cantidad)
-        if error:
-            return error
-
     repo = DataRepository(data)
     producto = repo.get_producto(producto_id)
     if not producto:
@@ -411,10 +396,6 @@ def anadir_receta_a_cesta(
         if not producto:
             return ResultadoOperacion(False, "Un ingrediente de la receta ya no existe en el catálogo.")
         cantidad = round(ing.cantidad * porciones, 4)
-        if cantidad > 0:
-            error = _validar_stock_producto(data, ing.producto_id, cantidad)
-            if error:
-                return error
         ingredientes.append(LineaCestaIngrediente(
             _nueva_linea_id(),
             producto.id,
@@ -427,10 +408,6 @@ def anadir_receta_a_cesta(
         ))
 
     for mod in mods_pendientes or []:
-        if mod.cantidad > 0:
-            error = _validar_stock_producto(data, mod.producto_id, mod.cantidad)
-            if error:
-                return error
         ingredientes.append(_linea_ingrediente_desde_mod(mod))
 
     grupo = GrupoRecetaCesta(
@@ -491,16 +468,9 @@ def modificar_linea_grupo(grupo_id: str, linea_id: str, cantidad: float) -> Resu
         quitar_linea_grupo(grupo_id, linea_id)
         return ResultadoOperacion(True, "Línea eliminada.")
 
-    data = get_data()
     linea = _buscar_linea_grupo(grupo_id, linea_id)
     if not linea:
         return ResultadoOperacion(False, "Línea no encontrada.")
-
-    delta = cantidad - linea.cantidad
-    if delta > 0:
-        error = _validar_stock_producto(data, linea.producto_id, delta)
-        if error:
-            return error
 
     linea.cantidad = round(cantidad, 4)
     linea.es_extra = not linea.es_base_receta and cantidad > 0
@@ -525,7 +495,6 @@ def modificar_porciones_grupo(grupo_id: str, porciones: float) -> ResultadoOpera
     if not receta:
         return ResultadoOperacion(False, "Receta no encontrada.")
 
-    factor_anterior = grupo.porciones
     grupo.porciones = porciones
 
     for linea in grupo.ingredientes:
@@ -535,12 +504,6 @@ def modificar_porciones_grupo(grupo_id: str, porciones: float) -> ResultadoOpera
         if not ing_template:
             continue
         nueva_cant = round(ing_template.cantidad * porciones, 4)
-        delta = nueva_cant - linea.cantidad
-        if delta > 0:
-            error = _validar_stock_producto(data, linea.producto_id, delta)
-            if error:
-                grupo.porciones = factor_anterior
-                return error
         linea.cantidad = nueva_cant
 
     _guardar_cesta_recetas(get_cesta_recetas())
@@ -585,16 +548,9 @@ def modificar_cantidad_suelto(linea_id: str, cantidad: float) -> ResultadoOperac
         quitar_linea_suelta(linea_id)
         return ResultadoOperacion(True, "Producto eliminado de la cesta.")
 
-    data = get_data()
     linea = _buscar_linea_suelta(linea_id)
     if not linea:
         return ResultadoOperacion(False, "Línea no encontrada.")
-
-    delta = cantidad - linea.cantidad
-    if delta > 0:
-        error = _validar_stock_producto(data, linea.producto_id, delta)
-        if error:
-            return error
 
     linea.cantidad = round(cantidad, 4)
     linea.es_extra = cantidad > 0
@@ -666,7 +622,32 @@ def _construir_registros_recetas(data: AppData, grupos: list[GrupoRecetaCesta]) 
     return registros
 
 
-def registrar_desayuno(fecha: date, num_huespedes: int) -> ResultadoOperacion:
+def _validar_stock_registro(
+    data: AppData,
+    fusionado: dict[str, tuple[float, bool]],
+) -> list[str]:
+    repo = DataRepository(data)
+    deficits: list[str] = []
+    for producto_id, (cantidad, _) in fusionado.items():
+        if cantidad <= 0:
+            continue
+        disponible = stock_disponible(data, producto_id)
+        if cantidad > disponible:
+            nombre = repo.get_nombre_producto(producto_id)
+            producto = repo.get_producto(producto_id)
+            unidad = producto.unidad.value if producto else ""
+            deficits.append(
+                f"{nombre}: necesita {cantidad:g} {unidad}, disponible {disponible:g} {unidad}",
+            )
+    return deficits
+
+
+def registrar_desayuno(
+    fecha: date,
+    num_huespedes: int,
+    *,
+    ignorar_stock: bool = False,
+) -> ResultadoOperacion:
     if cesta_vacia():
         return ResultadoOperacion(
             False,
@@ -686,22 +667,27 @@ def registrar_desayuno(fecha: date, num_huespedes: int) -> ResultadoOperacion:
             f"Ya existe un desayuno registrado para el {fecha.strftime('%d/%m/%Y')}.",
         )
 
-    repo = DataRepository(data)
     fusionado = _aplanar_cesta()
     grupos = list(get_cesta_recetas())
 
-    for producto_id, (cantidad, _) in fusionado.items():
-        disponible = stock_disponible(data, producto_id)
-        if cantidad > disponible:
-            nombre = repo.get_nombre_producto(producto_id)
+    if not ignorar_stock:
+        deficits = _validar_stock_registro(data, fusionado)
+        if deficits:
             return ResultadoOperacion(
                 False,
-                f"Stock insuficiente de «{nombre}» al registrar.",
+                "Stock insuficiente para registrar el desayuno.",
+                codigo="STOCK_INSUFICIENTE",
+                detalle_stock=deficits,
             )
 
     lineas: list[LineaDesayuno] = []
     for producto_id, (cantidad, es_extra) in fusionado.items():
-        coste = _descontar_fifo(data, producto_id, cantidad)
+        coste = _descontar_fifo(
+            data,
+            producto_id,
+            cantidad,
+            permitir_negativo=ignorar_stock,
+        )
         lineas.append(LineaDesayuno(producto_id, cantidad, coste, es_extra))
 
     registros_recetas = _construir_registros_recetas(data, grupos)
