@@ -11,3 +11,4 @@ class Producto:
     nombre: str
     unidad: UnidadProducto
     stock_minimo: float | None = None
+    es_bebida: bool = False

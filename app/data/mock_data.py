@@ -34,11 +34,13 @@ def crear_datos_mock() -> AppData:
         Producto("p03", "Jamón serrano", UnidadProducto.KG, stock_minimo=2),
         Producto("p04", "Queso manchego", UnidadProducto.KG, stock_minimo=1.5),
         Producto("p05", "Yogur natural", UnidadProducto.UD, stock_minimo=24),
-        Producto("p06", "Zumo de naranja", UnidadProducto.L, stock_minimo=5),
+        Producto("p06", "Zumo de naranja", UnidadProducto.L, stock_minimo=5, es_bebida=True),
         Producto("p07", "Café molido", UnidadProducto.KG, stock_minimo=1),
         Producto("p08", "Mantequilla", UnidadProducto.KG, stock_minimo=0.5),
         Producto("p09", "Fruta fresca", UnidadProducto.KG, stock_minimo=3),
         Producto("p10", "Huevos", UnidadProducto.UD, stock_minimo=36),
+        Producto("b01", "Coca-Cola", UnidadProducto.L, stock_minimo=10, es_bebida=True),
+        Producto("b02", "Agua mineral", UnidadProducto.L, stock_minimo=15, es_bebida=True),
     ]
 
     lotes = [
@@ -52,6 +54,8 @@ def crear_datos_mock() -> AppData:
         LoteStock("l08", "p08", 8.50, 1, 0.3, HOY - timedelta(days=6), HOY + timedelta(days=20), "Lácteos Sur", 5),
         LoteStock("l09", "p09", 12.00, 5, 2.1, HOY - timedelta(days=1), HOY + timedelta(days=4), "Frutas del Mercado", 2),
         LoteStock("l10", "p10", 6.00, 60, 0, HOY - timedelta(days=7), HOY - timedelta(days=1), "Granja Local", 3),
+        LoteStock("l11", "b01", 24.00, 20, 14, HOY - timedelta(days=3), HOY + timedelta(days=180), "Coca-Cola EU", 30),
+        LoteStock("l12", "b02", 8.00, 30, 22, HOY - timedelta(days=2), HOY + timedelta(days=365), "Bezoya", 30),
     ]
 
     recetas = [

@@ -53,7 +53,13 @@ def appdata_to_dict(data: AppData) -> dict:
     return {
         "meta": {"usuario_actual_id": data.usuario_actual_id, "origen": "demo"},
         "productos": [
-            {"id": p.id, "nombre": p.nombre, "unidad": p.unidad.value, "stock_minimo": p.stock_minimo}
+            {
+                "id": p.id,
+                "nombre": p.nombre,
+                "unidad": p.unidad.value,
+                "stock_minimo": p.stock_minimo,
+                "es_bebida": p.es_bebida,
+            }
             for p in data.productos
         ],
         "lotes": [
@@ -155,7 +161,13 @@ def dict_to_appdata(payload: dict) -> AppData:
     config = payload.get("configuracion")
     return AppData(
         productos=[
-            Producto(p["id"], p["nombre"], UnidadProducto(p["unidad"]), p.get("stock_minimo"))
+            Producto(
+                p["id"],
+                p["nombre"],
+                UnidadProducto(p["unidad"]),
+                p.get("stock_minimo"),
+                p.get("es_bebida", False),
+            )
             for p in payload.get("productos", [])
         ],
         lotes=[

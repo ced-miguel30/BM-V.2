@@ -52,10 +52,15 @@ def crear_producto(
     nombre: str,
     unidad: str,
     stock_minimo: float | None,
+    *,
+    es_bebida: bool = False,
 ) -> ResultadoOperacion:
     nombre = nombre.strip()
     if not nombre:
-        return ResultadoOperacion(False, "El nombre del producto es obligatorio.")
+        return ResultadoOperacion(
+            False,
+            "El nombre es obligatorio.",
+        )
     if len(nombre) < 2:
         return ResultadoOperacion(False, "El nombre debe tener al menos 2 caracteres.")
     if unidad not in UNIDADES:
@@ -63,20 +68,35 @@ def crear_producto(
 
     data = get_data()
     if _nombre_duplicado(data, nombre):
-        return ResultadoOperacion(False, f"Ya existe un producto llamado «{nombre}».")
+        tipo = "bebida" if es_bebida else "producto"
+        return ResultadoOperacion(False, f"Ya existe un {tipo} llamado «{nombre}».")
 
     stock_min = stock_minimo if stock_minimo and stock_minimo > 0 else None
+    prefix = "b" if es_bebida else "p"
+    ids_mismo_tipo = [p.id for p in data.productos if p.id.startswith(prefix)]
 
     producto = Producto(
-        _next_id("p", [p.id for p in data.productos]),
+        _next_id(prefix, ids_mismo_tipo),
         nombre,
         UnidadProducto(unidad),
         stock_min,
+        es_bebida=es_bebida,
     )
     data.productos.append(producto)
-    _registrar_actividad(data, "Crear producto", f"Producto «{nombre}» ({unidad}) creado")
+    accion = "Crear bebida" if es_bebida else "Crear producto"
+    _registrar_actividad(data, accion, f"«{nombre}» ({unidad}) creado")
     persist_data(data)
-    return ResultadoOperacion(True, f"Producto «{nombre}» creado correctamente.")
+    tipo_ok = "Bebida" if es_bebida else "Producto"
+    return ResultadoOperacion(True, f"{tipo_ok} «{nombre}» creado correctamente.")
+
+
+def crear_bebida(
+    nombre: str,
+    unidad: str,
+    stock_minimo: float | None,
+) -> ResultadoOperacion:
+    """Alias para crear un producto marcado como bebida."""
+    return crear_producto(nombre, unidad, stock_minimo, es_bebida=True)
 
 
 def registrar_lote(
@@ -129,5 +149,12 @@ def registrar_lote(
     return ResultadoOperacion(True, f"Lote registrado para «{producto.nombre}».")
 
 
-def mapa_productos(data: AppData) -> dict[str, str]:
-    return {p.nombre: p.id for p in data.productos}
+def mapa_productos(data: AppData, *, es_bebida: bool | None = None) -> dict[str, str]:
+    items = data.productos
+    if es_bebida is not None:
+        items = [p for p in items if p.es_bebida == es_bebida]
+    return {p.nombre: p.id for p in items}
+
+
+def mapa_bebidas(data: AppData) -> dict[str, str]:
+    return mapa_productos(data, es_bebida=True)

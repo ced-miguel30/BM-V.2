@@ -8,67 +8,92 @@
       "id": "p01",
       "nombre": "Croissant",
       "unidad": "Ud",
-      "stock_minimo": 20
+      "stock_minimo": 20,
+      "es_bebida": false
     },
     {
       "id": "p02",
       "nombre": "Pan de molde",
       "unidad": "Ud",
-      "stock_minimo": 10
+      "stock_minimo": 10,
+      "es_bebida": false
     },
     {
       "id": "p03",
       "nombre": "Jamón serrano",
       "unidad": "Kg",
-      "stock_minimo": 2
+      "stock_minimo": 2,
+      "es_bebida": false
     },
     {
       "id": "p04",
       "nombre": "Queso manchego",
       "unidad": "Kg",
-      "stock_minimo": 1.5
+      "stock_minimo": 1.5,
+      "es_bebida": false
     },
     {
       "id": "p05",
       "nombre": "Yogur natural",
       "unidad": "Ud",
-      "stock_minimo": 24
+      "stock_minimo": 24,
+      "es_bebida": false
     },
     {
       "id": "p06",
       "nombre": "Zumo de naranja",
       "unidad": "L",
-      "stock_minimo": 5
+      "stock_minimo": 5,
+      "es_bebida": true
     },
     {
       "id": "p07",
       "nombre": "Café molido",
       "unidad": "Kg",
-      "stock_minimo": 1
+      "stock_minimo": 1,
+      "es_bebida": false
     },
     {
       "id": "p08",
       "nombre": "Mantequilla",
       "unidad": "Kg",
-      "stock_minimo": 0.5
+      "stock_minimo": 0.5,
+      "es_bebida": false
     },
     {
       "id": "p09",
       "nombre": "Fruta fresca",
       "unidad": "Kg",
-      "stock_minimo": 3
+      "stock_minimo": 3,
+      "es_bebida": false
     },
     {
       "id": "p10",
       "nombre": "Huevos",
       "unidad": "Ud",
-      "stock_minimo": 36
+      "stock_minimo": 36,
+      "es_bebida": false
     },
     {
       "id": "p11",
       "nombre": "leche",
       "unidad": "L",
-      "stock_minimo": 6.0
+      "stock_minimo": 6.0,
+      "es_bebida": false
+    },
+    {
+      "id": "b01",
+      "nombre": "Coca-Cola",
+      "unidad": "L",
+      "stock_minimo": 10,
+      "es_bebida": true
+    },
+    {
+      "id": "b02",
+      "nombre": "Agua mineral",
+      "unidad": "L",
+      "stock_minimo": 15,
+      "es_bebida": true
     }
   ],
   "lotes": [
@@ -236,6 +261,28 @@
       "fecha_expiracion": null,
       "marca_proveedor": null,
       "alerta_expiracion_dias": null
+    },
+    {
+      "id": "l16",
+      "producto_id": "b01",
+      "precio_total": 24.0,
+      "cantidad": 20,
+      "cantidad_restante": 14,
+      "fecha_compra": "2026-07-04",
+      "fecha_expiracion": "2027-01-04",
+      "marca_proveedor": "Coca-Cola EU",
+      "alerta_expiracion_dias": 30
+    },
+    {
+      "id": "l17",
+      "producto_id": "b02",
+      "precio_total": 8.0,
+      "cantidad": 30,
+      "cantidad_restante": 22,
+      "fecha_compra": "2026-07-05",
+      "fecha_expiracion": "2027-07-05",
+      "marca_proveedor": "Bezoya",
+      "alerta_expiracion_dias": 30
     }
   ],
   "desayunos": [
@@ -524,7 +571,7 @@
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Zumo de naranja",
       "mensaje": "Quedan 4.5 L. Stock mínimo: 5.",
-      "fecha": "2026-07-09",
+      "fecha": "2026-07-10",
       "activa": true,
       "producto_id": "p06"
     },
@@ -533,7 +580,7 @@
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Mantequilla",
       "mensaje": "Quedan 0.3 Kg. Stock mínimo: 0.5.",
-      "fecha": "2026-07-09",
+      "fecha": "2026-07-10",
       "activa": true,
       "producto_id": "p08"
     },
@@ -542,7 +589,7 @@
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Fruta fresca",
       "mensaje": "Quedan 2.1 Kg. Stock mínimo: 3.",
-      "fecha": "2026-07-09",
+      "fecha": "2026-07-10",
       "activa": true,
       "producto_id": "p09"
     },
@@ -551,7 +598,7 @@
       "tipo": "stock_cero",
       "titulo": "Stock agotado — Huevos",
       "mensaje": "No quedan unidades disponibles.",
-      "fecha": "2026-07-09",
+      "fecha": "2026-07-10",
       "activa": true,
       "producto_id": "p10"
     },
@@ -560,7 +607,7 @@
       "tipo": "stock_negativo",
       "titulo": "Stock negativo — Croissant",
       "mensaje": "Inventario en −5 Ud.",
-      "fecha": "2026-07-09",
+      "fecha": "2026-07-10",
       "activa": true,
       "producto_id": "p01"
     },
@@ -568,17 +615,17 @@
       "id": "a08",
       "tipo": "expiracion_proxima",
       "titulo": "Próximo a expirar — Pan de molde",
-      "mensaje": "El lote l02 (compra 04/07/2026) expira en 5 día(s).",
-      "fecha": "2026-07-09",
+      "mensaje": "El lote l02 (compra 04/07/2026) expira en 4 día(s).",
+      "fecha": "2026-07-10",
       "activa": true,
       "producto_id": "p02"
     },
     {
       "id": "a09",
-      "tipo": "expiracion_proxima",
-      "titulo": "Próximo a expirar — Yogur natural",
-      "mensaje": "El lote l05 (compra 03/07/2026) expira en 0 día(s).",
-      "fecha": "2026-07-09",
+      "tipo": "expirado",
+      "titulo": "Producto expirado — Yogur natural",
+      "mensaje": "El lote l05 (compra 03/07/2026) expiró hace 1 día(s).",
+      "fecha": "2026-07-10",
       "activa": true,
       "producto_id": "p05"
     },
@@ -586,8 +633,8 @@
       "id": "a10",
       "tipo": "expiracion_proxima",
       "titulo": "Próximo a expirar — Zumo de naranja",
-      "mensaje": "El lote l06 (compra 05/07/2026) expira en 3 día(s).",
-      "fecha": "2026-07-09",
+      "mensaje": "El lote l06 (compra 05/07/2026) expira en 2 día(s).",
+      "fecha": "2026-07-10",
       "activa": true,
       "producto_id": "p06"
     },
@@ -595,8 +642,8 @@
       "id": "a11",
       "tipo": "expiracion_proxima",
       "titulo": "Próximo a expirar — Fruta fresca",
-      "mensaje": "El lote l09 (compra 06/07/2026) expira en 2 día(s).",
-      "fecha": "2026-07-09",
+      "mensaje": "El lote l09 (compra 06/07/2026) expira en 1 día(s).",
+      "fecha": "2026-07-10",
       "activa": true,
       "producto_id": "p09"
     },
@@ -605,7 +652,7 @@
       "tipo": "desayuno_no_registrado",
       "titulo": "Desayuno de hoy no registrado",
       "mensaje": "Aún no se ha registrado el consumo del desayuno de hoy.",
-      "fecha": "2026-07-09",
+      "fecha": "2026-07-10",
       "activa": true,
       "producto_id": null
     }
