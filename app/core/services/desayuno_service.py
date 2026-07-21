@@ -185,10 +185,6 @@ def _descontar_fifo(
     return round(coste, 2)
 
 
-def _desayuno_existe(data: AppData, fecha: date) -> bool:
-    return any(d.fecha == fecha for d in data.desayunos)
-
-
 def get_cesta() -> list[LineaCesta]:
     import streamlit as st
 
@@ -711,11 +707,6 @@ def registrar_desayuno(
         return ResultadoOperacion(False, "Indique al menos 1 huésped.")
 
     data = get_data()
-    if _desayuno_existe(data, fecha):
-        return ResultadoOperacion(
-            False,
-            f"Ya existe un desayuno registrado para el {fecha.strftime('%d/%m/%Y')}.",
-        )
 
     fusionado = _aplanar_cesta()
     grupos = list(get_cesta_recetas())
@@ -750,6 +741,7 @@ def registrar_desayuno(
         _nombre_usuario(data),
         num_huespedes,
         registros_recetas,
+        datetime.now().time(),
     )
     data.desayunos.append(registro)
 

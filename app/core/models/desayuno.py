@@ -1,7 +1,7 @@
 """Modelo de registro de desayuno."""
 
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, time
 
 
 @dataclass
@@ -41,3 +41,4 @@ class RegistroDesayuno:
     registrado_por: str = ""
     num_huespedes: int = 30
     registros_recetas: list[RegistroRecetaDesayuno] = field(default_factory=list)
+    hora: time | None = None

@@ -245,7 +245,7 @@
       "producto_id": "p11",
       "precio_total": 11.0,
       "cantidad": 10.0,
-      "cantidad_restante": 10.0,
+      "cantidad_restante": 8.5,
       "fecha_compra": null,
       "fecha_expiracion": null,
       "marca_proveedor": "hiperdino",
@@ -256,7 +256,7 @@
       "producto_id": "p07",
       "precio_total": 60.0,
       "cantidad": 1.5,
-      "cantidad_restante": 1.5,
+      "cantidad_restante": 1.4985,
       "fecha_compra": null,
       "fecha_expiracion": null,
       "marca_proveedor": null,
@@ -289,6 +289,7 @@
     {
       "id": "d01",
       "fecha": "2026-07-06",
+      "hora": null,
       "lineas": [
         {
           "producto_id": "p01",
@@ -323,6 +324,7 @@
     {
       "id": "d02",
       "fecha": "2026-07-05",
+      "hora": null,
       "lineas": [
         {
           "producto_id": "p01",
@@ -357,6 +359,7 @@
     {
       "id": "d03",
       "fecha": "2026-07-04",
+      "hora": null,
       "lineas": [
         {
           "producto_id": "p02",
@@ -391,6 +394,7 @@
     {
       "id": "d04",
       "fecha": "2026-07-07",
+      "hora": null,
       "lineas": [
         {
           "producto_id": "p07",
@@ -407,6 +411,7 @@
     {
       "id": "d05",
       "fecha": "2026-07-08",
+      "hora": null,
       "lineas": [
         {
           "producto_id": "p01",
@@ -419,6 +424,68 @@
       "registrado_por": "Miki",
       "num_huespedes": 30,
       "registros_recetas": []
+    },
+    {
+      "id": "d06",
+      "fecha": "2026-07-20",
+      "hora": "14:58:10.949605",
+      "lineas": [
+        {
+          "producto_id": "p07",
+          "cantidad": 0.0005,
+          "coste": 0.02,
+          "es_extra": false
+        },
+        {
+          "producto_id": "p11",
+          "cantidad": 0.5,
+          "coste": 0.55,
+          "es_extra": false
+        }
+      ],
+      "coste_total": 0.57,
+      "registrado_por": "Miki",
+      "num_huespedes": 30,
+      "registros_recetas": [
+        {
+          "receta_id": "r02",
+          "nombre_receta": "cafe con leche",
+          "porciones": 1.0,
+          "extras": [],
+          "omisiones": []
+        }
+      ]
+    },
+    {
+      "id": "d07",
+      "fecha": "2026-07-20",
+      "hora": "14:58:16.511636",
+      "lineas": [
+        {
+          "producto_id": "p07",
+          "cantidad": 0.001,
+          "coste": 0.04,
+          "es_extra": false
+        },
+        {
+          "producto_id": "p11",
+          "cantidad": 1.0,
+          "coste": 1.1,
+          "es_extra": false
+        }
+      ],
+      "coste_total": 1.14,
+      "registrado_por": "Miki",
+      "num_huespedes": 30,
+      "registros_recetas": [
+        {
+          "receta_id": "r02",
+          "nombre_receta": "cafe con leche",
+          "porciones": 2.0,
+          "extras": [],
+          "omisiones": []
+        }
+      ]
     }
   ],
   "recetas": [
@@ -569,81 +636,81 @@
     {
       "id": "a03",
       "tipo": "stock_bajo",
-      "titulo": "Stock bajo — Zumo de naranja",
-      "mensaje": "Quedan 4.5 L. Stock mínimo: 5.",
-      "fecha": "2026-07-10",
-      "activa": true,
-      "producto_id": "p06"
-    },
-    {
-      "id": "a04",
-      "tipo": "stock_bajo",
-      "titulo": "Stock bajo — Mantequilla",
-      "mensaje": "Quedan 0.3 Kg. Stock mínimo: 0.5.",
-      "fecha": "2026-07-10",
-      "activa": true,
-      "producto_id": "p08"
-    },
-    {
-      "id": "a05",
-      "tipo": "stock_bajo",
       "titulo": "Stock bajo — Fruta fresca",
       "mensaje": "Quedan 2.1 Kg. Stock mínimo: 3.",
-      "fecha": "2026-07-10",
+      "fecha": "2026-07-21",
       "activa": true,
       "producto_id": "p09"
     },
     {
-      "id": "a06",
+      "id": "a04",
       "tipo": "stock_cero",
       "titulo": "Stock agotado — Huevos",
       "mensaje": "No quedan unidades disponibles.",
-      "fecha": "2026-07-10",
+      "fecha": "2026-07-21",
       "activa": true,
       "producto_id": "p10"
     },
     {
-      "id": "a07",
+      "id": "a05",
       "tipo": "stock_negativo",
       "titulo": "Stock negativo — Croissant",
       "mensaje": "Inventario en −5 Ud.",
-      "fecha": "2026-07-10",
+      "fecha": "2026-07-21",
       "activa": true,
       "producto_id": "p01"
     },
     {
-      "id": "a08",
-      "tipo": "expiracion_proxima",
-      "titulo": "Próximo a expirar — Pan de molde",
-      "mensaje": "El lote l02 (compra 04/07/2026) expira en 4 día(s).",
-      "fecha": "2026-07-10",
+      "id": "a06",
+      "tipo": "expirado",
+      "titulo": "Producto expirado — Pan de molde",
+      "mensaje": "El lote l02 (compra 04/07/2026) expiró hace 7 día(s).",
+      "fecha": "2026-07-21",
       "activa": true,
       "producto_id": "p02"
+    },
+    {
+      "id": "a07",
+      "tipo": "expiracion_proxima",
+      "titulo": "Próximo a expirar — Jamón serrano",
+      "mensaje": "El lote l03 (compra 27/06/2026) expira en 0 día(s).",
+      "fecha": "2026-07-21",
+      "activa": true,
+      "producto_id": "p03"
+    },
+    {
+      "id": "a08",
+      "tipo": "expirado",
+      "titulo": "Producto expirado — Queso manchego",
+      "mensaje": "El lote l04 (compra 29/06/2026) expiró hace 4 día(s).",
+      "fecha": "2026-07-21",
+      "activa": true,
+      "producto_id": "p04"
     },
     {
       "id": "a09",
       "tipo": "expirado",
       "titulo": "Producto expirado — Yogur natural",
-      "mensaje": "El lote l05 (compra 03/07/2026) expiró hace 1 día(s).",
-      "fecha": "2026-07-10",
+      "mensaje": "El lote l05 (compra 03/07/2026) expiró hace 12 día(s).",
+      "fecha": "2026-07-21",
       "activa": true,
       "producto_id": "p05"
     },
     {
       "id": "a10",
-      "tipo": "expiracion_proxima",
-      "titulo": "Próximo a expirar — Zumo de naranja",
-      "mensaje": "El lote l06 (compra 05/07/2026) expira en 2 día(s).",
-      "fecha": "2026-07-10",
+      "tipo": "expirado",
+      "titulo": "Producto expirado — Zumo de naranja",
+      "mensaje": "El lote l06 (compra 05/07/2026) expiró hace 9 día(s).",
+      "fecha": "2026-07-21",
       "activa": true,
       "producto_id": "p06"
     },
     {
       "id": "a11",
-      "tipo": "expiracion_proxima",
-      "titulo": "Próximo a expirar — Fruta fresca",
-      "mensaje": "El lote l09 (compra 06/07/2026) expira en 1 día(s).",
-      "fecha": "2026-07-10",
+      "tipo": "expirado",
+      "titulo": "Producto expirado — Fruta fresca",
+      "mensaje": "El lote l09 (compra 06/07/2026) expiró hace 10 día(s).",
+      "fecha": "2026-07-21",
       "activa": true,
       "producto_id": "p09"
     },
@@ -652,7 +719,7 @@
       "tipo": "desayuno_no_registrado",
       "titulo": "Desayuno de hoy no registrado",
       "mensaje": "Aún no se ha registrado el consumo del desayuno de hoy.",
-      "fecha": "2026-07-10",
+      "fecha": "2026-07-21",
       "activa": true,
       "producto_id": null
     }
@@ -660,7 +727,9 @@
   "alertas_descartadas": [
     "stock_bajo|p03",
     "stock_bajo|p04",
-    "stock_bajo|p05"
+    "stock_bajo|p05",
+    "stock_bajo|p06",
+    "stock_bajo|p08"
   ],
   "usuarios": [
     {
@@ -683,6 +752,34 @@
     "logo_path": "C:\\Users\\User\\Desktop\\HOTEL\\BM V.2\\data\\assets\\logo_hotel.jpg"
   },
   "actividades": [
+    {
+      "id": "act58",
+      "fecha_hora": "2026-07-21T12:32:26.605496",
+      "usuario": "Miki",
+      "accion": "Remover alerta",
+      "detalle": "Miki eliminó la alerta «Stock bajo — Mantequilla»"
+    },
+    {
+      "id": "act57",
+      "fecha_hora": "2026-07-20T14:58:16.511694",
+      "usuario": "Miki",
+      "accion": "Registro desayuno",
+      "detalle": "Desayuno del 20/07/2026 — 1.14 € — 30 huéspedes — 1 receta(s)"
+    },
+    {
+      "id": "act56",
+      "fecha_hora": "2026-07-20T14:58:10.949680",
+      "usuario": "Miki",
+      "accion": "Registro desayuno",
+      "detalle": "Desayuno del 20/07/2026 — 0.57 € — 30 huéspedes — 1 receta(s)"
+    },
+    {
+      "id": "act55",
+      "fecha_hora": "2026-07-10T19:54:07.881392",
+      "usuario": "Miki",
+      "accion": "Remover alerta",
+      "detalle": "Miki eliminó la alerta «Stock bajo — Zumo de naranja»"
+    },
     {
       "id": "act54",
       "fecha_hora": "2026-07-09T12:54:58.192334",

@@ -1,5 +1,6 @@
 """Desayuno — registro de consumo y merma."""
 
+import unicodedata
 from datetime import date
 
 import streamlit as st
@@ -59,131 +60,141 @@ def _lineas_merma_texto(repo, merma) -> str:
     return ", ".join(partes)
 
 
-def _botones_cantidad(
+def _clave_orden(texto: str) -> str:
+    """Clave de orden alfabético insensible a mayúsculas/minúsculas y acentos."""
+    normalizado = unicodedata.normalize("NFKD", texto)
+    sin_acentos = "".join(c for c in normalizado if not unicodedata.combining(c))
+    return sin_acentos.casefold()
+
+
+def _ok_o_error(resultado) -> None:
+    if resultado.ok:
+        st.rerun()
+    else:
+        st.error(resultado.mensaje)
+
+
+def _quitar_y_rerun(accion, *args) -> None:
+    accion(*args)
+    st.rerun()
+
+
+def _fila_desayuno(
+    nombre_html: str,
+    cantidad_texto: str,
     key_prefix: str,
     on_menos,
     on_mas,
     on_quitar,
+    *,
+    ayuda_quitar: str = "Eliminar",
 ) -> None:
-    col_m, col_p, col_x = st.columns(3)
-    with col_m:
-        if st.button("−", key=f"{key_prefix}_menos", use_container_width=True):
+    col_nombre, col_menos, col_qty, col_mas, col_quitar = st.columns(
+        [5, 1, 1, 1, 1], vertical_alignment="center",
+    )
+    with col_nombre:
+        st.markdown(nombre_html, unsafe_allow_html=True)
+    with col_menos:
+        if st.button("−", key=f"{key_prefix}_menos", use_container_width=True, help="Disminuir"):
             on_menos()
-    with col_p:
-        if st.button("+", key=f"{key_prefix}_mas", use_container_width=True):
+    with col_qty:
+        st.markdown(f'<div class="bm-desayuno-qty">{cantidad_texto}</div>', unsafe_allow_html=True)
+    with col_mas:
+        if st.button("+", key=f"{key_prefix}_mas", use_container_width=True, help="Aumentar"):
             on_mas()
-    with col_x:
-        if st.button("✕", key=f"{key_prefix}_quitar", use_container_width=True):
+    with col_quitar:
+        if st.button(
+            "",
+            key=f"{key_prefix}_quitar",
+            icon=":material/delete:",
+            help=ayuda_quitar,
+            use_container_width=True,
+        ):
             on_quitar()
 
 
 def _render_cesta_desayuno(repo) -> None:
-    st.markdown(
-        """
-        <div class="bm-basket-panel">
-            <div class="bm-basket-title">Cesta del desayuno</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
     grupos = get_cesta_recetas()
     cesta = get_cesta()
     hay_contenido = bool(grupos or cesta)
 
-    if grupos:
-        st.markdown("##### Recetas")
-        for grupo in grupos:
-            col_titulo, col_m, col_p, col_x = st.columns([4, 1, 1, 1])
-            with col_titulo:
-                st.markdown(f"**{grupo.nombre_receta}** (×{grupo.porciones:g})")
-            with col_m:
-                if st.button("−", key=f"grp_menos_{grupo.grupo_id}", help="Menos porciones"):
-                    r = ajustar_porciones_grupo(grupo.grupo_id, -1)
-                    if r.ok:
-                        st.rerun()
-                    else:
-                        st.error(r.mensaje)
-            with col_p:
-                if st.button("+", key=f"grp_mas_{grupo.grupo_id}", help="Más porciones"):
-                    r = modificar_porciones_grupo(grupo.grupo_id, grupo.porciones + 1)
-                    if r.ok:
-                        st.rerun()
-                    else:
-                        st.error(r.mensaje)
-            with col_x:
-                if st.button("✕", key=f"grp_quitar_{grupo.grupo_id}", help="Quitar receta"):
-                    quitar_grupo_receta(grupo.grupo_id)
-                    st.rerun()
+    with st.container(border=True):
+        st.markdown(
+            '<div class="bm-desayuno-scope"></div>'
+            '<div class="bm-desayuno-title">Desayuno</div>',
+            unsafe_allow_html=True,
+        )
 
-            for ing in grupo.ingredientes:
-                col_info, col_ctrl = st.columns([4, 2])
-                with col_info:
-                    st.markdown(etiqueta_linea_receta(ing))
-                with col_ctrl:
+        if not hay_contenido:
+            st.markdown(
+                '<p class="bm-desayuno-empty">Todavía no has añadido productos al desayuno.</p>',
+                unsafe_allow_html=True,
+            )
+            return
+
+        elementos = [("receta", g) for g in grupos] + [("suelto", l) for l in cesta]
+        elementos.sort(
+            key=lambda e: _clave_orden(e[1].nombre_receta if e[0] == "receta" else e[1].nombre)
+        )
+
+        for indice, (tipo, elemento) in enumerate(elementos):
+            if indice > 0:
+                st.markdown('<div class="bm-desayuno-divider"></div>', unsafe_allow_html=True)
+
+            if tipo == "receta":
+                grupo = elemento
+                _fila_desayuno(
+                    f'<div class="bm-desayuno-nombre">{grupo.nombre_receta}</div>',
+                    f"{grupo.porciones:g}",
+                    f"grp_{grupo.grupo_id}",
+                    lambda g=grupo: _ok_o_error(ajustar_porciones_grupo(g.grupo_id, -1)),
+                    lambda g=grupo: _ok_o_error(modificar_porciones_grupo(g.grupo_id, g.porciones + 1)),
+                    lambda g=grupo: _quitar_y_rerun(quitar_grupo_receta, g.grupo_id),
+                    ayuda_quitar="Eliminar receta",
+                )
+                for ing in grupo.ingredientes:
                     paso = paso_linea_grupo(grupo.grupo_id, ing.linea_id)
-
-                    def _menos(i=ing, g=grupo, p=paso):
-                        r = ajustar_linea_grupo(g.grupo_id, i.linea_id, -p)
-                        if r.ok:
-                            st.rerun()
-                        else:
-                            st.error(r.mensaje)
-
-                    def _mas(i=ing, g=grupo, p=paso):
-                        r = ajustar_linea_grupo(g.grupo_id, i.linea_id, p)
-                        if r.ok:
-                            st.rerun()
-                        else:
-                            st.error(r.mensaje)
-
-                    def _quitar(i=ing, g=grupo):
-                        quitar_linea_grupo(g.grupo_id, i.linea_id)
-                        st.rerun()
-
-                    _botones_cantidad(f"ing_{grupo.grupo_id}_{ing.linea_id}", _menos, _mas, _quitar)
-
-            st.divider()
-
-    if cesta:
-        st.markdown("##### Productos sueltos")
-        for linea in cesta:
-            col_info, col_ctrl = st.columns([4, 2])
-            with col_info:
-                st.markdown(etiqueta_linea_suelta(linea))
-            with col_ctrl:
+                    _fila_desayuno(
+                        f'<div class="bm-desayuno-ingrediente">{etiqueta_linea_receta(ing)}</div>',
+                        f"{abs(ing.cantidad):g}",
+                        f"ing_{grupo.grupo_id}_{ing.linea_id}",
+                        lambda g=grupo, i=ing, p=paso: _ok_o_error(
+                            ajustar_linea_grupo(g.grupo_id, i.linea_id, -p)
+                        ),
+                        lambda g=grupo, i=ing, p=paso: _ok_o_error(
+                            ajustar_linea_grupo(g.grupo_id, i.linea_id, p)
+                        ),
+                        lambda g=grupo, i=ing: _quitar_y_rerun(
+                            quitar_linea_grupo, g.grupo_id, i.linea_id
+                        ),
+                        ayuda_quitar="Eliminar ingrediente",
+                    )
+            else:
+                linea = elemento
                 paso = paso_linea_suelta(linea.linea_id)
+                _fila_desayuno(
+                    f'<div class="bm-desayuno-nombre">{etiqueta_linea_suelta(linea)}</div>',
+                    f"{abs(linea.cantidad):g}",
+                    f"suelto_{linea.linea_id}",
+                    lambda l=linea, p=paso: _ok_o_error(ajustar_cantidad_suelto(l.linea_id, -p)),
+                    lambda l=linea, p=paso: _ok_o_error(ajustar_cantidad_suelto(l.linea_id, p)),
+                    lambda l=linea: _quitar_y_rerun(quitar_linea_suelta, l.linea_id),
+                    ayuda_quitar="Eliminar producto",
+                )
 
-                def _menos(l=linea, p=paso):
-                    r = ajustar_cantidad_suelto(l.linea_id, -p)
-                    if r.ok:
-                        st.rerun()
-                    else:
-                        st.error(r.mensaje)
-
-                def _mas(l=linea, p=paso):
-                    r = ajustar_cantidad_suelto(l.linea_id, p)
-                    if r.ok:
-                        st.rerun()
-                    else:
-                        st.error(r.mensaje)
-
-                def _quitar(l=linea):
-                    quitar_linea_suelta(l.linea_id)
-                    st.rerun()
-
-                _botones_cantidad(f"suelto_{linea.linea_id}", _menos, _mas, _quitar)
-
-    if hay_contenido:
         total = coste_total_cesta()
-        st.markdown(f"**Coste estimado:** {repo.formato_precio(total)}")
+        st.markdown(
+            '<div class="bm-desayuno-total">'
+            "<span>Coste estimado</span>"
+            f"<span>{repo.formato_precio(total)}</span>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
         st.caption("Coste calculado por FIFO según lotes actuales.")
 
         if st.button("Vaciar cesta", use_container_width=True, key="desayuno_vaciar_cesta"):
             limpiar_cesta()
             st.rerun()
-    else:
-        empty_state("La cesta está vacía", icon="🧺")
 
 
 def _render_registro_desayuno() -> None:
@@ -361,6 +372,7 @@ def _render_registro_desayuno() -> None:
         st.dataframe(
             {
                 "Fecha": [formato_fecha(d.fecha) for d in desayunos],
+                "Hora": [d.hora.strftime("%H:%M") if d.hora else "—" for d in desayunos],
                 "Huéspedes": [d.num_huespedes for d in desayunos],
                 "Productos": [_lineas_desayuno_texto(repo, d) for d in desayunos],
                 "Coste": [repo.formato_precio(d.coste_total) for d in desayunos],

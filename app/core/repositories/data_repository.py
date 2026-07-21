@@ -1,6 +1,6 @@
 """Repositorio de lectura sobre datos en memoria."""
 
-from datetime import date
+from datetime import date, time
 
 from app.core.models import (
     AlertaOperativa,
@@ -254,7 +254,11 @@ class DataRepository:
         return resultado
 
     def desayunos_ordenados(self) -> list[RegistroDesayuno]:
-        return sorted(self._data.desayunos, key=lambda d: d.fecha, reverse=True)
+        return sorted(
+            self._data.desayunos,
+            key=lambda d: (d.fecha, d.hora or time.min),
+            reverse=True,
+        )
 
     def mermas_ordenadas(self) -> list[RegistroMerma]:
         return sorted(self._data.mermas, key=lambda m: m.fecha, reverse=True)

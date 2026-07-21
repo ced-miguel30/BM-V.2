@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from datetime import date, datetime
+from datetime import date, datetime, time
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -49,6 +49,10 @@ def _parse_datetime(value: str) -> datetime:
     return datetime.fromisoformat(value)
 
 
+def _parse_time(value: str | None) -> time | None:
+    return time.fromisoformat(value) if value else None
+
+
 def appdata_to_dict(data: AppData) -> dict:
     return {
         "meta": {"usuario_actual_id": data.usuario_actual_id, "origen": "demo"},
@@ -76,6 +80,7 @@ def appdata_to_dict(data: AppData) -> dict:
         "desayunos": [
             {
                 "id": d.id, "fecha": d.fecha.isoformat(),
+                "hora": d.hora.isoformat() if d.hora else None,
                 "lineas": [
                     {
                         "producto_id": ln.producto_id,
@@ -208,6 +213,7 @@ def dict_to_appdata(payload: dict) -> AppData:
                     )
                     for rr in d.get("registros_recetas", [])
                 ],
+                hora=_parse_time(d.get("hora")),
             )
             for d in payload.get("desayunos", [])
         ],

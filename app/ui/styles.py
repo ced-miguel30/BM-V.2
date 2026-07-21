@@ -361,6 +361,104 @@ def inject_global_styles() -> None:
                 border-bottom: 1px solid {BORDER};
             }}
 
+            .bm-desayuno-scope {{
+                display: none;
+            }}
+
+            div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"]:first-child .bm-desayuno-scope) {{
+                background: {WHITE};
+                border: 1px solid {BORDER} !important;
+                border-radius: 12px !important;
+                box-shadow: 0 2px 8px rgba(11, 31, 58, 0.06);
+                padding: 1.1rem 1.25rem !important;
+            }}
+
+            .bm-desayuno-title {{
+                color: {NAVY};
+                font-weight: 600;
+                font-size: 1rem;
+                margin: -0.1rem 0 0.85rem 0;
+                padding-bottom: 0.5rem;
+                border-bottom: 1px solid {BORDER};
+            }}
+
+            .bm-desayuno-empty {{
+                text-align: center;
+                color: {MID_GRAY};
+                font-size: 0.9rem;
+                margin: 0.4rem 0 0.15rem 0;
+                padding: 0.4rem 0;
+            }}
+
+            .bm-desayuno-nombre {{
+                color: {DARK_TEXT};
+                font-weight: 600;
+                font-size: 0.92rem;
+                line-height: 1.35;
+                overflow-wrap: anywhere;
+            }}
+
+            .bm-desayuno-ingrediente {{
+                color: {MID_GRAY};
+                font-weight: 400;
+                font-size: 0.8rem;
+                line-height: 1.35;
+                padding-left: 0.9rem;
+                border-left: 2px solid {BORDER};
+                overflow-wrap: anywhere;
+            }}
+
+            .bm-desayuno-qty {{
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                min-width: 2rem;
+                height: 2.35rem;
+                font-weight: 600;
+                color: {NAVY};
+                font-size: 0.88rem;
+            }}
+
+            .bm-desayuno-divider {{
+                border-top: 1px solid {BORDER};
+                margin: 0.55rem 0;
+            }}
+
+            .bm-desayuno-total {{
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.75rem;
+                margin-top: 0.85rem;
+                padding-top: 0.75rem;
+                border-top: 1px solid {BORDER};
+                font-weight: 600;
+                color: {NAVY};
+                font-size: 0.95rem;
+            }}
+
+            .bm-desayuno-total span:last-child {{
+                font-weight: 700;
+            }}
+
+            div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"]:first-child .bm-desayuno-scope)
+                div[data-testid="stColumn"] button[data-testid="stBaseButton-secondary"] {{
+                min-height: 2.35rem;
+                padding: 0.25rem 0.4rem;
+            }}
+
+            @media (max-width: 640px) {{
+                div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"]:first-child .bm-desayuno-scope)
+                    div[data-testid="stHorizontalBlock"] {{
+                    flex-wrap: wrap;
+                }}
+                div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"]:first-child .bm-desayuno-scope)
+                    div[data-testid="stColumn"]:first-child {{
+                    min-width: 100%;
+                    margin-bottom: 0.35rem;
+                }}
+            }}
+
             .bm-subtabs-nav {{
                 margin-bottom: 1.25rem;
                 padding-bottom: 0.5rem;
