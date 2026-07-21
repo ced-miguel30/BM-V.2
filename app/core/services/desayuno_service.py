@@ -251,11 +251,10 @@ def cesta_vacia() -> bool:
 
 
 def etiqueta_linea_suelta(linea: LineaCesta) -> str:
+    """Producto suelto: no está ligado a ninguna receta, así que se muestra
+    siempre con su nombre normal (sin prefijo "c/ extra"/"s/", que solo
+    tiene sentido como modificación relativa a una receta)."""
     cant = abs(linea.cantidad)
-    if linea.es_omision or linea.cantidad < 0:
-        return f"s/ {linea.nombre} — {cant:g} {linea.unidad}"
-    if linea.es_extra or linea.cantidad > 0:
-        return f"c/ extra {linea.nombre} — {cant:g} {linea.unidad}"
     return f"{linea.nombre} — {cant:g} {linea.unidad}"
 
 

@@ -361,11 +361,11 @@ def inject_global_styles() -> None:
                 border-bottom: 1px solid {BORDER};
             }}
 
-            .bm-desayuno-scope {{
+            .bm-cesta-scope {{
                 display: none;
             }}
 
-            div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"]:first-child .bm-desayuno-scope) {{
+            div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"]:first-child .bm-cesta-scope) {{
                 background: {WHITE};
                 border: 1px solid {BORDER} !important;
                 border-radius: 12px !important;
@@ -373,7 +373,7 @@ def inject_global_styles() -> None:
                 padding: 1.1rem 1.25rem !important;
             }}
 
-            .bm-desayuno-title {{
+            .bm-cesta-title {{
                 color: {NAVY};
                 font-weight: 600;
                 font-size: 1rem;
@@ -382,7 +382,7 @@ def inject_global_styles() -> None:
                 border-bottom: 1px solid {BORDER};
             }}
 
-            .bm-desayuno-empty {{
+            .bm-cesta-empty {{
                 text-align: center;
                 color: {MID_GRAY};
                 font-size: 0.9rem;
@@ -390,7 +390,7 @@ def inject_global_styles() -> None:
                 padding: 0.4rem 0;
             }}
 
-            .bm-desayuno-nombre {{
+            .bm-cesta-nombre {{
                 color: {DARK_TEXT};
                 font-weight: 600;
                 font-size: 0.92rem;
@@ -398,7 +398,7 @@ def inject_global_styles() -> None:
                 overflow-wrap: anywhere;
             }}
 
-            .bm-desayuno-ingrediente {{
+            .bm-cesta-detalle {{
                 color: {MID_GRAY};
                 font-weight: 400;
                 font-size: 0.8rem;
@@ -408,7 +408,7 @@ def inject_global_styles() -> None:
                 overflow-wrap: anywhere;
             }}
 
-            .bm-desayuno-qty {{
+            .bm-cesta-qty {{
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -419,12 +419,12 @@ def inject_global_styles() -> None:
                 font-size: 0.88rem;
             }}
 
-            .bm-desayuno-divider {{
+            .bm-cesta-divider {{
                 border-top: 1px solid {BORDER};
                 margin: 0.55rem 0;
             }}
 
-            .bm-desayuno-total {{
+            .bm-cesta-total {{
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
@@ -437,22 +437,22 @@ def inject_global_styles() -> None:
                 font-size: 0.95rem;
             }}
 
-            .bm-desayuno-total span:last-child {{
+            .bm-cesta-total span:last-child {{
                 font-weight: 700;
             }}
 
-            div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"]:first-child .bm-desayuno-scope)
+            div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"]:first-child .bm-cesta-scope)
                 div[data-testid="stColumn"] button[data-testid="stBaseButton-secondary"] {{
                 min-height: 2.35rem;
                 padding: 0.25rem 0.4rem;
             }}
 
             @media (max-width: 640px) {{
-                div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"]:first-child .bm-desayuno-scope)
+                div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"]:first-child .bm-cesta-scope)
                     div[data-testid="stHorizontalBlock"] {{
                     flex-wrap: wrap;
                 }}
-                div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"]:first-child .bm-desayuno-scope)
+                div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"]:first-child .bm-cesta-scope)
                     div[data-testid="stColumn"]:first-child {{
                     min-width: 100%;
                     margin-bottom: 0.35rem;

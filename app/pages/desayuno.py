@@ -79,38 +79,59 @@ def _quitar_y_rerun(accion, *args) -> None:
     st.rerun()
 
 
-def _fila_desayuno(
+def _fila_cesta(
     nombre_html: str,
-    cantidad_texto: str,
     key_prefix: str,
-    on_menos,
-    on_mas,
     on_quitar,
     *,
+    cantidad_texto: str | None = None,
+    on_menos=None,
+    on_mas=None,
     ayuda_quitar: str = "Eliminar",
 ) -> None:
-    col_nombre, col_menos, col_qty, col_mas, col_quitar = st.columns(
-        [5, 1, 1, 1, 1], vertical_alignment="center",
-    )
-    with col_nombre:
-        st.markdown(nombre_html, unsafe_allow_html=True)
-    with col_menos:
-        if st.button("−", key=f"{key_prefix}_menos", use_container_width=True, help="Disminuir"):
-            on_menos()
-    with col_qty:
-        st.markdown(f'<div class="bm-desayuno-qty">{cantidad_texto}</div>', unsafe_allow_html=True)
-    with col_mas:
-        if st.button("+", key=f"{key_prefix}_mas", use_container_width=True, help="Aumentar"):
-            on_mas()
-    with col_quitar:
-        if st.button(
-            "",
-            key=f"{key_prefix}_quitar",
-            icon=":material/delete:",
-            help=ayuda_quitar,
-            use_container_width=True,
-        ):
-            on_quitar()
+    """Fila uniforme de una cesta (desayuno o merma).
+
+    Si se proporciona ``cantidad_texto`` (junto a ``on_menos``/``on_mas``) se
+    muestra el paso de cantidad `[nombre] [−] [cantidad] [+] [eliminar]`.
+    Si no, se muestra solo `[nombre] ... [eliminar]` (líneas sin cantidad
+    editable en su lugar, p. ej. merma).
+    """
+    if cantidad_texto is not None:
+        col_nombre, col_menos, col_qty, col_mas, col_quitar = st.columns(
+            [5, 1, 1, 1, 1], vertical_alignment="center",
+        )
+        with col_nombre:
+            st.markdown(nombre_html, unsafe_allow_html=True)
+        with col_menos:
+            if st.button("−", key=f"{key_prefix}_menos", use_container_width=True, help="Disminuir"):
+                on_menos()
+        with col_qty:
+            st.markdown(f'<div class="bm-cesta-qty">{cantidad_texto}</div>', unsafe_allow_html=True)
+        with col_mas:
+            if st.button("+", key=f"{key_prefix}_mas", use_container_width=True, help="Aumentar"):
+                on_mas()
+        with col_quitar:
+            if st.button(
+                "",
+                key=f"{key_prefix}_quitar",
+                icon=":material/delete:",
+                help=ayuda_quitar,
+                use_container_width=True,
+            ):
+                on_quitar()
+    else:
+        col_nombre, col_quitar = st.columns([8, 1], vertical_alignment="center")
+        with col_nombre:
+            st.markdown(nombre_html, unsafe_allow_html=True)
+        with col_quitar:
+            if st.button(
+                "",
+                key=f"{key_prefix}_quitar",
+                icon=":material/delete:",
+                help=ayuda_quitar,
+                use_container_width=True,
+            ):
+                on_quitar()
 
 
 def _render_cesta_desayuno(repo) -> None:
@@ -120,14 +141,14 @@ def _render_cesta_desayuno(repo) -> None:
 
     with st.container(border=True):
         st.markdown(
-            '<div class="bm-desayuno-scope"></div>'
-            '<div class="bm-desayuno-title">Desayuno</div>',
+            '<div class="bm-cesta-scope"></div>'
+            '<div class="bm-cesta-title">Desayuno</div>',
             unsafe_allow_html=True,
         )
 
         if not hay_contenido:
             st.markdown(
-                '<p class="bm-desayuno-empty">Todavía no has añadido productos al desayuno.</p>',
+                '<p class="bm-cesta-empty">Todavía no has añadido productos al desayuno.</p>',
                 unsafe_allow_html=True,
             )
             return
@@ -139,52 +160,54 @@ def _render_cesta_desayuno(repo) -> None:
 
         for indice, (tipo, elemento) in enumerate(elementos):
             if indice > 0:
-                st.markdown('<div class="bm-desayuno-divider"></div>', unsafe_allow_html=True)
+                st.markdown('<div class="bm-cesta-divider"></div>', unsafe_allow_html=True)
 
             if tipo == "receta":
                 grupo = elemento
-                _fila_desayuno(
-                    f'<div class="bm-desayuno-nombre">{grupo.nombre_receta}</div>',
-                    f"{grupo.porciones:g}",
+                _fila_cesta(
+                    f'<div class="bm-cesta-nombre">{grupo.nombre_receta}</div>',
                     f"grp_{grupo.grupo_id}",
-                    lambda g=grupo: _ok_o_error(ajustar_porciones_grupo(g.grupo_id, -1)),
-                    lambda g=grupo: _ok_o_error(modificar_porciones_grupo(g.grupo_id, g.porciones + 1)),
                     lambda g=grupo: _quitar_y_rerun(quitar_grupo_receta, g.grupo_id),
+                    cantidad_texto=f"{grupo.porciones:g}",
+                    on_menos=lambda g=grupo: _ok_o_error(ajustar_porciones_grupo(g.grupo_id, -1)),
+                    on_mas=lambda g=grupo: _ok_o_error(
+                        modificar_porciones_grupo(g.grupo_id, g.porciones + 1)
+                    ),
                     ayuda_quitar="Eliminar receta",
                 )
                 for ing in grupo.ingredientes:
                     paso = paso_linea_grupo(grupo.grupo_id, ing.linea_id)
-                    _fila_desayuno(
-                        f'<div class="bm-desayuno-ingrediente">{etiqueta_linea_receta(ing)}</div>',
-                        f"{abs(ing.cantidad):g}",
+                    _fila_cesta(
+                        f'<div class="bm-cesta-detalle">{etiqueta_linea_receta(ing)}</div>',
                         f"ing_{grupo.grupo_id}_{ing.linea_id}",
-                        lambda g=grupo, i=ing, p=paso: _ok_o_error(
-                            ajustar_linea_grupo(g.grupo_id, i.linea_id, -p)
-                        ),
-                        lambda g=grupo, i=ing, p=paso: _ok_o_error(
-                            ajustar_linea_grupo(g.grupo_id, i.linea_id, p)
-                        ),
                         lambda g=grupo, i=ing: _quitar_y_rerun(
                             quitar_linea_grupo, g.grupo_id, i.linea_id
+                        ),
+                        cantidad_texto=f"{abs(ing.cantidad):g}",
+                        on_menos=lambda g=grupo, i=ing, p=paso: _ok_o_error(
+                            ajustar_linea_grupo(g.grupo_id, i.linea_id, -p)
+                        ),
+                        on_mas=lambda g=grupo, i=ing, p=paso: _ok_o_error(
+                            ajustar_linea_grupo(g.grupo_id, i.linea_id, p)
                         ),
                         ayuda_quitar="Eliminar ingrediente",
                     )
             else:
                 linea = elemento
                 paso = paso_linea_suelta(linea.linea_id)
-                _fila_desayuno(
-                    f'<div class="bm-desayuno-nombre">{etiqueta_linea_suelta(linea)}</div>',
-                    f"{abs(linea.cantidad):g}",
+                _fila_cesta(
+                    f'<div class="bm-cesta-nombre">{etiqueta_linea_suelta(linea)}</div>',
                     f"suelto_{linea.linea_id}",
-                    lambda l=linea, p=paso: _ok_o_error(ajustar_cantidad_suelto(l.linea_id, -p)),
-                    lambda l=linea, p=paso: _ok_o_error(ajustar_cantidad_suelto(l.linea_id, p)),
                     lambda l=linea: _quitar_y_rerun(quitar_linea_suelta, l.linea_id),
+                    cantidad_texto=f"{abs(linea.cantidad):g}",
+                    on_menos=lambda l=linea, p=paso: _ok_o_error(ajustar_cantidad_suelto(l.linea_id, -p)),
+                    on_mas=lambda l=linea, p=paso: _ok_o_error(ajustar_cantidad_suelto(l.linea_id, p)),
                     ayuda_quitar="Eliminar producto",
                 )
 
         total = coste_total_cesta()
         st.markdown(
-            '<div class="bm-desayuno-total">'
+            '<div class="bm-cesta-total">'
             "<span>Coste estimado</span>"
             f"<span>{repo.formato_precio(total)}</span>"
             "</div>",
@@ -455,37 +478,49 @@ def _render_registro_merma() -> None:
             empty_state("No hay productos con stock disponible.", icon="🔍")
 
     with col_cesta:
-        st.markdown(
-            """
-            <div class="bm-basket-panel">
-                <div class="bm-basket-title">Cesta de merma</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
         cesta = get_cesta_merma()
-        if cesta:
-            for linea in cesta:
-                col_info, col_quitar = st.columns([4, 1])
-                with col_info:
-                    st.markdown(
-                        f"**{linea.nombre}** — {linea.cantidad:g} {linea.unidad}  \n"
-                        f"Lote {linea.lote_id} · compra {linea.fecha_compra_txt}  \n"
-                        f"*{linea.motivo}*"
+        with st.container(border=True):
+            st.markdown(
+                '<div class="bm-cesta-scope"></div>'
+                '<div class="bm-cesta-title">Merma</div>',
+                unsafe_allow_html=True,
+            )
+
+            if not cesta:
+                st.markdown(
+                    '<p class="bm-cesta-empty">Todavía no has añadido productos a la merma.</p>',
+                    unsafe_allow_html=True,
+                )
+            else:
+                lineas_orden = sorted(cesta, key=lambda l: _clave_orden(l.nombre))
+                for indice, linea in enumerate(lineas_orden):
+                    if indice > 0:
+                        st.markdown('<div class="bm-cesta-divider"></div>', unsafe_allow_html=True)
+
+                    detalle = f"Lote {linea.lote_id} · compra {linea.fecha_compra_txt} · {linea.motivo}"
+                    if linea.comentario:
+                        detalle += f" · {linea.comentario}"
+
+                    _fila_cesta(
+                        f'<div class="bm-cesta-nombre">{linea.nombre} — {linea.cantidad:g} {linea.unidad}</div>'
+                        f'<div class="bm-cesta-detalle">{detalle}</div>',
+                        f"merma_{linea.lote_id}_{linea.motivo}",
+                        lambda l=linea: _quitar_y_rerun(quitar_de_cesta_merma, l.lote_id, l.motivo),
+                        ayuda_quitar="Eliminar de la cesta",
                     )
-                with col_quitar:
-                    if st.button("✕", key=f"quitar_merma_{linea.lote_id}_{linea.motivo}", help="Quitar"):
-                        quitar_de_cesta_merma(linea.lote_id, linea.motivo)
-                        st.rerun()
 
-            total = coste_total_cesta_merma()
-            st.markdown(f"**Coste estimado:** {repo.formato_precio(total)}")
+                total = coste_total_cesta_merma()
+                st.markdown(
+                    '<div class="bm-cesta-total">'
+                    "<span>Coste estimado</span>"
+                    f"<span>{repo.formato_precio(total)}</span>"
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
 
-            if st.button("Vaciar cesta", use_container_width=True, key="merma_vaciar_cesta"):
-                limpiar_cesta_merma()
-                st.rerun()
-        else:
-            empty_state("La cesta está vacía", icon="🧺")
+        if cesta and st.button("Vaciar cesta", use_container_width=True, key="merma_vaciar_cesta"):
+            limpiar_cesta_merma()
+            st.rerun()
 
         if st.button("Registrar merma", type="primary", use_container_width=True, key="btn_registrar_merma"):
             resultado = registrar_merma(fecha)
