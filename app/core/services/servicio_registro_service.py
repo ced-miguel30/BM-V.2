@@ -109,6 +109,7 @@ class ServicioRegistro:
         *,
         solo_bebidas_sueltas: bool = False,
         titulo_documento: str | None = None,
+        export_tipo: str | None = None,
     ) -> None:
         self.tipo_servicio = tipo_servicio
         self.categorias_permitidas = list(categorias_receta_permitidas)
@@ -116,6 +117,9 @@ class ServicioRegistro:
         self.titulo_documento = titulo_documento or TITULOS.get(tipo_servicio, f"Registro de {tipo_servicio}")
         self.etiqueta = ETIQUETAS_TIPO.get(tipo_servicio, tipo_servicio.capitalize())
         self._id_prefix = ID_PREFIX.get(tipo_servicio, tipo_servicio[:2])
+        # Clave de meta/carpeta de exportación; independiente de tipo_servicio
+        # para no chocar con exportaciones de stock u otros módulos.
+        self._export_tipo = export_tipo or tipo_servicio
         self._cesta = crear_motor_cesta(session_prefix)
 
     # --- Cesta (delegación) -------------------------------------------------
@@ -489,7 +493,7 @@ class ServicioRegistro:
 
     def configuracion_exportacion(self) -> ConfiguracionExportacionModulo:
         return ConfiguracionExportacionModulo(
-            tipo=self.tipo_servicio,
+            tipo=self._export_tipo,
             titulo_documento=self.titulo_documento,
             obtener_registros=self.registros_exportables,
         )
@@ -502,6 +506,7 @@ def crear_servicio(
     *,
     solo_bebidas_sueltas: bool = False,
     titulo_documento: str | None = None,
+    export_tipo: str | None = None,
 ) -> ServicioRegistro:
     return ServicioRegistro(
         tipo_servicio,
@@ -509,6 +514,7 @@ def crear_servicio(
         categorias_receta_permitidas,
         solo_bebidas_sueltas=solo_bebidas_sueltas,
         titulo_documento=titulo_documento,
+        export_tipo=export_tipo,
     )
 
 

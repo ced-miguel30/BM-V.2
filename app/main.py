@@ -13,6 +13,7 @@ import streamlit as st
 from app.core.storage.session_store import init_data
 from app.core.services import (
     actividad_service,
+    bebida_service,
     cena_service,
     comida_service,
     consumo_service,
@@ -22,7 +23,7 @@ from app.core.services import (
 )
 from app.core.services.alert_service import sincronizar_alertas
 from app.core.services.exportacion_semanal_service import procesar_pendientes
-from app.pages import analisis, cena, comida, dashboard, desayuno, recetas, settings, stock
+from app.pages import analisis, bebidas, cena, comida, dashboard, desayuno, recetas, settings, stock
 from app.ui.components import render_sidebar
 from app.ui.styles import inject_global_styles
 from app.ui.theme import APP_NAME, APP_VERSION
@@ -32,6 +33,7 @@ PAGES = {
     "desayuno": desayuno.render,
     "comida": comida.render,
     "cena": cena.render,
+    "bebidas": bebidas.render,
     "recetas": recetas.render,
     "stock": stock.render,
     "analisis": analisis.render,
@@ -55,6 +57,10 @@ def _procesar_exportaciones_semanales_pendientes() -> None:
     procesar_pendientes(
         cena_service.configuracion_exportacion(), ahora,
         fecha_mas_antigua=cena_service.fecha_mas_antigua(),
+    )
+    procesar_pendientes(
+        bebida_service.configuracion_exportacion(), ahora,
+        fecha_mas_antigua=bebida_service.fecha_mas_antigua(),
     )
     procesar_pendientes(
         merma_service.configuracion_exportacion(), ahora,
