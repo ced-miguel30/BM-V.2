@@ -11,7 +11,7 @@ if str(ROOT) not in sys.path:
 import streamlit as st
 
 from app.core.storage.session_store import init_data
-from app.core.services import consumo_service, desayuno_service, merma_service, stock_service
+from app.core.services import actividad_service, consumo_service, desayuno_service, merma_service, stock_service
 from app.core.services.alert_service import sincronizar_alertas
 from app.core.services.exportacion_semanal_service import procesar_pendientes
 from app.pages import analisis, dashboard, desayuno, recetas, settings, stock
@@ -53,6 +53,10 @@ def _procesar_exportaciones_semanales_pendientes() -> None:
     procesar_pendientes(
         consumo_service.configuracion_exportacion(), ahora,
         fecha_mas_antigua=consumo_service.fecha_mas_antigua(),
+    )
+    procesar_pendientes(
+        actividad_service.configuracion_exportacion(), ahora,
+        fecha_mas_antigua=actividad_service.fecha_mas_antigua(),
     )
 
 

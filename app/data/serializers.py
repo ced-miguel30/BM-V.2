@@ -162,6 +162,10 @@ def appdata_to_dict(data: AppData) -> dict:
             {
                 "id": a.id, "fecha_hora": a.fecha_hora.isoformat(),
                 "usuario": a.usuario, "accion": a.accion, "detalle": a.detalle,
+                "modulo": a.modulo, "resultado": a.resultado,
+                "tipo_exportacion": a.tipo_exportacion,
+                "periodo_afectado": a.periodo_afectado,
+                "archivo_generado": a.archivo_generado,
             }
             for a in data.actividades
         ],
@@ -267,7 +271,14 @@ def dict_to_appdata(payload: dict) -> AppData:
         ],
         configuracion=ConfiguracionHotel(**config) if config else None,
         actividades=[
-            Actividad(a["id"], _parse_datetime(a["fecha_hora"]), a["usuario"], a["accion"], a["detalle"])
+            Actividad(
+                a["id"], _parse_datetime(a["fecha_hora"]), a["usuario"], a["accion"], a["detalle"],
+                modulo=a.get("modulo"),
+                resultado=a.get("resultado"),
+                tipo_exportacion=a.get("tipo_exportacion"),
+                periodo_afectado=a.get("periodo_afectado"),
+                archivo_generado=a.get("archivo_generado"),
+            )
             for a in payload.get("actividades", [])
         ],
         usuario_actual_id=payload.get("meta", {}).get("usuario_actual_id", ""),

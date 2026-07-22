@@ -802,1026 +802,1948 @@
   },
   "actividades": [
     {
+      "id": "act162",
+      "fecha_hora": "2026-07-22T13:58:31.621080",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de actividad — periodo 2026-07-13 a 2026-07-19 — archivo Registro_de_Actividad_2026-07-22_2026-07-13_a_2026-07-19.xlsx — resultado correcto",
+      "modulo": "actividad",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-13 a 2026-07-19",
+      "archivo_generado": "Registro_de_Actividad_2026-07-22_2026-07-13_a_2026-07-19.xlsx"
+    },
+    {
+      "id": "act161",
+      "fecha_hora": "2026-07-22T13:58:31.603880",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de actividad — periodo 2026-07-06 a 2026-07-12 — archivo Registro_de_Actividad_2026-07-22_2026-07-06_a_2026-07-12.xlsx — resultado correcto",
+      "modulo": "actividad",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-06 a 2026-07-12",
+      "archivo_generado": "Registro_de_Actividad_2026-07-22_2026-07-06_a_2026-07-12.xlsx"
+    },
+    {
+      "id": "act160",
+      "fecha_hora": "2026-07-22T13:58:31.452620",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de actividad — periodo 2026-06-29 a 2026-07-05 — archivo Registro_de_Actividad_2026-07-22_2026-06-29_a_2026-07-05.xlsx — resultado correcto",
+      "modulo": "actividad",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-06-29 a 2026-07-05",
+      "archivo_generado": "Registro_de_Actividad_2026-07-22_2026-06-29_a_2026-07-05.xlsx"
+    },
+    {
+      "id": "act159",
+      "fecha_hora": "2026-07-22T13:58:10.817403",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de actividad — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Actividad_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "actividad",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Actividad_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act158",
+      "fecha_hora": "2026-07-22T13:58:10.760516",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de consumo — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Consumo_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "consumo",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Consumo_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act157",
+      "fecha_hora": "2026-07-22T13:58:10.694824",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de stock — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Stock_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "stock",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Stock_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act156",
+      "fecha_hora": "2026-07-22T13:58:10.654603",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de bebidas — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Bebidas_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "bebidas",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Bebidas_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act155",
+      "fecha_hora": "2026-07-22T13:58:10.608998",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de desayuno — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "desayuno",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act154",
+      "fecha_hora": "2026-07-22T13:58:10.577216",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_135810.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Manual",
+      "periodo_afectado": "2026-07-20 a 2026-07-23",
+      "archivo_generado": "Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_135810.xlsx"
+    },
+    {
+      "id": "act153",
+      "fecha_hora": "2026-07-22T13:58:10.566638",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Manual",
+      "periodo_afectado": "2026-07-20 a 2026-07-23",
+      "archivo_generado": "Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx"
+    },
+    {
+      "id": "act152",
+      "fecha_hora": "2026-07-22T13:58:10.548217",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act151",
+      "fecha_hora": "2026-07-22T13:58:10.467854",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act150",
+      "fecha_hora": "2026-07-22T13:58:10.433077",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act149",
+      "fecha_hora": "2026-07-22T13:58:10.401419",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act148",
+      "fecha_hora": "2026-07-22T13:58:10.381617",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Manual",
+      "periodo_afectado": "2026-07-20 a 2026-07-23",
+      "archivo_generado": "Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx"
+    },
+    {
+      "id": "act147",
+      "fecha_hora": "2026-07-22T13:58:10.365158",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Manual",
+      "periodo_afectado": "2026-07-20 a 2026-07-23",
+      "archivo_generado": "Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx"
+    },
+    {
       "id": "act146",
       "fecha_hora": "2026-07-22T13:44:05.114245",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de consumo — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Consumo_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de consumo — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Consumo_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act145",
       "fecha_hora": "2026-07-22T13:44:05.036523",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de stock — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Stock_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de stock — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Stock_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act144",
       "fecha_hora": "2026-07-22T13:44:04.990039",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de bebidas — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Bebidas_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de bebidas — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Bebidas_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act143",
       "fecha_hora": "2026-07-22T13:44:04.948063",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de desayuno — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de desayuno — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act142",
       "fecha_hora": "2026-07-22T13:44:04.918509",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_134404.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_134404.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act141",
       "fecha_hora": "2026-07-22T13:44:04.909854",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act140",
       "fecha_hora": "2026-07-22T13:44:04.893959",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act139",
       "fecha_hora": "2026-07-22T13:44:04.819474",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act138",
       "fecha_hora": "2026-07-22T13:44:04.788388",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act137",
       "fecha_hora": "2026-07-22T13:44:04.758644",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act136",
       "fecha_hora": "2026-07-22T13:44:04.731541",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act135",
       "fecha_hora": "2026-07-22T13:44:04.714505",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act134",
       "fecha_hora": "2026-07-22T13:33:34.615178",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de consumo — periodo 2026-07-13 a 2026-07-19 — archivo Registro_de_Consumo_2026-07-22_2026-07-13_a_2026-07-19.xlsx — resultado correcto"
+      "detalle": "Exportación automática de consumo — periodo 2026-07-13 a 2026-07-19 — archivo Registro_de_Consumo_2026-07-22_2026-07-13_a_2026-07-19.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act133",
       "fecha_hora": "2026-07-22T13:33:34.584064",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de consumo — periodo 2026-07-06 a 2026-07-12 — archivo Registro_de_Consumo_2026-07-22_2026-07-06_a_2026-07-12.xlsx — resultado correcto"
+      "detalle": "Exportación automática de consumo — periodo 2026-07-06 a 2026-07-12 — archivo Registro_de_Consumo_2026-07-22_2026-07-06_a_2026-07-12.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act132",
       "fecha_hora": "2026-07-22T13:33:34.520829",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de consumo — periodo 2026-06-29 a 2026-07-05 — archivo Registro_de_Consumo_2026-07-22_2026-06-29_a_2026-07-05.xlsx — resultado correcto"
+      "detalle": "Exportación automática de consumo — periodo 2026-06-29 a 2026-07-05 — archivo Registro_de_Consumo_2026-07-22_2026-06-29_a_2026-07-05.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act131",
       "fecha_hora": "2026-07-22T13:25:28.240261",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de stock — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Stock_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de stock — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Stock_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act130",
       "fecha_hora": "2026-07-22T13:25:28.195264",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de bebidas — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Bebidas_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de bebidas — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Bebidas_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act129",
       "fecha_hora": "2026-07-22T13:25:28.150495",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de desayuno — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de desayuno — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act128",
       "fecha_hora": "2026-07-22T13:25:28.122698",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_132528.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_132528.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act127",
       "fecha_hora": "2026-07-22T13:25:28.113401",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act126",
       "fecha_hora": "2026-07-22T13:25:28.095668",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act125",
       "fecha_hora": "2026-07-22T13:25:28.017193",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act124",
       "fecha_hora": "2026-07-22T13:25:27.984370",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act123",
       "fecha_hora": "2026-07-22T13:25:27.955020",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act122",
       "fecha_hora": "2026-07-22T13:25:27.928068",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act121",
       "fecha_hora": "2026-07-22T13:25:27.911124",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act120",
       "fecha_hora": "2026-07-22T13:12:56.238034",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de stock — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Stock_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de stock — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Stock_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act119",
       "fecha_hora": "2026-07-22T13:12:56.200971",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de bebidas — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Bebidas_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de bebidas — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Bebidas_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act118",
       "fecha_hora": "2026-07-22T13:12:56.159872",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de desayuno — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de desayuno — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act117",
       "fecha_hora": "2026-07-22T13:12:56.124538",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_131256.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_131256.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act116",
       "fecha_hora": "2026-07-22T13:12:56.115892",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act115",
       "fecha_hora": "2026-07-22T13:12:56.099379",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act114",
       "fecha_hora": "2026-07-22T13:12:56.024668",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act113",
       "fecha_hora": "2026-07-22T13:12:55.987091",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act112",
       "fecha_hora": "2026-07-22T13:12:55.955319",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act111",
       "fecha_hora": "2026-07-22T13:12:55.934818",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act110",
       "fecha_hora": "2026-07-22T13:12:55.916991",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act109",
       "fecha_hora": "2026-07-22T13:08:01.857631",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de stock — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Stock_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de stock — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Stock_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act108",
       "fecha_hora": "2026-07-22T13:08:01.799961",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de bebidas — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Bebidas_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de bebidas — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Bebidas_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act107",
       "fecha_hora": "2026-07-22T13:08:01.747135",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de desayuno — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de desayuno — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act106",
       "fecha_hora": "2026-07-22T13:08:01.717580",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_130801.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_130801.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act105",
       "fecha_hora": "2026-07-22T13:08:01.708109",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act104",
       "fecha_hora": "2026-07-22T13:08:01.690629",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act103",
       "fecha_hora": "2026-07-22T13:08:01.615288",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act102",
       "fecha_hora": "2026-07-22T13:08:01.581937",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act101",
       "fecha_hora": "2026-07-22T13:08:01.550473",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act100",
       "fecha_hora": "2026-07-22T13:08:01.529246",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act99",
       "fecha_hora": "2026-07-22T13:08:01.511647",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act98",
       "fecha_hora": "2026-07-22T13:05:23.048774",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de bebidas — periodo 2026-07-13 a 2026-07-19 — archivo Registro_de_Bebidas_2026-07-22_2026-07-13_a_2026-07-19.xlsx — resultado correcto"
+      "detalle": "Exportación automática de bebidas — periodo 2026-07-13 a 2026-07-19 — archivo Registro_de_Bebidas_2026-07-22_2026-07-13_a_2026-07-19.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act97",
       "fecha_hora": "2026-07-22T13:05:23.017163",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de bebidas — periodo 2026-07-06 a 2026-07-12 — archivo Registro_de_Bebidas_2026-07-22_2026-07-06_a_2026-07-12.xlsx — resultado correcto"
+      "detalle": "Exportación automática de bebidas — periodo 2026-07-06 a 2026-07-12 — archivo Registro_de_Bebidas_2026-07-22_2026-07-06_a_2026-07-12.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act96",
       "fecha_hora": "2026-07-22T13:05:22.996588",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de bebidas — periodo 2026-06-29 a 2026-07-05 — archivo Registro_de_Bebidas_2026-07-22_2026-06-29_a_2026-07-05.xlsx — resultado correcto"
+      "detalle": "Exportación automática de bebidas — periodo 2026-06-29 a 2026-07-05 — archivo Registro_de_Bebidas_2026-07-22_2026-06-29_a_2026-07-05.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act95",
       "fecha_hora": "2026-07-22T13:05:22.926724",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de stock — periodo 2026-07-13 a 2026-07-19 — archivo Registro_de_Stock_2026-07-22_2026-07-13_a_2026-07-19.xlsx — resultado correcto"
+      "detalle": "Exportación automática de stock — periodo 2026-07-13 a 2026-07-19 — archivo Registro_de_Stock_2026-07-22_2026-07-13_a_2026-07-19.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act94",
       "fecha_hora": "2026-07-22T13:05:22.894965",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de stock — periodo 2026-07-06 a 2026-07-12 — archivo Registro_de_Stock_2026-07-22_2026-07-06_a_2026-07-12.xlsx — resultado correcto"
+      "detalle": "Exportación automática de stock — periodo 2026-07-06 a 2026-07-12 — archivo Registro_de_Stock_2026-07-22_2026-07-06_a_2026-07-12.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act93",
       "fecha_hora": "2026-07-22T13:05:22.830460",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de stock — periodo 2026-06-29 a 2026-07-05 — archivo Registro_de_Stock_2026-07-22_2026-06-29_a_2026-07-05.xlsx — resultado correcto"
+      "detalle": "Exportación automática de stock — periodo 2026-06-29 a 2026-07-05 — archivo Registro_de_Stock_2026-07-22_2026-06-29_a_2026-07-05.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act92",
       "fecha_hora": "2026-07-22T13:05:22.712555",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de stock — periodo 2026-06-22 a 2026-06-28 — archivo Registro_de_Stock_2026-07-22_2026-06-22_a_2026-06-28.xlsx — resultado correcto"
+      "detalle": "Exportación automática de stock — periodo 2026-06-22 a 2026-06-28 — archivo Registro_de_Stock_2026-07-22_2026-06-22_a_2026-06-28.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act91",
       "fecha_hora": "2026-07-22T12:54:43.000473",
       "usuario": "Miki",
       "accion": "Crear receta",
-      "detalle": "«cafe latte» creada con 2 ingrediente(s)"
+      "detalle": "«cafe latte» creada con 2 ingrediente(s)",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act90",
       "fecha_hora": "2026-07-22T12:52:38.596358",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de desayuno — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de desayuno — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act89",
       "fecha_hora": "2026-07-22T12:52:38.566482",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_125238.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_125238.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act88",
       "fecha_hora": "2026-07-22T12:52:38.558562",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act87",
       "fecha_hora": "2026-07-22T12:52:38.542845",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act86",
       "fecha_hora": "2026-07-22T12:52:38.467282",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act85",
       "fecha_hora": "2026-07-22T12:52:38.435373",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act84",
       "fecha_hora": "2026-07-22T12:52:38.404163",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act83",
       "fecha_hora": "2026-07-22T12:52:38.383250",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act82",
       "fecha_hora": "2026-07-22T12:52:38.366609",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act81",
       "fecha_hora": "2026-07-22T12:17:59.343067",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de merma — periodo 2026-07-13 a 2026-07-19 — archivo Registro_de_Merma_2026-07-22_2026-07-13_a_2026-07-19.xlsx — resultado correcto"
+      "detalle": "Exportación automática de merma — periodo 2026-07-13 a 2026-07-19 — archivo Registro_de_Merma_2026-07-22_2026-07-13_a_2026-07-19.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act80",
       "fecha_hora": "2026-07-22T12:17:59.320434",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de merma — periodo 2026-07-06 a 2026-07-12 — archivo Registro_de_Merma_2026-07-22_2026-07-06_a_2026-07-12.xlsx — resultado correcto"
+      "detalle": "Exportación automática de merma — periodo 2026-07-06 a 2026-07-12 — archivo Registro_de_Merma_2026-07-22_2026-07-06_a_2026-07-12.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act79",
       "fecha_hora": "2026-07-22T12:17:59.278416",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de merma — periodo 2026-06-29 a 2026-07-05 — archivo Registro_de_Merma_2026-07-22_2026-06-29_a_2026-07-05.xlsx — resultado correcto"
+      "detalle": "Exportación automática de merma — periodo 2026-06-29 a 2026-07-05 — archivo Registro_de_Merma_2026-07-22_2026-06-29_a_2026-07-05.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act78",
       "fecha_hora": "2026-07-22T12:17:59.226683",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de desayuno — periodo 2026-07-13 a 2026-07-19 — archivo Registro_de_Desayuno_2026-07-22_2026-07-13_a_2026-07-19.xlsx — resultado correcto"
+      "detalle": "Exportación automática de desayuno — periodo 2026-07-13 a 2026-07-19 — archivo Registro_de_Desayuno_2026-07-22_2026-07-13_a_2026-07-19.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act77",
       "fecha_hora": "2026-07-22T12:17:59.204807",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de desayuno — periodo 2026-07-06 a 2026-07-12 — archivo Registro_de_Desayuno_2026-07-22_2026-07-06_a_2026-07-12.xlsx — resultado correcto"
+      "detalle": "Exportación automática de desayuno — periodo 2026-07-06 a 2026-07-12 — archivo Registro_de_Desayuno_2026-07-22_2026-07-06_a_2026-07-12.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act76",
       "fecha_hora": "2026-07-22T12:17:59.149904",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de desayuno — periodo 2026-06-29 a 2026-07-05 — archivo Registro_de_Desayuno_2026-07-22_2026-06-29_a_2026-07-05.xlsx — resultado correcto"
+      "detalle": "Exportación automática de desayuno — periodo 2026-06-29 a 2026-07-05 — archivo Registro_de_Desayuno_2026-07-22_2026-06-29_a_2026-07-05.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act75",
       "fecha_hora": "2026-07-22T12:17:53.570486",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de desayuno — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de desayuno — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act74",
       "fecha_hora": "2026-07-22T12:17:53.524622",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_121753.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_121753.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act73",
       "fecha_hora": "2026-07-22T12:17:53.515687",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act72",
       "fecha_hora": "2026-07-22T12:17:53.497770",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act71",
       "fecha_hora": "2026-07-22T12:17:53.413777",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act70",
       "fecha_hora": "2026-07-22T12:17:53.379702",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act69",
       "fecha_hora": "2026-07-22T12:17:53.346569",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act68",
       "fecha_hora": "2026-07-22T12:17:53.326282",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act67",
       "fecha_hora": "2026-07-22T12:17:53.308397",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act66",
       "fecha_hora": "2026-07-22T12:04:15.559315",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_120415.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_120415.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act65",
       "fecha_hora": "2026-07-22T12:04:15.552031",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act64",
       "fecha_hora": "2026-07-22T12:04:15.535795",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act63",
       "fecha_hora": "2026-07-22T12:04:15.454055",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act62",
       "fecha_hora": "2026-07-22T12:04:15.413509",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act61",
       "fecha_hora": "2026-07-22T12:04:15.382636",
       "usuario": "Sistema",
       "accion": "Exportación",
-      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act60",
       "fecha_hora": "2026-07-22T12:04:15.355802",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act59",
       "fecha_hora": "2026-07-22T12:04:15.338488",
       "usuario": "Miki",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act58",
       "fecha_hora": "2026-07-21T12:32:26.605496",
       "usuario": "Miki",
       "accion": "Remover alerta",
-      "detalle": "Miki eliminó la alerta «Stock bajo — Mantequilla»"
+      "detalle": "Miki eliminó la alerta «Stock bajo — Mantequilla»",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act57",
       "fecha_hora": "2026-07-20T14:58:16.511694",
       "usuario": "Miki",
       "accion": "Registro desayuno",
-      "detalle": "Desayuno del 20/07/2026 — 1.14 € — 30 huéspedes — 1 receta(s)"
+      "detalle": "Desayuno del 20/07/2026 — 1.14 € — 30 huéspedes — 1 receta(s)",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act56",
       "fecha_hora": "2026-07-20T14:58:10.949680",
       "usuario": "Miki",
       "accion": "Registro desayuno",
-      "detalle": "Desayuno del 20/07/2026 — 0.57 € — 30 huéspedes — 1 receta(s)"
+      "detalle": "Desayuno del 20/07/2026 — 0.57 € — 30 huéspedes — 1 receta(s)",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act55",
       "fecha_hora": "2026-07-10T19:54:07.881392",
       "usuario": "Miki",
       "accion": "Remover alerta",
-      "detalle": "Miki eliminó la alerta «Stock bajo — Zumo de naranja»"
+      "detalle": "Miki eliminó la alerta «Stock bajo — Zumo de naranja»",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act54",
       "fecha_hora": "2026-07-09T12:54:58.192334",
       "usuario": "Miki",
       "accion": "Registro desayuno",
-      "detalle": "Desayuno del 08/07/2026 — 12.60 € — 30 huéspedes"
+      "detalle": "Desayuno del 08/07/2026 — 12.60 € — 30 huéspedes",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act53",
       "fecha_hora": "2026-07-09T12:02:53.914915",
       "usuario": "Miki",
       "accion": "Registrar lote",
-      "detalle": "Lote de «Café molido» — 1.5 Kg — 60.00 €"
+      "detalle": "Lote de «Café molido» — 1.5 Kg — 60.00 €",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act52",
       "fecha_hora": "2026-07-09T11:57:14.254164",
       "usuario": "Miki",
       "accion": "Crear receta",
-      "detalle": "«cafe con leche» creada con 2 ingrediente(s)"
+      "detalle": "«cafe con leche» creada con 2 ingrediente(s)",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act51",
       "fecha_hora": "2026-07-09T11:47:43.716923",
       "usuario": "Miki",
       "accion": "Editar receta",
-      "detalle": "«Sandwich mixto» actualizada"
+      "detalle": "«Sandwich mixto» actualizada",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act50",
       "fecha_hora": "2026-07-09T11:47:41.987730",
       "usuario": "Miki",
       "accion": "Editar receta",
-      "detalle": "«Sandwich mixto» actualizada"
+      "detalle": "«Sandwich mixto» actualizada",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act49",
       "fecha_hora": "2026-07-09T11:38:58.346530",
       "usuario": "Miki",
       "accion": "Crear receta",
-      "detalle": "«Sandwich mixto» creada con 3 ingrediente(s)"
+      "detalle": "«Sandwich mixto» creada con 3 ingrediente(s)",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act48",
       "fecha_hora": "2026-07-08T11:50:20.492026",
       "usuario": "Miki",
       "accion": "Remover alerta",
-      "detalle": "Miki eliminó la alerta «Stock bajo — Yogur natural»"
+      "detalle": "Miki eliminó la alerta «Stock bajo — Yogur natural»",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act47",
       "fecha_hora": "2026-07-08T11:48:59.791052",
       "usuario": "Miki",
       "accion": "Registrar lote",
-      "detalle": "Lote de «leche» — 10.0 L — 11.00 €"
+      "detalle": "Lote de «leche» — 10.0 L — 11.00 €",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act46",
       "fecha_hora": "2026-07-08T11:47:57.605771",
       "usuario": "Miki",
       "accion": "Crear producto",
-      "detalle": "Producto «leche» (L) creado"
+      "detalle": "Producto «leche» (L) creado",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act45",
       "fecha_hora": "2026-07-07T20:09:20.352781",
       "usuario": "Miki",
       "accion": "Guardar configuración",
-      "detalle": "Establecimiento: «Hotel Royal Marina Suites», moneda EUR"
+      "detalle": "Establecimiento: «Hotel Royal Marina Suites», moneda EUR",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act44",
       "fecha_hora": "2026-07-07T20:08:32.590168",
       "usuario": "Miki",
       "accion": "Subir logo",
-      "detalle": "Logo del establecimiento actualizado"
+      "detalle": "Logo del establecimiento actualizado",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act43",
       "fecha_hora": "2026-07-07T19:37:22.921421",
       "usuario": "Miki",
       "accion": "Remover alerta",
-      "detalle": "Miki eliminó la alerta «Stock bajo — Queso manchego»"
+      "detalle": "Miki eliminó la alerta «Stock bajo — Queso manchego»",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act42",
       "fecha_hora": "2026-07-07T19:34:36.515661",
       "usuario": "Miki",
       "accion": "Remover alerta",
-      "detalle": "Miki eliminó la alerta «Stock bajo — Jamón serrano»"
+      "detalle": "Miki eliminó la alerta «Stock bajo — Jamón serrano»",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act41",
       "fecha_hora": "2026-07-07T19:32:51.871046",
       "usuario": "Miki",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Próximo a expirar — Yogur natural» marcada como resuelta"
+      "detalle": "Alerta «Próximo a expirar — Yogur natural» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act40",
       "fecha_hora": "2026-07-07T19:32:51.433347",
       "usuario": "Miki",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Próximo a expirar — Croissant» marcada como resuelta"
+      "detalle": "Alerta «Próximo a expirar — Croissant» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act39",
       "fecha_hora": "2026-07-07T19:32:49.934152",
       "usuario": "Miki",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act38",
       "fecha_hora": "2026-07-07T19:31:35.672437",
       "usuario": "Miki",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act37",
       "fecha_hora": "2026-07-07T19:31:35.110750",
       "usuario": "Miki",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act36",
       "fecha_hora": "2026-07-07T19:28:26.608131",
       "usuario": "Miki",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act35",
       "fecha_hora": "2026-07-07T19:27:50.097074",
       "usuario": "Miki",
       "accion": "Editar usuario",
-      "detalle": "«María García» renombrado a «Miki»"
+      "detalle": "«María García» renombrado a «Miki»",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act34",
       "fecha_hora": "2026-07-07T19:18:09.102119",
       "usuario": "María García",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act33",
       "fecha_hora": "2026-07-07T19:18:06.330458",
       "usuario": "María García",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act32",
       "fecha_hora": "2026-07-07T19:16:46.069932",
       "usuario": "María García",
       "accion": "Registrar lote",
-      "detalle": "Lote de «Pan de molde» — 30.0 Ud — 10.00 €"
+      "detalle": "Lote de «Pan de molde» — 30.0 Ud — 10.00 €",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act31",
       "fecha_hora": "2026-07-07T19:14:29.054914",
       "usuario": "María García",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Stock bajo — Queso manchego» marcada como resuelta"
+      "detalle": "Alerta «Stock bajo — Queso manchego» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act30",
       "fecha_hora": "2026-07-07T19:14:27.923968",
       "usuario": "María García",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act29",
       "fecha_hora": "2026-07-07T19:14:26.889505",
       "usuario": "María García",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act28",
       "fecha_hora": "2026-07-07T19:13:56.284142",
       "usuario": "María García",
       "accion": "Remover alerta",
-      "detalle": "María García eliminó la alerta «Stock bajo — Jamón serrano»"
+      "detalle": "María García eliminó la alerta «Stock bajo — Jamón serrano»",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act27",
       "fecha_hora": "2026-07-07T19:13:29.064007",
       "usuario": "María García",
       "accion": "Remover alerta",
-      "detalle": "María García eliminó la alerta «Stock bajo — Jamón serrano»"
+      "detalle": "María García eliminó la alerta «Stock bajo — Jamón serrano»",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act26",
       "fecha_hora": "2026-07-07T19:12:57.456840",
       "usuario": "María García",
       "accion": "Remover alerta",
-      "detalle": "María García eliminó la alerta «Stock bajo — Jamón serrano»"
+      "detalle": "María García eliminó la alerta «Stock bajo — Jamón serrano»",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act25",
       "fecha_hora": "2026-07-07T19:12:07.946723",
       "usuario": "María García",
       "accion": "Remover alerta",
-      "detalle": "María García eliminó la alerta «Stock bajo — Yogur natural»"
+      "detalle": "María García eliminó la alerta «Stock bajo — Yogur natural»",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act24",
       "fecha_hora": "2026-07-07T19:11:36.254852",
       "usuario": "María García",
       "accion": "Remover alerta",
-      "detalle": "María García eliminó la alerta «Stock bajo — Jamón serrano»"
+      "detalle": "María García eliminó la alerta «Stock bajo — Jamón serrano»",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act23",
       "fecha_hora": "2026-07-07T19:10:37.961484",
       "usuario": "María García",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Próximo a expirar — Yogur natural» marcada como resuelta"
+      "detalle": "Alerta «Próximo a expirar — Yogur natural» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act22",
       "fecha_hora": "2026-07-07T19:10:35.326087",
       "usuario": "María García",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act21",
       "fecha_hora": "2026-07-07T19:10:34.409283",
       "usuario": "María García",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act20",
       "fecha_hora": "2026-07-07T19:10:31.959275",
       "usuario": "María García",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act19",
       "fecha_hora": "2026-07-07T19:10:10.184606",
       "usuario": "María García",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Stock bajo — Queso manchego» marcada como resuelta"
+      "detalle": "Alerta «Stock bajo — Queso manchego» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act18",
       "fecha_hora": "2026-07-07T19:10:09.720080",
       "usuario": "María García",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act17",
       "fecha_hora": "2026-07-07T19:10:08.724665",
       "usuario": "María García",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta"
+      "detalle": "Alerta «Stock bajo — Jamón serrano» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act16",
       "fecha_hora": "2026-07-07T19:01:31.938481",
       "usuario": "María García",
       "accion": "Registrar lote",
-      "detalle": "Lote de «Pan de molde» — 23.0 Ud — 5.00 €"
+      "detalle": "Lote de «Pan de molde» — 23.0 Ud — 5.00 €",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act15",
       "fecha_hora": "2026-07-07T19:00:47.254374",
       "usuario": "María García",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Stock bajo — Pan de molde» marcada como resuelta"
+      "detalle": "Alerta «Stock bajo — Pan de molde» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act14",
       "fecha_hora": "2026-07-07T19:00:20.785332",
       "usuario": "María García",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Stock bajo — Pan de molde» marcada como resuelta"
+      "detalle": "Alerta «Stock bajo — Pan de molde» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act13",
       "fecha_hora": "2026-07-07T19:00:20.015688",
       "usuario": "María García",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Revisar proveedor de jamón» marcada como resuelta"
+      "detalle": "Alerta «Revisar proveedor de jamón» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act12",
       "fecha_hora": "2026-07-07T17:48:32.014346",
       "usuario": "María García",
       "accion": "Registro desayuno",
-      "detalle": "Desayuno del 07/07/2026 — 2.20 € — 30 huéspedes"
+      "detalle": "Desayuno del 07/07/2026 — 2.20 € — 30 huéspedes",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act11",
       "fecha_hora": "2026-07-07T17:09:15.034681",
       "usuario": "María García",
       "accion": "Registro merma",
-      "detalle": "Merma del 07/07/2026 — 5.50 €"
+      "detalle": "Merma del 07/07/2026 — 5.50 €",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act10",
       "fecha_hora": "2026-07-07T17:08:53.024282",
       "usuario": "María García",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Stock agotado — Huevos» marcada como resuelta"
+      "detalle": "Alerta «Stock agotado — Huevos» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act09",
       "fecha_hora": "2026-07-07T17:08:51.339165",
       "usuario": "María García",
       "accion": "Resolver alerta",
-      "detalle": "Alerta «Stock agotado — Huevos» marcada como resuelta"
+      "detalle": "Alerta «Stock agotado — Huevos» marcada como resuelta",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act08",
       "fecha_hora": "2026-07-07T17:08:34.236446",
       "usuario": "María García",
       "accion": "Registro merma",
-      "detalle": "Merma del 07/07/2026 — 10.00 €"
+      "detalle": "Merma del 07/07/2026 — 10.00 €",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act07",
       "fecha_hora": "2026-07-07T17:06:52.276921",
       "usuario": "María García",
       "accion": "Registrar lote",
-      "detalle": "Lote de «Croissant» — 5.0 Ud — 10.00 €"
+      "detalle": "Lote de «Croissant» — 5.0 Ud — 10.00 €",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act06",
       "fecha_hora": "2026-07-07T17:04:09.318749",
       "usuario": "María García",
       "accion": "Registro merma",
-      "detalle": "Merma del 07/07/2026 — 0.50 €"
+      "detalle": "Merma del 07/07/2026 — 0.50 €",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act01",
       "fecha_hora": "2026-07-07T08:15:00",
       "usuario": "María García",
       "accion": "Inicio de sesión",
-      "detalle": "Acceso temporal sin login"
+      "detalle": "Acceso temporal sin login",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act02",
       "fecha_hora": "2026-07-06T09:30:00",
       "usuario": "María García",
       "accion": "Registro desayuno",
-      "detalle": "Desayuno del día registrado — 16,80 €"
+      "detalle": "Desayuno del día registrado — 16,80 €",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act03",
       "fecha_hora": "2026-07-06T10:05:00",
       "usuario": "María García",
       "accion": "Registro merma",
-      "detalle": "4 yogures por expiración — 1,00 €"
+      "detalle": "4 yogures por expiración — 1,00 €",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act04",
       "fecha_hora": "2026-07-05T09:45:00",
       "usuario": "Carlos Ruiz",
       "accion": "Registro desayuno",
-      "detalle": "Desayuno del día registrado — 15,25 €"
+      "detalle": "Desayuno del día registrado — 15,25 €",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     },
     {
       "id": "act05",
       "fecha_hora": "2026-07-04T11:00:00",
       "usuario": "Carlos Ruiz",
       "accion": "Registro merma",
-      "detalle": "3 croissants por merma — 0,90 €"
+      "detalle": "3 croissants por merma — 0,90 €",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
     }
   ]
 }

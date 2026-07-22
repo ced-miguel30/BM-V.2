@@ -210,11 +210,11 @@ def _registrar_actividad_exportacion(
                 usuario = u.nombre
                 break
 
-    tipo_txt = "automática" if automatica else "manual"
-    resultado_txt = "correcto" if resultado_ok else "con error"
+    tipo_txt = "Automática" if automatica else "Manual"
+    resultado_txt = "Correcto" if resultado_ok else "Error"
     detalle = (
-        f"Exportación {tipo_txt} de {modulo} — periodo {periodo_txt} — "
-        f"archivo {nombre_archivo} — resultado {resultado_txt}"
+        f"Exportación {tipo_txt.lower()} de {modulo} — periodo {periodo_txt} — "
+        f"archivo {nombre_archivo} — resultado {resultado_txt.lower()}"
     )
 
     numeros = [
@@ -224,7 +224,14 @@ def _registrar_actividad_exportacion(
     ]
     nuevo_id = f"act{(max(numeros, default=0) + 1):02d}"
 
-    data.actividades.insert(0, Actividad(nuevo_id, datetime.now(), usuario, "Exportación", detalle))
+    data.actividades.insert(0, Actividad(
+        nuevo_id, datetime.now(), usuario, "Exportación", detalle,
+        modulo=modulo,
+        resultado=resultado_txt,
+        tipo_exportacion=tipo_txt,
+        periodo_afectado=periodo_txt,
+        archivo_generado=nombre_archivo,
+    ))
     persist_data(data)
 
 

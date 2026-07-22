@@ -1,12 +1,14 @@
 """Settings — usuarios, configuración, actividad y exportación."""
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import streamlit as st
 
+from app.core.services import actividad_service
 from app.core.services.data_service import get_repository
-from app.core.services.export_service import EXPORTS_DIR, exportar_actividad_hoy, exportar_informe_cliente
+from app.core.services.export_service import EXPORTS_DIR, exportar_informe_cliente
+from app.core.services.exportacion_semanal_service import exportar_semana_actual, limite_semana
 from app.core.services.formatting import formato_fecha_hora
 from app.core.services.settings_service import (
     MONEDAS,
@@ -139,12 +141,47 @@ def _render_configuracion() -> None:
                 st.error(resultado.mensaje)
 
 
+def _boton_exportar_actividad() -> None:
+    """Exportación manual: desde el lunes 00:00 de la semana actual hasta el
+    momento del clic. Mismo patrón que desayuno/merma/stock/consumo."""
+    col_btn, _ = st.columns([1, 2])
+    with col_btn:
+        if st.button("Exportar semana actual", use_container_width=True, key="actividad_exportar_semana"):
+            resultado = exportar_semana_actual(actividad_service.configuracion_exportacion(), datetime.now())
+            if resultado.ok:
+                st.session_state["actividad_export_dl"] = (
+                    resultado.ruta.read_bytes(), resultado.nombre_archivo,
+                )
+                st.success(resultado.mensaje)
+            else:
+                st.error(resultado.mensaje)
+
+    dl = st.session_state.get("actividad_export_dl")
+    if dl:
+        contenido, nombre = dl
+        st.download_button(
+            "Descargar Excel",
+            data=contenido,
+            file_name=nombre,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+            key="actividad_descargar_excel",
+        )
+
+
 def _render_actividad() -> None:
     repo = get_repository()
-    actividades = sorted(repo.data.actividades, key=lambda a: a.fecha_hora, reverse=True)
+    lunes, _ = limite_semana(date.today())
+    actividades = sorted(
+        (a for a in repo.data.actividades if a.fecha_hora.date() >= lunes),
+        key=lambda a: a.fecha_hora, reverse=True,
+    )
 
     st.markdown("#### Registro de actividad")
-    st.caption("Historial de acciones realizadas en la aplicación.")
+    st.caption(
+        "Historial de acciones de la semana actual. El histórico completo "
+        "se conserva y sigue disponible en las exportaciones semanales."
+    )
 
     if actividades:
         st.dataframe(
@@ -158,28 +195,11 @@ def _render_actividad() -> None:
             hide_index=True,
         )
     else:
-        empty_state("No hay actividad registrada todavía.", icon="📝")
+        empty_state("No hay actividad registrada esta semana.", icon="📝")
 
     section_divider()
-    if st.button(
-        "Exportar actividad (desde 00:00 hasta ahora)",
-        use_container_width=True,
-        key="settings_exportar_actividad",
-    ):
-        contenido, nombre = exportar_actividad_hoy()
-        st.session_state["settings_dl_actividad"] = (contenido, nombre)
-        st.success(f"Exportado y guardado en exports/{nombre}")
-
-    if "settings_dl_actividad" in st.session_state:
-        data, fname = st.session_state["settings_dl_actividad"]
-        st.download_button(
-            "Descargar Excel de actividad",
-            data=data,
-            file_name=fname,
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True,
-            key="settings_dl_actividad_btn",
-        )
+    st.markdown("##### Exportar registro de actividad")
+    _boton_exportar_actividad()
 
 
 def _render_exportacion() -> None:
