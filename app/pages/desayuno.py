@@ -1,10 +1,10 @@
 """Desayuno — registro de consumo y merma."""
 
-import unicodedata
 from datetime import date, datetime, time
 
 import streamlit as st
 
+from app.core.models import CategoriaReceta
 from app.core.services import desayuno_service
 from app.core.services.data_service import get_repository
 from app.core.services.desayuno_service import (
@@ -33,15 +33,21 @@ from app.core.services.desayuno_service import (
     quitar_mod_pendiente,
     registrar_desayuno,
 )
-from app.core.services.exportacion_semanal_service import exportar_semana_actual, limite_semana
+from app.core.services.exportacion_semanal_service import limite_semana
 from app.core.services.formatting import formato_fecha
 from app.core.services.receta_service import listar_recetas
-from app.core.models import CategoriaReceta
-
+from app.ui.cesta_render import (
+    boton_exportar_semana as _boton_exportar_semana,
+    clave_orden as _clave_orden,
+    fila_cesta as _fila_cesta,
+    ok_o_error as _ok_o_error,
+    quitar_y_rerun as _quitar_y_rerun,
+)
 from app.ui.components import empty_state, page_header, render_sub_tabs, section_divider
 from app.ui.search import render_autocomplete, render_buscador_producto
 
 STOCK_PENDIENTE_KEY = "bm_stock_pendiente_registro"
+
 
 
 def _lineas_merma_texto(repo, merma) -> str:
@@ -52,56 +58,9 @@ def _lineas_merma_texto(repo, merma) -> str:
     return ", ".join(partes)
 
 
-def _clave_orden(texto: str) -> str:
-    """Clave de orden alfabético insensible a mayúsculas/minúsculas y acentos."""
-    normalizado = unicodedata.normalize("NFKD", texto)
-    sin_acentos = "".join(c for c in normalizado if not unicodedata.combining(c))
-    return sin_acentos.casefold()
-
-
 def _lunes_semana_actual() -> date:
     lunes, _ = limite_semana(date.today())
     return lunes
-
-
-def _ok_o_error(resultado) -> None:
-    if resultado.ok:
-        st.rerun()
-    else:
-        st.error(resultado.mensaje)
-
-
-def _quitar_y_rerun(accion, *args) -> None:
-    accion(*args)
-    st.rerun()
-
-
-def _boton_exportar_semana(config, key_prefix: str) -> None:
-    """Botón de exportación manual: desde el lunes 00:00 de la semana actual
-    hasta el momento del clic. Guarda el Excel en disco y ofrece descarga."""
-    col_btn, _ = st.columns([1, 2])
-    with col_btn:
-        if st.button("Exportar semana actual", use_container_width=True, key=f"{key_prefix}_exportar_semana"):
-            resultado = exportar_semana_actual(config, datetime.now())
-            if resultado.ok:
-                st.session_state[f"{key_prefix}_export_dl"] = (
-                    resultado.ruta.read_bytes(), resultado.nombre_archivo,
-                )
-                st.success(f"{resultado.mensaje}")
-            else:
-                st.error(resultado.mensaje)
-
-    dl = st.session_state.get(f"{key_prefix}_export_dl")
-    if dl:
-        contenido, nombre = dl
-        st.download_button(
-            "Descargar Excel",
-            data=contenido,
-            file_name=nombre,
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True,
-            key=f"{key_prefix}_export_dl_btn",
-        )
 
 
 def _render_detalle_desayuno(d) -> None:
@@ -121,61 +80,6 @@ def _render_detalle_desayuno(d) -> None:
     )
     if registro.resumen:
         st.caption(" · ".join(f"{clave}: {valor}" for clave, valor in registro.resumen))
-
-
-def _fila_cesta(
-    nombre_html: str,
-    key_prefix: str,
-    on_quitar,
-    *,
-    cantidad_texto: str | None = None,
-    on_menos=None,
-    on_mas=None,
-    ayuda_quitar: str = "Eliminar",
-) -> None:
-    """Fila uniforme de una cesta (desayuno o merma).
-
-    Si se proporciona ``cantidad_texto`` (junto a ``on_menos``/``on_mas``) se
-    muestra el paso de cantidad `[nombre] [−] [cantidad] [+] [eliminar]`.
-    Si no, se muestra solo `[nombre] ... [eliminar]` (líneas sin cantidad
-    editable en su lugar, p. ej. merma).
-    """
-    if cantidad_texto is not None:
-        col_nombre, col_menos, col_qty, col_mas, col_quitar = st.columns(
-            [5, 1, 1, 1, 1], vertical_alignment="center",
-        )
-        with col_nombre:
-            st.markdown(nombre_html, unsafe_allow_html=True)
-        with col_menos:
-            if st.button("−", key=f"{key_prefix}_menos", use_container_width=True, help="Disminuir"):
-                on_menos()
-        with col_qty:
-            st.markdown(f'<div class="bm-cesta-qty">{cantidad_texto}</div>', unsafe_allow_html=True)
-        with col_mas:
-            if st.button("+", key=f"{key_prefix}_mas", use_container_width=True, help="Aumentar"):
-                on_mas()
-        with col_quitar:
-            if st.button(
-                "",
-                key=f"{key_prefix}_quitar",
-                icon=":material/delete:",
-                help=ayuda_quitar,
-                use_container_width=True,
-            ):
-                on_quitar()
-    else:
-        col_nombre, col_quitar = st.columns([8, 1], vertical_alignment="center")
-        with col_nombre:
-            st.markdown(nombre_html, unsafe_allow_html=True)
-        with col_quitar:
-            if st.button(
-                "",
-                key=f"{key_prefix}_quitar",
-                icon=":material/delete:",
-                help=ayuda_quitar,
-                use_container_width=True,
-            ):
-                on_quitar()
 
 
 def _render_cesta_desayuno(repo) -> None:

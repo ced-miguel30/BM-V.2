@@ -1,0 +1,280 @@
+"""Renderer genérico de página de registro de servicio (comida/cena/bebidas)."""
+
+from __future__ import annotations
+
+from datetime import date, datetime, time
+
+import streamlit as st
+
+from app.core.models import CategoriaReceta
+from app.core.services.data_service import get_repository
+from app.core.services.exportacion_semanal_service import limite_semana
+from app.core.services.formatting import formato_fecha
+from app.core.services.receta_service import listar_recetas
+from app.ui.cesta_render import boton_exportar_semana, render_cesta_servicio
+from app.ui.components import empty_state, page_header, section_divider
+from app.ui.search import render_buscador_producto
+
+PASO_CANTIDAD = 0.5
+
+
+def _lunes_semana_actual() -> date:
+    lunes, _ = limite_semana(date.today())
+    return lunes
+
+
+def _render_detalle(servicio, registro) -> None:
+    hasta = datetime.combine(registro.fecha, time.max)
+    registros = [
+        r for r in servicio.registros_exportables(registro.fecha, hasta)
+        if r.identificador == registro.id
+    ]
+    if not registros:
+        return
+    reg = registros[0]
+    hora_txt = reg.hora.strftime("%H:%M") if reg.hora else "—"
+    st.caption(f"Nº {reg.identificador} · Hora {hora_txt} · {reg.usuario or '—'}")
+    st.dataframe(
+        {col: [fila[i] for fila in reg.filas] for i, col in enumerate(reg.columnas)},
+        use_container_width=True,
+        hide_index=True,
+    )
+    if reg.resumen:
+        st.caption(" · ".join(f"{clave}: {valor}" for clave, valor in reg.resumen))
+
+
+def render_pagina_registro_servicio(
+    servicio,
+    *,
+    titulo_pagina: str,
+    subtitulo: str,
+    etiqueta: str,
+    key_prefix: str,
+    categorias_receta: list[CategoriaReceta],
+    mensaje_vacio_historial: str,
+    mostrar_huespedes: bool = False,
+) -> None:
+    """Página completa de registro + historial + exportación para un tipo."""
+    repo = get_repository()
+    stock_key = f"bm_stock_pendiente_{key_prefix}"
+
+    page_header(titulo_pagina, subtitulo)
+
+    st.markdown(f"#### Registro rápido de {etiqueta.lower()}")
+    st.caption(
+        "Añada recetas o productos sueltos a la cesta. Use cantidades positivas (c/ extra) "
+        "o negativas (s/) para ajustar ingredientes."
+    )
+
+    col_buscar, col_cesta = st.columns([2, 1])
+
+    with col_buscar:
+        fecha = st.date_input(
+            "Fecha", value=date.today(), max_value=date.today(), key=f"{key_prefix}_fecha",
+        )
+        num_huespedes = 0
+        if mostrar_huespedes:
+            num_huespedes = int(st.number_input(
+                "Nº de huéspedes",
+                min_value=0,
+                value=0,
+                step=1,
+                key=f"{key_prefix}_num_huespedes",
+            ))
+
+        section_divider()
+        st.markdown("##### Añadir receta")
+        recetas = listar_recetas(categorias=categorias_receta)
+        if recetas:
+            mapa_recetas = {r.nombre: r.id for r in recetas}
+            receta_nombre = st.selectbox(
+                "Receta",
+                list(mapa_recetas.keys()),
+                key=f"{key_prefix}_sel_receta",
+            )
+            receta_id = mapa_recetas[receta_nombre]
+
+            porciones = st.number_input(
+                "Porciones",
+                min_value=1.0,
+                value=1.0,
+                step=1.0,
+                format="%.0f",
+                key=f"{key_prefix}_porciones",
+            )
+
+            st.caption("Extras u omisiones para esta receta (antes de añadir a la cesta)")
+            catalogo = servicio.productos_catalogo("")
+            producto_mod = render_buscador_producto(
+                catalogo,
+                f"{key_prefix}_mod_receta",
+                label="Buscar producto",
+                placeholder="Escriba para buscar producto...",
+            )
+            if producto_mod:
+                cant_mod = st.number_input(
+                    "Cantidad (+ extra / − omitir)",
+                    value=1.0,
+                    step=PASO_CANTIDAD,
+                    format="%.1f",
+                    key=f"{key_prefix}_cant_mod",
+                )
+                if st.button(
+                    "Añadir extra/omisión",
+                    key=f"{key_prefix}_btn_mod",
+                    use_container_width=True,
+                ):
+                    resultado = servicio.anadir_mod_pendiente_receta(producto_mod["id"], cant_mod)
+                    if resultado.ok:
+                        st.success(resultado.mensaje)
+                        st.rerun()
+                    else:
+                        st.error(resultado.mensaje)
+
+            mods = servicio.get_mods_pendientes()
+            if mods:
+                st.markdown("**Pendientes para esta receta:**")
+                for mod in mods:
+                    col_txt, col_q = st.columns([5, 1])
+                    etiqueta_mod = f"c/ extra {mod.nombre}" if mod.cantidad > 0 else f"s/ {mod.nombre}"
+                    with col_txt:
+                        st.markdown(f"- {etiqueta_mod} — {abs(mod.cantidad):g} {mod.unidad}")
+                    with col_q:
+                        if st.button("✕", key=f"{key_prefix}_quitar_mod_{mod.mod_id}"):
+                            servicio.quitar_mod_pendiente(mod.mod_id)
+                            st.rerun()
+
+            if st.button(
+                "Añadir receta a la cesta",
+                type="secondary",
+                use_container_width=True,
+                key=f"{key_prefix}_btn_receta",
+            ):
+                resultado = servicio.anadir_receta_a_cesta(receta_id, porciones, list(mods))
+                if resultado.ok:
+                    st.success(resultado.mensaje)
+                    st.rerun()
+                else:
+                    st.error(resultado.mensaje)
+        else:
+            empty_state(
+                "No hay recetas de esta categoría. Créelas en la sección Recetas.",
+                icon="📖",
+            )
+
+        section_divider()
+        st.markdown("##### Añadir producto suelto")
+        todos_productos = servicio.productos_catalogo("")
+        producto_sel = render_buscador_producto(
+            todos_productos,
+            key_prefix,
+            label="Buscar producto",
+            placeholder="Escriba el nombre del producto...",
+        )
+        if producto_sel:
+            cantidad = st.number_input(
+                "Cantidad (+ extra / − omitir)",
+                value=1.0,
+                step=PASO_CANTIDAD,
+                format="%.1f",
+                key=f"{key_prefix}_cantidad",
+            )
+            if st.button(
+                "Añadir producto a la cesta",
+                type="secondary",
+                use_container_width=True,
+                key=f"{key_prefix}_btn_anadir",
+            ):
+                resultado = servicio.anadir_a_cesta(producto_sel["id"], cantidad)
+                if resultado.ok:
+                    st.success(resultado.mensaje)
+                    st.rerun()
+                else:
+                    st.error(resultado.mensaje)
+        elif todos_productos:
+            empty_state("No hay coincidencias para la búsqueda.", icon="🔍")
+        else:
+            empty_state("No hay productos disponibles en el catálogo.", icon="🔍")
+
+    with col_cesta:
+        render_cesta_servicio(
+            servicio,
+            repo,
+            titulo_cesta=etiqueta,
+            key_prefix=key_prefix,
+            vacio_mensaje=f"Todavía no has añadido productos a {etiqueta.lower()}.",
+        )
+
+        if st.button(
+            f"Registrar {etiqueta.lower()}",
+            type="primary",
+            use_container_width=True,
+            key=f"{key_prefix}_btn_registrar",
+        ):
+            resultado = servicio.registrar(fecha, num_huespedes)
+            if resultado.ok:
+                st.session_state.pop(stock_key, None)
+                st.success(resultado.mensaje)
+                st.rerun()
+            elif resultado.codigo == "STOCK_INSUFICIENTE":
+                st.session_state[stock_key] = True
+                st.error(resultado.mensaje)
+                if resultado.detalle_stock:
+                    for linea in resultado.detalle_stock:
+                        st.markdown(f"- {linea}")
+            else:
+                st.session_state.pop(stock_key, None)
+                st.error(resultado.mensaje)
+
+        if st.session_state.get(stock_key):
+            st.warning("Hay productos sin stock suficiente. Puede ignorar la validación y registrar igual.")
+            if st.button(
+                "Ignorar y registrar igual",
+                type="secondary",
+                use_container_width=True,
+                key=f"{key_prefix}_btn_ignorar_stock",
+            ):
+                resultado = servicio.registrar(fecha, num_huespedes, ignorar_stock=True)
+                if resultado.ok:
+                    st.session_state.pop(stock_key, None)
+                    st.success(resultado.mensaje)
+                    st.rerun()
+                else:
+                    st.error(resultado.mensaje)
+
+    section_divider()
+    st.markdown(f"#### Historial de {etiqueta.lower()}")
+    st.caption(
+        "Solo se muestran los registros de la semana en curso. "
+        "Las semanas anteriores quedan archivadas y disponibles en las exportaciones."
+    )
+    boton_exportar_semana(servicio.configuracion_exportacion(), key_prefix)
+
+    registros = servicio.historial_ordenado()
+    registros_semana = [r for r in registros if r.fecha >= _lunes_semana_actual()]
+    if registros_semana:
+        columnas = {
+            "Fecha": [formato_fecha(r.fecha) for r in registros_semana],
+            "Hora": [r.hora.strftime("%H:%M") if r.hora else "—" for r in registros_semana],
+            "Elementos": [len(r.lineas) + len(r.registros_recetas) for r in registros_semana],
+            "Cantidad total": [
+                round(sum(abs(l.cantidad) for l in r.lineas), 2) for r in registros_semana
+            ],
+            "Coste": [repo.formato_precio(r.coste_total) for r in registros_semana],
+            "Registrado por": [r.registrado_por for r in registros_semana],
+        }
+        st.dataframe(columnas, use_container_width=True, hide_index=True)
+
+        opciones_detalle = {
+            f"{r.id} — {formato_fecha(r.fecha)} {r.hora.strftime('%H:%M') if r.hora else ''}".strip(): r
+            for r in registros_semana
+        }
+        etiqueta_sel = st.selectbox(
+            "Ver detalle de un registro",
+            ["—"] + list(opciones_detalle.keys()),
+            key=f"{key_prefix}_detalle_sel",
+        )
+        if etiqueta_sel != "—":
+            _render_detalle(servicio, opciones_detalle[etiqueta_sel])
+    else:
+        empty_state(mensaje_vacio_historial, icon="📅")
