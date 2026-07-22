@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass, field
 
+from app.core.models.enums import CategoriaReceta
+
 
 @dataclass
 class IngredienteReceta:
@@ -23,3 +25,6 @@ class Receta:
     id: str
     nombre: str
     ingredientes: list[IngredienteReceta] = field(default_factory=list)
+    # Categoría obligatoria en la UI; default Desayuno para recetas antiguas
+    # y para llamadas internas que aún no pasan el argumento.
+    categoria: CategoriaReceta = CategoriaReceta.DESAYUNO

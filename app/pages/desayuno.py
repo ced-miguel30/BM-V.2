@@ -36,6 +36,8 @@ from app.core.services.desayuno_service import (
 from app.core.services.exportacion_semanal_service import exportar_semana_actual, limite_semana
 from app.core.services.formatting import formato_fecha
 from app.core.services.receta_service import listar_recetas
+from app.core.models import CategoriaReceta
+
 from app.ui.components import empty_state, page_header, render_sub_tabs, section_divider
 from app.ui.search import render_autocomplete, render_buscador_producto
 
@@ -285,7 +287,9 @@ def _render_registro_desayuno() -> None:
 
         section_divider()
         st.markdown("##### Añadir receta")
-        recetas = listar_recetas()
+        recetas = listar_recetas(
+            categorias=[CategoriaReceta.DESAYUNO, CategoriaReceta.BEBIDAS],
+        )
         if recetas:
             mapa_recetas = {r.nombre: r.id for r in recetas}
             receta_nombre = st.selectbox(

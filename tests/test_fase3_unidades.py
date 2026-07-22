@@ -182,12 +182,15 @@ class TestCestaConUnidadDePresentacion(unittest.TestCase):
             ])],
         )
         self._patcher = patch("app.core.services.desayuno_service.get_data", return_value=self.data)
+        self._patcher_cesta = patch("app.core.services.cesta_service.get_data", return_value=self.data)
         self._patcher.start()
+        self._patcher_cesta.start()
         self._session_patcher = patch("streamlit.session_state", {})
         self._session_patcher.start()
 
     def tearDown(self) -> None:
         self._session_patcher.stop()
+        self._patcher_cesta.stop()
         self._patcher.stop()
 
     def test_anadir_receta_legacy_muestra_gramos_no_kilos(self) -> None:

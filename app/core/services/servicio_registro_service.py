@@ -1,0 +1,524 @@
+"""Motor común de registro de servicio (comida / cena / bebidas).
+
+Configurable por `tipo_servicio`, prefijo de sesión y categorías de receta
+permitidas. Desayuno sigue en `desayuno_service` (datos históricos en
+`AppData.desayunos`); este motor escribe en `AppData.registros_servicio`.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import date, datetime, time
+
+from app.core.models import (
+    AppData,
+    CategoriaReceta,
+    ExtraRecetaServicio,
+    LineaServicio,
+    OmisionRecetaServicio,
+    RegistroRecetaServicio,
+    RegistroServicio,
+)
+from app.core.repositories.data_repository import DataRepository
+from app.core.services.cesta_service import (
+    GrupoRecetaCesta,
+    ModPendienteReceta,
+    crear_motor_cesta,
+    etiqueta_linea_receta,
+    etiqueta_linea_suelta,
+)
+from app.core.services.detalle_origen_service import (
+    asignar_costes_proporcionales,
+    construir_lineas_detalle,
+)
+from app.core.services.excel_bloques import RegistroExportable
+from app.core.services.exportacion_semanal_service import ConfiguracionExportacionModulo
+from app.core.services.inventory_batch_service import (
+    calcular_coste_linea,
+    descontar_lotes,
+    stock_disponible,
+)
+from app.core.services.text_search import coincide_busqueda
+from app.core.services.unidad_service import resolver_presentacion
+from app.core.storage.session_store import get_data, persist_data
+
+TITULOS = {
+    "comida": "Registro de Comida",
+    "cena": "Registro de Cena",
+    "bebidas": "Registro de Bebidas",
+}
+
+ETIQUETAS_TIPO = {
+    "comida": "Comida",
+    "cena": "Cena",
+    "bebidas": "Bebidas",
+}
+
+ID_PREFIX = {
+    "comida": "co",
+    "cena": "ce",
+    "bebidas": "be",
+}
+
+
+@dataclass
+class ResultadoOperacion:
+    ok: bool
+    mensaje: str
+    codigo: str | None = None
+    detalle_stock: list[str] | None = None
+
+
+def _next_id(prefix: str, ids: list[str]) -> str:
+    numeros = []
+    for item_id in ids:
+        sufijo = item_id[len(prefix):]
+        if item_id.startswith(prefix) and sufijo.isdigit():
+            numeros.append(int(sufijo))
+    return f"{prefix}{(max(numeros, default=0) + 1):02d}"
+
+
+def _nombre_usuario(data: AppData) -> str:
+    for u in data.usuarios:
+        if u.id == data.usuario_actual_id:
+            return u.nombre
+    return data.usuarios[0].nombre if data.usuarios else "Usuario"
+
+
+def _registrar_actividad(data: AppData, accion: str, detalle: str) -> None:
+    from app.core.models import Actividad
+
+    actividad = Actividad(
+        _next_id("act", [a.id for a in data.actividades]),
+        datetime.now(),
+        _nombre_usuario(data),
+        accion,
+        detalle,
+    )
+    data.actividades.insert(0, actividad)
+
+
+class ServicioRegistro:
+    """API de cesta + registro + exportación para un tipo de servicio."""
+
+    def __init__(
+        self,
+        tipo_servicio: str,
+        session_prefix: str,
+        categorias_receta_permitidas: list[CategoriaReceta],
+        *,
+        solo_bebidas_sueltas: bool = False,
+        titulo_documento: str | None = None,
+    ) -> None:
+        self.tipo_servicio = tipo_servicio
+        self.categorias_permitidas = list(categorias_receta_permitidas)
+        self.solo_bebidas_sueltas = solo_bebidas_sueltas
+        self.titulo_documento = titulo_documento or TITULOS.get(tipo_servicio, f"Registro de {tipo_servicio}")
+        self.etiqueta = ETIQUETAS_TIPO.get(tipo_servicio, tipo_servicio.capitalize())
+        self._id_prefix = ID_PREFIX.get(tipo_servicio, tipo_servicio[:2])
+        self._cesta = crear_motor_cesta(session_prefix)
+
+    # --- Cesta (delegación) -------------------------------------------------
+
+    def get_cesta(self):
+        return self._cesta.get_cesta()
+
+    def get_cesta_recetas(self):
+        return self._cesta.get_cesta_recetas()
+
+    def get_mods_pendientes(self):
+        return self._cesta.get_mods_pendientes()
+
+    def limpiar_mods_pendientes(self) -> None:
+        self._cesta.limpiar_mods_pendientes()
+
+    def limpiar_cesta(self) -> None:
+        self._cesta.limpiar_cesta()
+
+    def cesta_vacia(self) -> bool:
+        return self._cesta.cesta_vacia()
+
+    def anadir_a_cesta(self, producto_id: str, cantidad: float) -> ResultadoOperacion:
+        if self.solo_bebidas_sueltas:
+            data = get_data()
+            producto = DataRepository(data).get_producto(producto_id)
+            if producto and not producto.es_bebida:
+                return ResultadoOperacion(
+                    False,
+                    "En el registro de bebidas solo se pueden añadir productos marcados como bebida.",
+                )
+        r = self._cesta.anadir_a_cesta(producto_id, cantidad)
+        return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
+
+    def anadir_receta_a_cesta(
+        self,
+        receta_id: str,
+        porciones: float,
+        mods_pendientes: list[ModPendienteReceta] | None = None,
+    ) -> ResultadoOperacion:
+        r = self._cesta.anadir_receta_a_cesta(
+            receta_id,
+            porciones,
+            mods_pendientes,
+            categorias_permitidas=self.categorias_permitidas,
+        )
+        return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
+
+    def anadir_mod_pendiente_receta(self, producto_id: str, cantidad: float) -> ResultadoOperacion:
+        r = self._cesta.anadir_mod_pendiente_receta(producto_id, cantidad)
+        return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
+
+    def quitar_mod_pendiente(self, mod_id: str) -> None:
+        self._cesta.quitar_mod_pendiente(mod_id)
+
+    def quitar_grupo_receta(self, grupo_id: str) -> None:
+        self._cesta.quitar_grupo_receta(grupo_id)
+
+    def quitar_linea_grupo(self, grupo_id: str, linea_id: str) -> None:
+        self._cesta.quitar_linea_grupo(grupo_id, linea_id)
+
+    def paso_linea_grupo(self, grupo_id: str, linea_id: str) -> float:
+        return self._cesta.paso_linea_grupo(grupo_id, linea_id)
+
+    def ajustar_linea_grupo(self, grupo_id: str, linea_id: str, delta: float) -> ResultadoOperacion:
+        r = self._cesta.ajustar_linea_grupo(grupo_id, linea_id, delta)
+        return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
+
+    def modificar_linea_grupo(self, grupo_id: str, linea_id: str, cantidad: float) -> ResultadoOperacion:
+        r = self._cesta.modificar_linea_grupo(grupo_id, linea_id, cantidad)
+        return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
+
+    def modificar_porciones_grupo(self, grupo_id: str, porciones: float) -> ResultadoOperacion:
+        r = self._cesta.modificar_porciones_grupo(grupo_id, porciones)
+        return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
+
+    def ajustar_porciones_grupo(self, grupo_id: str, delta: float) -> ResultadoOperacion:
+        r = self._cesta.ajustar_porciones_grupo(grupo_id, delta)
+        return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
+
+    def paso_linea_suelta(self, linea_id: str) -> float:
+        return self._cesta.paso_linea_suelta(linea_id)
+
+    def quitar_linea_suelta(self, linea_id: str) -> None:
+        self._cesta.quitar_linea_suelta(linea_id)
+
+    def ajustar_cantidad_suelto(self, linea_id: str, delta: float) -> ResultadoOperacion:
+        r = self._cesta.ajustar_cantidad_suelto(linea_id, delta)
+        return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
+
+    def modificar_cantidad_suelto(self, linea_id: str, cantidad: float) -> ResultadoOperacion:
+        r = self._cesta.modificar_cantidad_suelto(linea_id, cantidad)
+        return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
+
+    def coste_total_cesta(self) -> float:
+        data = get_data()
+        total = sum(
+            calcular_coste_linea(data, l.producto_id, max(l.cantidad, 0))
+            for l in self.get_cesta()
+        )
+        for grupo in self.get_cesta_recetas():
+            for ing in grupo.ingredientes:
+                total += calcular_coste_linea(data, ing.producto_id, max(ing.cantidad, 0))
+        return round(total, 2)
+
+    def productos_catalogo(self, buscar: str = "") -> list[dict]:
+        data = get_data()
+        resultado = []
+        termino = buscar.strip()
+        for producto in sorted(data.productos, key=lambda p: p.nombre):
+            if self.solo_bebidas_sueltas and not producto.es_bebida:
+                continue
+            if termino and not coincide_busqueda(producto.nombre, termino):
+                continue
+            stock = stock_disponible(data, producto.id)
+            resultado.append({
+                "id": producto.id,
+                "nombre": producto.nombre,
+                "unidad": producto.unidad.value,
+                "stock": stock,
+                "etiqueta": f"{producto.nombre} ({stock:g} {producto.unidad.value})",
+            })
+        return resultado
+
+    def productos_disponibles(self, buscar: str = "") -> list[dict]:
+        return [p for p in self.productos_catalogo(buscar) if p["stock"] > 0]
+
+    # --- Persistencia -------------------------------------------------------
+
+    def _aplanar_cesta(self) -> dict[str, tuple[float, bool]]:
+        fusionado: dict[str, tuple[float, bool]] = {}
+        for linea in self.get_cesta():
+            cantidad, es_extra = fusionado.get(linea.producto_id, (0.0, False))
+            fusionado[linea.producto_id] = (
+                round(cantidad + linea.cantidad, 4),
+                es_extra or linea.es_extra,
+            )
+        for grupo in self.get_cesta_recetas():
+            for ing in grupo.ingredientes:
+                cantidad, es_extra = fusionado.get(ing.producto_id, (0.0, False))
+                fusionado[ing.producto_id] = (
+                    round(cantidad + ing.cantidad, 4),
+                    es_extra or ing.es_extra,
+                )
+        return {pid: (max(c, 0), e) for pid, (c, e) in fusionado.items() if c != 0}
+
+    def _construir_registros_recetas(
+        self, data: AppData, grupos: list[GrupoRecetaCesta],
+    ) -> list[RegistroRecetaServicio]:
+        repo = DataRepository(data)
+        registros: list[RegistroRecetaServicio] = []
+        for grupo in grupos:
+            receta = repo.get_receta(grupo.receta_id)
+            template_ids = {i.producto_id for i in receta.ingredientes} if receta else set()
+            presentes_base = {
+                i.producto_id for i in grupo.ingredientes
+                if i.es_base_receta and i.cantidad > 0
+            }
+            omisiones = [
+                OmisionRecetaServicio(pid)
+                for pid in sorted(template_ids - presentes_base)
+            ]
+            extras: list[ExtraRecetaServicio] = []
+            for i in grupo.ingredientes:
+                if i.es_base_receta and i.cantidad < 0:
+                    extras.append(ExtraRecetaServicio(i.producto_id, i.cantidad))
+                elif i.es_extra or (not i.es_base_receta and i.cantidad > 0):
+                    extras.append(ExtraRecetaServicio(i.producto_id, i.cantidad))
+                elif i.es_omision or (not i.es_base_receta and i.cantidad < 0):
+                    extras.append(ExtraRecetaServicio(i.producto_id, i.cantidad))
+            registros.append(RegistroRecetaServicio(
+                grupo.receta_id,
+                grupo.nombre_receta,
+                grupo.porciones,
+                extras,
+                omisiones,
+                categoria_receta=receta.categoria.value if receta else None,
+            ))
+        return registros
+
+    def _validar_stock(self, data: AppData, fusionado: dict[str, tuple[float, bool]]) -> list[str]:
+        repo = DataRepository(data)
+        deficits: list[str] = []
+        for producto_id, (cantidad, _) in fusionado.items():
+            if cantidad <= 0:
+                continue
+            disponible = stock_disponible(data, producto_id)
+            if cantidad > disponible:
+                nombre = repo.get_nombre_producto(producto_id)
+                producto = repo.get_producto(producto_id)
+                unidad = producto.unidad.value if producto else ""
+                deficits.append(
+                    f"{nombre}: necesita {cantidad:g} {unidad}, disponible {disponible:g} {unidad}",
+                )
+        return deficits
+
+    def registrar(
+        self,
+        fecha: date,
+        num_huespedes: int = 0,
+        *,
+        ignorar_stock: bool = False,
+    ) -> ResultadoOperacion:
+        if self.cesta_vacia():
+            return ResultadoOperacion(
+                False,
+                "La cesta está vacía. Añada productos o recetas antes de registrar.",
+            )
+        if fecha > date.today():
+            return ResultadoOperacion(False, f"No puede registrar {self.etiqueta.lower()} en fechas futuras.")
+
+        data = get_data()
+        fusionado = self._aplanar_cesta()
+        grupos = list(self.get_cesta_recetas())
+        cesta_suelta = list(self.get_cesta())
+
+        if not ignorar_stock:
+            deficits = self._validar_stock(data, fusionado)
+            if deficits:
+                return ResultadoOperacion(
+                    False,
+                    f"Stock insuficiente para registrar {self.etiqueta.lower()}.",
+                    codigo="STOCK_INSUFICIENTE",
+                    detalle_stock=deficits,
+                )
+
+        existentes = [r.id for r in data.registros_servicio if r.tipo_servicio == self.tipo_servicio]
+        # También evita colisión con ids de otros tipos que compartan prefijo.
+        existentes += [r.id for r in data.registros_servicio]
+        registro_id = _next_id(self._id_prefix, existentes)
+
+        lineas: list[LineaServicio] = []
+        costes_agregados: dict[str, float] = {}
+        cantidades_agregadas: dict[str, float] = {}
+        for producto_id, (cantidad, es_extra) in fusionado.items():
+            coste = descontar_lotes(
+                data, producto_id, cantidad, permitir_negativo=ignorar_stock,
+            )
+            lineas.append(LineaServicio(producto_id, cantidad, coste, es_extra))
+            costes_agregados[producto_id] = coste
+            cantidades_agregadas[producto_id] = cantidad
+
+        lineas_detalle = construir_lineas_detalle(
+            cesta_suelta,
+            grupos,
+            tipo_servicio=self.tipo_servicio,
+            registro_id=registro_id,
+            data=data,
+        )
+        asignar_costes_proporcionales(lineas_detalle, costes_agregados, cantidades_agregadas)
+
+        registros_recetas = self._construir_registros_recetas(data, grupos)
+        coste_total = round(sum(l.coste for l in lineas), 2)
+        registro = RegistroServicio(
+            registro_id,
+            self.tipo_servicio,
+            fecha,
+            lineas,
+            coste_total,
+            _nombre_usuario(data),
+            num_huespedes,
+            registros_recetas,
+            datetime.now().time(),
+            lineas_detalle,
+        )
+        data.registros_servicio.append(registro)
+
+        detalle_recetas = f" — {len(registros_recetas)} receta(s)" if registros_recetas else ""
+        _registrar_actividad(
+            data,
+            f"Registro {self.etiqueta.lower()}",
+            (
+                f"{self.etiqueta} del {fecha.strftime('%d/%m/%Y')} — "
+                f"{coste_total:.2f} €{detalle_recetas}"
+            ),
+        )
+        persist_data(data)
+        self.limpiar_cesta()
+
+        from app.core.services.alert_service import sincronizar_alertas
+        sincronizar_alertas()
+
+        return ResultadoOperacion(
+            True,
+            f"{self.etiqueta} registrada — {coste_total:.2f} € ({len(lineas)} producto(s)).",
+        )
+
+    def historial_ordenado(self) -> list[RegistroServicio]:
+        data = get_data()
+        return sorted(
+            [r for r in data.registros_servicio if r.tipo_servicio == self.tipo_servicio],
+            key=lambda r: (r.fecha, r.hora or time.min),
+            reverse=True,
+        )
+
+    def fecha_mas_antigua(self) -> date | None:
+        fechas = [
+            r.fecha for r in get_data().registros_servicio
+            if r.tipo_servicio == self.tipo_servicio
+        ]
+        return min(fechas) if fechas else None
+
+    def registros_exportables(self, inicio: date, hasta: datetime) -> list[RegistroExportable]:
+        data = get_data()
+        repo = DataRepository(data)
+        fin = hasta.date()
+        columnas = ["Tipo", "Producto / Receta", "Detalle", "Cantidad", "Unidad", "Coste", "Origen"]
+
+        resultado: list[RegistroExportable] = []
+        for reg in data.registros_servicio:
+            if reg.tipo_servicio != self.tipo_servicio:
+                continue
+            if not (inicio <= reg.fecha <= fin):
+                continue
+
+            filas: list[list] = []
+            for rr in reg.registros_recetas:
+                filas.append([
+                    "Receta", rr.nombre_receta, f"× {rr.porciones:g} porciones",
+                    rr.porciones, "porciones", "", rr.categoria_receta or "",
+                ])
+                receta = repo.get_receta(rr.receta_id)
+                omitidos = {o.producto_id for o in rr.omisiones}
+                for ing in (receta.ingredientes if receta else []):
+                    if ing.producto_id in omitidos:
+                        continue
+                    producto_ing = repo.get_producto(ing.producto_id)
+                    if not producto_ing:
+                        continue
+                    cantidad_mostrar, unidad_mostrar = resolver_presentacion(
+                        ing.cantidad,
+                        producto_ing.unidad,
+                        cantidad_presentacion=ing.cantidad_presentacion,
+                        unidad_presentacion=ing.unidad_presentacion,
+                        factor=rr.porciones,
+                    )
+                    filas.append([
+                        "Ingrediente", repo.get_nombre_producto(ing.producto_id), "",
+                        cantidad_mostrar, unidad_mostrar, "", "ingrediente_receta",
+                    ])
+                for extra in rr.extras:
+                    nombre = repo.get_nombre_producto(extra.producto_id)
+                    producto = repo.get_producto(extra.producto_id)
+                    unidad = producto.unidad.value if producto else ""
+                    etiqueta = "c/ extra" if extra.cantidad > 0 else "s/"
+                    filas.append([
+                        "Extra/Omisión", nombre, etiqueta, abs(extra.cantidad), unidad, "", "extra_receta",
+                    ])
+
+            for det in reg.lineas_detalle:
+                if det.origen != "producto_directo":
+                    continue
+                nombre = repo.get_nombre_producto(det.producto_id)
+                producto = repo.get_producto(det.producto_id)
+                unidad = producto.unidad.value if producto else ""
+                filas.append([
+                    "Producto", nombre, "", det.cantidad, unidad, det.coste, det.origen,
+                ])
+
+            resultado.append(RegistroExportable(
+                fecha=reg.fecha,
+                hora=reg.hora,
+                tipo=self.etiqueta,
+                identificador=reg.id,
+                usuario=reg.registrado_por or None,
+                columnas=columnas,
+                filas=filas,
+                resumen=[("Coste total", repo.formato_precio(reg.coste_total))],
+            ))
+        return resultado
+
+    def configuracion_exportacion(self) -> ConfiguracionExportacionModulo:
+        return ConfiguracionExportacionModulo(
+            tipo=self.tipo_servicio,
+            titulo_documento=self.titulo_documento,
+            obtener_registros=self.registros_exportables,
+        )
+
+
+def crear_servicio(
+    tipo_servicio: str,
+    session_prefix: str,
+    categorias_receta_permitidas: list[CategoriaReceta],
+    *,
+    solo_bebidas_sueltas: bool = False,
+    titulo_documento: str | None = None,
+) -> ServicioRegistro:
+    return ServicioRegistro(
+        tipo_servicio,
+        session_prefix,
+        categorias_receta_permitidas,
+        solo_bebidas_sueltas=solo_bebidas_sueltas,
+        titulo_documento=titulo_documento,
+    )
+
+
+# Reexport útiles para páginas futuras
+__all__ = [
+    "ServicioRegistro",
+    "ResultadoOperacion",
+    "crear_servicio",
+    "etiqueta_linea_suelta",
+    "etiqueta_linea_receta",
+    "calcular_coste_linea",
+    "stock_disponible",
+]

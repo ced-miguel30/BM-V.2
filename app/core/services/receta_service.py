@@ -3,7 +3,13 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from app.core.models import AppData, IngredienteReceta, Receta
+from app.core.models import (
+    CATEGORIA_RECETA_LABEL,
+    AppData,
+    CategoriaReceta,
+    IngredienteReceta,
+    Receta,
+)
 from app.core.repositories.data_repository import DataRepository
 from app.core.services.unidad_service import cantidad_y_unidad_mostrar
 from app.core.storage.session_store import get_data, persist_data
@@ -48,6 +54,20 @@ def _normalizar_nombre(nombre: str) -> str:
     return " ".join(nombre.strip().split())
 
 
+def _resolver_categoria(categoria: CategoriaReceta | str) -> CategoriaReceta | ResultadoOperacion:
+    """Acepta el enum o su valor interno; rechaza cualquier otra cadena."""
+    if isinstance(categoria, CategoriaReceta):
+        return categoria
+    try:
+        return CategoriaReceta(categoria)
+    except ValueError:
+        return ResultadoOperacion(False, f"Categoría no válida: «{categoria}».")
+
+
+def etiqueta_categoria(categoria: CategoriaReceta) -> str:
+    return CATEGORIA_RECETA_LABEL.get(categoria, categoria.value)
+
+
 def _validar_ingredientes(
     data: AppData,
     ingredientes: list[IngredienteReceta],
@@ -79,9 +99,18 @@ def _nombre_duplicado(data: AppData, nombre: str, excluir_id: str | None = None)
     return False
 
 
-def listar_recetas() -> list[Receta]:
+def listar_recetas(
+    categoria: CategoriaReceta | None = None,
+    categorias: list[CategoriaReceta] | None = None,
+) -> list[Receta]:
     data = get_data()
-    return sorted(data.recetas, key=lambda r: r.nombre.lower())
+    recetas = data.recetas
+    if categorias is not None:
+        permitidas = set(categorias)
+        recetas = [r for r in recetas if r.categoria in permitidas]
+    elif categoria is not None:
+        recetas = [r for r in recetas if r.categoria == categoria]
+    return sorted(recetas, key=lambda r: r.nombre.lower())
 
 
 def obtener_receta(receta_id: str) -> Receta | None:
@@ -103,21 +132,36 @@ def resumen_ingredientes(receta: Receta) -> str:
     return ", ".join(partes)
 
 
-def recetas_para_selector() -> list[dict]:
+def recetas_para_selector(
+    categoria: CategoriaReceta | None = None,
+    categorias: list[CategoriaReceta] | None = None,
+) -> list[dict]:
     resultado = []
-    for receta in listar_recetas():
+    for receta in listar_recetas(categoria=categoria, categorias=categorias):
         resultado.append({
             "id": receta.id,
             "nombre": receta.nombre,
-            "etiqueta": f"{receta.nombre} ({len(receta.ingredientes)} ingredientes)",
+            "categoria": receta.categoria.value,
+            "etiqueta": (
+                f"{receta.nombre} ({etiqueta_categoria(receta.categoria)}, "
+                f"{len(receta.ingredientes)} ingredientes)"
+            ),
         })
     return resultado
 
 
-def crear_receta(nombre: str, ingredientes: list[IngredienteReceta]) -> ResultadoOperacion:
+def crear_receta(
+    nombre: str,
+    ingredientes: list[IngredienteReceta],
+    categoria: CategoriaReceta | str = CategoriaReceta.DESAYUNO,
+) -> ResultadoOperacion:
     nombre = _normalizar_nombre(nombre)
     if not nombre:
         return ResultadoOperacion(False, "El nombre de la receta es obligatorio.")
+
+    categoria_resuelta = _resolver_categoria(categoria)
+    if isinstance(categoria_resuelta, ResultadoOperacion):
+        return categoria_resuelta
 
     data = get_data()
     if _nombre_duplicado(data, nombre):
@@ -131,9 +175,17 @@ def crear_receta(nombre: str, ingredientes: list[IngredienteReceta]) -> Resultad
         _next_id("r", [r.id for r in data.recetas]),
         nombre,
         ingredientes,
+        categoria_resuelta,
     )
     data.recetas.append(receta)
-    _registrar_actividad(data, "Crear receta", f"«{nombre}» creada con {len(ingredientes)} ingrediente(s)")
+    _registrar_actividad(
+        data,
+        "Crear receta",
+        (
+            f"«{nombre}» creada ({etiqueta_categoria(categoria_resuelta)}) "
+            f"con {len(ingredientes)} ingrediente(s)"
+        ),
+    )
     persist_data(data)
     return ResultadoOperacion(True, f"Receta «{nombre}» creada correctamente.")
 
@@ -142,10 +194,15 @@ def editar_receta(
     receta_id: str,
     nombre: str,
     ingredientes: list[IngredienteReceta],
+    categoria: CategoriaReceta | str = CategoriaReceta.DESAYUNO,
 ) -> ResultadoOperacion:
     nombre = _normalizar_nombre(nombre)
     if not nombre:
         return ResultadoOperacion(False, "El nombre de la receta es obligatorio.")
+
+    categoria_resuelta = _resolver_categoria(categoria)
+    if isinstance(categoria_resuelta, ResultadoOperacion):
+        return categoria_resuelta
 
     data = get_data()
     receta = obtener_receta(receta_id)
@@ -159,9 +216,27 @@ def editar_receta(
     if error:
         return error
 
+    solo_categoria = (
+        receta.nombre == nombre
+        and receta.ingredientes == ingredientes
+        and receta.categoria != categoria_resuelta
+    )
+    categoria_anterior = receta.categoria
+
     receta.nombre = nombre
     receta.ingredientes = ingredientes
-    _registrar_actividad(data, "Editar receta", f"«{nombre}» actualizada")
+    receta.categoria = categoria_resuelta
+
+    if solo_categoria:
+        detalle = (
+            f"«{nombre}»: categoría "
+            f"{etiqueta_categoria(categoria_anterior)} → {etiqueta_categoria(categoria_resuelta)}"
+        )
+    else:
+        detalle = (
+            f"«{nombre}» actualizada ({etiqueta_categoria(categoria_resuelta)})"
+        )
+    _registrar_actividad(data, "Editar receta", detalle)
     persist_data(data)
     return ResultadoOperacion(True, f"Receta «{nombre}» guardada correctamente.")
 

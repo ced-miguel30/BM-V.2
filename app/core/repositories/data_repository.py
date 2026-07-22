@@ -260,6 +260,15 @@ class DataRepository:
             reverse=True,
         )
 
+    def registros_servicio_ordenados(self, tipo_servicio: str) -> list:
+        from app.core.models import RegistroServicio
+
+        return sorted(
+            [r for r in self._data.registros_servicio if r.tipo_servicio == tipo_servicio],
+            key=lambda r: (r.fecha, r.hora or time.min),
+            reverse=True,
+        )
+
     def mermas_ordenadas(self) -> list[RegistroMerma]:
         return sorted(
             self._data.mermas,

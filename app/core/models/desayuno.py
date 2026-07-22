@@ -3,6 +3,8 @@
 from dataclasses import dataclass, field
 from datetime import date, time
 
+from app.core.models.registro_servicio import LineaDetalleOrigen
+
 
 @dataclass
 class LineaDesayuno:
@@ -42,3 +44,5 @@ class RegistroDesayuno:
     num_huespedes: int = 30
     registros_recetas: list[RegistroRecetaDesayuno] = field(default_factory=list)
     hora: time | None = None
+    # Detalle de origen por línea (aditivo; registros antiguos → lista vacía).
+    lineas_detalle: list[LineaDetalleOrigen] = field(default_factory=list)

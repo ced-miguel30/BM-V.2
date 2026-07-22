@@ -9,32 +9,59 @@ from app.core.models.desayuno import (
     RegistroDesayuno,
     RegistroRecetaDesayuno,
 )
-from app.core.models.enums import MotivoMerma, RolUsuario, TipoAlerta, UnidadProducto
+from app.core.models.enums import (
+    CATEGORIA_RECETA_LABEL,
+    CategoriaReceta,
+    MotivoMerma,
+    OrigenConsumo,
+    RolUsuario,
+    TipoAlerta,
+    TipoServicio,
+    UnidadProducto,
+)
 from app.core.models.lote import LoteStock
 from app.core.models.merma import LineaMerma, RegistroMerma
 from app.core.models.producto import Producto
 from app.core.models.receta import IngredienteReceta, Receta
+from app.core.models.registro_servicio import (
+    ExtraRecetaServicio,
+    LineaDetalleOrigen,
+    LineaServicio,
+    OmisionRecetaServicio,
+    RegistroRecetaServicio,
+    RegistroServicio,
+)
 from app.core.models.usuario import Usuario
 
 __all__ = [
     "Actividad",
     "AlertaOperativa",
     "AppData",
+    "CATEGORIA_RECETA_LABEL",
+    "CategoriaReceta",
     "ConfiguracionHotel",
     "ExtraRecetaDesayuno",
+    "ExtraRecetaServicio",
     "IngredienteReceta",
     "LineaDesayuno",
+    "LineaDetalleOrigen",
     "LineaMerma",
+    "LineaServicio",
     "LoteStock",
     "MotivoMerma",
     "OmisionRecetaDesayuno",
+    "OmisionRecetaServicio",
+    "OrigenConsumo",
     "Producto",
     "Receta",
     "RegistroDesayuno",
     "RegistroMerma",
     "RegistroRecetaDesayuno",
+    "RegistroRecetaServicio",
+    "RegistroServicio",
     "RolUsuario",
     "TipoAlerta",
+    "TipoServicio",
     "UnidadProducto",
     "Usuario",
 ]

@@ -1,30 +1,79 @@
-"""Servicio de registro de desayuno — consumo y FIFO."""
+"""Servicio de registro de desayuno — consumo y FIFO.
 
-from dataclasses import dataclass, field
+La lógica de lotes vive en `inventory_batch_service` y la cesta en
+`cesta_service` (prefijo «desayuno», claves históricas). La API pública
+de este módulo se mantiene para no romper páginas ni tests existentes.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
 from datetime import date, datetime
 
 from app.core.models import (
     AppData,
     ExtraRecetaDesayuno,
     LineaDesayuno,
-    LoteStock,
     OmisionRecetaDesayuno,
     RegistroDesayuno,
     RegistroRecetaDesayuno,
+    TipoServicio,
 )
 from app.core.repositories.data_repository import DataRepository
+from app.core.services.cesta_service import (
+    PASO_CANTIDAD,
+    GrupoRecetaCesta,
+    LineaCesta,
+    LineaCestaIngrediente,
+    ModPendienteReceta,
+    cantidad_texto_linea_receta,
+    crear_motor_cesta,
+    etiqueta_linea_receta,
+    etiqueta_linea_suelta,
+)
+from app.core.services.detalle_origen_service import (
+    asignar_costes_proporcionales,
+    construir_lineas_detalle,
+)
 from app.core.services.excel_bloques import RegistroExportable
 from app.core.services.exportacion_semanal_service import ConfiguracionExportacionModulo
+from app.core.services.inventory_batch_service import (
+    calcular_coste_linea,
+    descontar_lotes,
+    stock_disponible,
+)
 from app.core.services.text_search import coincide_busqueda
-from app.core.services.unidad_service import cantidad_para_mostrar, presentacion_legible, resolver_presentacion
+from app.core.services.unidad_service import resolver_presentacion
 from app.core.storage.session_store import get_data, persist_data
+
+# Reexportaciones públicas (compatibilidad con imports existentes).
+__all__ = [
+    "PASO_CANTIDAD",
+    "ResultadoOperacion",
+    "LineaCesta",
+    "LineaCestaIngrediente",
+    "GrupoRecetaCesta",
+    "ModPendienteReceta",
+    "stock_disponible",
+    "calcular_coste_linea",
+    "etiqueta_linea_suelta",
+    "etiqueta_linea_receta",
+    "cantidad_texto_linea_receta",
+]
 
 CESTA_SESSION_KEY = "bm_cesta_desayuno"
 CESTA_RECETAS_KEY = "bm_cesta_recetas"
 GRUPO_COUNTER_KEY = "bm_grupo_receta_counter"
 LINEA_COUNTER_KEY = "bm_linea_cesta_counter"
 MODS_PENDIENTES_KEY = "bm_receta_pendiente_mods"
-PASO_CANTIDAD = 0.5
+
+_cesta = crear_motor_cesta("desayuno")
+
+# Categorías de receta permitidas en el registro de desayuno (independiente
+# de tipo_servicio): Desayuno + Bebidas.
+from app.core.models import CategoriaReceta
+
+CATEGORIAS_RECETA_DESAYUNO = [CategoriaReceta.DESAYUNO, CategoriaReceta.BEBIDAS]
 
 
 @dataclass
@@ -35,57 +84,6 @@ class ResultadoOperacion:
     detalle_stock: list[str] | None = None
 
 
-@dataclass
-class LineaCesta:
-    linea_id: str
-    producto_id: str
-    nombre: str
-    unidad: str
-    cantidad: float
-    es_extra: bool = False
-    es_omision: bool = False
-    paso_edicion: float = 0
-
-
-@dataclass
-class LineaCestaIngrediente:
-    linea_id: str
-    producto_id: str
-    nombre: str
-    unidad: str
-    cantidad: float
-    es_base_receta: bool = True
-    es_extra: bool = False
-    es_omision: bool = False
-    paso_edicion: float = 0
-    # Cantidad/unidad en la presentación elegida al definir la receta (p. ej.
-    # "10 gr" aunque el producto se almacene en kg). `cantidad`/`unidad` de
-    # arriba son siempre la unidad nativa del producto y son las que se usan
-    # para coste y descuento de stock; estos dos campos son solo para mostrar.
-    cantidad_mostrar: float | None = None
-    unidad_mostrar: str | None = None
-
-
-@dataclass
-class GrupoRecetaCesta:
-    grupo_id: str
-    receta_id: str
-    nombre_receta: str
-    porciones: float
-    ingredientes: list[LineaCestaIngrediente] = field(default_factory=list)
-
-
-@dataclass
-class ModPendienteReceta:
-    mod_id: str
-    producto_id: str
-    nombre: str
-    unidad: str
-    cantidad: float
-    es_extra: bool
-    es_omision: bool
-
-
 def _next_id(prefix: str, ids: list[str]) -> str:
     numeros = []
     for item_id in ids:
@@ -93,14 +91,6 @@ def _next_id(prefix: str, ids: list[str]) -> str:
         if item_id.startswith(prefix) and sufijo.isdigit():
             numeros.append(int(sufijo))
     return f"{prefix}{(max(numeros, default=0) + 1):02d}"
-
-
-def _nueva_linea_id() -> str:
-    import streamlit as st
-
-    contador = st.session_state.get(LINEA_COUNTER_KEY, 0) + 1
-    st.session_state[LINEA_COUNTER_KEY] = contador
-    return f"lin_{contador:04d}"
 
 
 def _nombre_usuario(data: AppData) -> str:
@@ -123,174 +113,36 @@ def _registrar_actividad(data: AppData, accion: str, detalle: str) -> None:
     data.actividades.insert(0, actividad)
 
 
-def _lotes_fifo(data: AppData, producto_id: str) -> list[LoteStock]:
-    lotes = [
-        l for l in data.lotes
-        if l.producto_id == producto_id and l.cantidad_restante > 0
-    ]
-    return sorted(
-        lotes,
-        key=lambda l: (l.fecha_compra or date.min, l.id),
-    )
-
-
-def _ultimo_lote_producto(data: AppData, producto_id: str) -> LoteStock | None:
-    lotes = [l for l in data.lotes if l.producto_id == producto_id]
-    if not lotes:
-        return None
-    return sorted(lotes, key=lambda l: (l.fecha_compra or date.min, l.id))[-1]
-
-
-def _coste_unidad_lote(lote: LoteStock) -> float:
-    if lote.cantidad <= 0:
-        return 0.0
-    return lote.precio_total / lote.cantidad
-
-
-def stock_disponible(data: AppData, producto_id: str) -> float:
-    return sum(l.cantidad_restante for l in data.lotes if l.producto_id == producto_id)
-
-
-def calcular_coste_linea(data: AppData, producto_id: str, cantidad: float) -> float:
-    if cantidad <= 0:
-        return 0.0
-    restante = cantidad
-    coste = 0.0
-    for lote in _lotes_fifo(data, producto_id):
-        if restante <= 0:
-            break
-        tomar = min(restante, lote.cantidad_restante)
-        coste += tomar * _coste_unidad_lote(lote)
-        restante -= tomar
-    return round(coste, 2)
-
-
-def _descontar_fifo(
-    data: AppData,
-    producto_id: str,
-    cantidad: float,
-    *,
-    permitir_negativo: bool = False,
-) -> float:
-    if cantidad <= 0:
-        return 0.0
-    restante = cantidad
-    coste = 0.0
-    ultimo_lote_tocado: LoteStock | None = None
-    for lote in _lotes_fifo(data, producto_id):
-        if restante <= 0:
-            break
-        tomar = min(restante, lote.cantidad_restante)
-        coste += tomar * _coste_unidad_lote(lote)
-        lote.cantidad_restante = round(lote.cantidad_restante - tomar, 4)
-        restante -= tomar
-        ultimo_lote_tocado = lote
-
-    if restante > 0 and permitir_negativo:
-        lote_destino = ultimo_lote_tocado or _ultimo_lote_producto(data, producto_id)
-        if lote_destino:
-            lote_destino.cantidad_restante = round(lote_destino.cantidad_restante - restante, 4)
-
-    return round(coste, 2)
+def _descontar_fifo(data: AppData, producto_id: str, cantidad: float, *, permitir_negativo: bool = False) -> float:
+    """Alias interno: el comportamiento sigue siendo FIFO por fecha_compra."""
+    return descontar_lotes(data, producto_id, cantidad, permitir_negativo=permitir_negativo)
 
 
 def get_cesta() -> list[LineaCesta]:
-    import streamlit as st
-
-    if CESTA_SESSION_KEY not in st.session_state:
-        st.session_state[CESTA_SESSION_KEY] = []
-    return st.session_state[CESTA_SESSION_KEY]
+    return _cesta.get_cesta()
 
 
 def get_cesta_recetas() -> list[GrupoRecetaCesta]:
-    import streamlit as st
-
-    if CESTA_RECETAS_KEY not in st.session_state:
-        st.session_state[CESTA_RECETAS_KEY] = []
-    return st.session_state[CESTA_RECETAS_KEY]
-
-
-def _guardar_cesta(grupos_o_cesta) -> None:
-    import streamlit as st
-
-    if grupos_o_cesta and isinstance(grupos_o_cesta[0], GrupoRecetaCesta):
-        st.session_state[CESTA_RECETAS_KEY] = grupos_o_cesta
-    else:
-        st.session_state[CESTA_SESSION_KEY] = grupos_o_cesta
-
-
-def _guardar_cesta_recetas(grupos: list[GrupoRecetaCesta]) -> None:
-    import streamlit as st
-
-    st.session_state[CESTA_RECETAS_KEY] = grupos
-
-
-def _nuevo_grupo_id() -> str:
-    import streamlit as st
-
-    contador = st.session_state.get(GRUPO_COUNTER_KEY, 0) + 1
-    st.session_state[GRUPO_COUNTER_KEY] = contador
-    return f"grupo_{contador:03d}"
+    return _cesta.get_cesta_recetas()
 
 
 def get_mods_pendientes() -> list[ModPendienteReceta]:
-    import streamlit as st
-
-    if MODS_PENDIENTES_KEY not in st.session_state:
-        st.session_state[MODS_PENDIENTES_KEY] = []
-    return st.session_state[MODS_PENDIENTES_KEY]
+    return _cesta.get_mods_pendientes()
 
 
 def limpiar_mods_pendientes() -> None:
-    import streamlit as st
-
-    st.session_state[MODS_PENDIENTES_KEY] = []
+    _cesta.limpiar_mods_pendientes()
 
 
 def limpiar_cesta() -> None:
-    import streamlit as st
-
-    st.session_state[CESTA_SESSION_KEY] = []
-    st.session_state[CESTA_RECETAS_KEY] = []
-    limpiar_mods_pendientes()
+    _cesta.limpiar_cesta()
 
 
 def cesta_vacia() -> bool:
-    return not get_cesta() and not get_cesta_recetas()
-
-
-def etiqueta_linea_suelta(linea: LineaCesta) -> str:
-    """Producto suelto: no está ligado a ninguna receta, así que se muestra
-    siempre con su nombre normal (sin prefijo "c/ extra"/"s/", que solo
-    tiene sentido como modificación relativa a una receta)."""
-    cant = abs(linea.cantidad)
-    return f"{linea.nombre} — {cant:g} {linea.unidad}"
-
-
-def etiqueta_linea_receta(ing: LineaCestaIngrediente) -> str:
-    if ing.unidad_mostrar and ing.cantidad_mostrar is not None:
-        cant, unidad = abs(ing.cantidad_mostrar), ing.unidad_mostrar
-    else:
-        from app.core.models import UnidadProducto
-        cant, unidad = presentacion_legible(abs(ing.cantidad), UnidadProducto(ing.unidad))
-    if ing.es_omision or ing.cantidad < 0:
-        return f"s/ {ing.nombre} — {cant:g} {unidad}"
-    if ing.es_extra:
-        return f"c/ extra {ing.nombre} — {cant:g} {unidad}"
-    return f"{ing.nombre} — {cant:g} {unidad}"
-
-
-def cantidad_texto_linea_receta(ing: LineaCestaIngrediente) -> str:
-    """Cantidad visible en los controles +/- del desglose de la cesta."""
-    if ing.unidad_mostrar and ing.cantidad_mostrar is not None:
-        return f"{abs(ing.cantidad_mostrar):g}"
-    from app.core.models import UnidadProducto
-    cant, _ = presentacion_legible(abs(ing.cantidad), UnidadProducto(ing.unidad))
-    return f"{cant:g}"
+    return _cesta.cesta_vacia()
 
 
 def productos_catalogo(buscar: str = "") -> list[dict]:
-    """Todos los productos del catálogo (sin filtrar por stock)."""
     data = get_data()
     resultado = []
     termino = buscar.strip()
@@ -309,96 +161,21 @@ def productos_catalogo(buscar: str = "") -> list[dict]:
 
 
 def productos_disponibles(buscar: str = "") -> list[dict]:
-    """Productos con stock > 0, opcionalmente filtrados por nombre."""
     return [p for p in productos_catalogo(buscar) if p["stock"] > 0]
 
 
 def anadir_mod_pendiente_receta(producto_id: str, cantidad: float) -> ResultadoOperacion:
-    if cantidad == 0:
-        return ResultadoOperacion(False, "La cantidad no puede ser 0.")
-
-    data = get_data()
-    repo = DataRepository(data)
-    producto = repo.get_producto(producto_id)
-    if not producto:
-        return ResultadoOperacion(False, "Producto no encontrado.")
-
-    mods = get_mods_pendientes()
-    mods.append(ModPendienteReceta(
-        _nueva_linea_id(),
-        producto.id,
-        producto.nombre,
-        producto.unidad.value,
-        cantidad,
-        es_extra=cantidad > 0,
-        es_omision=cantidad < 0,
-    ))
-    import streamlit as st
-    st.session_state[MODS_PENDIENTES_KEY] = mods
-
-    etiqueta = "c/ extra" if cantidad > 0 else "s/"
-    return ResultadoOperacion(True, f"{etiqueta} {producto.nombre} añadido a la receta pendiente.")
+    r = _cesta.anadir_mod_pendiente_receta(producto_id, cantidad)
+    return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
 
 
 def quitar_mod_pendiente(mod_id: str) -> None:
-    import streamlit as st
-
-    mods = [m for m in get_mods_pendientes() if m.mod_id != mod_id]
-    st.session_state[MODS_PENDIENTES_KEY] = mods
+    _cesta.quitar_mod_pendiente(mod_id)
 
 
 def anadir_a_cesta(producto_id: str, cantidad: float) -> ResultadoOperacion:
-    if cantidad == 0:
-        return ResultadoOperacion(False, "La cantidad no puede ser 0.")
-
-    data = get_data()
-    repo = DataRepository(data)
-    producto = repo.get_producto(producto_id)
-    if not producto:
-        return ResultadoOperacion(False, "Producto no encontrado.")
-
-    cesta = get_cesta()
-    paso = abs(cantidad) if cantidad != 0 else PASO_CANTIDAD
-    for linea in cesta:
-        if linea.producto_id == producto_id:
-            linea.cantidad = round(linea.cantidad + cantidad, 4)
-            linea.es_extra = linea.cantidad > 0
-            linea.es_omision = linea.cantidad < 0
-            if linea.paso_edicion <= 0:
-                linea.paso_edicion = paso
-            etiqueta = etiqueta_linea_suelta(linea)
-            import streamlit as st
-            st.session_state[CESTA_SESSION_KEY] = cesta
-            return ResultadoOperacion(True, f"{etiqueta} actualizado en la cesta.")
-
-    cesta.append(LineaCesta(
-        _nueva_linea_id(),
-        producto_id,
-        producto.nombre,
-        producto.unidad.value,
-        cantidad,
-        es_extra=cantidad > 0,
-        es_omision=cantidad < 0,
-        paso_edicion=paso,
-    ))
-    import streamlit as st
-    st.session_state[CESTA_SESSION_KEY] = cesta
-    return ResultadoOperacion(True, f"{etiqueta_linea_suelta(cesta[-1])} añadido a la cesta.")
-
-
-def _linea_ingrediente_desde_mod(mod: ModPendienteReceta) -> LineaCestaIngrediente:
-    paso = abs(mod.cantidad) if mod.cantidad != 0 else PASO_CANTIDAD
-    return LineaCestaIngrediente(
-        _nueva_linea_id(),
-        mod.producto_id,
-        mod.nombre,
-        mod.unidad,
-        mod.cantidad,
-        es_base_receta=False,
-        es_extra=mod.es_extra,
-        es_omision=mod.es_omision,
-        paso_edicion=paso,
-    )
+    r = _cesta.anadir_a_cesta(producto_id, cantidad)
+    return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
 
 
 def anadir_receta_a_cesta(
@@ -406,251 +183,63 @@ def anadir_receta_a_cesta(
     porciones: float,
     mods_pendientes: list[ModPendienteReceta] | None = None,
 ) -> ResultadoOperacion:
-    if porciones <= 0:
-        return ResultadoOperacion(False, "Las porciones deben ser mayores que 0.")
-
-    data = get_data()
-    repo = DataRepository(data)
-    receta = repo.get_receta(receta_id)
-    if not receta:
-        return ResultadoOperacion(False, "Receta no encontrada.")
-    if not receta.ingredientes:
-        return ResultadoOperacion(False, f"La receta «{receta.nombre}» no tiene ingredientes.")
-
-    ingredientes: list[LineaCestaIngrediente] = []
-    for ing in receta.ingredientes:
-        producto = repo.get_producto(ing.producto_id)
-        if not producto:
-            return ResultadoOperacion(False, "Un ingrediente de la receta ya no existe en el catálogo.")
-        cantidad = round(ing.cantidad * porciones, 4)
-        cantidad_mostrar, unidad_mostrar = resolver_presentacion(
-            ing.cantidad,
-            producto.unidad,
-            cantidad_presentacion=ing.cantidad_presentacion,
-            unidad_presentacion=ing.unidad_presentacion,
-            factor=porciones,
-        )
-        ingredientes.append(LineaCestaIngrediente(
-            _nueva_linea_id(),
-            producto.id,
-            producto.nombre,
-            producto.unidad.value,
-            cantidad,
-            es_base_receta=True,
-            es_extra=False,
-            es_omision=False,
-            paso_edicion=ing.cantidad if ing.cantidad > 0 else PASO_CANTIDAD,
-            cantidad_mostrar=cantidad_mostrar,
-            unidad_mostrar=unidad_mostrar,
-        ))
-
-    for mod in mods_pendientes or []:
-        ingredientes.append(_linea_ingrediente_desde_mod(mod))
-
-    grupo = GrupoRecetaCesta(
-        _nuevo_grupo_id(),
-        receta.id,
-        receta.nombre,
+    r = _cesta.anadir_receta_a_cesta(
+        receta_id,
         porciones,
-        ingredientes,
+        mods_pendientes,
+        categorias_permitidas=CATEGORIAS_RECETA_DESAYUNO,
     )
-    grupos = get_cesta_recetas()
-    grupos.append(grupo)
-    _guardar_cesta_recetas(grupos)
-    limpiar_mods_pendientes()
-    return ResultadoOperacion(True, f"«{receta.nombre}» (×{porciones:g}) añadida a la cesta.")
+    return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
 
 
 def quitar_grupo_receta(grupo_id: str) -> None:
-    grupos = [g for g in get_cesta_recetas() if g.grupo_id != grupo_id]
-    _guardar_cesta_recetas(grupos)
-
-
-def _buscar_grupo(grupo_id: str) -> GrupoRecetaCesta | None:
-    return next((g for g in get_cesta_recetas() if g.grupo_id == grupo_id), None)
-
-
-def _buscar_linea_grupo(grupo_id: str, linea_id: str) -> LineaCestaIngrediente | None:
-    grupo = _buscar_grupo(grupo_id)
-    if not grupo:
-        return None
-    return next((i for i in grupo.ingredientes if i.linea_id == linea_id), None)
+    _cesta.quitar_grupo_receta(grupo_id)
 
 
 def quitar_linea_grupo(grupo_id: str, linea_id: str) -> None:
-    grupo = _buscar_grupo(grupo_id)
-    if not grupo:
-        return
-    grupo.ingredientes = [i for i in grupo.ingredientes if i.linea_id != linea_id]
-    _guardar_cesta_recetas(get_cesta_recetas())
+    _cesta.quitar_linea_grupo(grupo_id, linea_id)
 
 
 def paso_linea_grupo(grupo_id: str, linea_id: str) -> float:
-    """Incremento al editar un ingrediente del desglose de receta en la cesta."""
-    grupo = _buscar_grupo(grupo_id)
-    linea = _buscar_linea_grupo(grupo_id, linea_id)
-    if not linea or not grupo:
-        return PASO_CANTIDAD
-
-    if linea.paso_edicion > 0:
-        return linea.paso_edicion
-
-    if linea.es_base_receta:
-        repo = DataRepository(get_data())
-        receta = repo.get_receta(grupo.receta_id)
-        if receta:
-            ing_template = next(
-                (i for i in receta.ingredientes if i.producto_id == linea.producto_id),
-                None,
-            )
-            if ing_template and ing_template.cantidad > 0:
-                return ing_template.cantidad
-
-    if linea.cantidad != 0:
-        return abs(linea.cantidad)
-
-    return PASO_CANTIDAD
+    return _cesta.paso_linea_grupo(grupo_id, linea_id)
 
 
 def ajustar_linea_grupo(grupo_id: str, linea_id: str, delta: float) -> ResultadoOperacion:
-    grupo = _buscar_grupo(grupo_id)
-    if not grupo:
-        return ResultadoOperacion(False, "Grupo no encontrado.")
-    linea = _buscar_linea_grupo(grupo_id, linea_id)
-    if not linea:
-        return ResultadoOperacion(False, "Línea no encontrada.")
-
-    nueva = round(linea.cantidad + delta, 4)
-    if nueva == 0:
-        quitar_linea_grupo(grupo_id, linea_id)
-        return ResultadoOperacion(True, "Línea eliminada.")
-    return modificar_linea_grupo(grupo_id, linea_id, nueva)
+    r = _cesta.ajustar_linea_grupo(grupo_id, linea_id, delta)
+    return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
 
 
 def modificar_linea_grupo(grupo_id: str, linea_id: str, cantidad: float) -> ResultadoOperacion:
-    if cantidad == 0:
-        quitar_linea_grupo(grupo_id, linea_id)
-        return ResultadoOperacion(True, "Línea eliminada.")
-
-    linea = _buscar_linea_grupo(grupo_id, linea_id)
-    if not linea:
-        return ResultadoOperacion(False, "Línea no encontrada.")
-
-    linea.cantidad = round(cantidad, 4)
-    linea.es_extra = not linea.es_base_receta and cantidad > 0
-    linea.es_omision = cantidad < 0 or (not linea.es_base_receta and cantidad < 0)
-    if linea.es_base_receta and cantidad < 0:
-        linea.es_omision = True
-    if linea.unidad_mostrar:
-        producto = DataRepository(get_data()).get_producto(linea.producto_id)
-        if producto:
-            linea.cantidad_mostrar = cantidad_para_mostrar(linea.cantidad, producto.unidad, linea.unidad_mostrar)
-    else:
-        producto = DataRepository(get_data()).get_producto(linea.producto_id)
-        if producto:
-            linea.cantidad_mostrar, linea.unidad_mostrar = presentacion_legible(linea.cantidad, producto.unidad)
-    _guardar_cesta_recetas(get_cesta_recetas())
-    return ResultadoOperacion(True, "Cantidad actualizada.")
+    r = _cesta.modificar_linea_grupo(grupo_id, linea_id, cantidad)
+    return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
 
 
 def modificar_porciones_grupo(grupo_id: str, porciones: float) -> ResultadoOperacion:
-    if porciones <= 0:
-        return ResultadoOperacion(False, "Las porciones deben ser mayores que 0.")
-
-    data = get_data()
-    repo = DataRepository(data)
-    grupo = _buscar_grupo(grupo_id)
-    if not grupo:
-        return ResultadoOperacion(False, "Grupo no encontrado.")
-
-    receta = repo.get_receta(grupo.receta_id)
-    if not receta:
-        return ResultadoOperacion(False, "Receta no encontrada.")
-
-    grupo.porciones = porciones
-
-    for linea in grupo.ingredientes:
-        if not linea.es_base_receta:
-            continue
-        ing_template = next((i for i in receta.ingredientes if i.producto_id == linea.producto_id), None)
-        if not ing_template:
-            continue
-        producto = repo.get_producto(linea.producto_id)
-        if not producto:
-            continue
-        linea.cantidad = round(ing_template.cantidad * porciones, 4)
-        linea.cantidad_mostrar, linea.unidad_mostrar = resolver_presentacion(
-            ing_template.cantidad,
-            producto.unidad,
-            cantidad_presentacion=ing_template.cantidad_presentacion,
-            unidad_presentacion=ing_template.unidad_presentacion,
-            factor=porciones,
-        )
-
-    _guardar_cesta_recetas(get_cesta_recetas())
-    return ResultadoOperacion(True, "Porciones actualizadas.")
+    r = _cesta.modificar_porciones_grupo(grupo_id, porciones)
+    return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
 
 
 def ajustar_porciones_grupo(grupo_id: str, delta: float) -> ResultadoOperacion:
-    grupo = _buscar_grupo(grupo_id)
-    if not grupo:
-        return ResultadoOperacion(False, "Grupo no encontrado.")
-    nuevas = round(grupo.porciones + delta, 4)
-    if nuevas <= 0:
-        quitar_grupo_receta(grupo_id)
-        return ResultadoOperacion(True, "Receta eliminada de la cesta.")
-    return modificar_porciones_grupo(grupo_id, nuevas)
-
-
-def _buscar_linea_suelta(linea_id: str) -> LineaCesta | None:
-    return next((l for l in get_cesta() if l.linea_id == linea_id), None)
+    r = _cesta.ajustar_porciones_grupo(grupo_id, delta)
+    return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
 
 
 def paso_linea_suelta(linea_id: str) -> float:
-    """Incremento al editar un producto suelto en la cesta."""
-    linea = _buscar_linea_suelta(linea_id)
-    if not linea:
-        return PASO_CANTIDAD
-    if linea.paso_edicion > 0:
-        return linea.paso_edicion
-    if linea.cantidad != 0:
-        return abs(linea.cantidad)
-    return PASO_CANTIDAD
+    return _cesta.paso_linea_suelta(linea_id)
 
 
 def quitar_linea_suelta(linea_id: str) -> None:
-    import streamlit as st
-
-    cesta = [l for l in get_cesta() if l.linea_id != linea_id]
-    st.session_state[CESTA_SESSION_KEY] = cesta
+    _cesta.quitar_linea_suelta(linea_id)
 
 
 def ajustar_cantidad_suelto(linea_id: str, delta: float) -> ResultadoOperacion:
-    linea = _buscar_linea_suelta(linea_id)
-    if not linea:
-        return ResultadoOperacion(False, "Línea no encontrada.")
-    nueva = round(linea.cantidad + delta, 4)
-    if nueva == 0:
-        quitar_linea_suelta(linea_id)
-        return ResultadoOperacion(True, "Producto eliminado de la cesta.")
-    return modificar_cantidad_suelto(linea_id, nueva)
+    r = _cesta.ajustar_cantidad_suelto(linea_id, delta)
+    return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
 
 
 def modificar_cantidad_suelto(linea_id: str, cantidad: float) -> ResultadoOperacion:
-    if cantidad == 0:
-        quitar_linea_suelta(linea_id)
-        return ResultadoOperacion(True, "Producto eliminado de la cesta.")
-
-    linea = _buscar_linea_suelta(linea_id)
-    if not linea:
-        return ResultadoOperacion(False, "Línea no encontrada.")
-
-    linea.cantidad = round(cantidad, 4)
-    linea.es_extra = cantidad > 0
-    linea.es_omision = cantidad < 0
-    import streamlit as st
-    st.session_state[CESTA_SESSION_KEY] = get_cesta()
-    return ResultadoOperacion(True, "Cantidad actualizada.")
+    r = _cesta.modificar_cantidad_suelto(linea_id, cantidad)
+    return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
 
 
 def coste_total_cesta() -> float:
@@ -757,6 +346,7 @@ def registrar_desayuno(
 
     fusionado = _aplanar_cesta()
     grupos = list(get_cesta_recetas())
+    cesta_suelta = list(get_cesta())
 
     if not ignorar_stock:
         deficits = _validar_stock_registro(data, fusionado)
@@ -768,7 +358,12 @@ def registrar_desayuno(
                 detalle_stock=deficits,
             )
 
+    registro_id = _next_id("d", [d.id for d in data.desayunos])
+
+    # Agregado (compat rankings/UI) + descuento FIFO por producto.
     lineas: list[LineaDesayuno] = []
+    costes_agregados: dict[str, float] = {}
+    cantidades_agregadas: dict[str, float] = {}
     for producto_id, (cantidad, es_extra) in fusionado.items():
         coste = _descontar_fifo(
             data,
@@ -777,11 +372,23 @@ def registrar_desayuno(
             permitir_negativo=ignorar_stock,
         )
         lineas.append(LineaDesayuno(producto_id, cantidad, coste, es_extra))
+        costes_agregados[producto_id] = coste
+        cantidades_agregadas[producto_id] = cantidad
+
+    # Detalle con origen explícito (no fusiona directo + receta).
+    lineas_detalle = construir_lineas_detalle(
+        cesta_suelta,
+        grupos,
+        tipo_servicio=TipoServicio.DESAYUNO.value,
+        registro_id=registro_id,
+        data=data,
+    )
+    asignar_costes_proporcionales(lineas_detalle, costes_agregados, cantidades_agregadas)
 
     registros_recetas = _construir_registros_recetas(data, grupos)
     coste_total = round(sum(l.coste for l in lineas), 2)
     registro = RegistroDesayuno(
-        _next_id("d", [d.id for d in data.desayunos]),
+        registro_id,
         fecha,
         lineas,
         coste_total,
@@ -789,6 +396,7 @@ def registrar_desayuno(
         num_huespedes,
         registros_recetas,
         datetime.now().time(),
+        lineas_detalle,
     )
     data.desayunos.append(registro)
 
@@ -814,15 +422,11 @@ def registrar_desayuno(
 
 
 def fecha_mas_antigua() -> date | None:
-    """Fecha del primer desayuno registrado (para sembrar exportaciones
-    semanales pendientes si nunca se ha exportado nada todavía)."""
     fechas = [d.fecha for d in get_data().desayunos]
     return min(fechas) if fechas else None
 
 
 def registros_exportables(inicio: date, hasta: datetime) -> list[RegistroExportable]:
-    """Desglose completo (recetas + extras/omisiones + productos) de cada
-    desayuno registrado entre `inicio` y `hasta`, para la exportación semanal."""
     data = get_data()
     repo = DataRepository(data)
     fin = hasta.date()

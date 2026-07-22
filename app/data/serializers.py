@@ -12,19 +12,26 @@ from app.core.models import (
     Actividad,
     AlertaOperativa,
     AppData,
+    CategoriaReceta,
     ConfiguracionHotel,
     ExtraRecetaDesayuno,
+    ExtraRecetaServicio,
     IngredienteReceta,
     LineaDesayuno,
+    LineaDetalleOrigen,
     LineaMerma,
+    LineaServicio,
     LoteStock,
     MotivoMerma,
     OmisionRecetaDesayuno,
+    OmisionRecetaServicio,
     Producto,
     Receta,
     RegistroDesayuno,
     RegistroMerma,
     RegistroRecetaDesayuno,
+    RegistroRecetaServicio,
+    RegistroServicio,
     RolUsuario,
     TipoAlerta,
     UnidadProducto,
@@ -51,6 +58,32 @@ def _parse_datetime(value: str) -> datetime:
 
 def _parse_time(value: str | None) -> time | None:
     return time.fromisoformat(value) if value else None
+
+
+def _detalle_to_dict(det: LineaDetalleOrigen) -> dict:
+    return {
+        "origen": det.origen,
+        "producto_id": det.producto_id,
+        "cantidad": det.cantidad,
+        "coste": det.coste,
+        "receta_origen_id": det.receta_origen_id,
+        "registro_origen_id": det.registro_origen_id,
+        "tipo_servicio": det.tipo_servicio,
+        "categoria_receta": det.categoria_receta,
+    }
+
+
+def _detalle_from_dict(raw: dict) -> LineaDetalleOrigen:
+    return LineaDetalleOrigen(
+        origen=raw["origen"],
+        producto_id=raw["producto_id"],
+        cantidad=raw["cantidad"],
+        coste=raw.get("coste", 0.0),
+        receta_origen_id=raw.get("receta_origen_id"),
+        registro_origen_id=raw.get("registro_origen_id"),
+        tipo_servicio=raw.get("tipo_servicio", ""),
+        categoria_receta=raw.get("categoria_receta"),
+    )
 
 
 def appdata_to_dict(data: AppData) -> dict:
@@ -108,13 +141,54 @@ def appdata_to_dict(data: AppData) -> dict:
                     }
                     for rr in d.registros_recetas
                 ],
+                "lineas_detalle": [_detalle_to_dict(det) for det in d.lineas_detalle],
             }
             for d in data.desayunos
+        ],
+        "registros_servicio": [
+            {
+                "id": r.id,
+                "tipo_servicio": r.tipo_servicio,
+                "fecha": r.fecha.isoformat(),
+                "hora": r.hora.isoformat() if r.hora else None,
+                "lineas": [
+                    {
+                        "producto_id": ln.producto_id,
+                        "cantidad": ln.cantidad,
+                        "coste": ln.coste,
+                        "es_extra": ln.es_extra,
+                    }
+                    for ln in r.lineas
+                ],
+                "coste_total": r.coste_total,
+                "registrado_por": r.registrado_por,
+                "num_huespedes": r.num_huespedes,
+                "registros_recetas": [
+                    {
+                        "receta_id": rr.receta_id,
+                        "nombre_receta": rr.nombre_receta,
+                        "porciones": rr.porciones,
+                        "categoria_receta": rr.categoria_receta,
+                        "extras": [
+                            {"producto_id": e.producto_id, "cantidad": e.cantidad}
+                            for e in rr.extras
+                        ],
+                        "omisiones": [
+                            {"producto_id": o.producto_id}
+                            for o in rr.omisiones
+                        ],
+                    }
+                    for rr in r.registros_recetas
+                ],
+                "lineas_detalle": [_detalle_to_dict(det) for det in r.lineas_detalle],
+            }
+            for r in data.registros_servicio
         ],
         "recetas": [
             {
                 "id": r.id,
                 "nombre": r.nombre,
+                "categoria": r.categoria.value,
                 "ingredientes": [
                     {
                         "producto_id": i.producto_id,
@@ -224,8 +298,52 @@ def dict_to_appdata(payload: dict) -> AppData:
                     for rr in d.get("registros_recetas", [])
                 ],
                 hora=_parse_time(d.get("hora")),
+                lineas_detalle=[
+                    _detalle_from_dict(det) for det in d.get("lineas_detalle", [])
+                ],
             )
             for d in payload.get("desayunos", [])
+        ],
+        registros_servicio=[
+            RegistroServicio(
+                r["id"],
+                r["tipo_servicio"],
+                _parse_date(r["fecha"]),  # type: ignore[arg-type]
+                [
+                    LineaServicio(
+                        ln["producto_id"],
+                        ln["cantidad"],
+                        ln["coste"],
+                        ln.get("es_extra", False),
+                    )
+                    for ln in r.get("lineas", [])
+                ],
+                r.get("coste_total", 0),
+                r.get("registrado_por", ""),
+                r.get("num_huespedes", 0),
+                [
+                    RegistroRecetaServicio(
+                        rr["receta_id"],
+                        rr["nombre_receta"],
+                        rr["porciones"],
+                        [
+                            ExtraRecetaServicio(e["producto_id"], e["cantidad"])
+                            for e in rr.get("extras", [])
+                        ],
+                        [
+                            OmisionRecetaServicio(o["producto_id"])
+                            for o in rr.get("omisiones", [])
+                        ],
+                        categoria_receta=rr.get("categoria_receta"),
+                    )
+                    for rr in r.get("registros_recetas", [])
+                ],
+                hora=_parse_time(r.get("hora")),
+                lineas_detalle=[
+                    _detalle_from_dict(det) for det in r.get("lineas_detalle", [])
+                ],
+            )
+            for r in payload.get("registros_servicio", [])
         ],
         recetas=[
             Receta(
@@ -240,6 +358,8 @@ def dict_to_appdata(payload: dict) -> AppData:
                     )
                     for i in r.get("ingredientes", [])
                 ],
+                # Recetas antiguas sin categoría → Desayuno (compatibilidad).
+                CategoriaReceta(r.get("categoria", CategoriaReceta.DESAYUNO.value)),
             )
             for r in payload.get("recetas", [])
         ],
