@@ -30,6 +30,7 @@ NAV_SECTIONS = {
     "Dashboard": "dashboard",
     "Desayuno": "desayuno",
     "Comida": "comida",
+    "Cena": "cena",
     "Recetas": "recetas",
     "Stock": "stock",
     "Análisis": "analisis",
