@@ -495,15 +495,21 @@
       "ingredientes": [
         {
           "producto_id": "p02",
-          "cantidad": 2.0
+          "cantidad": 2.0,
+          "cantidad_presentacion": null,
+          "unidad_presentacion": null
         },
         {
           "producto_id": "p03",
-          "cantidad": 1.0
+          "cantidad": 1.0,
+          "cantidad_presentacion": null,
+          "unidad_presentacion": null
         },
         {
           "producto_id": "p04",
-          "cantidad": 0.001
+          "cantidad": 0.001,
+          "cantidad_presentacion": null,
+          "unidad_presentacion": null
         }
       ]
     },
@@ -513,11 +519,33 @@
       "ingredientes": [
         {
           "producto_id": "p07",
-          "cantidad": 0.0005
+          "cantidad": 0.0005,
+          "cantidad_presentacion": null,
+          "unidad_presentacion": null
         },
         {
           "producto_id": "p11",
-          "cantidad": 0.5
+          "cantidad": 0.5,
+          "cantidad_presentacion": null,
+          "unidad_presentacion": null
+        }
+      ]
+    },
+    {
+      "id": "r03",
+      "nombre": "cafe latte",
+      "ingredientes": [
+        {
+          "producto_id": "p07",
+          "cantidad": 0.002,
+          "cantidad_presentacion": 2.0,
+          "unidad_presentacion": "gr"
+        },
+        {
+          "producto_id": "p11",
+          "cantidad": 0.05,
+          "cantidad_presentacion": 50.0,
+          "unidad_presentacion": "ml"
         }
       ]
     }
@@ -773,6 +801,76 @@
     "logo_path": "C:\\Users\\User\\Desktop\\HOTEL\\BM V.2\\data\\assets\\logo_hotel.jpg"
   },
   "actividades": [
+    {
+      "id": "act91",
+      "fecha_hora": "2026-07-22T12:54:43.000473",
+      "usuario": "Miki",
+      "accion": "Crear receta",
+      "detalle": "«cafe latte» creada con 2 ingrediente(s)"
+    },
+    {
+      "id": "act90",
+      "fecha_hora": "2026-07-22T12:52:38.596358",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de desayuno — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+    },
+    {
+      "id": "act89",
+      "fecha_hora": "2026-07-22T12:52:38.566482",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_125238.xlsx — resultado correcto"
+    },
+    {
+      "id": "act88",
+      "fecha_hora": "2026-07-22T12:52:38.558562",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+    },
+    {
+      "id": "act87",
+      "fecha_hora": "2026-07-22T12:52:38.542845",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+    },
+    {
+      "id": "act86",
+      "fecha_hora": "2026-07-22T12:52:38.467282",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+    },
+    {
+      "id": "act85",
+      "fecha_hora": "2026-07-22T12:52:38.435373",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+    },
+    {
+      "id": "act84",
+      "fecha_hora": "2026-07-22T12:52:38.404163",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+    },
+    {
+      "id": "act83",
+      "fecha_hora": "2026-07-22T12:52:38.383250",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+    },
+    {
+      "id": "act82",
+      "fecha_hora": "2026-07-22T12:52:38.366609",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+    },
     {
       "id": "act81",
       "fecha_hora": "2026-07-22T12:17:59.343067",

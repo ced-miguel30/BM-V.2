@@ -45,7 +45,11 @@ def debe_archivar_semanal() -> bool:
     return ultimo is None or ultimo < lunes_actual
 
 
-def _filas_lotes(fecha_hasta: date | None = None) -> list[dict]:
+def _filas_lotes(fecha_hasta: date | None = None, es_bebida: bool | None = None) -> list[dict]:
+    """Filas de lotes hasta `fecha_hasta`. Si `es_bebida` no es `None`, se
+    restringe a solo productos o solo bebidas (para que cada exportación —
+    productos o bebidas— contenga únicamente lo que corresponde a su
+    sección, igual que ya se filtra la tabla en pantalla)."""
     repo = get_repository()
     simbolo = repo.get_simbolo_moneda()
     filas = []
@@ -53,6 +57,10 @@ def _filas_lotes(fecha_hasta: date | None = None) -> list[dict]:
     for lote in repo.data.lotes:
         if fecha_hasta and lote.fecha_compra and lote.fecha_compra > fecha_hasta:
             continue
+        if es_bebida is not None:
+            producto = repo.get_producto(lote.producto_id)
+            if not producto or producto.es_bebida != es_bebida:
+                continue
         filas.append({
             "Producto": repo.get_nombre_producto(lote.producto_id),
             "Lote": lote.id,
@@ -82,10 +90,11 @@ def _generar_excel_bytes(
     filas: list[dict],
     titulo: str,
     criterio: str,
+    etiqueta_columna: str = "Producto",
 ) -> bytes:
     export = [
         {
-            "Producto": f["Producto"],
+            etiqueta_columna: f["Producto"],
             "Lote": f["Lote"],
             "Fecha compra": f["Fecha compra txt"],
             "Expiración": f["Expiración"],
@@ -141,15 +150,21 @@ def archivar_historial_semanal() -> Path | None:
     return ruta
 
 
-def exportar_historial_hasta(fecha_hasta: date, orden: str) -> tuple[bytes, str]:
-    filas = _ordenar_filas(_filas_lotes(fecha_hasta), orden)
+def exportar_historial_hasta(fecha_hasta: date, orden: str, es_bebida: bool = False) -> tuple[bytes, str]:
+    """Exporta el historial de compras hasta `fecha_hasta`, restringido a
+    productos o a bebidas según `es_bebida` — con el mismo formato, columnas
+    y estilo para ambas secciones."""
+    filas = _ordenar_filas(_filas_lotes(fecha_hasta, es_bebida=es_bebida), orden)
     orden_txt = "nombre (A→Z)" if orden == "nombre" else "fecha de compra (reciente primero)"
+    etiqueta = "Bebida" if es_bebida else "Producto"
     contenido = _generar_excel_bytes(
         filas,
-        "Historial de compras",
+        f"Historial de compras — {'bebidas' if es_bebida else 'productos'}",
         f"Hasta {formato_fecha(fecha_hasta)} — orden: {orden_txt}",
+        etiqueta_columna=etiqueta,
     )
-    nombre = f"historial_compras_hasta_{fecha_hasta.isoformat()}.xlsx"
+    sufijo = "bebidas" if es_bebida else "productos"
+    nombre = f"historial_compras_{sufijo}_hasta_{fecha_hasta.isoformat()}.xlsx"
     HISTORIAL_DIR.mkdir(parents=True, exist_ok=True)
     (HISTORIAL_DIR / nombre).write_bytes(contenido)
     return contenido, nombre

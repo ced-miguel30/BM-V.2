@@ -16,6 +16,7 @@ from app.core.repositories.data_repository import DataRepository
 from app.core.services.excel_bloques import RegistroExportable
 from app.core.services.exportacion_semanal_service import ConfiguracionExportacionModulo
 from app.core.services.text_search import coincide_busqueda
+from app.core.services.unidad_service import cantidad_para_mostrar, presentacion_legible, resolver_presentacion
 from app.core.storage.session_store import get_data, persist_data
 
 CESTA_SESSION_KEY = "bm_cesta_desayuno"
@@ -57,6 +58,12 @@ class LineaCestaIngrediente:
     es_extra: bool = False
     es_omision: bool = False
     paso_edicion: float = 0
+    # Cantidad/unidad en la presentación elegida al definir la receta (p. ej.
+    # "10 gr" aunque el producto se almacene en kg). `cantidad`/`unidad` de
+    # arriba son siempre la unidad nativa del producto y son las que se usan
+    # para coste y descuento de stock; estos dos campos son solo para mostrar.
+    cantidad_mostrar: float | None = None
+    unidad_mostrar: str | None = None
 
 
 @dataclass
@@ -261,12 +268,25 @@ def etiqueta_linea_suelta(linea: LineaCesta) -> str:
 
 
 def etiqueta_linea_receta(ing: LineaCestaIngrediente) -> str:
-    cant = abs(ing.cantidad)
+    if ing.unidad_mostrar and ing.cantidad_mostrar is not None:
+        cant, unidad = abs(ing.cantidad_mostrar), ing.unidad_mostrar
+    else:
+        from app.core.models import UnidadProducto
+        cant, unidad = presentacion_legible(abs(ing.cantidad), UnidadProducto(ing.unidad))
     if ing.es_omision or ing.cantidad < 0:
-        return f"s/ {ing.nombre} — {cant:g} {ing.unidad}"
+        return f"s/ {ing.nombre} — {cant:g} {unidad}"
     if ing.es_extra:
-        return f"c/ extra {ing.nombre} — {cant:g} {ing.unidad}"
-    return f"{ing.nombre} — {cant:g} {ing.unidad}"
+        return f"c/ extra {ing.nombre} — {cant:g} {unidad}"
+    return f"{ing.nombre} — {cant:g} {unidad}"
+
+
+def cantidad_texto_linea_receta(ing: LineaCestaIngrediente) -> str:
+    """Cantidad visible en los controles +/- del desglose de la cesta."""
+    if ing.unidad_mostrar and ing.cantidad_mostrar is not None:
+        return f"{abs(ing.cantidad_mostrar):g}"
+    from app.core.models import UnidadProducto
+    cant, _ = presentacion_legible(abs(ing.cantidad), UnidadProducto(ing.unidad))
+    return f"{cant:g}"
 
 
 def productos_catalogo(buscar: str = "") -> list[dict]:
@@ -403,6 +423,13 @@ def anadir_receta_a_cesta(
         if not producto:
             return ResultadoOperacion(False, "Un ingrediente de la receta ya no existe en el catálogo.")
         cantidad = round(ing.cantidad * porciones, 4)
+        cantidad_mostrar, unidad_mostrar = resolver_presentacion(
+            ing.cantidad,
+            producto.unidad,
+            cantidad_presentacion=ing.cantidad_presentacion,
+            unidad_presentacion=ing.unidad_presentacion,
+            factor=porciones,
+        )
         ingredientes.append(LineaCestaIngrediente(
             _nueva_linea_id(),
             producto.id,
@@ -413,6 +440,8 @@ def anadir_receta_a_cesta(
             es_extra=False,
             es_omision=False,
             paso_edicion=ing.cantidad if ing.cantidad > 0 else PASO_CANTIDAD,
+            cantidad_mostrar=cantidad_mostrar,
+            unidad_mostrar=unidad_mostrar,
         ))
 
     for mod in mods_pendientes or []:
@@ -512,6 +541,14 @@ def modificar_linea_grupo(grupo_id: str, linea_id: str, cantidad: float) -> Resu
     linea.es_omision = cantidad < 0 or (not linea.es_base_receta and cantidad < 0)
     if linea.es_base_receta and cantidad < 0:
         linea.es_omision = True
+    if linea.unidad_mostrar:
+        producto = DataRepository(get_data()).get_producto(linea.producto_id)
+        if producto:
+            linea.cantidad_mostrar = cantidad_para_mostrar(linea.cantidad, producto.unidad, linea.unidad_mostrar)
+    else:
+        producto = DataRepository(get_data()).get_producto(linea.producto_id)
+        if producto:
+            linea.cantidad_mostrar, linea.unidad_mostrar = presentacion_legible(linea.cantidad, producto.unidad)
     _guardar_cesta_recetas(get_cesta_recetas())
     return ResultadoOperacion(True, "Cantidad actualizada.")
 
@@ -538,8 +575,17 @@ def modificar_porciones_grupo(grupo_id: str, porciones: float) -> ResultadoOpera
         ing_template = next((i for i in receta.ingredientes if i.producto_id == linea.producto_id), None)
         if not ing_template:
             continue
-        nueva_cant = round(ing_template.cantidad * porciones, 4)
-        linea.cantidad = nueva_cant
+        producto = repo.get_producto(linea.producto_id)
+        if not producto:
+            continue
+        linea.cantidad = round(ing_template.cantidad * porciones, 4)
+        linea.cantidad_mostrar, linea.unidad_mostrar = resolver_presentacion(
+            ing_template.cantidad,
+            producto.unidad,
+            cantidad_presentacion=ing_template.cantidad_presentacion,
+            unidad_presentacion=ing_template.unidad_presentacion,
+            factor=porciones,
+        )
 
     _guardar_cesta_recetas(get_cesta_recetas())
     return ResultadoOperacion(True, "Porciones actualizadas.")
@@ -790,6 +836,27 @@ def registros_exportables(inicio: date, hasta: datetime) -> list[RegistroExporta
         filas: list[list] = []
         for rr in d.registros_recetas:
             filas.append(["Receta", rr.nombre_receta, f"× {rr.porciones:g} porciones", rr.porciones, "porciones", ""])
+
+            receta = repo.get_receta(rr.receta_id)
+            omitidos = {o.producto_id for o in rr.omisiones}
+            for ing in (receta.ingredientes if receta else []):
+                if ing.producto_id in omitidos:
+                    continue
+                producto_ing = repo.get_producto(ing.producto_id)
+                if not producto_ing:
+                    continue
+                cantidad_mostrar, unidad_mostrar = resolver_presentacion(
+                    ing.cantidad,
+                    producto_ing.unidad,
+                    cantidad_presentacion=ing.cantidad_presentacion,
+                    unidad_presentacion=ing.unidad_presentacion,
+                    factor=rr.porciones,
+                )
+                filas.append([
+                    "Ingrediente", repo.get_nombre_producto(ing.producto_id), "",
+                    cantidad_mostrar, unidad_mostrar, "",
+                ])
+
             for extra in rr.extras:
                 nombre = repo.get_nombre_producto(extra.producto_id)
                 producto = repo.get_producto(extra.producto_id)

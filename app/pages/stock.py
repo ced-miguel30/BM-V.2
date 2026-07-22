@@ -118,59 +118,58 @@ def _render_historial_compras(repo, *, es_bebida: bool, key_prefix: str) -> None
     else:
         empty_state("No hay compras para este filtro.", icon="🔍")
 
-    if not es_bebida:
-        section_divider()
-        st.markdown("##### Exportar historial")
+    section_divider()
+    st.markdown("##### Exportar historial")
 
-        from app.core.services.historial_compras_service import (
-            HISTORIAL_DIR,
-            exportar_historial_hasta,
-            ultimo_archivo_semanal,
+    from app.core.services.historial_compras_service import (
+        HISTORIAL_DIR,
+        exportar_historial_hasta,
+        ultimo_archivo_semanal,
+    )
+
+    ultimo = ultimo_archivo_semanal()
+    if ultimo:
+        st.caption(f"Último archivo semanal automático (productos y bebidas): lunes {formato_fecha(ultimo)}")
+    else:
+        st.caption("Aún no se ha generado el archivo semanal automático.")
+
+    col_ord, col_fecha = st.columns(2)
+    with col_ord:
+        orden = st.selectbox(
+            "Orden de exportación",
+            options=["fecha", "nombre"],
+            format_func=lambda x: "Fecha de compra (reciente primero)" if x == "fecha" else "Nombre (A→Z)",
+            key=f"{key_prefix}_historial_orden_export",
+        )
+    with col_fecha:
+        fecha_hasta = st.date_input(
+            "Exportar hasta",
+            value=date.today(),
+            key=f"{key_prefix}_historial_fecha_hasta",
         )
 
-        ultimo = ultimo_archivo_semanal()
-        if ultimo:
-            st.caption(f"Último archivo semanal automático: lunes {formato_fecha(ultimo)}")
-        else:
-            st.caption("Aún no se ha generado el archivo semanal automático.")
+    if st.button(
+        "Exportar historial",
+        type="primary",
+        use_container_width=True,
+        key=f"{key_prefix}_historial_btn_export",
+    ):
+        contenido, nombre = exportar_historial_hasta(fecha_hasta, orden, es_bebida=es_bebida)
+        st.session_state[f"{key_prefix}_historial_export"] = (contenido, nombre)
+        st.success(f"Exportado: {nombre}")
 
-        col_ord, col_fecha = st.columns(2)
-        with col_ord:
-            orden = st.selectbox(
-                "Orden de exportación",
-                options=["fecha", "nombre"],
-                format_func=lambda x: "Fecha de compra (reciente primero)" if x == "fecha" else "Nombre (A→Z)",
-                key=f"{key_prefix}_historial_orden_export",
-            )
-        with col_fecha:
-            fecha_hasta = st.date_input(
-                "Exportar hasta",
-                value=date.today(),
-                key=f"{key_prefix}_historial_fecha_hasta",
-            )
-
-        if st.button(
-            "Exportar historial",
-            type="primary",
+    if f"{key_prefix}_historial_export" in st.session_state:
+        data, fname = st.session_state[f"{key_prefix}_historial_export"]
+        st.download_button(
+            "Descargar Excel",
+            data=data,
+            file_name=fname,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True,
-            key=f"{key_prefix}_historial_btn_export",
-        ):
-            contenido, nombre = exportar_historial_hasta(fecha_hasta, orden)
-            st.session_state["historial_export"] = (contenido, nombre)
-            st.success(f"Exportado: {nombre}")
+            key=f"{key_prefix}_historial_dl_export",
+        )
 
-        if "historial_export" in st.session_state:
-            data, fname = st.session_state["historial_export"]
-            st.download_button(
-                "Descargar Excel",
-                data=data,
-                file_name=fname,
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True,
-                key=f"{key_prefix}_historial_dl_export",
-            )
-
-        st.caption(f"Carpeta local: `{HISTORIAL_DIR}`")
+    st.caption(f"Carpeta local: `{HISTORIAL_DIR}`")
 
 
 def _render_registro_catalogo(*, es_bebida: bool) -> None:

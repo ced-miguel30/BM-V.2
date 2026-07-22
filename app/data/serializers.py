@@ -116,7 +116,12 @@ def appdata_to_dict(data: AppData) -> dict:
                 "id": r.id,
                 "nombre": r.nombre,
                 "ingredientes": [
-                    {"producto_id": i.producto_id, "cantidad": i.cantidad}
+                    {
+                        "producto_id": i.producto_id,
+                        "cantidad": i.cantidad,
+                        "cantidad_presentacion": i.cantidad_presentacion,
+                        "unidad_presentacion": i.unidad_presentacion,
+                    }
                     for i in r.ingredientes
                 ],
             }
@@ -223,7 +228,12 @@ def dict_to_appdata(payload: dict) -> AppData:
                 r["id"],
                 r["nombre"],
                 [
-                    IngredienteReceta(i["producto_id"], i["cantidad"])
+                    IngredienteReceta(
+                        i["producto_id"],
+                        i["cantidad"],
+                        i.get("cantidad_presentacion"),
+                        i.get("unidad_presentacion"),
+                    )
                     for i in r.get("ingredientes", [])
                 ],
             )

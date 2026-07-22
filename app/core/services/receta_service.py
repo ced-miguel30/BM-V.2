@@ -5,6 +5,7 @@ from datetime import datetime
 
 from app.core.models import AppData, IngredienteReceta, Receta
 from app.core.repositories.data_repository import DataRepository
+from app.core.services.unidad_service import cantidad_y_unidad_mostrar
 from app.core.storage.session_store import get_data, persist_data
 
 
@@ -95,7 +96,10 @@ def resumen_ingredientes(receta: Receta) -> str:
     for ing in receta.ingredientes:
         producto = repo.get_producto(ing.producto_id)
         if producto:
-            partes.append(f"{producto.nombre} {ing.cantidad:g} {producto.unidad.value}")
+            cantidad, unidad = cantidad_y_unidad_mostrar(
+                ing.cantidad, producto.unidad, ing.cantidad_presentacion, ing.unidad_presentacion,
+            )
+            partes.append(f"{producto.nombre} {cantidad:g} {unidad}")
     return ", ".join(partes)
 
 

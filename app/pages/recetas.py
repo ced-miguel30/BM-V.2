@@ -14,7 +14,7 @@ from app.core.services.receta_service import (
 )
 from app.core.services.stock_service import mapa_productos
 from app.core.services.unidad_service import (
-    cantidad_para_mostrar,
+    cantidad_y_unidad_mostrar,
     convertir_a_unidad_producto,
     unidades_seleccionables,
 )
@@ -34,10 +34,12 @@ def _cargar_ingredientes(session_key: str, ingredientes: list[IngredienteReceta]
     for ing in ingredientes:
         producto = repo.get_producto(ing.producto_id)
         unidad_producto = producto.unidad if producto else UnidadProducto.UD
-        unidad_ui = unidad_producto.value
+        cantidad_ui, unidad_ui = cantidad_y_unidad_mostrar(
+            ing.cantidad, unidad_producto, ing.cantidad_presentacion, ing.unidad_presentacion,
+        )
         filas.append({
             "producto_id": ing.producto_id,
-            "cantidad": cantidad_para_mostrar(ing.cantidad, unidad_producto, unidad_ui),
+            "cantidad": cantidad_ui,
             "unidad": unidad_ui,
         })
     st.session_state[session_key] = filas
@@ -71,12 +73,9 @@ def _ingredientes_a_modelo(session_key: str) -> list[IngredienteReceta]:
         if not producto:
             continue
         unidad_ui = fila.get("unidad", producto.unidad.value)
-        cantidad_nativa = convertir_a_unidad_producto(
-            float(fila["cantidad"]),
-            unidad_ui,
-            producto.unidad,
-        )
-        resultado.append(IngredienteReceta(producto_id, cantidad_nativa))
+        cantidad_ui = float(fila["cantidad"])
+        cantidad_nativa = convertir_a_unidad_producto(cantidad_ui, unidad_ui, producto.unidad)
+        resultado.append(IngredienteReceta(producto_id, cantidad_nativa, cantidad_ui, unidad_ui))
     return resultado
 
 

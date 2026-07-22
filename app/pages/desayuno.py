@@ -18,6 +18,7 @@ from app.core.services.desayuno_service import (
     coste_total_cesta,
     etiqueta_linea_receta,
     etiqueta_linea_suelta,
+    cantidad_texto_linea_receta,
     get_cesta,
     get_cesta_recetas,
     get_mods_pendientes,
@@ -224,7 +225,7 @@ def _render_cesta_desayuno(repo) -> None:
                         lambda g=grupo, i=ing: _quitar_y_rerun(
                             quitar_linea_grupo, g.grupo_id, i.linea_id
                         ),
-                        cantidad_texto=f"{abs(ing.cantidad):g}",
+                        cantidad_texto=cantidad_texto_linea_receta(ing),
                         on_menos=lambda g=grupo, i=ing, p=paso: _ok_o_error(
                             ajustar_linea_grupo(g.grupo_id, i.linea_id, -p)
                         ),
