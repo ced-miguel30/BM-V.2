@@ -74,5 +74,23 @@
         "archivo": "Registro_de_Bebidas_2026-07-22_2026-07-13_a_2026-07-19.xlsx"
       }
     ]
+  },
+  "consumo": {
+    "ultima_semana_exportada": "2026-07-13",
+    "ultimo_archivo": "Registro_de_Consumo_2026-07-22_2026-07-13_a_2026-07-19.xlsx",
+    "exportaciones": [
+      {
+        "semana": "2026-06-29",
+        "archivo": "Registro_de_Consumo_2026-07-22_2026-06-29_a_2026-07-05.xlsx"
+      },
+      {
+        "semana": "2026-07-06",
+        "archivo": "Registro_de_Consumo_2026-07-22_2026-07-06_a_2026-07-12.xlsx"
+      },
+      {
+        "semana": "2026-07-13",
+        "archivo": "Registro_de_Consumo_2026-07-22_2026-07-13_a_2026-07-19.xlsx"
+      }
+    ]
   }
 }

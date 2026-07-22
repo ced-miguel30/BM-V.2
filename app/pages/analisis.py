@@ -1,10 +1,11 @@
 """Análisis — KPIs, consumo, costes e inteligencia de negocio."""
 
-from datetime import date
+from datetime import date, datetime
 
 import streamlit as st
 
 from app.core.services.data_service import get_repository
+from app.core.services.exportacion_semanal_service import exportar_semana_actual, limite_semana
 from app.core.services.formatting import formato_fecha
 from app.core.services.kpi_service import exportar_kpis_excel, resumen_kpis
 from app.ui.charts import chart_evolucion_costes
@@ -108,10 +109,68 @@ def _render_kpis() -> None:
             empty_state("Sin datos en el periodo.", icon="📊")
 
 
+def _boton_exportar_consumo() -> None:
+    """Exportación manual del Registro de Consumo: desde el lunes 00:00 de la
+    semana actual hasta el momento del clic. Igual patrón que desayuno/merma/
+    stock, pero para el historial detallado de consumo (no los rankings)."""
+    from app.core.services import consumo_service
+
+    col_btn, _ = st.columns([1, 2])
+    with col_btn:
+        if st.button("Exportar registro de consumo", use_container_width=True, key="consumo_exportar_semana"):
+            resultado = exportar_semana_actual(consumo_service.configuracion_exportacion(), datetime.now())
+            if resultado.ok:
+                st.session_state["consumo_export_dl"] = (
+                    resultado.ruta.read_bytes(), resultado.nombre_archivo,
+                )
+                st.success(resultado.mensaje)
+            else:
+                st.error(resultado.mensaje)
+
+    dl = st.session_state.get("consumo_export_dl")
+    if dl:
+        contenido, nombre = dl
+        st.download_button(
+            "Descargar Excel",
+            data=contenido,
+            file_name=nombre,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+            key="consumo_descargar_excel",
+        )
+
+
+def _tabla_ranking(filas: list[dict]):
+    import pandas as pd
+
+    return pd.DataFrame([
+        {
+            "#": i,
+            "Nombre": f["nombre"],
+            "Cantidad": f["cantidad_fmt"],
+            "Usos": f["usos"],
+            "Coste": f["coste_fmt"],
+        }
+        for i, f in enumerate(filas, 1)
+    ])
+
+
+def _render_ranking(titulo: str, filas: list[dict], icon: str) -> None:
+    st.markdown(f"##### {titulo}")
+    if filas:
+        st.dataframe(_tabla_ranking(filas), use_container_width=True, hide_index=True)
+    else:
+        empty_state("Sin consumo registrado en el periodo.", icon=icon)
+
+
 def _render_gestor_consumo() -> None:
     import pandas as pd
 
-    from app.core.services.consumo_service import prediccion_necesidades
+    from app.core.services.consumo_service import (
+        prediccion_necesidades,
+        ranking_productos_periodo,
+        ranking_recetas_periodo,
+    )
 
     repo = get_repository()
     hoy = date.today()
@@ -140,21 +199,82 @@ def _render_gestor_consumo() -> None:
         )
 
     section_divider()
+    st.markdown("##### Rankings de consumo")
 
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("##### Consumo por producto (histórico)")
-        consumo = repo.consumo_por_producto()
-        if consumo:
-            st.dataframe(pd.DataFrame(consumo), use_container_width=True, hide_index=True)
-        else:
-            empty_state("Sin datos de consumo.", icon="🍽️")
+    opciones_periodo = ["Semana actual", "Mes actual", "Rango personalizado"]
+    periodo_sel = st.radio(
+        "Periodo de análisis", opciones_periodo, horizontal=True, key="consumo_periodo_sel",
+    )
+    if periodo_sel == "Semana actual":
+        desde, hasta = limite_semana(hoy)[0], hoy
+    elif periodo_sel == "Mes actual":
+        desde, hasta = inicio_mes, hoy
+    else:
+        col_a, col_b = st.columns(2)
+        with col_a:
+            desde = st.date_input("Desde", value=inicio_mes, key="consumo_rango_desde")
+        with col_b:
+            hasta = st.date_input("Hasta", value=hoy, max_value=hoy, key="consumo_rango_hasta")
 
-    with col2:
-        st.markdown("##### Consumo medio diario")
-        n_dias = len({d.fecha for d in repo.data.desayunos}) or 1
-        media = sum(d.coste_total for d in repo.data.desayunos) / n_dias
-        metric_card("Media diaria", repo.formato_precio(media), f"Basado en {n_dias} días")
+    if desde > hasta:
+        st.error("La fecha «Desde» no puede ser posterior a «Hasta».")
+        return
+
+    col_p1, col_p2 = st.columns(2)
+    with col_p1:
+        _render_ranking(
+            "Productos más consumidos",
+            ranking_productos_periodo(desde, hasta, es_bebida=False, ascendente=False),
+            "🥇",
+        )
+    with col_p2:
+        _render_ranking(
+            "Productos menos consumidos",
+            ranking_productos_periodo(desde, hasta, es_bebida=False, ascendente=True),
+            "🥄",
+        )
+
+    col_r1, col_r2 = st.columns(2)
+    with col_r1:
+        _render_ranking(
+            "Recetas más consumidas",
+            ranking_recetas_periodo(desde, hasta, ascendente=False),
+            "🍳",
+        )
+    with col_r2:
+        _render_ranking(
+            "Recetas menos consumidas",
+            ranking_recetas_periodo(desde, hasta, ascendente=True),
+            "📉",
+        )
+
+    col_b1, col_b2 = st.columns(2)
+    with col_b1:
+        _render_ranking(
+            "Bebidas más consumidas",
+            ranking_productos_periodo(desde, hasta, es_bebida=True, ascendente=False),
+            "🥤",
+        )
+    with col_b2:
+        _render_ranking(
+            "Bebidas menos consumidas",
+            ranking_productos_periodo(desde, hasta, es_bebida=True, ascendente=True),
+            "🧊",
+        )
+
+    section_divider()
+    st.markdown("##### Exportar registro de consumo")
+    st.caption(
+        "Exporta el historial detallado de consumo (no solo los rankings) desde el lunes "
+        "de la semana actual hasta ahora."
+    )
+    _boton_exportar_consumo()
+
+    section_divider()
+    st.markdown("##### Consumo medio diario")
+    n_dias = len({d.fecha for d in repo.data.desayunos}) or 1
+    media = sum(d.coste_total for d in repo.data.desayunos) / n_dias
+    metric_card("Media diaria", repo.formato_precio(media), f"Basado en {n_dias} días")
 
     section_divider()
     st.markdown("##### Predicción de necesidades")

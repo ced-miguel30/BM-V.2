@@ -1,10 +1,15 @@
 """Servicio de análisis y predicción de consumo."""
 
-from datetime import date
+from datetime import date, datetime
 
 from app.core.repositories.data_repository import DataRepository
 from app.core.services.data_service import get_repository
+from app.core.services.desayuno_service import fecha_mas_antigua as _fecha_mas_antigua_desayuno
 from app.core.services.desayuno_service import stock_disponible
+from app.core.services.excel_bloques import RegistroExportable
+from app.core.services.exportacion_semanal_service import ConfiguracionExportacionModulo
+from app.core.services.unidad_service import presentacion_legible
+from app.core.storage.session_store import get_data
 
 
 def _coste_medio_unidad(repo: DataRepository, producto_id: str) -> float:
@@ -161,3 +166,206 @@ def consumo_por_producto_periodo(inicio: date, fin: date) -> list[dict]:
         }
         for pid, cantidad in sorted(totales.items(), key=lambda x: x[1], reverse=True)
     ]
+
+
+# ---------------------------------------------------------------------------
+# Fase 5 — Rankings de consumo (productos / recetas / bebidas)
+# ---------------------------------------------------------------------------
+#
+# El consumo por producto (directo + vía receta, ya consolidado y sin doble
+# contabilización) está en `RegistroDesayuno.lineas`: `_aplanar_cesta()` fusiona
+# en una única cantidad neta por producto tanto los productos sueltos como los
+# ingredientes de receta (con sus extras/omisiones) antes de descontar stock.
+# Por eso no hace falta "sumar" aquí directo + receta por separado: ya viene
+# sumado una sola vez por producto y por registro.
+#
+# Las recetas, en cambio, no están en `lineas` (solo sus ingredientes): se
+# cuentan a partir de `registros_recetas`, como una entidad independiente de
+# sus ingredientes (que sí cuentan en el ranking de productos/bebidas).
+
+
+def _agregar_consumo_productos(inicio: date, fin: date) -> dict[str, dict]:
+    """Cantidad, coste y nº de registros por producto en `[inicio, fin]`
+    (fechas de desayuno, inclusive). Usa siempre la unidad nativa del
+    producto, así que no requiere conversión para sumar entre registros."""
+    repo = get_repository()
+    agregados: dict[str, dict] = {}
+    for desayuno in repo.data.desayunos:
+        if not (inicio <= desayuno.fecha <= fin):
+            continue
+        for linea in desayuno.lineas:
+            if linea.cantidad <= 0:
+                continue
+            entry = agregados.setdefault(linea.producto_id, {"cantidad": 0.0, "coste": 0.0, "usos": 0})
+            entry["cantidad"] = round(entry["cantidad"] + linea.cantidad, 4)
+            entry["coste"] = round(entry["coste"] + linea.coste, 2)
+            entry["usos"] += 1
+    return agregados
+
+
+def ranking_productos_periodo(
+    inicio: date,
+    fin: date,
+    *,
+    es_bebida: bool = False,
+    ascendente: bool = False,
+    limite: int = 5,
+) -> list[dict]:
+    """Ranking de productos (o bebidas, si `es_bebida=True`) más/menos
+    consumidos en el periodo. Solo incluye elementos con consumo > 0."""
+    repo = get_repository()
+    agregados = _agregar_consumo_productos(inicio, fin)
+
+    # Se ordena por la cantidad nativa (antes de convertir a unidad legible)
+    # para que la comparación entre productos del mismo tipo sea consistente
+    # con independencia de qué unidad de presentación se elija para mostrar.
+    candidatos = [
+        (producto, datos)
+        for producto_id, datos in agregados.items()
+        if (producto := repo.get_producto(producto_id))
+        and producto.es_bebida == es_bebida
+        and datos["cantidad"] > 0
+    ]
+    candidatos.sort(key=lambda item: item[1]["cantidad"], reverse=not ascendente)
+
+    filas = []
+    for producto, datos in candidatos[:limite]:
+        cantidad_mostrar, unidad_mostrar = presentacion_legible(datos["cantidad"], producto.unidad)
+        filas.append({
+            "nombre": producto.nombre,
+            "cantidad": cantidad_mostrar,
+            "unidad": unidad_mostrar,
+            "cantidad_fmt": f"{cantidad_mostrar:g} {unidad_mostrar}",
+            "usos": datos["usos"],
+            "coste": datos["coste"],
+            "coste_fmt": repo.formato_precio(datos["coste"]),
+        })
+    return filas
+
+
+def ranking_recetas_periodo(
+    inicio: date,
+    fin: date,
+    *,
+    ascendente: bool = False,
+    limite: int = 5,
+) -> list[dict]:
+    """Ranking de recetas más/menos consumidas (en porciones registradas),
+    sin contabilizar sus ingredientes como recetas independientes."""
+    repo = get_repository()
+    agregados: dict[str, dict] = {}
+    for desayuno in repo.data.desayunos:
+        if not (inicio <= desayuno.fecha <= fin):
+            continue
+        for registro_receta in desayuno.registros_recetas:
+            if registro_receta.porciones <= 0:
+                continue
+            entry = agregados.setdefault(
+                registro_receta.receta_id,
+                {"nombre": registro_receta.nombre_receta, "porciones": 0.0, "usos": 0},
+            )
+            entry["porciones"] = round(entry["porciones"] + registro_receta.porciones, 2)
+            entry["usos"] += 1
+
+    filas = [
+        {
+            "nombre": datos["nombre"],
+            "cantidad": datos["porciones"],
+            "unidad": "porciones",
+            "cantidad_fmt": f"{datos['porciones']:g} porciones",
+            "usos": datos["usos"],
+            "coste": None,
+            "coste_fmt": "—",
+        }
+        for datos in agregados.values()
+        if datos["porciones"] > 0
+    ]
+    filas.sort(key=lambda f: f["cantidad"], reverse=not ascendente)
+    return filas[:limite]
+
+
+def fecha_mas_antigua() -> date | None:
+    """El consumo proviene de los registros de desayuno: reutiliza su fecha
+    más antigua para sembrar exportaciones pendientes."""
+    return _fecha_mas_antigua_desayuno()
+
+
+def registros_exportables(inicio: date, hasta: datetime) -> list[RegistroExportable]:
+    """Historial detallado de consumo (no solo los rankings) entre `inicio`
+    y `hasta`, para la exportación semanal del «Registro de Consumo»."""
+    data = get_data()
+    repo = DataRepository(data)
+    fin = hasta.date()
+    columnas = [
+        "Tipo", "Producto o receta", "Cantidad visible", "Unidad visible",
+        "Cantidad interna", "Unidad interna", "Coste", "Relación con receta",
+    ]
+
+    resultado: list[RegistroExportable] = []
+    for desayuno in data.desayunos:
+        if not (inicio <= desayuno.fecha <= fin):
+            continue
+
+        # Productos que son ingrediente (no omitido) de alguna receta usada en
+        # este registro, con el/los nombre(s) de receta — informativo, ya que
+        # `lineas` fusiona directo + vía receta en una única cantidad neta.
+        origen_receta: dict[str, set[str]] = {}
+        for registro_receta in desayuno.registros_recetas:
+            receta = repo.get_receta(registro_receta.receta_id)
+            omitidos = {o.producto_id for o in registro_receta.omisiones}
+            for ingrediente in (receta.ingredientes if receta else []):
+                if ingrediente.producto_id in omitidos:
+                    continue
+                origen_receta.setdefault(ingrediente.producto_id, set()).add(registro_receta.nombre_receta)
+
+        filas: list[list] = []
+        for registro_receta in desayuno.registros_recetas:
+            filas.append([
+                "Receta", registro_receta.nombre_receta, registro_receta.porciones, "porciones",
+                "", "", "", "",
+            ])
+
+        for linea in desayuno.lineas:
+            if linea.cantidad <= 0:
+                continue
+            producto = repo.get_producto(linea.producto_id)
+            if not producto:
+                continue
+            tipo = "Bebida" if producto.es_bebida else "Producto"
+            cantidad_mostrar, unidad_mostrar = presentacion_legible(linea.cantidad, producto.unidad)
+            hay_conversion = unidad_mostrar != producto.unidad.value
+            recetas_origen = origen_receta.get(linea.producto_id)
+            relacion = ", ".join(sorted(recetas_origen)) if recetas_origen else "Directo"
+            filas.append([
+                tipo,
+                repo.get_nombre_producto(linea.producto_id),
+                cantidad_mostrar,
+                unidad_mostrar,
+                round(linea.cantidad, 4) if hay_conversion else "",
+                producto.unidad.value if hay_conversion else "",
+                linea.coste,
+                relacion,
+            ])
+
+        resultado.append(RegistroExportable(
+            fecha=desayuno.fecha,
+            hora=desayuno.hora,
+            tipo="Consumo",
+            identificador=desayuno.id,
+            usuario=desayuno.registrado_por or None,
+            columnas=columnas,
+            filas=filas,
+            resumen=[
+                ("Huéspedes", str(desayuno.num_huespedes)),
+                ("Coste total", repo.formato_precio(desayuno.coste_total)),
+            ],
+        ))
+    return resultado
+
+
+def configuracion_exportacion() -> ConfiguracionExportacionModulo:
+    return ConfiguracionExportacionModulo(
+        tipo="consumo",
+        titulo_documento="Registro de Consumo",
+        obtener_registros=registros_exportables,
+    )
