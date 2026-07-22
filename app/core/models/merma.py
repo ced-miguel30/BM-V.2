@@ -1,7 +1,7 @@
 """Modelo de registro de merma."""
 
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, time
 
 from app.core.models.enums import MotivoMerma
 
@@ -13,6 +13,7 @@ class LineaMerma:
     coste: float
     motivo: MotivoMerma
     comentario: str | None = None
+    lote_id: str | None = None
 
 
 @dataclass
@@ -22,3 +23,4 @@ class RegistroMerma:
     lineas: list[LineaMerma] = field(default_factory=list)
     coste_total: float = 0.0
     registrado_por: str = ""
+    hora: time | None = None

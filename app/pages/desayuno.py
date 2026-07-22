@@ -1,10 +1,11 @@
 """Desayuno — registro de consumo y merma."""
 
 import unicodedata
-from datetime import date
+from datetime import date, datetime, time
 
 import streamlit as st
 
+from app.core.services import desayuno_service
 from app.core.services.data_service import get_repository
 from app.core.services.desayuno_service import (
     PASO_CANTIDAD,
@@ -31,25 +32,13 @@ from app.core.services.desayuno_service import (
     quitar_mod_pendiente,
     registrar_desayuno,
 )
+from app.core.services.exportacion_semanal_service import exportar_semana_actual, limite_semana
 from app.core.services.formatting import formato_fecha
 from app.core.services.receta_service import listar_recetas
 from app.ui.components import empty_state, page_header, render_sub_tabs, section_divider
 from app.ui.search import render_autocomplete, render_buscador_producto
 
 STOCK_PENDIENTE_KEY = "bm_stock_pendiente_registro"
-
-
-def _lineas_desayuno_texto(repo, desayuno) -> str:
-    partes = []
-    for linea in desayuno.lineas:
-        nombre = repo.get_nombre_producto(linea.producto_id)
-        producto = repo.get_producto(linea.producto_id)
-        unidad = producto.unidad.value if producto else ""
-        texto = f"{nombre} ({linea.cantidad:g} {unidad})"
-        if linea.es_extra:
-            texto += " [extra]"
-        partes.append(texto)
-    return ", ".join(partes)
 
 
 def _lineas_merma_texto(repo, merma) -> str:
@@ -67,6 +56,11 @@ def _clave_orden(texto: str) -> str:
     return sin_acentos.casefold()
 
 
+def _lunes_semana_actual() -> date:
+    lunes, _ = limite_semana(date.today())
+    return lunes
+
+
 def _ok_o_error(resultado) -> None:
     if resultado.ok:
         st.rerun()
@@ -77,6 +71,53 @@ def _ok_o_error(resultado) -> None:
 def _quitar_y_rerun(accion, *args) -> None:
     accion(*args)
     st.rerun()
+
+
+def _boton_exportar_semana(config, key_prefix: str) -> None:
+    """Botón de exportación manual: desde el lunes 00:00 de la semana actual
+    hasta el momento del clic. Guarda el Excel en disco y ofrece descarga."""
+    col_btn, _ = st.columns([1, 2])
+    with col_btn:
+        if st.button("Exportar semana actual", use_container_width=True, key=f"{key_prefix}_exportar_semana"):
+            resultado = exportar_semana_actual(config, datetime.now())
+            if resultado.ok:
+                st.session_state[f"{key_prefix}_export_dl"] = (
+                    resultado.ruta.read_bytes(), resultado.nombre_archivo,
+                )
+                st.success(f"{resultado.mensaje}")
+            else:
+                st.error(resultado.mensaje)
+
+    dl = st.session_state.get(f"{key_prefix}_export_dl")
+    if dl:
+        contenido, nombre = dl
+        st.download_button(
+            "Descargar Excel",
+            data=contenido,
+            file_name=nombre,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+            key=f"{key_prefix}_export_dl_btn",
+        )
+
+
+def _render_detalle_desayuno(d) -> None:
+    """Desglose completo de un registro de desayuno (recetas, extras/omisiones
+    y productos), reutilizando la misma lógica que la exportación a Excel."""
+    hasta = datetime.combine(d.fecha, time.max)
+    registros = [r for r in desayuno_service.registros_exportables(d.fecha, hasta) if r.identificador == d.id]
+    if not registros:
+        return
+    registro = registros[0]
+    hora_txt = registro.hora.strftime("%H:%M") if registro.hora else "—"
+    st.caption(f"Nº {registro.identificador} · Hora {hora_txt} · {registro.usuario or '—'}")
+    st.dataframe(
+        {col: [fila[i] for fila in registro.filas] for i, col in enumerate(registro.columnas)},
+        use_container_width=True,
+        hide_index=True,
+    )
+    if registro.resumen:
+        st.caption(" · ".join(f"{clave}: {valor}" for clave, valor in registro.resumen))
 
 
 def _fila_cesta(
@@ -389,29 +430,46 @@ def _render_registro_desayuno() -> None:
 
     section_divider()
     st.markdown("#### Historial de desayunos")
+    st.caption("Solo se muestran los registros de la semana en curso. Las semanas anteriores quedan archivadas y disponibles en las exportaciones.")
+    _boton_exportar_semana(desayuno_service.configuracion_exportacion(), "desayuno")
 
     desayunos = repo.desayunos_ordenados()
-    if desayunos:
+    desayunos_semana = [d for d in desayunos if d.fecha >= _lunes_semana_actual()]
+    if desayunos_semana:
         st.dataframe(
             {
-                "Fecha": [formato_fecha(d.fecha) for d in desayunos],
-                "Hora": [d.hora.strftime("%H:%M") if d.hora else "—" for d in desayunos],
-                "Huéspedes": [d.num_huespedes for d in desayunos],
-                "Productos": [_lineas_desayuno_texto(repo, d) for d in desayunos],
-                "Coste": [repo.formato_precio(d.coste_total) for d in desayunos],
-                "Registrado por": [d.registrado_por for d in desayunos],
+                "Fecha": [formato_fecha(d.fecha) for d in desayunos_semana],
+                "Hora": [d.hora.strftime("%H:%M") if d.hora else "—" for d in desayunos_semana],
+                "Huéspedes": [d.num_huespedes for d in desayunos_semana],
+                "Elementos": [len(d.lineas) + len(d.registros_recetas) for d in desayunos_semana],
+                "Cantidad total": [round(sum(abs(l.cantidad) for l in d.lineas), 2) for d in desayunos_semana],
+                "Coste": [repo.formato_precio(d.coste_total) for d in desayunos_semana],
+                "Registrado por": [d.registrado_por for d in desayunos_semana],
             },
             use_container_width=True,
             hide_index=True,
         )
+
+        opciones_detalle = {
+            f"{d.id} — {formato_fecha(d.fecha)} {d.hora.strftime('%H:%M') if d.hora else ''}".strip(): d
+            for d in desayunos_semana
+        }
+        etiqueta_sel = st.selectbox(
+            "Ver detalle de un registro",
+            ["—"] + list(opciones_detalle.keys()),
+            key="desayuno_detalle_sel",
+        )
+        if etiqueta_sel != "—":
+            _render_detalle_desayuno(opciones_detalle[etiqueta_sel])
     else:
-        empty_state("No hay registros de desayuno.", icon="📅")
+        empty_state("No hay registros de desayuno esta semana.", icon="📅")
 
 
 def _render_registro_merma() -> None:
     from app.core.services.merma_service import (
         MOTIVOS,
         anadir_a_cesta_merma,
+        configuracion_exportacion as configuracion_exportacion_merma,
         coste_total_cesta_merma,
         get_cesta_merma,
         limpiar_cesta_merma,
@@ -532,21 +590,25 @@ def _render_registro_merma() -> None:
 
     section_divider()
     st.markdown("#### Historial de merma")
+    st.caption("Solo se muestran los registros de la semana en curso. Las semanas anteriores quedan archivadas y disponibles en las exportaciones.")
+    _boton_exportar_semana(configuracion_exportacion_merma(), "merma")
 
     mermas = repo.mermas_ordenadas()
-    if mermas:
+    mermas_semana = [m for m in mermas if m.fecha >= _lunes_semana_actual()]
+    if mermas_semana:
         st.dataframe(
             {
-                "Fecha": [formato_fecha(m.fecha) for m in mermas],
-                "Productos": [_lineas_merma_texto(repo, m) for m in mermas],
-                "Coste": [repo.formato_precio(m.coste_total) for m in mermas],
-                "Registrado por": [m.registrado_por for m in mermas],
+                "Fecha": [formato_fecha(m.fecha) for m in mermas_semana],
+                "Hora": [m.hora.strftime("%H:%M") if m.hora else "—" for m in mermas_semana],
+                "Productos": [_lineas_merma_texto(repo, m) for m in mermas_semana],
+                "Coste": [repo.formato_precio(m.coste_total) for m in mermas_semana],
+                "Registrado por": [m.registrado_por for m in mermas_semana],
             },
             use_container_width=True,
             hide_index=True,
         )
     else:
-        empty_state("No hay registros de merma.", icon="📋")
+        empty_state("No hay registros de merma esta semana.", icon="📋")
 
 
 _SUBTABS = {

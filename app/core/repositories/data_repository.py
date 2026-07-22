@@ -261,7 +261,11 @@ class DataRepository:
         )
 
     def mermas_ordenadas(self) -> list[RegistroMerma]:
-        return sorted(self._data.mermas, key=lambda m: m.fecha, reverse=True)
+        return sorted(
+            self._data.mermas,
+            key=lambda m: (m.fecha, m.hora or time.min),
+            reverse=True,
+        )
 
     def consumo_por_producto(self) -> list[dict]:
         totales: dict[str, float] = {}

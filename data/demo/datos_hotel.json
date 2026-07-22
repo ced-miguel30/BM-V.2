@@ -526,13 +526,15 @@
     {
       "id": "m01",
       "fecha": "2026-07-06",
+      "hora": null,
       "lineas": [
         {
           "producto_id": "p05",
           "cantidad": 4,
           "coste": 1.0,
           "motivo": "Expiración",
-          "comentario": "Yogures caducados"
+          "comentario": "Yogures caducados",
+          "lote_id": null
         }
       ],
       "coste_total": 1.0,
@@ -541,13 +543,15 @@
     {
       "id": "m02",
       "fecha": "2026-07-04",
+      "hora": null,
       "lineas": [
         {
           "producto_id": "p01",
           "cantidad": 3,
           "coste": 0.9,
           "motivo": "Merma",
-          "comentario": "Rotos en manipulación"
+          "comentario": "Rotos en manipulación",
+          "lote_id": null
         }
       ],
       "coste_total": 0.9,
@@ -556,13 +560,15 @@
     {
       "id": "m03",
       "fecha": "2026-07-02",
+      "hora": null,
       "lineas": [
         {
           "producto_id": "p10",
           "cantidad": 6,
           "coste": 0.6,
           "motivo": "Expiración",
-          "comentario": "Huevos fuera de fecha"
+          "comentario": "Huevos fuera de fecha",
+          "lote_id": null
         }
       ],
       "coste_total": 0.6,
@@ -571,13 +577,15 @@
     {
       "id": "m04",
       "fecha": "2026-07-07",
+      "hora": null,
       "lineas": [
         {
           "producto_id": "p05",
           "cantidad": 2,
           "coste": 0.5,
           "motivo": "Expiración",
-          "comentario": "test"
+          "comentario": "test",
+          "lote_id": null
         }
       ],
       "coste_total": 0.5,
@@ -586,13 +594,15 @@
     {
       "id": "m05",
       "fecha": "2026-07-07",
+      "hora": null,
       "lineas": [
         {
           "producto_id": "p01",
           "cantidad": 5.0,
           "coste": 10.0,
           "motivo": "Merma",
-          "comentario": null
+          "comentario": null,
+          "lote_id": null
         }
       ],
       "coste_total": 10.0,
@@ -601,13 +611,15 @@
     {
       "id": "m06",
       "fecha": "2026-07-07",
+      "hora": null,
       "lineas": [
         {
           "producto_id": "p07",
           "cantidad": 0.5,
           "coste": 5.5,
           "motivo": "Expiración",
-          "comentario": null
+          "comentario": null,
+          "lote_id": null
         }
       ],
       "coste_total": 5.5,
@@ -638,7 +650,7 @@
       "tipo": "stock_bajo",
       "titulo": "Stock bajo — Fruta fresca",
       "mensaje": "Quedan 2.1 Kg. Stock mínimo: 3.",
-      "fecha": "2026-07-21",
+      "fecha": "2026-07-22",
       "activa": true,
       "producto_id": "p09"
     },
@@ -647,7 +659,7 @@
       "tipo": "stock_cero",
       "titulo": "Stock agotado — Huevos",
       "mensaje": "No quedan unidades disponibles.",
-      "fecha": "2026-07-21",
+      "fecha": "2026-07-22",
       "activa": true,
       "producto_id": "p10"
     },
@@ -656,7 +668,7 @@
       "tipo": "stock_negativo",
       "titulo": "Stock negativo — Croissant",
       "mensaje": "Inventario en −5 Ud.",
-      "fecha": "2026-07-21",
+      "fecha": "2026-07-22",
       "activa": true,
       "producto_id": "p01"
     },
@@ -664,17 +676,17 @@
       "id": "a06",
       "tipo": "expirado",
       "titulo": "Producto expirado — Pan de molde",
-      "mensaje": "El lote l02 (compra 04/07/2026) expiró hace 7 día(s).",
-      "fecha": "2026-07-21",
+      "mensaje": "El lote l02 (compra 04/07/2026) expiró hace 8 día(s).",
+      "fecha": "2026-07-22",
       "activa": true,
       "producto_id": "p02"
     },
     {
       "id": "a07",
-      "tipo": "expiracion_proxima",
-      "titulo": "Próximo a expirar — Jamón serrano",
-      "mensaje": "El lote l03 (compra 27/06/2026) expira en 0 día(s).",
-      "fecha": "2026-07-21",
+      "tipo": "expirado",
+      "titulo": "Producto expirado — Jamón serrano",
+      "mensaje": "El lote l03 (compra 27/06/2026) expiró hace 1 día(s).",
+      "fecha": "2026-07-22",
       "activa": true,
       "producto_id": "p03"
     },
@@ -682,8 +694,8 @@
       "id": "a08",
       "tipo": "expirado",
       "titulo": "Producto expirado — Queso manchego",
-      "mensaje": "El lote l04 (compra 29/06/2026) expiró hace 4 día(s).",
-      "fecha": "2026-07-21",
+      "mensaje": "El lote l04 (compra 29/06/2026) expiró hace 5 día(s).",
+      "fecha": "2026-07-22",
       "activa": true,
       "producto_id": "p04"
     },
@@ -691,8 +703,8 @@
       "id": "a09",
       "tipo": "expirado",
       "titulo": "Producto expirado — Yogur natural",
-      "mensaje": "El lote l05 (compra 03/07/2026) expiró hace 12 día(s).",
-      "fecha": "2026-07-21",
+      "mensaje": "El lote l05 (compra 03/07/2026) expiró hace 13 día(s).",
+      "fecha": "2026-07-22",
       "activa": true,
       "producto_id": "p05"
     },
@@ -700,26 +712,35 @@
       "id": "a10",
       "tipo": "expirado",
       "titulo": "Producto expirado — Zumo de naranja",
-      "mensaje": "El lote l06 (compra 05/07/2026) expiró hace 9 día(s).",
-      "fecha": "2026-07-21",
+      "mensaje": "El lote l06 (compra 05/07/2026) expiró hace 10 día(s).",
+      "fecha": "2026-07-22",
       "activa": true,
       "producto_id": "p06"
     },
     {
       "id": "a11",
+      "tipo": "expiracion_proxima",
+      "titulo": "Próximo a expirar — Mantequilla",
+      "mensaje": "El lote l08 (compra 01/07/2026) expira en 5 día(s).",
+      "fecha": "2026-07-22",
+      "activa": true,
+      "producto_id": "p08"
+    },
+    {
+      "id": "a12",
       "tipo": "expirado",
       "titulo": "Producto expirado — Fruta fresca",
-      "mensaje": "El lote l09 (compra 06/07/2026) expiró hace 10 día(s).",
-      "fecha": "2026-07-21",
+      "mensaje": "El lote l09 (compra 06/07/2026) expiró hace 11 día(s).",
+      "fecha": "2026-07-22",
       "activa": true,
       "producto_id": "p09"
     },
     {
-      "id": "a12",
+      "id": "a13",
       "tipo": "desayuno_no_registrado",
       "titulo": "Desayuno de hoy no registrado",
       "mensaje": "Aún no se ha registrado el consumo del desayuno de hoy.",
-      "fecha": "2026-07-21",
+      "fecha": "2026-07-22",
       "activa": true,
       "producto_id": null
     }
@@ -752,6 +773,167 @@
     "logo_path": "C:\\Users\\User\\Desktop\\HOTEL\\BM V.2\\data\\assets\\logo_hotel.jpg"
   },
   "actividades": [
+    {
+      "id": "act81",
+      "fecha_hora": "2026-07-22T12:17:59.343067",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de merma — periodo 2026-07-13 a 2026-07-19 — archivo Registro_de_Merma_2026-07-22_2026-07-13_a_2026-07-19.xlsx — resultado correcto"
+    },
+    {
+      "id": "act80",
+      "fecha_hora": "2026-07-22T12:17:59.320434",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de merma — periodo 2026-07-06 a 2026-07-12 — archivo Registro_de_Merma_2026-07-22_2026-07-06_a_2026-07-12.xlsx — resultado correcto"
+    },
+    {
+      "id": "act79",
+      "fecha_hora": "2026-07-22T12:17:59.278416",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de merma — periodo 2026-06-29 a 2026-07-05 — archivo Registro_de_Merma_2026-07-22_2026-06-29_a_2026-07-05.xlsx — resultado correcto"
+    },
+    {
+      "id": "act78",
+      "fecha_hora": "2026-07-22T12:17:59.226683",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de desayuno — periodo 2026-07-13 a 2026-07-19 — archivo Registro_de_Desayuno_2026-07-22_2026-07-13_a_2026-07-19.xlsx — resultado correcto"
+    },
+    {
+      "id": "act77",
+      "fecha_hora": "2026-07-22T12:17:59.204807",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de desayuno — periodo 2026-07-06 a 2026-07-12 — archivo Registro_de_Desayuno_2026-07-22_2026-07-06_a_2026-07-12.xlsx — resultado correcto"
+    },
+    {
+      "id": "act76",
+      "fecha_hora": "2026-07-22T12:17:59.149904",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de desayuno — periodo 2026-06-29 a 2026-07-05 — archivo Registro_de_Desayuno_2026-07-22_2026-06-29_a_2026-07-05.xlsx — resultado correcto"
+    },
+    {
+      "id": "act75",
+      "fecha_hora": "2026-07-22T12:17:53.570486",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de desayuno — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+    },
+    {
+      "id": "act74",
+      "fecha_hora": "2026-07-22T12:17:53.524622",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_121753.xlsx — resultado correcto"
+    },
+    {
+      "id": "act73",
+      "fecha_hora": "2026-07-22T12:17:53.515687",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+    },
+    {
+      "id": "act72",
+      "fecha_hora": "2026-07-22T12:17:53.497770",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+    },
+    {
+      "id": "act71",
+      "fecha_hora": "2026-07-22T12:17:53.413777",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+    },
+    {
+      "id": "act70",
+      "fecha_hora": "2026-07-22T12:17:53.379702",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+    },
+    {
+      "id": "act69",
+      "fecha_hora": "2026-07-22T12:17:53.346569",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+    },
+    {
+      "id": "act68",
+      "fecha_hora": "2026-07-22T12:17:53.326282",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+    },
+    {
+      "id": "act67",
+      "fecha_hora": "2026-07-22T12:17:53.308397",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+    },
+    {
+      "id": "act66",
+      "fecha_hora": "2026-07-22T12:04:15.559315",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_120415.xlsx — resultado correcto"
+    },
+    {
+      "id": "act65",
+      "fecha_hora": "2026-07-22T12:04:15.552031",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+    },
+    {
+      "id": "act64",
+      "fecha_hora": "2026-07-22T12:04:15.535795",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+    },
+    {
+      "id": "act63",
+      "fecha_hora": "2026-07-22T12:04:15.454055",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+    },
+    {
+      "id": "act62",
+      "fecha_hora": "2026-07-22T12:04:15.413509",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+    },
+    {
+      "id": "act61",
+      "fecha_hora": "2026-07-22T12:04:15.382636",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-22_2026-07-20_a_2026-07-26.xlsx — resultado correcto"
+    },
+    {
+      "id": "act60",
+      "fecha_hora": "2026-07-22T12:04:15.355802",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+    },
+    {
+      "id": "act59",
+      "fecha_hora": "2026-07-22T12:04:15.338488",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto"
+    },
     {
       "id": "act58",
       "fecha_hora": "2026-07-21T12:32:26.605496",

@@ -1,6 +1,7 @@
 """Punto de entrada — Breakfast Management."""
 
 import sys
+from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -10,7 +11,9 @@ if str(ROOT) not in sys.path:
 import streamlit as st
 
 from app.core.storage.session_store import init_data
+from app.core.services import desayuno_service, merma_service
 from app.core.services.alert_service import sincronizar_alertas
+from app.core.services.exportacion_semanal_service import procesar_pendientes
 from app.core.services.historial_compras_service import archivar_historial_semanal, debe_archivar_semanal
 from app.pages import analisis, dashboard, desayuno, recetas, settings, stock
 from app.ui.components import render_sidebar
@@ -27,6 +30,21 @@ PAGES = {
 }
 
 
+def _procesar_exportaciones_semanales_pendientes() -> None:
+    """Exporta automáticamente a Excel cualquier semana ya cerrada (lunes a
+    domingo) que todavía no se haya exportado, para desayuno y merma. Idempotente:
+    se puede llamar en cada arranque sin generar archivos ni actividades duplicadas."""
+    ahora = datetime.now()
+    procesar_pendientes(
+        desayuno_service.configuracion_exportacion(), ahora,
+        fecha_mas_antigua=desayuno_service.fecha_mas_antigua(),
+    )
+    procesar_pendientes(
+        merma_service.configuracion_exportacion(), ahora,
+        fecha_mas_antigua=merma_service.fecha_mas_antigua(),
+    )
+
+
 def main() -> None:
     st.set_page_config(
         page_title=f"{APP_NAME} · {APP_VERSION}",
@@ -40,6 +58,8 @@ def main() -> None:
 
     if debe_archivar_semanal():
         archivar_historial_semanal()
+
+    _procesar_exportaciones_semanales_pendientes()
 
     section = render_sidebar()
     PAGES[section]()

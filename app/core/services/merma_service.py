@@ -5,6 +5,8 @@ from datetime import date, datetime
 
 from app.core.models import AppData, LineaMerma, LoteStock, MotivoMerma, RegistroMerma
 from app.core.repositories.data_repository import DataRepository
+from app.core.services.excel_bloques import RegistroExportable
+from app.core.services.exportacion_semanal_service import ConfiguracionExportacionModulo
 from app.core.services.formatting import formato_fecha
 from app.core.services.text_search import coincide_busqueda
 from app.core.storage.session_store import get_data, persist_data
@@ -254,6 +256,7 @@ def registrar_merma(fecha: date) -> ResultadoOperacion:
             coste,
             MotivoMerma(item.motivo),
             item.comentario,
+            item.lote_id,
         ))
 
     coste_total = round(sum(l.coste for l in lineas), 2)
@@ -263,6 +266,7 @@ def registrar_merma(fecha: date) -> ResultadoOperacion:
         lineas,
         coste_total,
         _nombre_usuario(data),
+        hora=datetime.now().time(),
     )
     data.mermas.append(registro)
     _registrar_actividad(
@@ -279,4 +283,60 @@ def registrar_merma(fecha: date) -> ResultadoOperacion:
     return ResultadoOperacion(
         True,
         f"Merma registrada — {coste_total:.2f} € ({len(lineas)} línea(s)).",
+    )
+
+
+def fecha_mas_antigua() -> date | None:
+    """Fecha de la primera merma registrada (para sembrar exportaciones
+    semanales pendientes si nunca se ha exportado nada todavía)."""
+    fechas = [m.fecha for m in get_data().mermas]
+    return min(fechas) if fechas else None
+
+
+def registros_exportables(inicio: date, hasta: datetime) -> list[RegistroExportable]:
+    """Desglose completo (producto, lote, cantidad, unidad, motivo, coste) de
+    cada merma registrada entre `inicio` y `hasta`, para la exportación semanal."""
+    data = get_data()
+    repo = DataRepository(data)
+    fin = hasta.date()
+    columnas = ["Producto", "Lote", "Cantidad", "Unidad", "Motivo", "Coste", "Comentario"]
+
+    resultado: list[RegistroExportable] = []
+    for m in data.mermas:
+        if not (inicio <= m.fecha <= fin):
+            continue
+
+        filas: list[list] = []
+        for ln in m.lineas:
+            nombre = repo.get_nombre_producto(ln.producto_id)
+            producto = repo.get_producto(ln.producto_id)
+            unidad = producto.unidad.value if producto else ""
+            filas.append([
+                nombre,
+                ln.lote_id or "—",
+                ln.cantidad,
+                unidad,
+                ln.motivo.value,
+                ln.coste,
+                ln.comentario or "",
+            ])
+
+        resultado.append(RegistroExportable(
+            fecha=m.fecha,
+            hora=m.hora,
+            tipo="Merma",
+            identificador=m.id,
+            usuario=m.registrado_por or None,
+            columnas=columnas,
+            filas=filas,
+            resumen=[("Coste total", repo.formato_precio(m.coste_total))],
+        ))
+    return resultado
+
+
+def configuracion_exportacion() -> ConfiguracionExportacionModulo:
+    return ConfiguracionExportacionModulo(
+        tipo="merma",
+        titulo_documento="Registro de Merma",
+        obtener_registros=registros_exportables,
     )

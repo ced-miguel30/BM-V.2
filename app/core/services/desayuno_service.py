@@ -13,6 +13,8 @@ from app.core.models import (
     RegistroRecetaDesayuno,
 )
 from app.core.repositories.data_repository import DataRepository
+from app.core.services.excel_bloques import RegistroExportable
+from app.core.services.exportacion_semanal_service import ConfiguracionExportacionModulo
 from app.core.services.text_search import coincide_busqueda
 from app.core.storage.session_store import get_data, persist_data
 
@@ -762,4 +764,67 @@ def registrar_desayuno(
     return ResultadoOperacion(
         True,
         f"Desayuno registrado — {coste_total:.2f} € ({len(lineas)} producto(s)).",
+    )
+
+
+def fecha_mas_antigua() -> date | None:
+    """Fecha del primer desayuno registrado (para sembrar exportaciones
+    semanales pendientes si nunca se ha exportado nada todavía)."""
+    fechas = [d.fecha for d in get_data().desayunos]
+    return min(fechas) if fechas else None
+
+
+def registros_exportables(inicio: date, hasta: datetime) -> list[RegistroExportable]:
+    """Desglose completo (recetas + extras/omisiones + productos) de cada
+    desayuno registrado entre `inicio` y `hasta`, para la exportación semanal."""
+    data = get_data()
+    repo = DataRepository(data)
+    fin = hasta.date()
+    columnas = ["Tipo", "Producto / Receta", "Detalle", "Cantidad", "Unidad", "Coste"]
+
+    resultado: list[RegistroExportable] = []
+    for d in data.desayunos:
+        if not (inicio <= d.fecha <= fin):
+            continue
+
+        filas: list[list] = []
+        for rr in d.registros_recetas:
+            filas.append(["Receta", rr.nombre_receta, f"× {rr.porciones:g} porciones", rr.porciones, "porciones", ""])
+            for extra in rr.extras:
+                nombre = repo.get_nombre_producto(extra.producto_id)
+                producto = repo.get_producto(extra.producto_id)
+                unidad = producto.unidad.value if producto else ""
+                etiqueta = "c/ extra" if extra.cantidad > 0 else "s/"
+                filas.append(["Extra/Omisión", nombre, etiqueta, abs(extra.cantidad), unidad, ""])
+            for omision in rr.omisiones:
+                nombre = repo.get_nombre_producto(omision.producto_id)
+                filas.append(["Omisión", nombre, "Sin este ingrediente base", "—", "", ""])
+
+        for ln in d.lineas:
+            nombre = repo.get_nombre_producto(ln.producto_id)
+            producto = repo.get_producto(ln.producto_id)
+            unidad = producto.unidad.value if producto else ""
+            filas.append(["Producto", nombre, "[extra]" if ln.es_extra else "", ln.cantidad, unidad, ln.coste])
+
+        resultado.append(RegistroExportable(
+            fecha=d.fecha,
+            hora=d.hora,
+            tipo="Desayuno",
+            identificador=d.id,
+            usuario=d.registrado_por or None,
+            columnas=columnas,
+            filas=filas,
+            resumen=[
+                ("Huéspedes", str(d.num_huespedes)),
+                ("Coste total", repo.formato_precio(d.coste_total)),
+            ],
+        ))
+    return resultado
+
+
+def configuracion_exportacion() -> ConfiguracionExportacionModulo:
+    return ConfiguracionExportacionModulo(
+        tipo="desayuno",
+        titulo_documento="Registro de Desayuno",
+        obtener_registros=registros_exportables,
     )

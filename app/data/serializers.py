@@ -125,9 +125,10 @@ def appdata_to_dict(data: AppData) -> dict:
         "mermas": [
             {
                 "id": m.id, "fecha": m.fecha.isoformat(),
+                "hora": m.hora.isoformat() if m.hora else None,
                 "lineas": [
                     {"producto_id": ln.producto_id, "cantidad": ln.cantidad, "coste": ln.coste,
-                     "motivo": ln.motivo.value, "comentario": ln.comentario}
+                     "motivo": ln.motivo.value, "comentario": ln.comentario, "lote_id": ln.lote_id}
                     for ln in m.lineas
                 ],
                 "coste_total": m.coste_total, "registrado_por": m.registrado_por,
@@ -233,10 +234,11 @@ def dict_to_appdata(payload: dict) -> AppData:
                 m["id"], _parse_date(m["fecha"]),  # type: ignore[arg-type]
                 [
                     LineaMerma(ln["producto_id"], ln["cantidad"], ln["coste"],
-                               MotivoMerma(ln["motivo"]), ln.get("comentario"))
+                               MotivoMerma(ln["motivo"]), ln.get("comentario"), ln.get("lote_id"))
                     for ln in m.get("lineas", [])
                 ],
                 m.get("coste_total", 0), m.get("registrado_por", ""),
+                hora=_parse_time(m.get("hora")),
             )
             for m in payload.get("mermas", [])
         ],
