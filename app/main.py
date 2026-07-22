@@ -11,10 +11,9 @@ if str(ROOT) not in sys.path:
 import streamlit as st
 
 from app.core.storage.session_store import init_data
-from app.core.services import desayuno_service, merma_service
+from app.core.services import desayuno_service, merma_service, stock_service
 from app.core.services.alert_service import sincronizar_alertas
 from app.core.services.exportacion_semanal_service import procesar_pendientes
-from app.core.services.historial_compras_service import archivar_historial_semanal, debe_archivar_semanal
 from app.pages import analisis, dashboard, desayuno, recetas, settings, stock
 from app.ui.components import render_sidebar
 from app.ui.styles import inject_global_styles
@@ -32,8 +31,8 @@ PAGES = {
 
 def _procesar_exportaciones_semanales_pendientes() -> None:
     """Exporta automáticamente a Excel cualquier semana ya cerrada (lunes a
-    domingo) que todavía no se haya exportado, para desayuno y merma. Idempotente:
-    se puede llamar en cada arranque sin generar archivos ni actividades duplicadas."""
+    domingo) que todavía no se haya exportado. Idempotente: se puede llamar en
+    cada arranque sin generar archivos ni actividades duplicadas."""
     ahora = datetime.now()
     procesar_pendientes(
         desayuno_service.configuracion_exportacion(), ahora,
@@ -42,6 +41,14 @@ def _procesar_exportaciones_semanales_pendientes() -> None:
     procesar_pendientes(
         merma_service.configuracion_exportacion(), ahora,
         fecha_mas_antigua=merma_service.fecha_mas_antigua(),
+    )
+    procesar_pendientes(
+        stock_service.configuracion_exportacion(es_bebida=False), ahora,
+        fecha_mas_antigua=stock_service.fecha_mas_antigua(es_bebida=False),
+    )
+    procesar_pendientes(
+        stock_service.configuracion_exportacion(es_bebida=True), ahora,
+        fecha_mas_antigua=stock_service.fecha_mas_antigua(es_bebida=True),
     )
 
 
@@ -55,9 +62,6 @@ def main() -> None:
     inject_global_styles()
     init_data()
     sincronizar_alertas()
-
-    if debe_archivar_semanal():
-        archivar_historial_semanal()
 
     _procesar_exportaciones_semanales_pendientes()
 

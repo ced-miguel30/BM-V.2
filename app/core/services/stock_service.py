@@ -5,6 +5,9 @@ from datetime import date, datetime
 
 from app.core.models import Actividad, AppData, LoteStock, Producto, UnidadProducto
 from app.core.repositories.data_repository import DataRepository
+from app.core.services.excel_bloques import RegistroExportable
+from app.core.services.exportacion_semanal_service import ConfiguracionExportacionModulo
+from app.core.services.formatting import formato_fecha, formato_moneda
 from app.core.storage.session_store import get_data, persist_data
 
 UNIDADES = [u.value for u in UnidadProducto]
@@ -158,3 +161,95 @@ def mapa_productos(data: AppData, *, es_bebida: bool | None = None) -> dict[str,
 
 def mapa_bebidas(data: AppData) -> dict[str, str]:
     return mapa_productos(data, es_bebida=True)
+
+
+def _ids_catalogo(data: AppData, *, es_bebida: bool) -> set[str]:
+    return {p.id for p in data.productos if p.es_bebida == es_bebida}
+
+
+def _lotes_filtrados(data: AppData, *, es_bebida: bool) -> list[LoteStock]:
+    ids = _ids_catalogo(data, es_bebida=es_bebida)
+    return [l for l in data.lotes if l.producto_id in ids]
+
+
+def fecha_mas_antigua(*, es_bebida: bool = False) -> date | None:
+    """Fecha de compra del lote más antiguo (para sembrar exportaciones
+    semanales pendientes si nunca se ha exportado nada todavía)."""
+    fechas = [l.fecha_compra for l in _lotes_filtrados(get_data(), es_bebida=es_bebida) if l.fecha_compra]
+    return min(fechas) if fechas else None
+
+
+def registros_exportables(
+    inicio: date,
+    hasta: datetime,
+    *,
+    es_bebida: bool = False,
+) -> list[RegistroExportable]:
+    """Un registro exportable por cada compra (lote) registrada entre
+    `inicio` y `hasta`, filtrado por productos o bebidas."""
+    data = get_data()
+    repo = DataRepository(data)
+    fin = hasta.date()
+    col_producto = "Bebida" if es_bebida else "Producto"
+    columnas = [
+        col_producto, "Proveedor", "Lote", "Cantidad", "Unidad",
+        "Precio total", "Coste unitario", "Expiración", "Tipo",
+    ]
+    simbolo = repo.get_simbolo_moneda()
+    tipo_registro = "Bebida" if es_bebida else "Stock"
+    tipo_movimiento = "Compra"
+
+    resultado: list[RegistroExportable] = []
+    for lote in sorted(
+        _lotes_filtrados(data, es_bebida=es_bebida),
+        key=lambda l: (l.fecha_compra or date.min, l.id),
+    ):
+        if not lote.fecha_compra or not (inicio <= lote.fecha_compra <= fin):
+            continue
+        producto = repo.get_producto(lote.producto_id)
+        if not producto:
+            continue
+        coste_unit = round(lote.precio_total / lote.cantidad, 4) if lote.cantidad > 0 else 0.0
+        resultado.append(RegistroExportable(
+            fecha=lote.fecha_compra,
+            hora=None,
+            tipo=tipo_registro,
+            identificador=lote.id,
+            usuario=None,
+            columnas=columnas,
+            filas=[[
+                repo.get_nombre_producto(lote.producto_id),
+                lote.marca_proveedor or "—",
+                lote.id,
+                lote.cantidad,
+                producto.unidad.value,
+                formato_moneda(lote.precio_total, simbolo),
+                formato_moneda(coste_unit, simbolo),
+                formato_fecha(lote.fecha_expiracion),
+                tipo_movimiento,
+            ]],
+            resumen=[("Precio total", formato_moneda(lote.precio_total, simbolo))],
+        ))
+    return resultado
+
+
+def _registros_exportables_stock(inicio: date, hasta: datetime) -> list[RegistroExportable]:
+    return registros_exportables(inicio, hasta, es_bebida=False)
+
+
+def _registros_exportables_bebidas(inicio: date, hasta: datetime) -> list[RegistroExportable]:
+    return registros_exportables(inicio, hasta, es_bebida=True)
+
+
+def configuracion_exportacion(*, es_bebida: bool = False) -> ConfiguracionExportacionModulo:
+    if es_bebida:
+        return ConfiguracionExportacionModulo(
+            tipo="bebidas",
+            titulo_documento="Registro de Bebidas",
+            obtener_registros=_registros_exportables_bebidas,
+        )
+    return ConfiguracionExportacionModulo(
+        tipo="stock",
+        titulo_documento="Registro de Stock",
+        obtener_registros=_registros_exportables_stock,
+    )

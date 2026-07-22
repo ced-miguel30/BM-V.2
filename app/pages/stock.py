@@ -1,6 +1,6 @@
 """Stock — productos, bebidas y alertas."""
 
-from datetime import date
+from datetime import date, datetime
 
 import pandas as pd
 import streamlit as st
@@ -13,7 +13,9 @@ from app.core.services.alert_service import (
     sincronizar_alertas,
 )
 from app.core.services.data_service import get_repository
+from app.core.services.exportacion_semanal_service import exportar_semana_actual, limite_semana
 from app.core.services.formatting import formato_fecha, formato_moneda
+from app.core.services import stock_service
 from app.core.services.stock_service import (
     UNIDADES,
     crear_bebida,
@@ -38,6 +40,37 @@ _TIPO_ETIQUETA = {
 
 def _filtrar_catalogo(repo, es_bebida: bool) -> list:
     return [p for p in repo.data.productos if p.es_bebida == es_bebida]
+
+
+def _lunes_semana_actual() -> date:
+    lunes, _ = limite_semana(date.today())
+    return lunes
+
+
+def _boton_exportar_semana(config, key_prefix: str) -> None:
+    col_btn, _ = st.columns([1, 2])
+    with col_btn:
+        if st.button("Exportar semana actual", use_container_width=True, key=f"{key_prefix}_exportar_semana"):
+            resultado = exportar_semana_actual(config, datetime.now())
+            if resultado.ok:
+                st.session_state[f"{key_prefix}_export_dl"] = (
+                    resultado.ruta.read_bytes(), resultado.nombre_archivo,
+                )
+                st.success(resultado.mensaje)
+            else:
+                st.error(resultado.mensaje)
+
+    dl = st.session_state.get(f"{key_prefix}_export_dl")
+    if dl:
+        contenido, nombre = dl
+        st.download_button(
+            "Descargar Excel",
+            data=contenido,
+            file_name=nombre,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+            key=f"{key_prefix}_export_dl_btn",
+        )
 
 
 def _render_inventario(repo, *, es_bebida: bool) -> None:
@@ -70,10 +103,20 @@ def _render_inventario(repo, *, es_bebida: bool) -> None:
 
 def _render_historial_compras(repo, *, es_bebida: bool, key_prefix: str) -> None:
     st.markdown("#### Historial de compras")
-    st.caption("Detalle por lote. Use esta vista para ver cada compra, no el inventario diario.")
+    st.caption(
+        "Solo se muestran las compras de la semana en curso (con fecha de compra). "
+        "Las semanas anteriores quedan archivadas y disponibles en las exportaciones."
+    )
+    _boton_exportar_semana(stock_service.configuracion_exportacion(es_bebida=es_bebida), key_prefix)
+    section_divider()
 
     ids_catalogo = {p.id for p in _filtrar_catalogo(repo, es_bebida)}
     lotes_tipo = [l for l in repo.data.lotes if l.producto_id in ids_catalogo]
+    lunes = _lunes_semana_actual()
+    lotes_semana = [
+        l for l in lotes_tipo
+        if l.fecha_compra and l.fecha_compra >= lunes
+    ]
 
     if not lotes_tipo:
         empty_state("No hay compras registradas.", icon="🏷️")
@@ -95,8 +138,8 @@ def _render_historial_compras(repo, *, es_bebida: bool, key_prefix: str) -> None
 
     filas = []
     for lote in sorted(
-        lotes_tipo,
-        key=lambda l: (l.producto_id, l.fecha_compra or date.min),
+        lotes_semana,
+        key=lambda l: (l.fecha_compra or date.min, l.id),
         reverse=True,
     ):
         nombre = repo.get_nombre_producto(lote.producto_id)
@@ -116,60 +159,7 @@ def _render_historial_compras(repo, *, es_bebida: bool, key_prefix: str) -> None
     if filas:
         st.dataframe(pd.DataFrame(filas), use_container_width=True, hide_index=True)
     else:
-        empty_state("No hay compras para este filtro.", icon="🔍")
-
-    section_divider()
-    st.markdown("##### Exportar historial")
-
-    from app.core.services.historial_compras_service import (
-        HISTORIAL_DIR,
-        exportar_historial_hasta,
-        ultimo_archivo_semanal,
-    )
-
-    ultimo = ultimo_archivo_semanal()
-    if ultimo:
-        st.caption(f"Último archivo semanal automático (productos y bebidas): lunes {formato_fecha(ultimo)}")
-    else:
-        st.caption("Aún no se ha generado el archivo semanal automático.")
-
-    col_ord, col_fecha = st.columns(2)
-    with col_ord:
-        orden = st.selectbox(
-            "Orden de exportación",
-            options=["fecha", "nombre"],
-            format_func=lambda x: "Fecha de compra (reciente primero)" if x == "fecha" else "Nombre (A→Z)",
-            key=f"{key_prefix}_historial_orden_export",
-        )
-    with col_fecha:
-        fecha_hasta = st.date_input(
-            "Exportar hasta",
-            value=date.today(),
-            key=f"{key_prefix}_historial_fecha_hasta",
-        )
-
-    if st.button(
-        "Exportar historial",
-        type="primary",
-        use_container_width=True,
-        key=f"{key_prefix}_historial_btn_export",
-    ):
-        contenido, nombre = exportar_historial_hasta(fecha_hasta, orden, es_bebida=es_bebida)
-        st.session_state[f"{key_prefix}_historial_export"] = (contenido, nombre)
-        st.success(f"Exportado: {nombre}")
-
-    if f"{key_prefix}_historial_export" in st.session_state:
-        data, fname = st.session_state[f"{key_prefix}_historial_export"]
-        st.download_button(
-            "Descargar Excel",
-            data=data,
-            file_name=fname,
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True,
-            key=f"{key_prefix}_historial_dl_export",
-        )
-
-    st.caption(f"Carpeta local: `{HISTORIAL_DIR}`")
+        empty_state("No hay compras en la semana actual para este filtro.", icon="🔍")
 
 
 def _render_registro_catalogo(*, es_bebida: bool) -> None:

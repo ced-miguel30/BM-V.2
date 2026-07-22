@@ -34,5 +34,45 @@
         "archivo": "Registro_de_Merma_2026-07-22_2026-07-13_a_2026-07-19.xlsx"
       }
     ]
+  },
+  "stock": {
+    "ultima_semana_exportada": "2026-07-13",
+    "ultimo_archivo": "Registro_de_Stock_2026-07-22_2026-07-13_a_2026-07-19.xlsx",
+    "exportaciones": [
+      {
+        "semana": "2026-06-22",
+        "archivo": "Registro_de_Stock_2026-07-22_2026-06-22_a_2026-06-28.xlsx"
+      },
+      {
+        "semana": "2026-06-29",
+        "archivo": "Registro_de_Stock_2026-07-22_2026-06-29_a_2026-07-05.xlsx"
+      },
+      {
+        "semana": "2026-07-06",
+        "archivo": "Registro_de_Stock_2026-07-22_2026-07-06_a_2026-07-12.xlsx"
+      },
+      {
+        "semana": "2026-07-13",
+        "archivo": "Registro_de_Stock_2026-07-22_2026-07-13_a_2026-07-19.xlsx"
+      }
+    ]
+  },
+  "bebidas": {
+    "ultima_semana_exportada": "2026-07-13",
+    "ultimo_archivo": "Registro_de_Bebidas_2026-07-22_2026-07-13_a_2026-07-19.xlsx",
+    "exportaciones": [
+      {
+        "semana": "2026-06-29",
+        "archivo": "Registro_de_Bebidas_2026-07-22_2026-06-29_a_2026-07-05.xlsx"
+      },
+      {
+        "semana": "2026-07-06",
+        "archivo": "Registro_de_Bebidas_2026-07-22_2026-07-06_a_2026-07-12.xlsx"
+      },
+      {
+        "semana": "2026-07-13",
+        "archivo": "Registro_de_Bebidas_2026-07-22_2026-07-13_a_2026-07-19.xlsx"
+      }
+    ]
   }
 }
