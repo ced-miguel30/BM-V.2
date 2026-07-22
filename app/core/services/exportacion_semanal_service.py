@@ -247,12 +247,13 @@ def exportar_periodo(
 ) -> ResultadoExportacion:
     """Genera y guarda el Excel de un módulo para el periodo
     [inicio 00:00, hasta]. Nunca lanza excepciones hacia afuera."""
+    periodo_txt = f"{inicio.isoformat()} a {hasta.date().isoformat()}"
+
     try:
         registros = config.obtener_registros(inicio, hasta)
     except Exception as exc:
+        _registrar_actividad_exportacion(config.tipo, periodo_txt, automatica, "—", False)
         return ResultadoExportacion(False, f"No se pudieron obtener los registros: {exc}")
-
-    periodo_txt = f"{inicio.isoformat()} a {hasta.date().isoformat()}"
 
     try:
         carpeta = _carpeta_modulo(config, carpeta_exports)

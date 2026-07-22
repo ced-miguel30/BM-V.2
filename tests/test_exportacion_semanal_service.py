@@ -318,6 +318,39 @@ class TestNoDuplicacion(unittest.TestCase):
         self.assertEqual(datos.actividades[0].accion, "Exportación")
         mock_persist_data.assert_called_once()
 
+    @patch("app.core.services.exportacion_semanal_service.persist_data")
+    @patch("app.core.services.exportacion_semanal_service.get_data")
+    def test_fallo_al_obtener_registros_tambien_registra_una_actividad(
+        self, mock_get_data, mock_persist_data,
+    ) -> None:
+        """Fase 7: si `obtener_registros()` lanza una excepción, el intento
+        fallido debe quedar igualmente registrado en el Registro de
+        actividad (con resultado "con error"), no solo los fallos al guardar
+        el archivo."""
+        class _DatosFalsos:
+            usuarios: list = []
+            usuario_actual_id = ""
+            actividades: list = []
+
+        datos = _DatosFalsos()
+        mock_get_data.return_value = datos
+
+        config = ConfiguracionExportacionModulo(
+            tipo="prueba",
+            titulo_documento="Registro de Prueba",
+            obtener_registros=lambda i, h: (_ for _ in ()).throw(RuntimeError("boom")),
+        )
+        resultado = exportar_periodo(
+            config, date(2026, 7, 20), datetime(2026, 7, 26, 23, 59, 59),
+            automatica=True, carpeta_exports=self.carpeta, archivo_meta=self.archivo_meta,
+        )
+
+        self.assertFalse(resultado.ok)
+        self.assertEqual(len(datos.actividades), 1)
+        self.assertEqual(datos.actividades[0].accion, "Exportación")
+        self.assertEqual(datos.actividades[0].resultado, "Error")
+        mock_persist_data.assert_called_once()
+
 
 if __name__ == "__main__":
     unittest.main()
