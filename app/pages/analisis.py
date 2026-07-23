@@ -144,84 +144,8 @@ def _render_gestor_consumo() -> None:
 
 
 def _render_gestor_costes() -> None:
-    from app.core.services.costes_service import (
-        CATEGORIAS,
-        comparar_periodos,
-        datos_grafico_comparacion,
-        exportar_costes_excel,
-    )
-    from app.ui.charts import chart_comparacion_periodos
-
-    repo = get_repository()
-    hoy = date.today()
-    inicio_mes = hoy.replace(day=1)
-
-    st.markdown("#### Gestor de costes")
-    st.caption("Compare periodos y analice consumo, merma y expiración por categoría.")
-
-    categorias = st.multiselect(
-        "Categorías a analizar",
-        CATEGORIAS,
-        default=CATEGORIAS,
-        key="costes_categorias",
-    )
-    if not categorias:
-        st.warning("Seleccione al menos una categoría.")
-        return
-
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("**Periodo A**")
-        a_desde = st.date_input("Desde", value=inicio_mes, key="costes_a_desde")
-        a_hasta = st.date_input("Hasta", value=hoy, max_value=hoy, key="costes_a_hasta")
-    with col2:
-        st.markdown("**Periodo B**")
-        b_inicio = inicio_mes.replace(year=inicio_mes.year - 1, month=12, day=1) if inicio_mes.month == 1 else inicio_mes.replace(month=inicio_mes.month - 1, day=1)
-        b_desde = st.date_input("Desde", value=b_inicio, key="costes_b_desde")
-        b_hasta = st.date_input("Hasta", value=a_hasta, max_value=hoy, key="costes_b_hasta")
-
-    if a_desde > a_hasta or b_desde > b_hasta:
-        st.error("Revise las fechas de los periodos.")
-        return
-
-    comparacion = comparar_periodos(a_desde, a_hasta, b_desde, b_hasta, categorias)
-
-    section_divider()
-    st.markdown("##### Comparación de periodos")
-
-    cols = st.columns(len(categorias) + 1)
-    for i, cat in enumerate(categorias):
-        with cols[i]:
-            va = comparacion["periodo_a"]["costes"].get(cat, 0)
-            vb = comparacion["periodo_b"]["costes"].get(cat, 0)
-            var = comparacion["variaciones"].get(cat, 0)
-            metric_card(cat, repo.formato_precio(va), f"vs B: {var:+.1f}%")
-    with cols[-1]:
-        metric_card(
-            "Total A",
-            comparacion["periodo_a"]["total_fmt"],
-            comparacion["variacion_total_fmt"],
-        )
-
-    grafico = datos_grafico_comparacion(comparacion)
-    if any(g["coste"] > 0 for g in grafico):
-        st.altair_chart(chart_comparacion_periodos(grafico), use_container_width=True)
-
-    section_divider()
-    col_exp1, col_exp2 = st.columns(2)
-    with col_exp1:
-        st.caption("Exportación PDF — disponible en fase posterior.")
-        st.button("Exportar PDF", disabled=True, use_container_width=True, key="costes_exportar_pdf")
-    with col_exp2:
-        nombre = f"costes_{a_desde.isoformat()}_{b_hasta.isoformat()}.xlsx"
-        st.download_button(
-            "Exportar Excel",
-            data=exportar_costes_excel(a_desde, a_hasta, b_desde, b_hasta, categorias),
-            file_name=nombre,
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True,
-            key="costes_exportar_excel",
-        )
+    from app.pages.analisis_costes import render_gestor_costes
+    render_gestor_costes()
 
 
 def _render_business_intelligence() -> None:
