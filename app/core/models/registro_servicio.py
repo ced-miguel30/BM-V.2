@@ -19,7 +19,11 @@ class LineaDetalleOrigen:
     receta_origen_id: str | None = None
     registro_origen_id: str | None = None
     tipo_servicio: str = ""
+    # Legacy / espejo; preferir categoria_receta_snapshot en análisis.
     categoria_receta: str | None = None
+    # Snapshots al registrar (aditivos; antiguos → None → fallback catálogo).
+    es_bebida_snapshot: bool | None = None
+    categoria_receta_snapshot: str | None = None
 
 
 @dataclass
@@ -49,6 +53,7 @@ class RegistroRecetaServicio:
     extras: list[ExtraRecetaServicio] = field(default_factory=list)
     omisiones: list[OmisionRecetaServicio] = field(default_factory=list)
     categoria_receta: str | None = None
+    categoria_receta_snapshot: str | None = None
 
 
 @dataclass

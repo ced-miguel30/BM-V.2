@@ -300,6 +300,7 @@ def _construir_registros_recetas(data: AppData, grupos: list[GrupoRecetaCesta]) 
             grupo.porciones,
             extras,
             omisiones,
+            categoria_receta_snapshot=receta.categoria.value if receta else None,
         ))
     return registros
 

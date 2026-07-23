@@ -290,13 +290,15 @@ class ServicioRegistro:
                     extras.append(ExtraRecetaServicio(i.producto_id, i.cantidad))
                 elif i.es_omision or (not i.es_base_receta and i.cantidad < 0):
                     extras.append(ExtraRecetaServicio(i.producto_id, i.cantidad))
+            cat = receta.categoria.value if receta else None
             registros.append(RegistroRecetaServicio(
                 grupo.receta_id,
                 grupo.nombre_receta,
                 grupo.porciones,
                 extras,
                 omisiones,
-                categoria_receta=receta.categoria.value if receta else None,
+                categoria_receta=cat,
+                categoria_receta_snapshot=cat,
             ))
         return registros
 

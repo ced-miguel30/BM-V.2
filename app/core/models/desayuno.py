@@ -32,6 +32,7 @@ class RegistroRecetaDesayuno:
     porciones: float
     extras: list[ExtraRecetaDesayuno] = field(default_factory=list)
     omisiones: list[OmisionRecetaDesayuno] = field(default_factory=list)
+    categoria_receta_snapshot: str | None = None
 
 
 @dataclass

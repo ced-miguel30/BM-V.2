@@ -70,6 +70,8 @@ def _detalle_to_dict(det: LineaDetalleOrigen) -> dict:
         "registro_origen_id": det.registro_origen_id,
         "tipo_servicio": det.tipo_servicio,
         "categoria_receta": det.categoria_receta,
+        "es_bebida_snapshot": det.es_bebida_snapshot,
+        "categoria_receta_snapshot": det.categoria_receta_snapshot,
     }
 
 
@@ -83,6 +85,8 @@ def _detalle_from_dict(raw: dict) -> LineaDetalleOrigen:
         registro_origen_id=raw.get("registro_origen_id"),
         tipo_servicio=raw.get("tipo_servicio", ""),
         categoria_receta=raw.get("categoria_receta"),
+        es_bebida_snapshot=raw.get("es_bebida_snapshot"),
+        categoria_receta_snapshot=raw.get("categoria_receta_snapshot"),
     )
 
 
@@ -130,6 +134,7 @@ def appdata_to_dict(data: AppData) -> dict:
                         "receta_id": rr.receta_id,
                         "nombre_receta": rr.nombre_receta,
                         "porciones": rr.porciones,
+                        "categoria_receta_snapshot": rr.categoria_receta_snapshot,
                         "extras": [
                             {"producto_id": e.producto_id, "cantidad": e.cantidad}
                             for e in rr.extras
@@ -169,6 +174,7 @@ def appdata_to_dict(data: AppData) -> dict:
                         "nombre_receta": rr.nombre_receta,
                         "porciones": rr.porciones,
                         "categoria_receta": rr.categoria_receta,
+                        "categoria_receta_snapshot": rr.categoria_receta_snapshot,
                         "extras": [
                             {"producto_id": e.producto_id, "cantidad": e.cantidad}
                             for e in rr.extras
@@ -294,6 +300,7 @@ def dict_to_appdata(payload: dict) -> AppData:
                             OmisionRecetaDesayuno(o["producto_id"])
                             for o in rr.get("omisiones", [])
                         ],
+                        categoria_receta_snapshot=rr.get("categoria_receta_snapshot"),
                     )
                     for rr in d.get("registros_recetas", [])
                 ],
@@ -335,6 +342,10 @@ def dict_to_appdata(payload: dict) -> AppData:
                             for o in rr.get("omisiones", [])
                         ],
                         categoria_receta=rr.get("categoria_receta"),
+                        categoria_receta_snapshot=rr.get(
+                            "categoria_receta_snapshot",
+                            rr.get("categoria_receta"),
+                        ),
                     )
                     for rr in r.get("registros_recetas", [])
                 ],

@@ -76,20 +76,14 @@ class DataRepository:
     def coste_merma_mes(self) -> float:
         hoy = date.today()
         inicio = hoy.replace(day=1)
-        return sum(
-            m.coste_total for m in self._data.mermas if inicio <= m.fecha <= hoy
-        )
+        # Alineado con coste_merma_periodo: excluye expiración para no
+        # contabilizarla dos veces en coste_total_mes.
+        return self.coste_merma_periodo(inicio, hoy)
 
     def coste_expiracion_mes(self) -> float:
         hoy = date.today()
         inicio = hoy.replace(day=1)
-        total = 0.0
-        for merma in self._data.mermas:
-            if inicio <= merma.fecha <= hoy:
-                for linea in merma.lineas:
-                    if linea.motivo == MotivoMerma.EXPIRACION:
-                        total += linea.coste
-        return total
+        return self.coste_expiracion_periodo(inicio, hoy)
 
     def coste_total_mes(self) -> float:
         return self.coste_consumo_mes() + self.coste_merma_mes() + self.coste_expiracion_mes()

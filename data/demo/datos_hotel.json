@@ -456,6 +456,7 @@
           "receta_id": "r02",
           "nombre_receta": "cafe con leche",
           "porciones": 1.0,
+          "categoria_receta_snapshot": null,
           "extras": [],
           "omisiones": []
         }
@@ -488,6 +489,7 @@
           "receta_id": "r02",
           "nombre_receta": "cafe con leche",
           "porciones": 2.0,
+          "categoria_receta_snapshot": null,
           "extras": [],
           "omisiones": []
         }
@@ -524,6 +526,7 @@
           "nombre_receta": "tostada jamon",
           "porciones": 1.0,
           "categoria_receta": "comida",
+          "categoria_receta_snapshot": "comida",
           "extras": [],
           "omisiones": []
         }
@@ -537,7 +540,9 @@
           "receta_origen_id": "r04",
           "registro_origen_id": "co01",
           "tipo_servicio": "comida",
-          "categoria_receta": "comida"
+          "categoria_receta": "comida",
+          "es_bebida_snapshot": null,
+          "categoria_receta_snapshot": null
         },
         {
           "origen": "ingrediente_receta",
@@ -547,7 +552,9 @@
           "receta_origen_id": "r04",
           "registro_origen_id": "co01",
           "tipo_servicio": "comida",
-          "categoria_receta": "comida"
+          "categoria_receta": "comida",
+          "es_bebida_snapshot": null,
+          "categoria_receta_snapshot": null
         }
       ]
     },
@@ -579,6 +586,7 @@
           "nombre_receta": "yogur con frutas",
           "porciones": 1.0,
           "categoria_receta": "cena",
+          "categoria_receta_snapshot": "cena",
           "extras": [],
           "omisiones": []
         }
@@ -592,7 +600,9 @@
           "receta_origen_id": "r05",
           "registro_origen_id": "ce01",
           "tipo_servicio": "cena",
-          "categoria_receta": "cena"
+          "categoria_receta": "cena",
+          "es_bebida_snapshot": null,
+          "categoria_receta_snapshot": null
         },
         {
           "origen": "ingrediente_receta",
@@ -602,7 +612,9 @@
           "receta_origen_id": "r05",
           "registro_origen_id": "ce01",
           "tipo_servicio": "cena",
-          "categoria_receta": "cena"
+          "categoria_receta": "cena",
+          "es_bebida_snapshot": null,
+          "categoria_receta_snapshot": null
         }
       ]
     }
@@ -961,6 +973,582 @@
     "logo_path": "C:\\Users\\User\\Desktop\\HOTEL\\BM V.2\\data\\assets\\logo_hotel.jpg"
   },
   "actividades": [
+    {
+      "id": "act426",
+      "fecha_hora": "2026-07-23T08:50:39.547454",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de registro_bebidas — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Bebidas_2026-07-23_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "registro_bebidas",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Bebidas_2026-07-23_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act425",
+      "fecha_hora": "2026-07-23T08:50:39.507134",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de cena — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Cena_2026-07-23_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "cena",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Cena_2026-07-23_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act424",
+      "fecha_hora": "2026-07-23T08:50:39.461842",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de comida — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Comida_2026-07-23_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "comida",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Comida_2026-07-23_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act423",
+      "fecha_hora": "2026-07-23T08:50:39.373203",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de actividad — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Actividad_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "actividad",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Actividad_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act422",
+      "fecha_hora": "2026-07-23T08:50:39.320888",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de consumo — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Consumo_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "consumo",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Consumo_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act421",
+      "fecha_hora": "2026-07-23T08:50:39.275911",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de stock — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Stock_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "stock",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Stock_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act420",
+      "fecha_hora": "2026-07-23T08:50:39.231161",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de bebidas — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Bebidas_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "bebidas",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Bebidas_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act419",
+      "fecha_hora": "2026-07-23T08:50:39.190322",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de desayuno — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "desayuno",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act418",
+      "fecha_hora": "2026-07-23T08:50:39.146921",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_085039.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Manual",
+      "periodo_afectado": "2026-07-20 a 2026-07-23",
+      "archivo_generado": "Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_085039.xlsx"
+    },
+    {
+      "id": "act417",
+      "fecha_hora": "2026-07-23T08:50:39.137106",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Manual",
+      "periodo_afectado": "2026-07-20 a 2026-07-23",
+      "archivo_generado": "Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx"
+    },
+    {
+      "id": "act416",
+      "fecha_hora": "2026-07-23T08:50:39.117298",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act415",
+      "fecha_hora": "2026-07-23T08:50:39.038888",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act414",
+      "fecha_hora": "2026-07-23T08:50:39.006416",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act413",
+      "fecha_hora": "2026-07-23T08:50:38.970522",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act412",
+      "fecha_hora": "2026-07-23T08:50:38.945569",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Manual",
+      "periodo_afectado": "2026-07-20 a 2026-07-23",
+      "archivo_generado": "Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx"
+    },
+    {
+      "id": "act411",
+      "fecha_hora": "2026-07-23T08:50:38.925010",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Manual",
+      "periodo_afectado": "2026-07-20 a 2026-07-23",
+      "archivo_generado": "Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx"
+    },
+    {
+      "id": "act410",
+      "fecha_hora": "2026-07-23T08:44:04.035608",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de registro_bebidas — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Bebidas_2026-07-23_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "registro_bebidas",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Bebidas_2026-07-23_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act409",
+      "fecha_hora": "2026-07-23T08:44:04.000038",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de cena — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Cena_2026-07-23_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "cena",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Cena_2026-07-23_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act408",
+      "fecha_hora": "2026-07-23T08:44:03.957934",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de comida — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Comida_2026-07-23_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "comida",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Comida_2026-07-23_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act407",
+      "fecha_hora": "2026-07-23T08:44:03.878879",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de actividad — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Actividad_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "actividad",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Actividad_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act406",
+      "fecha_hora": "2026-07-23T08:44:03.839745",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de consumo — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Consumo_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "consumo",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Consumo_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act405",
+      "fecha_hora": "2026-07-23T08:44:03.799252",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de stock — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Stock_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "stock",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Stock_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act404",
+      "fecha_hora": "2026-07-23T08:44:03.758934",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de bebidas — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Bebidas_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "bebidas",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Bebidas_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act403",
+      "fecha_hora": "2026-07-23T08:44:03.715862",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de desayuno — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "desayuno",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act402",
+      "fecha_hora": "2026-07-23T08:44:03.686263",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_084403.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Manual",
+      "periodo_afectado": "2026-07-20 a 2026-07-23",
+      "archivo_generado": "Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_084403.xlsx"
+    },
+    {
+      "id": "act401",
+      "fecha_hora": "2026-07-23T08:44:03.676609",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Manual",
+      "periodo_afectado": "2026-07-20 a 2026-07-23",
+      "archivo_generado": "Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx"
+    },
+    {
+      "id": "act400",
+      "fecha_hora": "2026-07-23T08:44:03.658464",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act399",
+      "fecha_hora": "2026-07-23T08:44:03.575547",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act398",
+      "fecha_hora": "2026-07-23T08:44:03.539642",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act397",
+      "fecha_hora": "2026-07-23T08:44:03.505508",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act396",
+      "fecha_hora": "2026-07-23T08:44:03.479770",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Manual",
+      "periodo_afectado": "2026-07-20 a 2026-07-23",
+      "archivo_generado": "Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx"
+    },
+    {
+      "id": "act395",
+      "fecha_hora": "2026-07-23T08:44:03.461884",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Manual",
+      "periodo_afectado": "2026-07-20 a 2026-07-23",
+      "archivo_generado": "Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx"
+    },
+    {
+      "id": "act394",
+      "fecha_hora": "2026-07-23T08:39:37.961811",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de registro_bebidas — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Bebidas_2026-07-23_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "registro_bebidas",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Bebidas_2026-07-23_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act393",
+      "fecha_hora": "2026-07-23T08:39:37.922667",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de cena — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Cena_2026-07-23_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "cena",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Cena_2026-07-23_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act392",
+      "fecha_hora": "2026-07-23T08:39:37.874575",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de comida — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Comida_2026-07-23_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "comida",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Comida_2026-07-23_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act391",
+      "fecha_hora": "2026-07-23T08:39:37.789510",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de actividad — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Actividad_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "actividad",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Actividad_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act390",
+      "fecha_hora": "2026-07-23T08:39:37.733330",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de consumo — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Consumo_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "consumo",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Consumo_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act389",
+      "fecha_hora": "2026-07-23T08:39:37.678639",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de stock — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Stock_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "stock",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Stock_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act388",
+      "fecha_hora": "2026-07-23T08:39:37.622659",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de bebidas — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Bebidas_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "bebidas",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Bebidas_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act387",
+      "fecha_hora": "2026-07-23T08:39:37.572821",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de desayuno — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "desayuno",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act386",
+      "fecha_hora": "2026-07-23T08:39:37.529426",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_083937.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Manual",
+      "periodo_afectado": "2026-07-20 a 2026-07-23",
+      "archivo_generado": "Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_083937.xlsx"
+    },
+    {
+      "id": "act385",
+      "fecha_hora": "2026-07-23T08:39:37.520350",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Manual",
+      "periodo_afectado": "2026-07-20 a 2026-07-23",
+      "archivo_generado": "Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx"
+    },
+    {
+      "id": "act384",
+      "fecha_hora": "2026-07-23T08:39:37.503233",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act383",
+      "fecha_hora": "2026-07-23T08:39:37.406757",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act382",
+      "fecha_hora": "2026-07-23T08:39:37.355735",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act381",
+      "fecha_hora": "2026-07-23T08:39:37.320074",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act380",
+      "fecha_hora": "2026-07-23T08:39:37.289617",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Manual",
+      "periodo_afectado": "2026-07-20 a 2026-07-23",
+      "archivo_generado": "Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx"
+    },
+    {
+      "id": "act379",
+      "fecha_hora": "2026-07-23T08:39:37.270243",
+      "usuario": "Miki",
+      "accion": "Exportación",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
+      "modulo": "prueba",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Manual",
+      "periodo_afectado": "2026-07-20 a 2026-07-23",
+      "archivo_generado": "Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx"
+    },
     {
       "id": "act378",
       "fecha_hora": "2026-07-23T08:13:45.707740",

@@ -360,6 +360,68 @@ def registros_exportables(inicio: date, hasta: datetime) -> list[RegistroExporta
                 ("Coste total", repo.formato_precio(desayuno.coste_total)),
             ],
         ))
+
+    # Comida / Cena / Bebidas: detalle histórico desde lineas_detalle.
+    for registro in data.registros_servicio:
+        if not (inicio <= registro.fecha <= fin):
+            continue
+        filas_s: list[list] = []
+        for rr in registro.registros_recetas:
+            filas_s.append([
+                "Receta",
+                rr.nombre_receta,
+                rr.porciones,
+                "porciones",
+                "",
+                "",
+                "",
+                rr.categoria_receta_snapshot or rr.categoria_receta or registro.tipo_servicio,
+            ])
+        for det in registro.lineas_detalle:
+            if det.cantidad <= 0:
+                continue
+            producto = repo.get_producto(det.producto_id)
+            if not producto:
+                continue
+            es_bebida = (
+                det.es_bebida_snapshot
+                if det.es_bebida_snapshot is not None
+                else producto.es_bebida
+            )
+            tipo = "Bebida" if es_bebida else "Producto"
+            if det.origen == "extra_receta":
+                tipo = f"Extra ({tipo})"
+            elif det.origen == "ingrediente_receta":
+                tipo = f"Ingrediente ({tipo})"
+            cantidad_mostrar, unidad_mostrar = presentacion_legible(det.cantidad, producto.unidad)
+            hay_conversion = unidad_mostrar != producto.unidad.value
+            relacion = det.receta_origen_id or "Directo"
+            if det.receta_origen_id:
+                rec = repo.get_receta(det.receta_origen_id)
+                relacion = rec.nombre if rec else det.receta_origen_id
+            filas_s.append([
+                tipo,
+                producto.nombre,
+                cantidad_mostrar,
+                unidad_mostrar,
+                round(det.cantidad, 4) if hay_conversion else "",
+                producto.unidad.value if hay_conversion else "",
+                det.coste,
+                relacion,
+            ])
+        resultado.append(RegistroExportable(
+            fecha=registro.fecha,
+            hora=registro.hora,
+            tipo=f"Consumo ({registro.tipo_servicio})",
+            identificador=registro.id,
+            usuario=registro.registrado_por or None,
+            columnas=columnas,
+            filas=filas_s,
+            resumen=[
+                ("Servicio", registro.tipo_servicio),
+                ("Coste total", repo.formato_precio(registro.coste_total)),
+            ],
+        ))
     return resultado
 
 
@@ -369,3 +431,106 @@ def configuracion_exportacion() -> ConfiguracionExportacionModulo:
         titulo_documento="Registro de Consumo",
         obtener_registros=registros_exportables,
     )
+
+
+# ---------------------------------------------------------------------------
+# Fase 3 — Rankings multi-categoría (capa analítica)
+# ---------------------------------------------------------------------------
+
+
+def _fmt_productos(filas: list[dict], repo: DataRepository) -> list[dict]:
+    from app.core.models import UnidadProducto
+
+    out = []
+    for f in filas:
+        unidad = f.get("unidad_normalizada") or ""
+        try:
+            up = UnidadProducto(unidad) if unidad else None
+        except ValueError:
+            up = None
+        if up is not None:
+            cant, uni = presentacion_legible(f["cantidad_normalizada"], up)
+            cantidad_fmt = f"{cant:g} {uni}"
+        else:
+            cantidad_fmt = f"{f['cantidad_normalizada']:g} {unidad}".strip()
+        tipos = f.get("tipos") or []
+        tipo_txt = ", ".join(tipos) if tipos else ("Bebida" if f.get("es_bebida") else "Producto")
+        out.append({
+            "nombre": f["nombre"],
+            "cantidad": f["cantidad_normalizada"],
+            "unidad": unidad,
+            "cantidad_fmt": cantidad_fmt,
+            "usos": f["usos"],
+            "coste": f["coste"],
+            "coste_fmt": repo.formato_precio(f["coste"]),
+            "tipo": tipo_txt,
+        })
+    return out
+
+
+def _fmt_recetas(filas: list[dict], repo: DataRepository) -> list[dict]:
+    return [
+        {
+            "nombre": f["nombre"],
+            "cantidad": f["porciones"],
+            "unidad": "porciones",
+            "cantidad_fmt": f"{f['porciones']:g} porciones",
+            "usos": f["usos"],
+            "coste": f.get("coste", 0.0),
+            "coste_fmt": repo.formato_precio(f.get("coste", 0.0)),
+            "categoria_receta": f.get("categoria_receta") or "—",
+        }
+        for f in filas
+    ]
+
+
+def ranking_analitico_productos(
+    inicio: date,
+    fin: date,
+    *,
+    ascendente: bool = False,
+    limite: int = 10,
+    tipo_servicio: str | None = None,
+    bucket: str | None = None,
+    tipos_elemento: list[str] | None = None,
+    solo_consumo_bebida: bool | None = None,
+    busqueda: str | None = None,
+) -> list[dict]:
+    from app.core.services import analitica_consumo_service as analitica
+
+    repo = get_repository()
+    filas = analitica.ranking_productos(
+        inicio, fin,
+        ascendente=ascendente,
+        limite=limite,
+        tipo_servicio=tipo_servicio,
+        bucket=bucket,
+        tipos_elemento=tipos_elemento,
+        solo_consumo_bebida=solo_consumo_bebida,
+        busqueda=busqueda,
+    )
+    return _fmt_productos(filas, repo)
+
+
+def ranking_analitico_recetas(
+    inicio: date,
+    fin: date,
+    *,
+    ascendente: bool = False,
+    limite: int = 10,
+    tipo_servicio: str | None = None,
+    categoria_receta: str | None = None,
+    busqueda: str | None = None,
+) -> list[dict]:
+    from app.core.services import analitica_consumo_service as analitica
+
+    repo = get_repository()
+    filas = analitica.ranking_recetas(
+        inicio, fin,
+        ascendente=ascendente,
+        limite=limite,
+        tipo_servicio=tipo_servicio,
+        categoria_receta=categoria_receta,
+        busqueda=busqueda,
+    )
+    return _fmt_recetas(filas, repo)

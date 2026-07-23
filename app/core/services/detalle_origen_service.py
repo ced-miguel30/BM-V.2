@@ -22,6 +22,8 @@ def construir_lineas_detalle(
     for linea in cesta:
         if linea.cantidad <= 0:
             continue
+        producto = repo.get_producto(linea.producto_id)
+        es_bebida = bool(producto.es_bebida) if producto else False
         detalle.append(LineaDetalleOrigen(
             origen=OrigenConsumo.PRODUCTO_DIRECTO.value,
             producto_id=linea.producto_id,
@@ -29,6 +31,8 @@ def construir_lineas_detalle(
             registro_origen_id=registro_id,
             tipo_servicio=tipo_servicio,
             categoria_receta=None,
+            es_bebida_snapshot=es_bebida,
+            categoria_receta_snapshot=None,
         ))
 
     for grupo in grupos:
@@ -41,6 +45,8 @@ def construir_lineas_detalle(
                 origen = OrigenConsumo.INGREDIENTE_RECETA.value
             else:
                 origen = OrigenConsumo.EXTRA_RECETA.value
+            producto = repo.get_producto(ing.producto_id)
+            es_bebida = bool(producto.es_bebida) if producto else False
             detalle.append(LineaDetalleOrigen(
                 origen=origen,
                 producto_id=ing.producto_id,
@@ -49,6 +55,8 @@ def construir_lineas_detalle(
                 registro_origen_id=registro_id,
                 tipo_servicio=tipo_servicio,
                 categoria_receta=categoria,
+                es_bebida_snapshot=es_bebida,
+                categoria_receta_snapshot=categoria,
             ))
 
     return detalle

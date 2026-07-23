@@ -1,41 +1,63 @@
-# Preparación para rankings futuros
+# Preparación para rankings y análisis multi-categoría
 
-Documentación de la **Fase 7**: campos ya persistidos que permiten rankings sin heurísticas.
-No hay UI de rankings en esta fase.
+Documentación actualizada en **Fase 1 analítica**. No hay UI de rankings/Dashboard en esta fase.
 
-## Tabla de cobertura
+## Snapshots históricos
 
-| Ranking futuro | Campo(s) almacenados | Dónde |
+Al registrar (desayuno, comida, cena, bebidas) se persisten:
+
+| Campo | Dónde |
+|---|---|
+| `es_bebida_snapshot` | `LineaDetalleOrigen` |
+| `categoria_receta_snapshot` | `LineaDetalleOrigen` (si hay receta) y `registros_recetas` |
+
+**Lectura:** snapshot si existe → si no, catálogo vivo (registros antiguos reconstruidos).
+
+## Familias de eventos
+
+| Familia | API | Uso |
 |---|---|---|
-| Bebidas (cualquier origen) | `Producto.es_bebida` + `lineas_detalle[].producto_id` en cualquier `tipo_servicio` | Catálogo + detalle de consumo |
-| Bebidas en desayuno (directo vs. ingrediente/extra) | `lineas_detalle[].tipo_servicio="desayuno"` + `origen` (`producto_directo` / `ingrediente_receta` / `extra_receta`) + `receta_origen_id` | `RegistroDesayuno.lineas_detalle` |
-| Recetas Comida/Cena más/menos usadas | `RegistroServicio.tipo_servicio` + `registros_recetas[].categoria_receta` (+ `receta_id`, `porciones`) | `AppData.registros_servicio` |
-| Productos/extras Comida/Cena | `lineas_detalle` filtrado por `tipo_servicio` (`comida`/`cena`) + `origen` | `RegistroServicio.lineas_detalle` |
-| Extras desayuno (sin bebidas) | `tipo_servicio="desayuno"` + `origen` en (`producto_directo`, `extra_receta`) + `Producto.es_bebida=False` | Detalle desayuno + catálogo |
+| `eventos_receta` | `iter_eventos_receta` | Porciones, frecuencia, rankings de recetas (`coste=None`) |
+| `eventos_producto` | `iter_eventos_producto` | Cantidad, coste real, ingredientes, extras, bebidas |
+
+Nunca sumar coste de receta + ingredientes en la misma métrica agregada.
+
+## Buckets de desayuno (coste = líneas de detalle)
+
+Prioridad:
+
+1. Si `categoria_receta_snapshot == bebidas` → toda la línea a `bebida_en_desayuno`.
+2. Si no, clasificar con `es_bebida_snapshot`.
+3. Directos/extras → `es_bebida_snapshot`.
+
+```
+desayuno_total = desayuno + bebida_en_desayuno + sin_desglose_historico
+```
+
+- Con detalle completo: `sin_desglose_historico = 0` y A+B = coste del registro.
+- Sin `lineas_detalle`: importe en `sin_desglose_historico`.
+
+## Categorías Dashboard (excluyentes)
+
+```
+coste_general =
+  desayuno_total
+  + comida_total
+  + cena_total
+  + bebidas_independientes
+```
+
+`bebidas_independientes` = solo `tipo_servicio=bebidas`. Las bebidas dentro de desayuno/comida/cena son clasificación transversal (`bebida_en_*`), no categoría Dashboard aparte.
 
 ## Valores de origen (`OrigenConsumo`)
 
-- `producto_directo` — producto suelto en cesta
-- `ingrediente_receta` — ingrediente de una receta aplicada
-- `extra_receta` — extra añadido sobre una receta
-
-El mismo producto en un registro como suelto y como ingrediente genera **dos** líneas de detalle (no se fusionan).
-
-## Campos clave de `LineaDetalleOrigen`
-
-| Campo | Uso |
-|---|---|
-| `origen` | Distingue directo / ingrediente / extra |
-| `producto_id` | Une con `Producto` (p. ej. `es_bebida`) |
-| `cantidad`, `coste` | Métricas del ranking |
-| `receta_origen_id` | Receta de la que proviene (si aplica) |
-| `registro_origen_id` | Registro padre |
-| `tipo_servicio` | `desayuno` / `comida` / `cena` / `bebidas` |
-| `categoria_receta` | Categoría de la receta en líneas de receta; `None` en producto directo |
+- `producto_directo`
+- `ingrediente_receta`
+- `extra_receta`
 
 ## Limitaciones reales
 
-1. **Desayunos antiguos** (anteriores a la Fase 2) pueden tener `lineas_detalle=[]`: no admiten desglose por origen hasta que se registren de nuevo.
-2. **`RegistroRecetaDesayuno`** no guarda `categoria_receta` en el snapshot; para rankings de recetas de desayuno hay que cruzar con `Receta.categoria` del catálogo (o usar `lineas_detalle[].categoria_receta` en líneas de origen receta).
-3. **Comida / Cena / Bebidas** sí guardan `categoria_receta` en cada `RegistroRecetaServicio`.
-4. Esta fase **no** implementa pantallas ni consultas de ranking; solo confirma que los datos necesarios ya están en persistencia.
+1. Registros sin `lineas_detalle` → solo `sin_desglose_historico`.
+2. Sin snapshot → reconstrucción vía catálogo vivo (puede divergir si el catálogo cambió).
+3. Merma aún sin vínculo a servicio (gestor merma en fases posteriores).
+4. Inventario sigue siendo **FIFO**.
