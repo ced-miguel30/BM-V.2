@@ -169,6 +169,7 @@ def evolucion_por_categoria(
                 "fecha": cursor,
                 "Desayuno": d.desayuno,
                 "Bebidas en desayuno": d.bebida_en_desayuno,
+                "Sin desglose histórico": d.sin_desglose_historico,
                 "Desayuno total": d.desayuno_total,
             })
         else:
@@ -182,6 +183,50 @@ def evolucion_por_categoria(
             })
         cursor += timedelta(days=1)
     return filas
+
+
+def evolucion_bebidas_por_origen(
+    desde: date,
+    hasta: date,
+    *,
+    data: AppData | None = None,
+) -> list[dict]:
+    """Serie diaria de coste de bebidas por origen (vista transversal)."""
+    app = _data(data)
+    if desde > hasta:
+        desde, hasta = hasta, desde
+    origenes = [
+        ("En desayuno", analitica.BUCKET_BEBIDA_EN_DESAYUNO),
+        ("En comida", analitica.BUCKET_BEBIDA_EN_COMIDA),
+        ("En cena", analitica.BUCKET_BEBIDA_EN_CENA),
+        ("Independiente", analitica.BUCKET_BEBIDA_INDEPENDIENTE),
+    ]
+    filas: list[dict] = []
+    cursor = desde
+    while cursor <= hasta:
+        fila: dict = {"fecha": cursor}
+        for nombre, bucket in origenes:
+            fila[nombre] = analitica.coste_bucket_bebida(
+                bucket, cursor, cursor, data=app,
+            )
+        filas.append(fila)
+        cursor += timedelta(days=1)
+    return filas
+
+
+def evolucion_servicio(
+    etiqueta: str,
+    desde: date,
+    hasta: date,
+    *,
+    data: AppData | None = None,
+) -> list[dict]:
+    """Serie diaria de una sola categoría Dashboard (Comida / Cena / Bebidas)."""
+    evo = evolucion_por_categoria(desde, hasta, modo_desayuno=False, data=data)
+    return [
+        {"fecha": r["fecha"], etiqueta: float(r.get(etiqueta, 0) or 0)}
+        for r in evo
+    ]
 
 
 def distribucion_categorias(

@@ -72,9 +72,12 @@ def chart_lineas_categorias(
 ) -> alt.Chart:
     """Líneas por categoría a partir de filas {fecha, Serie1, Serie2, ...}."""
     filas = []
+    orden_fechas: list[str] = []
     for item in datos:
         f = item["fecha"]
         fecha_str = f.strftime("%d/%m") if isinstance(f, date) else str(f)
+        if fecha_str not in orden_fechas:
+            orden_fechas.append(fecha_str)
         for serie in series:
             filas.append({
                 "fecha": fecha_str,
@@ -89,8 +92,8 @@ def chart_lineas_categorias(
         alt.Chart(df)
         .mark_line(point=True)
         .encode(
-            x=alt.X("fecha:N", title="Fecha", sort=None),
-            y=alt.Y("coste:Q", title="Coste (€)"),
+            x=alt.X("fecha:N", title="Fecha", sort=orden_fechas),
+            y=alt.Y("coste:Q", title="Coste (€)", scale=alt.Scale(zero=True)),
             color=alt.Color("categoria:N", title="Categoría"),
             tooltip=["fecha", "categoria", alt.Tooltip("coste:Q", format=".2f")],
         )

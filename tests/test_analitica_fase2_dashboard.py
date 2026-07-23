@@ -153,3 +153,41 @@ class TestDashboardAgregados(unittest.TestCase):
         p = dash.resolver_periodo("Este mes", hoy=hoy)
         self.assertEqual(p.desde, date(2026, 7, 1))
         self.assertEqual(p.hasta, hoy)
+
+    def test_evolucion_servicio_solo_comida(self) -> None:
+        data = _app()
+        d0 = date(2026, 7, 10)
+        data.registros_servicio.append(
+            RegistroServicio("c1", TipoServicio.COMIDA.value, d0, coste_total=20.0),
+        )
+        evo = dash.evolucion_servicio("Comida", d0, d0, data=data)
+        self.assertEqual(len(evo), 1)
+        self.assertEqual(evo[0]["Comida"], 20.0)
+        self.assertEqual(set(evo[0].keys()), {"fecha", "Comida"})
+
+    def test_evolucion_bebidas_por_origen(self) -> None:
+        data = _app()
+        d0 = date(2026, 7, 10)
+        data.desayunos.append(RegistroDesayuno(
+            "d1", d0, coste_total=3.0, registrado_por="Ana",
+            lineas_detalle=[
+                LineaDetalleOrigen(
+                    OrigenConsumo.PRODUCTO_DIRECTO.value, "p2", 0.2, 3.0,
+                    tipo_servicio="desayuno", es_bebida_snapshot=True,
+                ),
+            ],
+        ))
+        data.registros_servicio.append(RegistroServicio(
+            "b1", TipoServicio.BEBIDAS.value, d0, coste_total=5.0,
+            lineas_detalle=[
+                LineaDetalleOrigen(
+                    OrigenConsumo.PRODUCTO_DIRECTO.value, "p2", 0.5, 5.0,
+                    tipo_servicio="bebidas", es_bebida_snapshot=True,
+                ),
+            ],
+        ))
+        evo = dash.evolucion_bebidas_por_origen(d0, d0, data=data)
+        self.assertEqual(len(evo), 1)
+        self.assertEqual(evo[0]["En desayuno"], 3.0)
+        self.assertEqual(evo[0]["Independiente"], 5.0)
+        self.assertEqual(evo[0]["En comida"], 0.0)

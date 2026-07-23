@@ -59,6 +59,22 @@ def _tabla(filas: list[dict], columnas: list[str]) -> None:
     st.dataframe(pd.DataFrame(filas)[columnas], use_container_width=True, hide_index=True)
 
 
+def _grafico_evolucion_lineas(
+    evo: list[dict],
+    series: list[str],
+    *,
+    titulo: str,
+) -> None:
+    st.markdown(f"##### {titulo}")
+    if any(sum(float(v or 0) for k, v in r.items() if k != "fecha") > 0 for r in evo):
+        st.altair_chart(
+            chart_lineas_categorias(evo, series, titulo=titulo),
+            use_container_width=True,
+        )
+    else:
+        chart_placeholder("Sin evolución en el periodo.")
+
+
 def _render_resumen(desde: date, hasta: date) -> None:
     repo = get_repository()
     res = costes_service.resumen_ejecutivo_costes(desde, hasta)
@@ -222,19 +238,24 @@ def _render_desayuno(desde: date, hasta: date) -> None:
         metric_card("Desayuno total", repo.formato_precio(d["Desayuno total"]), "")
     if d["Sin desglose histórico"] > 0:
         st.warning(
-            f"Sin desglose histórico: {repo.formato_precio(d['Sin desglose histórico'])}"
+            f"Sin desglose histórico: {repo.formato_precio(d['Sin desglose histórico'])} "
+            "(registros antiguos sin detalle de origen)."
         )
 
+    section_divider()
+    evo = dash.evolucion_por_categoria(desde, hasta, modo_desayuno=True)
+    series = ["Desayuno", "Bebidas en desayuno", "Desayuno total"]
+    if any(r.get("Sin desglose histórico", 0) > 0 for r in evo):
+        series = ["Desayuno", "Bebidas en desayuno", "Sin desglose histórico", "Desayuno total"]
+    _grafico_evolucion_lineas(evo, series, titulo="Evolución del desglose")
+
+    section_divider()
     sub = render_sub_tabs(["Recetas", "Extras", "Bebidas en desayuno"], key="costes_des_sub")
     ts = TipoServicio.DESAYUNO.value
     if sub == "Recetas":
         top = costes_service.top_recetas_coste(desde, hasta, tipo_servicio=ts, limite=15)
         _tabla(top, ["nombre", "porciones", "usos", "coste_fmt"])
     elif sub == "Extras":
-        top = costes_service.top_generadores_coste(
-            desde, hasta, tipo_servicio=ts, limite=15,
-        )
-        # Filtrar no bebida vía analitica bucket desayuno (comida)
         filas = analitica.ranking_productos(
             desde, hasta, tipo_servicio=ts, solo_consumo_bebida=False,
             tipos_elemento=["producto_directo", "extra_receta"], limite=15,
@@ -255,16 +276,6 @@ def _render_desayuno(desde: date, hasta: date) -> None:
         )
         _tabla(top, ["nombre", "cantidad_fmt", "usos", "coste_fmt"])
 
-    evo = dash.evolucion_por_categoria(desde, hasta, modo_desayuno=True)
-    st.markdown("##### Evolución del desglose")
-    if any(sum(v for k, v in r.items() if k != "fecha") > 0 for r in evo):
-        st.altair_chart(
-            chart_lineas_categorias(
-                evo, ["Desayuno", "Bebidas en desayuno", "Desayuno total"],
-            ),
-            use_container_width=True,
-        )
-
 
 def _render_servicio(etiqueta: str, tipo_servicio: str, desde: date, hasta: date) -> None:
     repo = get_repository()
@@ -274,6 +285,14 @@ def _render_servicio(etiqueta: str, tipo_servicio: str, desde: date, hasta: date
         repo.formato_precio(serv.get(etiqueta, 0)),
         "Solo consumo de este servicio",
     )
+
+    section_divider()
+    evo = dash.evolucion_servicio(etiqueta, desde, hasta)
+    _grafico_evolucion_lineas(
+        evo, [etiqueta], titulo=f"Evolución del coste — {etiqueta}",
+    )
+
+    section_divider()
     sub = render_sub_tabs(
         ["Recetas", "Productos y extras", "Bebidas"],
         key=f"costes_{tipo_servicio}_sub",
@@ -331,18 +350,40 @@ def _render_bebidas(desde: date, hasta: date) -> None:
             }
             for n, b in mapa.items()
         ]
+        # Complemento: servicio independiente por coste_total (incluye sin detalle).
+        indep_svc = costes_service.costes_consumo_por_servicio(desde, hasta).get("Bebidas", 0.0)
         tot = sum(d["importe"] for d in dist) or 1.0
         for d in dist:
             d["porcentaje"] = round((d["importe"] / tot) * 100, 1)
         metric_card(
             "Coste bebidas transversal",
             repo.formato_precio(sum(d["importe"] for d in dist)),
-            "",
+            f"Servicio independiente (registros): {repo.formato_precio(indep_svc)}",
         )
-        if any(d["importe"] > 0 for d in dist):
-            st.altair_chart(chart_barras_horizontales(dist), use_container_width=True)
-        top = costes_service.top_generadores_coste(desde, hasta, limite=15)
-        # Filtrar solo consumo_bebida
+
+        section_divider()
+        evo = dash.evolucion_bebidas_por_origen(desde, hasta)
+        # Si no hay detalle de origen, mostrar al menos la serie del servicio Bebidas.
+        if not any(sum(v for k, v in r.items() if k != "fecha") > 0 for r in evo):
+            evo_svc = dash.evolucion_servicio("Bebidas", desde, hasta)
+            _grafico_evolucion_lineas(
+                evo_svc, ["Bebidas"],
+                titulo="Evolución — servicio Bebidas (independiente)",
+            )
+            st.caption(
+                "Sin desglose por origen: hace falta detalle de líneas "
+                "(registros nuevos con lineas_detalle)."
+            )
+        else:
+            if any(d["importe"] > 0 for d in dist):
+                st.altair_chart(chart_barras_horizontales(dist), use_container_width=True)
+            _grafico_evolucion_lineas(
+                evo,
+                ["En desayuno", "En comida", "En cena", "Independiente"],
+                titulo="Evolución de bebidas por origen",
+            )
+
+        section_divider()
         filas = analitica.ranking_productos(
             desde, hasta, solo_consumo_bebida=True, limite=15,
         )
@@ -358,11 +399,32 @@ def _render_bebidas(desde: date, hasta: date) -> None:
         _tabla(top, ["nombre", "cantidad_fmt", "usos", "coste_fmt"])
     else:
         bucket = mapa[sub]
-        metric_card(
-            f"Coste — {sub}",
-            repo.formato_precio(analitica.coste_bucket_bebida(bucket, desde, hasta)),
-            "",
-        )
+        coste_bucket = analitica.coste_bucket_bebida(bucket, desde, hasta)
+        metric_card(f"Coste — {sub}", repo.formato_precio(coste_bucket), "")
+
+        section_divider()
+        if sub == "Registro independiente":
+            # Preferir coste de registros del servicio (incluye histórico sin detalle).
+            evo = dash.evolucion_servicio("Bebidas", desde, hasta)
+            _grafico_evolucion_lineas(
+                evo, ["Bebidas"], titulo="Evolución — servicio Bebidas",
+            )
+        else:
+            etiqueta_evo = {
+                "Desayuno": "En desayuno",
+                "Comida": "En comida",
+                "Cena": "En cena",
+            }[sub]
+            evo_full = dash.evolucion_bebidas_por_origen(desde, hasta)
+            evo = [
+                {"fecha": r["fecha"], etiqueta_evo: r.get(etiqueta_evo, 0.0)}
+                for r in evo_full
+            ]
+            _grafico_evolucion_lineas(
+                evo, [etiqueta_evo], titulo=f"Evolución — {sub}",
+            )
+
+        section_divider()
         _tabla(
             costes_service.top_generadores_coste(desde, hasta, bucket=bucket),
             ["nombre", "cantidad_fmt", "usos", "coste_fmt"],
