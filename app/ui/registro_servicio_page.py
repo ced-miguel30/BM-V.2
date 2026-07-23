@@ -53,12 +53,14 @@ def render_pagina_registro_servicio(
     categorias_receta: list[CategoriaReceta],
     mensaje_vacio_historial: str,
     mostrar_huespedes: bool = False,
+    mostrar_cabecera: bool = True,
 ) -> None:
     """Página completa de registro + historial + exportación para un tipo."""
     repo = get_repository()
     stock_key = f"bm_stock_pendiente_{key_prefix}"
 
-    page_header(titulo_pagina, subtitulo)
+    if mostrar_cabecera:
+        page_header(titulo_pagina, subtitulo)
 
     st.markdown(f"#### Registro rápido de {etiqueta.lower()}")
     st.caption(

@@ -42,12 +42,18 @@ def _render_sidebar_alertas() -> None:
 
 def render_sidebar() -> str:
     """Renderiza la barra lateral y devuelve la sección seleccionada."""
+    opciones = list(NAV_SECTIONS.keys())
+    # Si el menú cambió (p. ej. se añadió Registros), limpia un valor obsoleto
+    # para que Streamlit no oculte opciones nuevas o falle el radio.
+    if st.session_state.get("nav_section") not in (None, *opciones):
+        del st.session_state["nav_section"]
+
     with st.sidebar:
         _render_sidebar_alertas()
         st.markdown('<p class="bm-sidebar-section-label">Navegación</p>', unsafe_allow_html=True)
         section = st.radio(
             label="Sección",
-            options=list(NAV_SECTIONS.keys()),
+            options=opciones,
             label_visibility="collapsed",
             key="nav_section",
         )

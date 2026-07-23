@@ -23,13 +23,25 @@ from app.core.services import (
 )
 from app.core.services.alert_service import sincronizar_alertas
 from app.core.services.exportacion_semanal_service import procesar_pendientes
-from app.pages import analisis, bebidas, cena, comida, dashboard, desayuno, recetas, settings, stock
+from app.pages import (
+    analisis,
+    bebidas,
+    cena,
+    comida,
+    dashboard,
+    desayuno,
+    recetas,
+    registros,
+    settings,
+    stock,
+)
 from app.ui.components import render_sidebar
 from app.ui.styles import inject_global_styles
 from app.ui.theme import APP_NAME, APP_VERSION
 
 PAGES = {
     "dashboard": dashboard.render,
+    "registros": registros.render,
     "desayuno": desayuno.render,
     "comida": comida.render,
     "cena": cena.render,

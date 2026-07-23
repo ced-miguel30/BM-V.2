@@ -526,6 +526,16 @@ _SUBTABS = {
 }
 
 
+def render_registro_desayuno() -> None:
+    """Contenido de desayuno sin cabecera (p. ej. pestaña Registros)."""
+    _render_registro_desayuno()
+
+
+def render_registro_merma() -> None:
+    """Contenido de merma sin cabecera (p. ej. pestaña Registros)."""
+    _render_registro_merma()
+
+
 def render() -> None:
     page_header("Desayuno", "Registro diario de consumo y merma")
 

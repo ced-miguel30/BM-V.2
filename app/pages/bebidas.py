@@ -4,7 +4,7 @@ from app.core.services import bebida_service
 from app.ui.registro_servicio_page import render_pagina_registro_servicio
 
 
-def render() -> None:
+def render(*, mostrar_cabecera: bool = True) -> None:
     render_pagina_registro_servicio(
         bebida_service.servicio,
         titulo_pagina="Bebidas",
@@ -13,4 +13,5 @@ def render() -> None:
         key_prefix="bebidas",
         categorias_receta=bebida_service.CATEGORIAS_RECETA,
         mensaje_vacio_historial="Todavía no hay registros de bebidas esta semana.",
+        mostrar_cabecera=mostrar_cabecera,
     )
