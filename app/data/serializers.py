@@ -212,8 +212,16 @@ def appdata_to_dict(data: AppData) -> dict:
                 "id": m.id, "fecha": m.fecha.isoformat(),
                 "hora": m.hora.isoformat() if m.hora else None,
                 "lineas": [
-                    {"producto_id": ln.producto_id, "cantidad": ln.cantidad, "coste": ln.coste,
-                     "motivo": ln.motivo.value, "comentario": ln.comentario, "lote_id": ln.lote_id}
+                    {
+                        "producto_id": ln.producto_id,
+                        "cantidad": ln.cantidad,
+                        "coste": ln.coste,
+                        "motivo": ln.motivo.value,
+                        "comentario": ln.comentario,
+                        "lote_id": ln.lote_id,
+                        # Aditivo: ausente en JSON antiguo → None al cargar.
+                        "tipo_servicio_snapshot": ln.tipo_servicio_snapshot,
+                    }
                     for ln in m.lineas
                 ],
                 "coste_total": m.coste_total, "registrado_por": m.registrado_por,
@@ -378,8 +386,16 @@ def dict_to_appdata(payload: dict) -> AppData:
             RegistroMerma(
                 m["id"], _parse_date(m["fecha"]),  # type: ignore[arg-type]
                 [
-                    LineaMerma(ln["producto_id"], ln["cantidad"], ln["coste"],
-                               MotivoMerma(ln["motivo"]), ln.get("comentario"), ln.get("lote_id"))
+                    LineaMerma(
+                        ln["producto_id"],
+                        ln["cantidad"],
+                        ln["coste"],
+                        MotivoMerma(ln["motivo"]),
+                        ln.get("comentario"),
+                        ln.get("lote_id"),
+                        # NULL / ausente = histórico sin desglose; no reinterpretar.
+                        ln.get("tipo_servicio_snapshot"),
+                    )
                     for ln in m.get("lineas", [])
                 ],
                 m.get("coste_total", 0), m.get("registrado_por", ""),

@@ -377,15 +377,18 @@ def _render_registro_desayuno() -> None:
 def _render_registro_merma() -> None:
     from app.core.services.merma_service import (
         MOTIVOS,
+        OPCIONES_SERVICIO_UI,
         anadir_a_cesta_merma,
         configuracion_exportacion as configuracion_exportacion_merma,
         coste_total_cesta_merma,
+        etiqueta_servicio_merma,
         get_cesta_merma,
         limpiar_cesta_merma,
         lotes_disponibles,
         productos_con_stock,
         quitar_de_cesta_merma,
         registrar_merma,
+        valor_servicio_desde_ui,
     )
     from app.ui.search import opciones_desde_etiquetas
 
@@ -420,6 +423,12 @@ def _render_registro_merma() -> None:
                     lote_id = lote_sel["id"]
 
                     motivo = st.selectbox("Motivo", MOTIVOS, key="merma_motivo")
+                    servicio_ui = st.selectbox(
+                        "¿Dónde se produjo la merma?",
+                        OPCIONES_SERVICIO_UI,
+                        key="merma_servicio",
+                    )
+                    st.caption("Selecciona el servicio o área donde se produjo esta merma.")
                     cantidad = st.number_input(
                         "Cantidad",
                         min_value=0.0,
@@ -431,7 +440,10 @@ def _render_registro_merma() -> None:
                     comentario = st.text_area("Comentario (opcional)", key="merma_comentario")
 
                     if st.button("Añadir a la cesta", type="secondary", use_container_width=True, key="merma_btn_anadir"):
-                        resultado = anadir_a_cesta_merma(lote_id, cantidad, motivo, comentario)
+                        servicio_val = valor_servicio_desde_ui(servicio_ui)
+                        resultado = anadir_a_cesta_merma(
+                            lote_id, cantidad, motivo, servicio_val, comentario,
+                        )
                         if resultado.ok:
                             st.success(resultado.mensaje)
                             st.rerun()
@@ -464,15 +476,24 @@ def _render_registro_merma() -> None:
                     if indice > 0:
                         st.markdown('<div class="bm-cesta-divider"></div>', unsafe_allow_html=True)
 
-                    detalle = f"Lote {linea.lote_id} · compra {linea.fecha_compra_txt} · {linea.motivo}"
+                    servicio_txt = etiqueta_servicio_merma(linea.tipo_servicio_snapshot)
+                    detalle = (
+                        f"Lote {linea.lote_id} · compra {linea.fecha_compra_txt} · "
+                        f"{linea.motivo} · {servicio_txt}"
+                    )
                     if linea.comentario:
                         detalle += f" · {linea.comentario}"
 
                     _fila_cesta(
                         f'<div class="bm-cesta-nombre">{linea.nombre} — {linea.cantidad:g} {linea.unidad}</div>'
                         f'<div class="bm-cesta-detalle">{detalle}</div>',
-                        f"merma_{linea.lote_id}_{linea.motivo}",
-                        lambda l=linea: _quitar_y_rerun(quitar_de_cesta_merma, l.lote_id, l.motivo),
+                        f"merma_{linea.lote_id}_{linea.motivo}_{linea.tipo_servicio_snapshot}",
+                        lambda l=linea: _quitar_y_rerun(
+                            quitar_de_cesta_merma,
+                            l.lote_id,
+                            l.motivo,
+                            l.tipo_servicio_snapshot,
+                        ),
                         ayuda_quitar="Eliminar de la cesta",
                     )
 

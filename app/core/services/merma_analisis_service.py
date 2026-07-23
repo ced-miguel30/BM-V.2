@@ -1,11 +1,10 @@
-"""Análisis de merma — sin atribución inventada a Desayuno/Comida/Cena (Fase 5).
+"""Análisis de merma agrupado por tipo_servicio_snapshot (histórico).
 
-Ámbitos:
-- `bebida`: productos con `Producto.es_bebida` (catálogo vivo).
-- `general`: resto de productos.
-- `todo`: ambos.
+Grupos:
+- desayuno | comida | cena | bebidas | general  (snapshot)
+- sin_desglose_historico  (snapshot is None)
 
-«Merma de productos bebida» ≠ merma del servicio Bebidas (no hay vínculo a servicio).
+No usa Producto.es_bebida para decidir el servicio de la merma.
 """
 
 from __future__ import annotations
@@ -13,20 +12,25 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, timedelta
 
-from app.core.models import AppData, MotivoMerma, UnidadProducto
+from app.core.models import (
+    AppData,
+    MotivoMerma,
+    ORIGEN_SERVICIO_MERMA_LABEL,
+    OrigenServicioMerma,
+    UnidadProducto,
+)
 from app.core.services.data_service import get_repository
 from app.core.services.unidad_service import presentacion_legible
 
 AMBITO_TODO = "todo"
-AMBITO_BEBIDA = "bebida"
-AMBITO_GENERAL = "general"
+BUCKET_SIN_DESGLOSE = "sin_desglose_historico"
 
-MSG_SERVICIO_SIN_VINCULO = (
-    "La merma no tiene vínculo fiable a Desayuno, Comida ni Cena. "
-    "Hasta que el registro de merma guarde el servicio de origen, "
-    "estas pestañas permanecen deshabilitadas. "
-    "Use **Resumen**, **Bebidas** (productos bebida del catálogo) o **General**."
-)
+GRUPOS_SERVICIO: list[str] = [m.value for m in OrigenServicioMerma] + [BUCKET_SIN_DESGLOSE]
+
+GRUPO_LABEL: dict[str, str] = {
+    **{m.value: ORIGEN_SERVICIO_MERMA_LABEL[m] for m in OrigenServicioMerma},
+    BUCKET_SIN_DESGLOSE: "Sin desglose histórico",
+}
 
 
 @dataclass(frozen=True)
@@ -38,7 +42,8 @@ class LineaMermaAnalitica:
     unidad: str
     coste: float
     motivo: str
-    es_bebida: bool
+    tipo_servicio_snapshot: str | None
+    bucket_servicio: str
     registro_id: str
     lote_id: str | None
     comentario: str | None
@@ -46,11 +51,6 @@ class LineaMermaAnalitica:
 
 def _data(data: AppData | None) -> AppData:
     return data if data is not None else get_repository().data
-
-
-def _es_bebida(producto_id: str, data: AppData) -> bool:
-    producto = next((p for p in data.productos if p.id == producto_id), None)
-    return bool(producto.es_bebida) if producto else False
 
 
 def _unidad(producto_id: str, data: AppData) -> str:
@@ -61,6 +61,13 @@ def _unidad(producto_id: str, data: AppData) -> str:
 def _nombre(producto_id: str, data: AppData) -> str:
     producto = next((p for p in data.productos if p.id == producto_id), None)
     return producto.nombre if producto else producto_id
+
+
+def bucket_servicio_linea(tipo_servicio_snapshot: str | None) -> str:
+    """Lee solo el snapshot; None → sin_desglose_historico. Sin catálogo vivo."""
+    if tipo_servicio_snapshot in {m.value for m in OrigenServicioMerma}:
+        return tipo_servicio_snapshot
+    return BUCKET_SIN_DESGLOSE
 
 
 def iter_lineas_merma(
@@ -82,10 +89,8 @@ def iter_lineas_merma(
             motivo = ln.motivo.value if isinstance(ln.motivo, MotivoMerma) else str(ln.motivo)
             if motivos is not None and motivo not in motivos:
                 continue
-            bebida = _es_bebida(ln.producto_id, app)
-            if ambito == AMBITO_BEBIDA and not bebida:
-                continue
-            if ambito == AMBITO_GENERAL and bebida:
+            bucket = bucket_servicio_linea(ln.tipo_servicio_snapshot)
+            if ambito != AMBITO_TODO and bucket != ambito:
                 continue
             resultado.append(
                 LineaMermaAnalitica(
@@ -96,13 +101,27 @@ def iter_lineas_merma(
                     unidad=_unidad(ln.producto_id, app),
                     coste=round(ln.coste, 2),
                     motivo=motivo,
-                    es_bebida=bebida,
+                    tipo_servicio_snapshot=ln.tipo_servicio_snapshot,
+                    bucket_servicio=bucket,
                     registro_id=reg.id,
                     lote_id=ln.lote_id,
                     comentario=ln.comentario,
                 )
             )
     return resultado
+
+
+def coste_por_grupo_servicio(
+    desde: date,
+    hasta: date,
+    *,
+    data: AppData | None = None,
+) -> dict[str, float]:
+    """Coste por cada grupo (incl. sin_desglose). Suma = total periodo."""
+    por = {g: 0.0 for g in GRUPOS_SERVICIO}
+    for l in iter_lineas_merma(desde, hasta, data=data, ambito=AMBITO_TODO):
+        por[l.bucket_servicio] = round(por[l.bucket_servicio] + l.coste, 2)
+    return por
 
 
 def resumen_merma(
@@ -122,12 +141,8 @@ def resumen_merma(
     for l in lineas:
         por_motivo[l.motivo] = round(por_motivo.get(l.motivo, 0.0) + l.coste, 2)
 
-    bebida_coste = sum(
-        l.coste for l in iter_lineas_merma(desde, hasta, data=app, ambito=AMBITO_BEBIDA)
-    )
-    general_coste = sum(
-        l.coste for l in iter_lineas_merma(desde, hasta, data=app, ambito=AMBITO_GENERAL)
-    )
+    por_grupo = coste_por_grupo_servicio(desde, hasta, data=app)
+    suma_grupos = round(sum(por_grupo.values()), 2)
 
     return {
         "total": total,
@@ -139,10 +154,9 @@ def resumen_merma(
         "n_lineas": len(lineas),
         "n_registros": len({l.registro_id for l in lineas}),
         "por_motivo": por_motivo,
-        "bebida_coste": round(bebida_coste, 2),
-        "bebida_fmt": repo.formato_precio(bebida_coste),
-        "general_coste": round(general_coste, 2),
-        "general_fmt": repo.formato_precio(general_coste),
+        "por_grupo": por_grupo,
+        "suma_grupos": suma_grupos,
+        "suma_grupos_fmt": repo.formato_precio(suma_grupos),
     }
 
 
@@ -176,14 +190,15 @@ def ranking_productos_merma(
             "unidad": l.unidad,
             "usos": 0,
             "coste": 0.0,
-            "es_bebida": l.es_bebida,
             "motivos": set(),
+            "servicios": set(),
         })
         if item["unidad"] == l.unidad:
             item["cantidad"] = round(item["cantidad"] + l.cantidad, 6)
         item["usos"] += 1
         item["coste"] = round(item["coste"] + l.coste, 2)
         item["motivos"].add(l.motivo)
+        item["servicios"].add(GRUPO_LABEL.get(l.bucket_servicio, l.bucket_servicio))
 
     filas = []
     for v in acumulado.values():
@@ -201,8 +216,8 @@ def ranking_productos_merma(
             "usos": v["usos"],
             "coste": v["coste"],
             "coste_fmt": repo.formato_precio(v["coste"]),
-            "es_bebida": v["es_bebida"],
             "motivos": ", ".join(sorted(v["motivos"])),
+            "servicios": ", ".join(sorted(v["servicios"])),
         })
     filas.sort(
         key=lambda x: (x["coste"], x["cantidad"], x["nombre"]),
@@ -270,25 +285,22 @@ def evolucion_merma(
     return [series[d] for d in sorted(series.keys())]
 
 
-def distribucion_ambito(
+def distribucion_servicio(
     desde: date,
     hasta: date,
     *,
     data: AppData | None = None,
 ) -> list[dict]:
     repo = get_repository()
-    res = resumen_merma(desde, hasta, data=data, ambito=AMBITO_TODO)
-    items = [
-        ("Productos bebida", res["bebida_coste"]),
-        ("General (no bebida)", res["general_coste"]),
-    ]
-    total = sum(v for _, v in items) or 1.0
+    por = coste_por_grupo_servicio(desde, hasta, data=data)
+    total = sum(por.values()) or 1.0
     return [
         {
-            "categoria": nombre,
+            "categoria": GRUPO_LABEL[g],
             "importe": coste,
-            "porcentaje": round((coste / total) * 100, 1) if res["total"] else 0.0,
+            "porcentaje": round((coste / total) * 100, 1) if sum(por.values()) else 0.0,
             "coste_fmt": repo.formato_precio(coste),
+            "grupo": g,
         }
-        for nombre, coste in items
+        for g, coste in por.items()
     ]

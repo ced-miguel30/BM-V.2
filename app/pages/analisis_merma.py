@@ -1,4 +1,4 @@
-"""Gestor de merma — Resumen / servicios deshabilitados / Bebidas / General (Fase 5)."""
+"""Gestor de merma — agrupación por tipo_servicio_snapshot."""
 
 from __future__ import annotations
 
@@ -7,7 +7,7 @@ from datetime import date
 import pandas as pd
 import streamlit as st
 
-from app.core.models import MotivoMerma
+from app.core.models import MotivoMerma, OrigenServicioMerma
 from app.core.services import merma_analisis_service as merma_an
 from app.core.services.exportacion_semanal_service import limite_semana
 from app.core.services.formatting import formato_fecha
@@ -19,6 +19,25 @@ from app.ui.components import (
     render_sub_tabs,
     section_divider,
 )
+
+_PESTANAS = [
+    "Resumen",
+    "Desayuno",
+    "Comida",
+    "Cena",
+    "Bebidas",
+    "Almacén / General",
+    "Sin desglose histórico",
+]
+
+_PESTANA_A_AMBITO = {
+    "Desayuno": OrigenServicioMerma.DESAYUNO.value,
+    "Comida": OrigenServicioMerma.COMIDA.value,
+    "Cena": OrigenServicioMerma.CENA.value,
+    "Bebidas": OrigenServicioMerma.BEBIDAS.value,
+    "Almacén / General": OrigenServicioMerma.GENERAL.value,
+    "Sin desglose histórico": merma_an.BUCKET_SIN_DESGLOSE,
+}
 
 
 def _periodo_simple(key: str) -> tuple[date, date] | None:
@@ -66,13 +85,6 @@ def _filtro_motivo(key: str) -> list[str] | None:
     return sel
 
 
-def _aviso_servicio_deshabilitado(nombre: str) -> None:
-    st.info(
-        f"**{nombre}** — pestaña deshabilitada.\n\n"
-        + merma_an.MSG_SERVICIO_SIN_VINCULO
-    )
-
-
 def _bloque_rankings(
     desde: date,
     hasta: date,
@@ -95,14 +107,15 @@ def _bloque_rankings(
     c1, c2 = st.columns(2)
     with c1:
         st.markdown("##### Más merma (por coste)")
-        _tabla(mas, ["nombre", "cantidad_fmt", "usos", "motivos", "coste_fmt"])
+        _tabla(mas, ["nombre", "cantidad_fmt", "usos", "motivos", "servicios", "coste_fmt"])
     with c2:
         st.markdown("##### Menos merma (uso > 0)")
-        _tabla(menos, ["nombre", "cantidad_fmt", "usos", "motivos", "coste_fmt"])
+        _tabla(menos, ["nombre", "cantidad_fmt", "usos", "motivos", "servicios", "coste_fmt"])
 
 
 def _render_resumen(desde: date, hasta: date) -> None:
     res = merma_an.resumen_merma(desde, hasta)
+    por = res["por_grupo"]
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         metric_card("Merma total", res["total_fmt"], f"{res['n_registros']} registros")
@@ -111,14 +124,36 @@ def _render_resumen(desde: date, hasta: date) -> None:
     with c3:
         metric_card("Expiración", res["expiracion_fmt"], "")
     with c4:
-        metric_card("Productos bebida", res["bebida_fmt"], "Catálogo es_bebida")
+        metric_card(
+            "Suma por servicio",
+            res["suma_grupos_fmt"],
+            "Debe coincidir con el total",
+        )
     with c5:
-        metric_card("General", res["general_fmt"], "No bebida")
+        sin = por.get(merma_an.BUCKET_SIN_DESGLOSE, 0.0)
+        from app.core.services.data_service import get_repository
+        metric_card(
+            "Sin desglose histórico",
+            get_repository().formato_precio(sin),
+            "Registros antiguos",
+        )
 
     st.caption(
-        "La merma no se reparte entre Desayuno/Comida/Cena: no hay vínculo de servicio. "
-        "«Productos bebida» usa el catálogo (`es_bebida`), no el servicio Bebidas."
+        "La merma se agrupa por el servicio guardado al registrar "
+        "(`tipo_servicio_snapshot`). Los registros antiguos sin ese campo "
+        "aparecen en «Sin desglose histórico»."
     )
+
+    section_divider()
+    st.markdown("##### Por servicio / área")
+    dist = merma_an.distribucion_servicio(desde, hasta)
+    if any(d["importe"] > 0 for d in dist):
+        st.altair_chart(
+            chart_barras_horizontales(dist, "Servicio"),
+            use_container_width=True,
+        )
+    else:
+        chart_placeholder("Sin merma en el periodo.")
 
     section_divider()
     st.markdown("##### Por motivo")
@@ -129,18 +164,7 @@ def _render_resumen(desde: date, hasta: date) -> None:
             use_container_width=True,
         )
     else:
-        chart_placeholder("Sin merma en el periodo.")
-
-    section_divider()
-    st.markdown("##### Bebida vs general")
-    dist = merma_an.distribucion_ambito(desde, hasta)
-    if any(d["importe"] > 0 for d in dist):
-        st.altair_chart(
-            chart_barras_horizontales(dist, "Ámbito"),
-            use_container_width=True,
-        )
-    else:
-        chart_placeholder("Sin datos.")
+        chart_placeholder("Sin datos de motivo.")
 
     section_divider()
     st.markdown("##### Evolución")
@@ -205,9 +229,8 @@ def _render_ambito(
 def render_gestor_merma() -> None:
     st.markdown("#### Gestor de merma")
     st.caption(
-        "La merma es global: no se atribuye a Desayuno, Comida ni Cena. "
-        "La pestaña **Bebidas** muestra merma de **productos bebida** del catálogo, "
-        "no merma del servicio Bebidas."
+        "Agrupación por el servicio indicado al registrar la merma. "
+        "«Sin desglose histórico» son líneas antiguas sin `tipo_servicio_snapshot`."
     )
 
     periodo = _periodo_simple("merma")
@@ -216,31 +239,18 @@ def render_gestor_merma() -> None:
     desde, hasta = periodo
     st.caption(f"Periodo: {formato_fecha(desde)} — {formato_fecha(hasta)}")
 
-    pestana = render_sub_tabs(
-        ["Resumen", "Desayuno", "Comida", "Cena", "Bebidas", "General"],
-        key="merma_pestana",
-    )
+    pestana = render_sub_tabs(_PESTANAS, key="merma_pestana")
     section_divider()
 
     if pestana == "Resumen":
         _render_resumen(desde, hasta)
-    elif pestana in ("Desayuno", "Comida", "Cena"):
-        _aviso_servicio_deshabilitado(pestana)
-    elif pestana == "Bebidas":
-        _render_ambito(
-            "Merma de productos bebida",
-            "Productos del catálogo con es_bebida. No es el servicio independiente Bebidas.",
-            merma_an.AMBITO_BEBIDA,
-            desde,
-            hasta,
-            "merma_beb",
-        )
     else:
+        ambito = _PESTANA_A_AMBITO[pestana]
         _render_ambito(
-            "Merma general",
-            "Productos no clasificados como bebida en el catálogo.",
-            merma_an.AMBITO_GENERAL,
+            pestana,
+            f"Líneas con servicio «{pestana}».",
+            ambito,
             desde,
             hasta,
-            "merma_gen",
+            f"merma_{ambito}",
         )

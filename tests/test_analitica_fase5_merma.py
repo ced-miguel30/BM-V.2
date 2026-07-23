@@ -1,8 +1,6 @@
-"""Pruebas Fase 5 — gestor de merma (ámbitos bebida / general; sin servicio).
+"""Pruebas legacy Fase 5 merma — adaptadas a agrupación por snapshot.
 
-Ejecutar:
-
-    py -m unittest tests.test_analitica_fase5_merma -v
+Registros sin tipo_servicio_snapshot → sin_desglose_historico.
 """
 
 from __future__ import annotations
@@ -62,8 +60,8 @@ def _data() -> AppData:
     )
 
 
-class TestFase5Merma(unittest.TestCase):
-    def test_resumen_separa_merma_y_expiracion(self) -> None:
+class TestFase5MermaHistorico(unittest.TestCase):
+    def test_resumen_historico_va_a_sin_desglose(self) -> None:
         data = _data()
         repo = DataRepository(data)
         with patch(
@@ -73,25 +71,9 @@ class TestFase5Merma(unittest.TestCase):
             res = merma_an.resumen_merma(date(2026, 7, 1), date(2026, 7, 31), data=data)
         self.assertEqual(res["total"], 10.0)
         self.assertEqual(res["expiracion"], 3.0)
-        self.assertEqual(res["merma"], 7.0)  # 4+2+1
-        self.assertEqual(res["bebida_coste"], 5.0)  # café 3 + leche 2
-        self.assertEqual(res["general_coste"], 5.0)  # pan 4+1
-
-    def test_ambito_bebida_no_incluye_pan(self) -> None:
-        data = _data()
-        repo = DataRepository(data)
-        with patch(
-            "app.core.services.merma_analisis_service.get_repository",
-            return_value=repo,
-        ):
-            filas = merma_an.ranking_productos_merma(
-                date(2026, 7, 1), date(2026, 7, 31),
-                data=data, ambito=merma_an.AMBITO_BEBIDA,
-            )
-        nombres = {f["nombre"] for f in filas}
-        self.assertIn("Café", nombres)
-        self.assertIn("Leche", nombres)
-        self.assertNotIn("Pan", nombres)
+        self.assertEqual(res["merma"], 7.0)
+        self.assertEqual(res["por_grupo"][merma_an.BUCKET_SIN_DESGLOSE], 10.0)
+        self.assertEqual(res["suma_grupos"], 10.0)
 
     def test_menos_solo_uso_positivo_ascendente(self) -> None:
         data = _data()
@@ -107,7 +89,3 @@ class TestFase5Merma(unittest.TestCase):
         self.assertTrue(all(f["usos"] > 0 for f in filas))
         costes = [f["coste"] for f in filas]
         self.assertEqual(costes, sorted(costes))
-
-    def test_mensaje_servicio_sin_vinculo(self) -> None:
-        self.assertIn("Desayuno", merma_an.MSG_SERVICIO_SIN_VINCULO)
-        self.assertIn("deshabilitadas", merma_an.MSG_SERVICIO_SIN_VINCULO)

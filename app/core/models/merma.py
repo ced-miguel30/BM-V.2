@@ -14,6 +14,9 @@ class LineaMerma:
     motivo: MotivoMerma
     comentario: str | None = None
     lote_id: str | None = None
+    # Snapshot histórico: desayuno|comida|cena|bebidas|general.
+    # None = registro antiguo sin desglose (no reinterpretar).
+    tipo_servicio_snapshot: str | None = None
 
 
 @dataclass

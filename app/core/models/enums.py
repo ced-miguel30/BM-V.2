@@ -24,6 +24,29 @@ class MotivoMerma(str, Enum):
     OTRO = "Otro"
 
 
+class OrigenServicioMerma(str, Enum):
+    """Servicio/área donde se produjo la merma (snapshot histórico por línea)."""
+
+    DESAYUNO = "desayuno"
+    COMIDA = "comida"
+    CENA = "cena"
+    BEBIDAS = "bebidas"
+    GENERAL = "general"
+
+
+ORIGEN_SERVICIO_MERMA_LABEL: dict[OrigenServicioMerma, str] = {
+    OrigenServicioMerma.DESAYUNO: "Desayuno",
+    OrigenServicioMerma.COMIDA: "Comida",
+    OrigenServicioMerma.CENA: "Cena",
+    OrigenServicioMerma.BEBIDAS: "Bebidas",
+    OrigenServicioMerma.GENERAL: "Almacén / General",
+}
+
+ORIGEN_SERVICIO_MERMA_VALORES: frozenset[str] = frozenset(
+    m.value for m in OrigenServicioMerma
+)
+
+
 class TipoAlerta(str, Enum):
     STOCK_BAJO = "stock_bajo"
     STOCK_CERO = "stock_cero"

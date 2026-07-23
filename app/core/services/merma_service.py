@@ -1,9 +1,18 @@
-"""Servicio de registro de merma — con selección de lote."""
+"""Servicio de registro de merma — con selección de lote y servicio de origen."""
 
 from dataclasses import dataclass
 from datetime import date, datetime
 
-from app.core.models import AppData, LineaMerma, LoteStock, MotivoMerma, RegistroMerma
+from app.core.models import (
+    AppData,
+    LineaMerma,
+    LoteStock,
+    MotivoMerma,
+    ORIGEN_SERVICIO_MERMA_LABEL,
+    ORIGEN_SERVICIO_MERMA_VALORES,
+    OrigenServicioMerma,
+    RegistroMerma,
+)
 from app.core.repositories.data_repository import DataRepository
 from app.core.services.excel_bloques import RegistroExportable
 from app.core.services.exportacion_semanal_service import ConfiguracionExportacionModulo
@@ -13,6 +22,11 @@ from app.core.storage.session_store import get_data, persist_data
 
 CESTA_MERMA_KEY = "bm_cesta_merma"
 MOTIVOS = [m.value for m in MotivoMerma]
+PLACEHOLDER_SERVICIO = "Selecciona un servicio"
+OPCIONES_SERVICIO_UI = [PLACEHOLDER_SERVICIO] + [
+    ORIGEN_SERVICIO_MERMA_LABEL[m] for m in OrigenServicioMerma
+]
+_LABEL_A_VALOR = {v: k.value for k, v in ORIGEN_SERVICIO_MERMA_LABEL.items()}
 
 
 @dataclass
@@ -30,7 +44,24 @@ class LineaCestaMerma:
     fecha_compra_txt: str
     cantidad: float
     motivo: str
+    tipo_servicio_snapshot: str
     comentario: str | None = None
+
+
+def etiqueta_servicio_merma(valor: str | None) -> str:
+    if not valor:
+        return "Sin desglose histórico"
+    try:
+        return ORIGEN_SERVICIO_MERMA_LABEL[OrigenServicioMerma(valor)]
+    except ValueError:
+        return valor
+
+
+def valor_servicio_desde_ui(etiqueta: str) -> str | None:
+    """Devuelve el valor persistible o None si es el placeholder."""
+    if not etiqueta or etiqueta == PLACEHOLDER_SERVICIO:
+        return None
+    return _LABEL_A_VALOR.get(etiqueta)
 
 
 def _next_id(prefix: str, ids: list[str]) -> str:
@@ -88,6 +119,10 @@ def get_cesta_merma() -> list[LineaCestaMerma]:
 
     if CESTA_MERMA_KEY not in st.session_state:
         st.session_state[CESTA_MERMA_KEY] = []
+    # Compat: líneas de sesión antiguas sin tipo_servicio_snapshot → vaciar.
+    cesta = st.session_state[CESTA_MERMA_KEY]
+    if cesta and not hasattr(cesta[0], "tipo_servicio_snapshot"):
+        st.session_state[CESTA_MERMA_KEY] = []
     return st.session_state[CESTA_MERMA_KEY]
 
 
@@ -97,12 +132,21 @@ def limpiar_cesta_merma() -> None:
     st.session_state[CESTA_MERMA_KEY] = []
 
 
-def quitar_de_cesta_merma(lote_id: str, motivo: str) -> None:
+def quitar_de_cesta_merma(
+    lote_id: str,
+    motivo: str,
+    tipo_servicio_snapshot: str,
+) -> None:
     import streamlit as st
 
     cesta = get_cesta_merma()
     st.session_state[CESTA_MERMA_KEY] = [
-        l for l in cesta if not (l.lote_id == lote_id and l.motivo == motivo)
+        l for l in cesta
+        if not (
+            l.lote_id == lote_id
+            and l.motivo == motivo
+            and l.tipo_servicio_snapshot == tipo_servicio_snapshot
+        )
     ]
 
 
@@ -147,10 +191,14 @@ def lotes_disponibles(producto_id: str) -> list[dict]:
     ]
 
 
-def _cantidad_en_cesta(lote_id: str, motivo: str) -> float:
+def _cantidad_en_cesta(lote_id: str, motivo: str, tipo_servicio_snapshot: str) -> float:
     return sum(
         l.cantidad for l in get_cesta_merma()
-        if l.lote_id == lote_id and l.motivo == motivo
+        if (
+            l.lote_id == lote_id
+            and l.motivo == motivo
+            and l.tipo_servicio_snapshot == tipo_servicio_snapshot
+        )
     )
 
 
@@ -166,12 +214,18 @@ def anadir_a_cesta_merma(
     lote_id: str,
     cantidad: float,
     motivo: str,
+    tipo_servicio_snapshot: str | None,
     comentario: str | None = None,
 ) -> ResultadoOperacion:
     if cantidad <= 0:
         return ResultadoOperacion(False, "La cantidad debe ser mayor que 0.")
     if motivo not in MOTIVOS:
         return ResultadoOperacion(False, "Seleccione un motivo válido.")
+    if not tipo_servicio_snapshot or tipo_servicio_snapshot not in ORIGEN_SERVICIO_MERMA_VALORES:
+        return ResultadoOperacion(
+            False,
+            "Seleccione dónde se produjo la merma (Desayuno, Comida, Cena, Bebidas o Almacén / General).",
+        )
 
     data = get_data()
     lote = _get_lote(data, lote_id)
@@ -185,7 +239,7 @@ def anadir_a_cesta_merma(
     if not producto:
         return ResultadoOperacion(False, "Producto no encontrado.")
 
-    ya_en_cesta = _cantidad_en_cesta(lote_id, motivo)
+    ya_en_cesta = _cantidad_en_cesta(lote_id, motivo, tipo_servicio_snapshot)
     if ya_en_cesta + cantidad > lote.cantidad_restante:
         return ResultadoOperacion(
             False,
@@ -196,11 +250,15 @@ def anadir_a_cesta_merma(
     cesta = get_cesta_merma()
 
     for linea in cesta:
-        if linea.lote_id == lote_id and linea.motivo == motivo:
+        if (
+            linea.lote_id == lote_id
+            and linea.motivo == motivo
+            and linea.tipo_servicio_snapshot == tipo_servicio_snapshot
+        ):
             linea.cantidad = round(linea.cantidad + cantidad, 4)
             if comentario_limpio:
                 linea.comentario = comentario_limpio
-            return ResultadoOperacion(True, f"Línea actualizada en la cesta de merma.")
+            return ResultadoOperacion(True, "Línea actualizada en la cesta de merma.")
 
     cesta.append(LineaCestaMerma(
         lote_id=lote_id,
@@ -210,6 +268,7 @@ def anadir_a_cesta_merma(
         fecha_compra_txt=formato_fecha(lote.fecha_compra),
         cantidad=cantidad,
         motivo=motivo,
+        tipo_servicio_snapshot=tipo_servicio_snapshot,
         comentario=comentario_limpio,
     ))
     return ResultadoOperacion(True, f"«{producto.nombre}» (lote {lote_id}) añadido a la cesta.")
@@ -237,6 +296,13 @@ def registrar_merma(fecha: date) -> ResultadoOperacion:
     if fecha > date.today():
         return ResultadoOperacion(False, "No puede registrar mermas en fechas futuras.")
 
+    for item in cesta:
+        if item.tipo_servicio_snapshot not in ORIGEN_SERVICIO_MERMA_VALORES:
+            return ResultadoOperacion(
+                False,
+                "Hay líneas sin servicio válido. Quite y vuelva a añadirlas eligiendo el servicio.",
+            )
+
     data = get_data()
     lineas: list[LineaMerma] = []
 
@@ -257,6 +323,7 @@ def registrar_merma(fecha: date) -> ResultadoOperacion:
             MotivoMerma(item.motivo),
             item.comentario,
             item.lote_id,
+            item.tipo_servicio_snapshot,
         ))
 
     coste_total = round(sum(l.coste for l in lineas), 2)
@@ -294,12 +361,14 @@ def fecha_mas_antigua() -> date | None:
 
 
 def registros_exportables(inicio: date, hasta: datetime) -> list[RegistroExportable]:
-    """Desglose completo (producto, lote, cantidad, unidad, motivo, coste) de
-    cada merma registrada entre `inicio` y `hasta`, para la exportación semanal."""
+    """Desglose completo de cada merma entre `inicio` y `hasta`."""
     data = get_data()
     repo = DataRepository(data)
     fin = hasta.date()
-    columnas = ["Producto", "Lote", "Cantidad", "Unidad", "Motivo", "Coste", "Comentario"]
+    columnas = [
+        "Producto", "Lote", "Cantidad", "Unidad", "Motivo",
+        "Servicio", "Coste", "Comentario",
+    ]
 
     resultado: list[RegistroExportable] = []
     for m in data.mermas:
@@ -317,6 +386,7 @@ def registros_exportables(inicio: date, hasta: datetime) -> list[RegistroExporta
                 ln.cantidad,
                 unidad,
                 ln.motivo.value,
+                etiqueta_servicio_merma(ln.tipo_servicio_snapshot),
                 ln.coste,
                 ln.comentario or "",
             ])
