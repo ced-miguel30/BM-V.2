@@ -43,6 +43,10 @@ def _render_sidebar_alertas() -> None:
 def render_sidebar() -> str:
     """Renderiza la barra lateral y devuelve la sección seleccionada."""
     opciones = list(NAV_SECTIONS.keys())
+    # Deep-link: aplicar destino pendiente ANTES de instanciar el radio.
+    pending = st.session_state.pop("nav_section_pending", None)
+    if pending in opciones:
+        st.session_state["nav_section"] = pending
     # Si el menú cambió (p. ej. se añadió Registros), limpia un valor obsoleto
     # para que Streamlit no oculte opciones nuevas o falle el radio.
     if st.session_state.get("nav_section") not in (None, *opciones):

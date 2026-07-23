@@ -1,141 +1,38 @@
-"""Análisis — KPIs, consumo, costes e inteligencia de negocio."""
+"""Análisis — Consumo, Costes, Merma e inteligencia de negocio.
 
-from datetime import date, datetime
+Los KPIs ejecutivos viven en el Dashboard (Fase 6).
+"""
+
+from __future__ import annotations
 
 import streamlit as st
 
-from app.core.services.data_service import get_repository
-from app.core.services.exportacion_semanal_service import exportar_semana_actual, limite_semana
-from app.core.services.formatting import formato_fecha
-from app.core.services.kpi_service import exportar_kpis_excel, resumen_kpis
-from app.ui.charts import chart_evolucion_costes
-from app.ui.components import (
-    chart_placeholder,
-    empty_state,
-    metric_card,
-    page_header,
-    render_sub_tabs,
-    section_divider,
-)
+from app.ui.components import empty_state, page_header, render_sub_tabs, section_divider
+
+# Nombres canónicos de pestaña (plan Fase 6).
+TAB_CONSUMO = "Consumo"
+TAB_COSTES = "Costes"
+TAB_MERMA = "Merma"
+TAB_BI = "BI"
+
+_LEGACY_SUBTABS = {
+    "KPIs": TAB_CONSUMO,
+    "Gestor consumo": TAB_CONSUMO,
+    "Gestor costes": TAB_COSTES,
+    "Gestor merma": TAB_MERMA,
+    "Business Intelligence": TAB_BI,
+}
 
 
-def _render_kpis() -> None:
-    repo = get_repository()
-    hoy = date.today()
-    inicio_mes = hoy.replace(day=1)
-
-    st.markdown("#### Indicadores clave")
-    col_f1, col_f2, col_h = st.columns([2, 2, 1])
-    with col_f1:
-        desde = st.date_input("Desde", value=inicio_mes, key="kpi_desde")
-    with col_f2:
-        hasta = st.date_input("Hasta", value=hoy, max_value=hoy, key="kpi_hasta")
-    with col_h:
-        huespedes = st.number_input(
-            "Huéspedes",
-            min_value=0,
-            value=30,
-            step=1,
-            help="Para calcular el coste por huésped en el periodo.",
-            key="kpi_huespedes",
-        )
-
-    if desde > hasta:
-        st.error("La fecha «Desde» no puede ser posterior a «Hasta».")
-        return
-
-    kpis = resumen_kpis(desde, hasta, huespedes)
-    periodo_txt = f"{formato_fecha(desde)} — {formato_fecha(hasta)}"
-
-    section_divider()
-
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        metric_card("Coste total", kpis["total_fmt"], periodo_txt)
-    with col2:
-        metric_card("Coste por huésped", kpis["coste_huesped_fmt"], periodo_txt if huespedes > 0 else "Indique huéspedes")
-    with col3:
-        metric_card("Merma total", kpis["merma_fmt"], periodo_txt)
-
-    col4, col5, col6 = st.columns(3)
-    with col4:
-        metric_card("Consumo", kpis["consumo_fmt"], periodo_txt)
-    with col5:
-        metric_card("Expiración", kpis["expiracion_fmt"], periodo_txt)
-    with col6:
-        metric_card("Registros expiración", str(kpis["n_expiracion"]), periodo_txt)
-
-    col_exp, _ = st.columns([1, 2])
-    with col_exp:
-        nombre_archivo = f"kpis_{desde.isoformat()}_{hasta.isoformat()}.xlsx"
-        st.download_button(
-            "Exportar Excel",
-            data=exportar_kpis_excel(desde, hasta, huespedes),
-            file_name=nombre_archivo,
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True,
-            key="kpi_exportar_excel",
-        )
-
-    section_divider()
-    st.markdown("##### Evolución diaria del periodo")
-    evolucion = repo.evolucion_diaria(desde, hasta)
-    if any(e["total"] > 0 for e in evolucion):
-        st.altair_chart(
-            chart_evolucion_costes(evolucion, "Consumo · Merma · Expiración"),
-            use_container_width=True,
-        )
-    else:
-        chart_placeholder("Sin datos de costes en el periodo seleccionado.")
-
-    section_divider()
-    col_top1, col_top2 = st.columns(2)
-    with col_top1:
-        st.markdown("##### Top 5 — Más costosos")
-        top = repo.top_productos_costosos_periodo(desde, hasta, 5)
-        if top:
-            for i, item in enumerate(top, 1):
-                st.markdown(f"{i}. **{item['producto']}** — {item['coste_fmt']}")
-        else:
-            empty_state("Sin datos en el periodo.", icon="📊")
-
-    with col_top2:
-        st.markdown("##### Top 5 — Menos costosos")
-        bottom = repo.top_productos_menos_costosos_periodo(desde, hasta, 5)
-        if bottom:
-            for i, item in enumerate(bottom, 1):
-                st.markdown(f"{i}. **{item['producto']}** — {item['coste_fmt']}")
-        else:
-            empty_state("Sin datos en el periodo.", icon="📊")
-
-
-def _boton_exportar_consumo() -> None:
-    """Compatibilidad: la exportación vive en analisis_consumo."""
-    from app.pages.analisis_consumo import _boton_exportar
-    _boton_exportar()
-
-
-def _tabla_ranking(filas: list[dict]):
-    import pandas as pd
-
-    return pd.DataFrame([
-        {
-            "#": i,
-            "Nombre": f["nombre"],
-            "Cantidad": f["cantidad_fmt"],
-            "Usos": f["usos"],
-            "Coste": f["coste_fmt"],
-        }
-        for i, f in enumerate(filas, 1)
-    ])
-
-
-def _render_ranking(titulo: str, filas: list[dict], icon: str) -> None:
-    st.markdown(f"##### {titulo}")
-    if filas:
-        st.dataframe(_tabla_ranking(filas), use_container_width=True, hide_index=True)
-    else:
-        empty_state("Sin consumo registrado en el periodo.", icon=icon)
+def _normalizar_subtab_session() -> None:
+    """Migra valores antiguos de session_state tras el renombrado de pestañas."""
+    actual = st.session_state.get("analisis_subtab")
+    if actual in _LEGACY_SUBTABS:
+        st.session_state["analisis_subtab"] = _LEGACY_SUBTABS[actual]
+    elif actual is not None and actual not in (
+        TAB_CONSUMO, TAB_COSTES, TAB_MERMA, TAB_BI,
+    ):
+        st.session_state["analisis_subtab"] = TAB_CONSUMO
 
 
 def _render_gestor_consumo() -> None:
@@ -206,16 +103,15 @@ def _render_business_intelligence() -> None:
 
 
 _SUBTABS = {
-    "KPIs": _render_kpis,
-    "Gestor consumo": _render_gestor_consumo,
-    "Gestor costes": _render_gestor_costes,
-    "Gestor merma": _render_gestor_merma,
-    "Business Intelligence": _render_business_intelligence,
+    TAB_CONSUMO: _render_gestor_consumo,
+    TAB_COSTES: _render_gestor_costes,
+    TAB_MERMA: _render_gestor_merma,
+    TAB_BI: _render_business_intelligence,
 }
 
 
 def render() -> None:
-    page_header("Análisis", "KPIs, consumo, costes, merma e inteligencia operativa")
-
+    page_header("Análisis", "Consumo, costes, merma e inteligencia operativa")
+    _normalizar_subtab_session()
     selected = render_sub_tabs(list(_SUBTABS.keys()), key="analisis_subtab")
     _SUBTABS[selected]()

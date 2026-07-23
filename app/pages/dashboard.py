@@ -38,9 +38,24 @@ def _fmt_var(pct: float | None) -> str:
     return f"{signo}{pct:.1f}% vs periodo anterior"
 
 
-def _ir_analisis(subtab: str = "Gestor consumo") -> None:
-    st.session_state["nav_section"] = "Análisis"
+def _ir_analisis(
+    subtab: str = "Consumo",
+    *,
+    consumo_pestana: str | None = None,
+    costes_pestana: str | None = None,
+    merma_pestana: str | None = None,
+) -> None:
+    """Deep-link a Análisis (pestaña + subpestaña del gestor)."""
+    # No tocar nav_section aquí: el radio del sidebar ya está instanciado.
+    # Se aplica en render_sidebar() antes de crear el widget.
+    st.session_state["nav_section_pending"] = "Análisis"
     st.session_state["analisis_subtab"] = subtab
+    if consumo_pestana:
+        st.session_state["consumo_pestana"] = consumo_pestana
+    if costes_pestana:
+        st.session_state["costes_pestana"] = costes_pestana
+    if merma_pestana:
+        st.session_state["merma_pestana"] = merma_pestana
     st.rerun()
 
 
@@ -74,7 +89,7 @@ def _tarjeta_categoria(
                 "(registros antiguos sin detalle de origen)."
             )
     if st.button("Ver análisis", key=f"dash_ver_{titulo}", use_container_width=True):
-        _ir_analisis()
+        _ir_analisis("Consumo", consumo_pestana=titulo)
 
 
 def render() -> None:
@@ -286,6 +301,8 @@ def render() -> None:
             st.altair_chart(chart_consumo_merma_naturaleza(cm), use_container_width=True)
         else:
             chart_placeholder("Sin datos de consumo/merma.")
+        if st.button("Ver análisis de merma", key="dash_ver_merma", use_container_width=True):
+            _ir_analisis("Merma", merma_pestana="Resumen")
 
     section_divider()
 
@@ -302,7 +319,9 @@ def render() -> None:
         badge_warning(
             f"Incremento relevante de coste ({var_coste:+.1f}% vs periodo anterior)"
         )
-        st.caption(f"Categoría líder: {cat_mayor}. Revisar Gestor de costes.")
+        st.caption(f"Categoría líder: {cat_mayor}.")
+        if st.button("Ver análisis de costes", key="dash_ver_costes_alerta"):
+            _ir_analisis("Costes", costes_pestana="Resumen")
 
     merma_ant = repo.coste_merma_periodo(ant_desde, ant_hasta) + repo.coste_expiracion_periodo(
         ant_desde, ant_hasta,
@@ -312,6 +331,8 @@ def render() -> None:
         badge_warning(
             f"Incremento relevante de merma ({var_merma:+.1f}% vs periodo anterior)"
         )
+        if st.button("Ver análisis de merma", key="dash_ver_merma_alerta"):
+            _ir_analisis("Merma", merma_pestana="Resumen")
 
     for nombre, actual, ant in [
         ("Desayuno", costes.desayuno_total, costes_ant.desayuno_total),
