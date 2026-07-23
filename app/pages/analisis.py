@@ -148,6 +148,11 @@ def _render_gestor_costes() -> None:
     render_gestor_costes()
 
 
+def _render_gestor_merma() -> None:
+    from app.pages.analisis_merma import render_gestor_merma
+    render_gestor_merma()
+
+
 def _render_business_intelligence() -> None:
     from app.core.services.bi_service import (
         PREGUNTAS_SUGERIDAS,
@@ -204,12 +209,13 @@ _SUBTABS = {
     "KPIs": _render_kpis,
     "Gestor consumo": _render_gestor_consumo,
     "Gestor costes": _render_gestor_costes,
+    "Gestor merma": _render_gestor_merma,
     "Business Intelligence": _render_business_intelligence,
 }
 
 
 def render() -> None:
-    page_header("Análisis", "KPIs, consumo, costes e inteligencia operativa")
+    page_header("Análisis", "KPIs, consumo, costes, merma e inteligencia operativa")
 
     selected = render_sub_tabs(list(_SUBTABS.keys()), key="analisis_subtab")
     _SUBTABS[selected]()
