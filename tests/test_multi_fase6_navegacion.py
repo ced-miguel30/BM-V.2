@@ -1,4 +1,4 @@
-"""Pruebas Fase 6 — navegación Registros (paso 1: coexistencia).
+"""Pruebas Fase 6 — navegación Registros (paso 3: único punto de entrada).
 
 Ejecutar:
 
@@ -21,41 +21,36 @@ from app.pages import desayuno, registros
 from app.ui.theme import NAV_SECTIONS
 
 
-class TestFase6NavegacionPaso1(unittest.TestCase):
-    """Durante el paso 1, Registros y las rutas antiguas coexisten."""
+class TestFase6NavegacionPaso3(unittest.TestCase):
+    """Tras el paso 3, solo Registros queda en el menú como acceso a registros."""
 
-    def test_nav_incluye_registros_y_desayuno(self) -> None:
+    def test_nav_solo_registros_sin_entradas_sueltas(self) -> None:
         self.assertEqual(NAV_SECTIONS.get("Registros"), "registros")
-        self.assertEqual(NAV_SECTIONS.get("Desayuno"), "desayuno")
-        self.assertEqual(NAV_SECTIONS.get("Comida"), "comida")
-        self.assertEqual(NAV_SECTIONS.get("Cena"), "cena")
-        self.assertEqual(NAV_SECTIONS.get("Bebidas"), "bebidas")
+        for etiqueta in ("Desayuno", "Comida", "Cena", "Bebidas"):
+            self.assertNotIn(etiqueta, NAV_SECTIONS)
 
-    def test_pages_incluye_registros_y_rutas_antiguas(self) -> None:
+    def test_pages_solo_registros_sin_rutas_sueltas(self) -> None:
         self.assertIn("registros", PAGES)
-        self.assertIn("desayuno", PAGES)
-        self.assertIn("comida", PAGES)
-        self.assertIn("cena", PAGES)
-        self.assertIn("bebidas", PAGES)
         self.assertIs(PAGES["registros"], registros.render)
-        self.assertIs(PAGES["desayuno"], desayuno.render)
+        for clave in ("desayuno", "comida", "cena", "bebidas"):
+            self.assertNotIn(clave, PAGES)
 
-    def test_registros_expone_subtabs_esperadas(self) -> None:
+    def test_registros_alcanza_desayuno_y_merma(self) -> None:
         self.assertEqual(
             list(registros._SUBTABS.keys()),
             ["Desayuno", "Comida", "Cena", "Bebidas", "Merma"],
         )
-
-    def test_desayuno_expone_renderizadores_sin_cabecera(self) -> None:
         self.assertTrue(callable(desayuno.render_registro_desayuno))
         self.assertTrue(callable(desayuno.render_registro_merma))
+        self.assertIn("Desayuno", registros._SUBTABS)
+        self.assertIn("Merma", registros._SUBTABS)
 
-    def test_paginas_servicio_aceptan_mostrar_cabecera(self) -> None:
+    def test_paginas_servicio_siguen_disponibles_para_embeber(self) -> None:
         from app.pages import bebidas, cena, comida
 
         for mod in (comida, cena, bebidas):
-            params = inspect.signature(mod.render).parameters
-            self.assertIn("mostrar_cabecera", params)
+            self.assertTrue(callable(mod.render))
+            self.assertIn("mostrar_cabecera", inspect.signature(mod.render).parameters)
 
 
 if __name__ == "__main__":
