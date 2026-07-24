@@ -2,7 +2,7 @@
 
 APP_NAME = "Breakfast Management"
 APP_SUBTITLE = "Gestión de desayuno"
-APP_VERSION = "Pre-Fase 14"
+APP_VERSION = "Fase 1 · diagnóstico"
 HOTEL_NAME = "Hotel Boutique"
 
 # Paleta principal
@@ -25,12 +25,12 @@ INFO = "#3A6EA5"
 # Tipografía
 FONT_FAMILY = "'Segoe UI', system-ui, -apple-system, sans-serif"
 
-# Navegación
+# Navegación (etiqueta visible → clave interna)
 NAV_SECTIONS = {
     "Dashboard": "dashboard",
     "Registros": "registros",
     "Recetas": "recetas",
     "Stock": "stock",
     "Análisis": "analisis",
-    "Settings": "settings",
+    "Configuración": "settings",
 }

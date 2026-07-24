@@ -40,10 +40,11 @@ class TestAnaliticaFase6Nav(unittest.TestCase):
     def test_nav_menu_esperado(self) -> None:
         self.assertEqual(
             list(NAV_SECTIONS.keys()),
-            ["Dashboard", "Registros", "Recetas", "Stock", "Análisis", "Settings"],
+            ["Dashboard", "Registros", "Recetas", "Stock", "Análisis", "Configuración"],
         )
         self.assertEqual(NAV_SECTIONS["Análisis"], "analisis")
         self.assertEqual(NAV_SECTIONS["Registros"], "registros")
+        self.assertEqual(NAV_SECTIONS["Configuración"], "settings")
 
     def test_registros_intactos(self) -> None:
         self.assertEqual(

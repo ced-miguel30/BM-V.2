@@ -40,6 +40,26 @@ def _render_sidebar_alertas() -> None:
     st.markdown("</div>", unsafe_allow_html=True)
 
 
+def _render_sidebar_diagnostico() -> None:
+    """Acceso visible al diagnóstico (solo lectura) desde la barra lateral."""
+    st.markdown('<p class="bm-sidebar-section-label">Diagnóstico</p>', unsafe_allow_html=True)
+    with st.expander("Diagnóstico técnico", expanded=False):
+        try:
+            from app.core.services.data_service import get_repository
+            from app.core.services.diagnostico_service import generar_diagnostico
+
+            r = generar_diagnostico(get_repository().data)
+            st.caption(f"Productos: {r.num_productos}")
+            st.caption(f"Recetas: {r.num_recetas}")
+            st.caption(f"Lotes activos: {r.num_lotes_activos}")
+            st.caption(f"Registros: {r.num_registros}")
+            st.caption(f"Mermas: {r.num_mermas}")
+            st.caption("Detalle completo en Configuración.")
+        except Exception as exc:  # noqa: BLE001
+            st.error("No se pudo cargar el diagnóstico.")
+            st.caption(str(exc))
+
+
 def render_sidebar() -> str:
     """Renderiza la barra lateral y devuelve la sección seleccionada."""
     opciones = list(NAV_SECTIONS.keys())
@@ -61,6 +81,7 @@ def render_sidebar() -> str:
             label_visibility="collapsed",
             key="nav_section",
         )
+        _render_sidebar_diagnostico()
 
     return NAV_SECTIONS[section]
 

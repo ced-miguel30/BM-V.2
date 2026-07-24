@@ -141,6 +141,73 @@ def _render_configuracion() -> None:
                 st.error(resultado.mensaje)
 
 
+def _render_lista_incidencias(titulo: str, items: list[str], *, limite: int = 30) -> None:
+    st.markdown(f"**{titulo}:** {len(items)}")
+    if not items:
+        st.caption("Ninguna.")
+        return
+    mostrados = items[:limite]
+    for item in mostrados:
+        st.caption(f"· {item}")
+    if len(items) > limite:
+        st.caption(f"… y {len(items) - limite} más (no se listan todos).")
+
+
+def _render_diagnostico_tecnico() -> None:
+    """Bloque de solo lectura. No escribe datos ni corrige incidencias."""
+    st.markdown("### Diagnóstico técnico")
+    st.caption(
+        "Solo lectura. No modifica datos, no crea copias y no corrige incidencias."
+    )
+
+    try:
+        from app.core.services.diagnostico_service import generar_diagnostico
+
+        resumen = generar_diagnostico(get_repository().data)
+    except Exception as exc:  # noqa: BLE001 — mostrar fallo en UI sin tumbar Settings
+        st.error(
+            "No se pudo generar el diagnóstico. "
+            "Compruebe que existe app/core/services/diagnostico_service.py "
+            "y reinicie Streamlit desde la carpeta del proyecto."
+        )
+        st.caption(f"Detalle: {exc}")
+        return
+
+    c1, c2, c3, c4 = st.columns(4)
+    c1.metric("Productos", resumen.num_productos)
+    c2.metric("Recetas", resumen.num_recetas)
+    c3.metric("Lotes activos", resumen.num_lotes_activos)
+    c4.metric("Compras (lotes)", resumen.num_compras)
+
+    c5, c6, c7, c8 = st.columns(4)
+    c5.metric("Registros", resumen.num_registros)
+    c6.metric("— Desayuno", resumen.num_registros_desayuno)
+    c7.metric("— Otros servicios", resumen.num_registros_servicio)
+    c8.metric("Líneas de detalle", resumen.num_lineas_detalle)
+
+    c9, c10, _, _ = st.columns(4)
+    c9.metric("Mermas", resumen.num_mermas)
+    c10.metric("Líneas de merma", resumen.num_lineas_merma)
+
+    with st.expander("Incidencias detectadas", expanded=True):
+        st.info(resumen.productos_sin_servicio_msg)
+        _render_lista_incidencias("Lotes con stock negativo", resumen.lotes_stock_negativo)
+        _render_lista_incidencias(
+            "Productos con stock total negativo", resumen.productos_stock_negativo
+        )
+        _render_lista_incidencias("Referencias huérfanas", resumen.referencias_huerfanas)
+        _render_lista_incidencias(
+            "Recetas sin ingredientes", resumen.recetas_sin_ingredientes
+        )
+        _render_lista_incidencias("Productos sin unidad", resumen.productos_sin_unidad)
+        _render_lista_incidencias(
+            "Registros / líneas sin snapshots relevantes",
+            resumen.registros_sin_snapshots,
+        )
+        _render_lista_incidencias("Posibles duplicidades", resumen.posibles_duplicidades)
+        _render_lista_incidencias("Otras incidencias", resumen.otras_incidencias)
+
+
 def _boton_exportar_actividad() -> None:
     """Exportación manual: desde el lunes 00:00 de la semana actual hasta el
     momento del clic. Mismo patrón que desayuno/merma/stock/consumo."""
@@ -307,7 +374,23 @@ _SUBTABS = {
 
 
 def render() -> None:
-    page_header("Settings", "Usuarios, configuración, actividad y exportación")
+    page_header(
+        "Configuración",
+        "Diagnóstico técnico, usuarios, establecimiento, actividad y exportación",
+    )
 
-    selected = render_sub_tabs(list(_SUBTABS.keys()), key="settings_subtab")
+    st.success(
+        "DIAGNÓSTICO TÉCNICO — si ve este mensaje verde, está usando el código actualizado."
+    )
+
+    # Siempre visible al entrar en Configuración (no depende de pestañas).
+    _render_diagnostico_tecnico()
+    section_divider()
+
+    opciones = list(_SUBTABS.keys())
+    # Evita que un valor antiguo de session_state oculte opciones nuevas.
+    if st.session_state.get("settings_subtab") not in (None, *opciones):
+        del st.session_state["settings_subtab"]
+
+    selected = render_sub_tabs(opciones, key="settings_subtab")
     _SUBTABS[selected]()
