@@ -38,6 +38,7 @@ from app.core.services.inventory_batch_service import (
     descontar_lotes,
     stock_disponible,
 )
+from app.core.services.stock_service import disponible_en_servicio
 from app.core.services.text_search import coincide_busqueda
 from app.core.services.unidad_service import resolver_presentacion
 from app.core.storage.session_store import get_data, persist_data
@@ -231,6 +232,8 @@ class ServicioRegistro:
         termino = buscar.strip()
         for producto in sorted(data.productos, key=lambda p: p.nombre):
             if self.solo_bebidas_sueltas and not producto.es_bebida:
+                continue
+            if not disponible_en_servicio(producto.servicios_disponibles, self.tipo_servicio):
                 continue
             if termino and not coincide_busqueda(producto.nombre, termino):
                 continue

@@ -11,6 +11,10 @@ from app.core.models import (
     Receta,
 )
 from app.core.repositories.data_repository import DataRepository
+from app.core.services.stock_service import (
+    disponible_en_servicio,
+    normalizar_servicios_disponibles,
+)
 from app.core.services.unidad_service import cantidad_y_unidad_mostrar
 from app.core.storage.session_store import get_data, persist_data
 
@@ -102,6 +106,8 @@ def _nombre_duplicado(data: AppData, nombre: str, excluir_id: str | None = None)
 def listar_recetas(
     categoria: CategoriaReceta | None = None,
     categorias: list[CategoriaReceta] | None = None,
+    *,
+    servicio_disponible: str | None = None,
 ) -> list[Receta]:
     data = get_data()
     recetas = data.recetas
@@ -110,6 +116,11 @@ def listar_recetas(
         recetas = [r for r in recetas if r.categoria in permitidas]
     elif categoria is not None:
         recetas = [r for r in recetas if r.categoria == categoria]
+    if servicio_disponible is not None:
+        recetas = [
+            r for r in recetas
+            if disponible_en_servicio(r.servicios_disponibles, servicio_disponible)
+        ]
     return sorted(recetas, key=lambda r: r.nombre.lower())
 
 
@@ -154,6 +165,8 @@ def crear_receta(
     nombre: str,
     ingredientes: list[IngredienteReceta],
     categoria: CategoriaReceta | str = CategoriaReceta.DESAYUNO,
+    *,
+    servicios_disponibles: list[str] | None = None,
 ) -> ResultadoOperacion:
     nombre = _normalizar_nombre(nombre)
     if not nombre:
@@ -176,6 +189,7 @@ def crear_receta(
         nombre,
         ingredientes,
         categoria_resuelta,
+        normalizar_servicios_disponibles(servicios_disponibles),
     )
     data.recetas.append(receta)
     _registrar_actividad(
@@ -195,6 +209,8 @@ def editar_receta(
     nombre: str,
     ingredientes: list[IngredienteReceta],
     categoria: CategoriaReceta | str = CategoriaReceta.DESAYUNO,
+    *,
+    servicios_disponibles: list[str] | None = None,
 ) -> ResultadoOperacion:
     nombre = _normalizar_nombre(nombre)
     if not nombre:
@@ -216,16 +232,19 @@ def editar_receta(
     if error:
         return error
 
+    servicios = normalizar_servicios_disponibles(servicios_disponibles)
     solo_categoria = (
         receta.nombre == nombre
         and receta.ingredientes == ingredientes
         and receta.categoria != categoria_resuelta
+        and receta.servicios_disponibles == servicios
     )
     categoria_anterior = receta.categoria
 
     receta.nombre = nombre
     receta.ingredientes = ingredientes
     receta.categoria = categoria_resuelta
+    receta.servicios_disponibles = servicios
 
     if solo_categoria:
         detalle = (

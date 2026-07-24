@@ -6,6 +6,8 @@ from app.core.models import (
     CATEGORIA_RECETA_LABEL,
     CategoriaReceta,
     IngredienteReceta,
+    SERVICIO_DISPONIBLE_LABEL,
+    TipoServicio,
     UnidadProducto,
 )
 from app.core.services.data_service import get_repository
@@ -22,6 +24,9 @@ from app.core.services.stock_service import mapa_productos
 from app.core.services.unidad_service import (
     cantidad_y_unidad_mostrar,
     convertir_a_unidad_producto,
+    formato_number_input,
+    normalizar_cantidad,
+    paso_unidad,
     unidades_seleccionables,
 )
 from app.ui.components import empty_state, page_header, section_divider
@@ -29,6 +34,32 @@ from app.ui.search import render_autocomplete
 
 _OPCIONES_CATEGORIA = list(CATEGORIA_RECETA_LABEL.values())
 _CATEGORIA_POR_ETIQUETA = {etiqueta: cat for cat, etiqueta in CATEGORIA_RECETA_LABEL.items()}
+_ETIQUETAS_SERVICIO = [SERVICIO_DISPONIBLE_LABEL[s] for s in TipoServicio]
+_VALOR_SERVICIO = {SERVICIO_DISPONIBLE_LABEL[s]: s.value for s in TipoServicio}
+_ETIQUETA_SERVICIO = {s.value: SERVICIO_DISPONIBLE_LABEL[s] for s in TipoServicio}
+
+
+def _selector_servicios_disponibles(key: str, valores_iniciales: list[str] | None = None) -> list[str]:
+    iniciales = valores_iniciales or []
+    default = [_ETIQUETA_SERVICIO[v] for v in iniciales if v in _ETIQUETA_SERVICIO]
+    seleccion = st.multiselect(
+        "Servicios disponibles",
+        _ETIQUETAS_SERVICIO,
+        default=default,
+        key=key,
+        help=(
+            "En qué registros puede usarse esta receta. "
+            "Vacío = No configurado (no significa «todos»). "
+            "Distinto de la categoría de la receta (arriba)."
+        ),
+    )
+    return [_VALOR_SERVICIO[e] for e in seleccion]
+
+
+def _etiqueta_servicios(valores: list[str]) -> str:
+    if not valores:
+        return "No configurado"
+    return ", ".join(_ETIQUETA_SERVICIO.get(v, v) for v in valores)
 
 
 def _ingredientes_desde_sesion(session_key: str) -> list[dict]:
@@ -96,11 +127,14 @@ def _selector_categoria(key: str, valor_inicial: CategoriaReceta = CategoriaRece
         else 0
     )
     seleccion = st.selectbox(
-        "Categoría",
+        "Categoría de receta",
         _OPCIONES_CATEGORIA,
         index=indice,
         key=key,
-        help="Obligatoria. Clasifica la receta para los registros de servicio.",
+        help=(
+            "Clasificación de la receta (analítica / listados). "
+            "Distinta de «Servicios disponibles»."
+        ),
     )
     return _CATEGORIA_POR_ETIQUETA[seleccion]
 
@@ -141,13 +175,18 @@ def _render_editor_ingredientes(session_key: str, key_prefix: str) -> None:
                 else:
                     fila["producto_id"] = producto_sel["id"]
         with col_cant:
-            fila["cantidad"] = st.number_input(
-                "Cantidad",
-                min_value=0.0,
-                value=float(fila.get("cantidad", 0.5)),
-                step=0.5,
-                format="%.1f",
-                key=f"{key_prefix}_cant_{idx}",
+            unidad_fila = fila.get("unidad", UnidadProducto.UD.value)
+            valor_cant = float(fila.get("cantidad", paso_unidad(unidad_fila)))
+            fila["cantidad"] = normalizar_cantidad(
+                st.number_input(
+                    "Cantidad",
+                    min_value=0.0,
+                    value=valor_cant if valor_cant > 0 else float(paso_unidad(unidad_fila)),
+                    step=paso_unidad(unidad_fila),
+                    format=formato_number_input(unidad_fila),
+                    key=f"{key_prefix}_cant_{idx}",
+                ),
+                unidad_fila,
             )
         with col_unidad:
             producto = repo.get_producto(fila.get("producto_id", ""))
@@ -174,7 +213,7 @@ def _render_editor_ingredientes(session_key: str, key_prefix: str) -> None:
 
     if st.button("Añadir ingrediente", key=f"{key_prefix}_anadir"):
         nuevo_idx = len(filas)
-        filas.append({"producto_id": "", "cantidad": 0.5, "unidad": UnidadProducto.UD.value})
+        filas.append({"producto_id": "", "cantidad": 1.0, "unidad": UnidadProducto.UD.value})
         st.session_state[session_key] = filas
         _limpiar_autocomplete(f"{key_prefix}_ing_{nuevo_idx}")
         st.rerun()
@@ -190,7 +229,8 @@ def _render_listado() -> None:
         for receta in recetas:
             filas.append({
                 "Receta": receta.nombre,
-                "Categoría": etiqueta_categoria(receta.categoria),
+                "Categoría receta": etiqueta_categoria(receta.categoria),
+                "Servicios disponibles": _etiqueta_servicios(receta.servicios_disponibles),
                 "Ingredientes": len(receta.ingredientes),
                 "Detalle": resumen_ingredientes(receta),
             })
@@ -205,12 +245,15 @@ def _render_crear() -> None:
 
     nombre = st.text_input("Nombre de la receta", placeholder="Ej: Sándwich mixto", key="receta_nuevo_nombre")
     categoria = _selector_categoria("receta_nuevo_categoria")
+    servicios = _selector_servicios_disponibles("receta_nuevo_servicios")
     st.markdown("##### Ingredientes")
     _render_editor_ingredientes(session_key, "receta_nuevo")
 
     if st.button("Crear receta", type="primary", key="receta_btn_crear"):
         ingredientes = _ingredientes_a_modelo(session_key)
-        resultado = crear_receta(nombre, ingredientes, categoria)
+        resultado = crear_receta(
+            nombre, ingredientes, categoria, servicios_disponibles=servicios,
+        )
         if resultado.ok:
             st.session_state[session_key] = []
             st.success(resultado.mensaje)
@@ -241,12 +284,22 @@ def _render_editar_eliminar() -> None:
 
     nuevo_nombre = st.text_input("Nombre", value=receta.nombre, key=f"receta_edit_nombre_{receta_id}")
     categoria = _selector_categoria(f"receta_edit_categoria_{receta_id}", receta.categoria)
+    servicios = _selector_servicios_disponibles(
+        f"receta_edit_servicios_{receta_id}",
+        receta.servicios_disponibles,
+    )
     st.markdown("##### Ingredientes")
     _render_editor_ingredientes(session_key, f"receta_edit_{receta_id}")
 
     if st.button("Guardar cambios", type="primary", use_container_width=True, key="receta_btn_guardar"):
         ingredientes = _ingredientes_a_modelo(session_key)
-        resultado = editar_receta(receta_id, nuevo_nombre, ingredientes, categoria)
+        resultado = editar_receta(
+            receta_id,
+            nuevo_nombre,
+            ingredientes,
+            categoria,
+            servicios_disponibles=servicios,
+        )
         if resultado.ok:
             st.success(resultado.mensaje)
             st.rerun()

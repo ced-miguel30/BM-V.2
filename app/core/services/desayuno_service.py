@@ -42,6 +42,7 @@ from app.core.services.inventory_batch_service import (
     descontar_lotes,
     stock_disponible,
 )
+from app.core.services.stock_service import disponible_en_servicio
 from app.core.services.text_search import coincide_busqueda
 from app.core.services.unidad_service import resolver_presentacion
 from app.core.storage.session_store import get_data, persist_data
@@ -142,11 +143,15 @@ def cesta_vacia() -> bool:
     return _cesta.cesta_vacia()
 
 
-def productos_catalogo(buscar: str = "") -> list[dict]:
+def productos_catalogo(buscar: str = "", *, servicio: str | None = None) -> list[dict]:
     data = get_data()
     resultado = []
     termino = buscar.strip()
     for producto in sorted(data.productos, key=lambda p: p.nombre):
+        if servicio is not None and not disponible_en_servicio(
+            producto.servicios_disponibles, servicio,
+        ):
+            continue
         if termino and not coincide_busqueda(producto.nombre, termino):
             continue
         stock = stock_disponible(data, producto.id)
@@ -160,8 +165,8 @@ def productos_catalogo(buscar: str = "") -> list[dict]:
     return resultado
 
 
-def productos_disponibles(buscar: str = "") -> list[dict]:
-    return [p for p in productos_catalogo(buscar) if p["stock"] > 0]
+def productos_disponibles(buscar: str = "", *, servicio: str | None = None) -> list[dict]:
+    return [p for p in productos_catalogo(buscar, servicio=servicio) if p["stock"] > 0]
 
 
 def anadir_mod_pendiente_receta(producto_id: str, cantidad: float) -> ResultadoOperacion:

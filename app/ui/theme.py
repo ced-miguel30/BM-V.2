@@ -2,7 +2,7 @@
 
 APP_NAME = "Breakfast Management"
 APP_SUBTITLE = "Gestión de desayuno"
-APP_VERSION = "Fase 2 · backup"
+APP_VERSION = "Fase 4B · filtros servicios"
 HOTEL_NAME = "Hotel Boutique"
 
 # Paleta principal

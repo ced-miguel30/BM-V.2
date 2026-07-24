@@ -6,6 +6,7 @@ import pandas as pd
 import streamlit as st
 
 from app.core.models import TipoAlerta
+from app.core.models.enums import SERVICIO_DISPONIBLE_LABEL, TipoServicio
 from app.core.services.alert_service import (
     alertas_stock_activas,
     crear_alerta_manual,
@@ -20,12 +21,45 @@ from app.core.services.stock_service import (
     UNIDADES,
     crear_bebida,
     crear_producto,
+    editar_producto_catalogo,
     mapa_bebidas,
     mapa_productos,
     registrar_lote,
 )
+from app.core.services.unidad_service import (
+    formato_number_input,
+    normalizar_cantidad,
+    paso_unidad,
+)
 from app.ui.components import empty_state, page_header, render_sub_tabs, section_divider
 from app.ui.search import render_autocomplete
+
+_ETIQUETAS_SERVICIO = [SERVICIO_DISPONIBLE_LABEL[s] for s in TipoServicio]
+_VALOR_SERVICIO = {SERVICIO_DISPONIBLE_LABEL[s]: s.value for s in TipoServicio}
+_ETIQUETA_SERVICIO = {s.value: SERVICIO_DISPONIBLE_LABEL[s] for s in TipoServicio}
+
+
+def _selector_servicios_disponibles(key: str, valores_iniciales: list[str] | None = None) -> list[str]:
+    iniciales = valores_iniciales or []
+    default = [_ETIQUETA_SERVICIO[v] for v in iniciales if v in _ETIQUETA_SERVICIO]
+    seleccion = st.multiselect(
+        "Servicios disponibles",
+        _ETIQUETAS_SERVICIO,
+        default=default,
+        key=key,
+        help=(
+            "En qué registros puede usarse este producto. "
+            "Vacío = No configurado (no significa «todos»). "
+            "Distinto de la categoría de inventario."
+        ),
+    )
+    return [_VALOR_SERVICIO[e] for e in seleccion]
+
+
+def _etiqueta_servicios(valores: list[str]) -> str:
+    if not valores:
+        return "No configurado"
+    return ", ".join(_ETIQUETA_SERVICIO.get(v, v) for v in valores)
 
 
 _TIPO_ETIQUETA = {
@@ -92,6 +126,8 @@ def _render_inventario(repo, *, es_bebida: bool) -> None:
             filas.append({
                 col_nombre: p.nombre,
                 "Unidad": p.unidad.value,
+                "Categoría inventario": p.categoria_inventario or "No configurado",
+                "Servicios disponibles": _etiqueta_servicios(p.servicios_disponibles),
                 "Stock actual": stock,
                 "Stock mínimo": p.stock_minimo if p.stock_minimo is not None else "—",
             })
@@ -185,18 +221,76 @@ def _render_registro_catalogo(*, es_bebida: bool) -> None:
                     "Stock mínimo (opcional)",
                     min_value=0.0,
                     value=0.0,
-                    step=1.0,
+                    step=paso_unidad(unidad),
+                    format=formato_number_input(unidad),
                     help="Deje 0 si no desea definir stock mínimo.",
                 )
+                stock_min = normalizar_cantidad(stock_min, unidad)
+                categoria_inv = st.text_input(
+                    "Categoría de inventario (opcional)",
+                    placeholder="Ej: Verduras, Lácteos…",
+                    key=f"crear_cat_inv_{key_prefix}",
+                    help="Organiza el catálogo. No filtra registros por sí sola.",
+                )
+                servicios = _selector_servicios_disponibles(f"crear_servicios_{key_prefix}")
             enviado = st.form_submit_button(f"Crear {etiqueta}", type="primary")
             if enviado:
-                resultado = crear_fn(nombre, unidad, stock_min if stock_min > 0 else None)
+                resultado = crear_fn(
+                    nombre,
+                    unidad,
+                    stock_min if stock_min > 0 else None,
+                    servicios_disponibles=servicios,
+                    categoria_inventario=categoria_inv,
+                )
                 if resultado.ok:
                     sincronizar_alertas()
                     st.success(resultado.mensaje)
                     st.rerun()
                 else:
                     st.error(resultado.mensaje)
+
+    with st.expander(f"Configurar {etiqueta} existente"):
+        st.caption(
+            "Asigne categoría de inventario y servicios disponibles. "
+            "Los filtros de registro se activarán en una fase posterior (4B)."
+        )
+        catalogo_map = mapa_fn(repo.data)
+        if not catalogo_map:
+            st.warning(f"No hay {etiqueta}s para configurar.")
+        else:
+            nombres = list(catalogo_map.keys())
+            sel_nombre = st.selectbox(
+                f"Seleccionar {etiqueta}",
+                nombres,
+                key=f"cfg_sel_{key_prefix}",
+            )
+            producto = repo.get_producto(catalogo_map[sel_nombre])
+            if producto:
+                cat_edit = st.text_input(
+                    "Categoría de inventario",
+                    value=producto.categoria_inventario or "",
+                    key=f"cfg_cat_{key_prefix}_{producto.id}",
+                    help="Organiza el catálogo. No filtra registros por sí sola.",
+                )
+                serv_edit = _selector_servicios_disponibles(
+                    f"cfg_serv_{key_prefix}_{producto.id}",
+                    producto.servicios_disponibles,
+                )
+                if st.button(
+                    "Guardar catálogo",
+                    type="primary",
+                    key=f"cfg_guardar_{key_prefix}",
+                ):
+                    resultado = editar_producto_catalogo(
+                        producto.id,
+                        servicios_disponibles=serv_edit,
+                        categoria_inventario=cat_edit,
+                    )
+                    if resultado.ok:
+                        st.success(resultado.mensaje)
+                        st.rerun()
+                    else:
+                        st.error(resultado.mensaje)
 
     with st.expander("Registrar lote / compra"):
         st.markdown("##### Nuevo lote")
@@ -238,13 +332,19 @@ def _render_registro_catalogo(*, es_bebida: bool) -> None:
                         step=0.01,
                         format="%.2f",
                     )
+                    unidad_lote = "Ud"
+                    if producto_sel:
+                        prod_obj = repo.get_producto(producto_sel["id"])
+                        if prod_obj:
+                            unidad_lote = prod_obj.unidad.value
                     cantidad = st.number_input(
                         "Cantidad",
                         min_value=0.0,
                         value=0.0,
-                        step=0.1,
-                        format="%.2f",
+                        step=paso_unidad(unidad_lote),
+                        format=formato_number_input(unidad_lote),
                     )
+                    cantidad = normalizar_cantidad(cantidad, unidad_lote)
                     proveedor = st.text_input("Marca / proveedor (opcional)")
                     alerta_dias = st.number_input(
                         "Alerta de expiración en X días (opcional)",

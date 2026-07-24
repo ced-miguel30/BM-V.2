@@ -13,7 +13,7 @@ from app.core.repositories.data_repository import DataRepository
 from app.core.services.unidad_service import cantidad_para_mostrar, presentacion_legible, resolver_presentacion
 from app.core.storage.session_store import get_data
 
-PASO_CANTIDAD = 0.5
+PASO_CANTIDAD = 1.0  # Fallback genérico (Ud); preferir paso_unidad() en inputs.
 
 
 @dataclass

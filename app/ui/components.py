@@ -206,3 +206,37 @@ def basket_panel(title: str = "Cesta") -> None:
         """,
         unsafe_allow_html=True,
     )
+
+
+def aviso_servicios_pendientes(*, key_prefix: str = "aviso_serv") -> None:
+    """Aviso si hay productos/recetas sin servicios_disponibles + enlace a config."""
+    from app.core.services.data_service import get_repository
+    from app.core.services.diagnostico_service import generar_diagnostico
+
+    r = generar_diagnostico(get_repository().data)
+    n_prod = len(r.productos_sin_servicio)
+    n_rec = len(r.recetas_sin_servicio)
+    if n_prod == 0 and n_rec == 0:
+        return
+
+    partes = []
+    if n_prod:
+        partes.append(f"{n_prod} producto(s)")
+    if n_rec:
+        partes.append(f"{n_rec} receta(s)")
+    st.warning(
+        "Hay "
+        + " y ".join(partes)
+        + " sin servicios disponibles configurados. "
+        "Lista vacía ≠ todos: no aparecen en registros nuevos ni en merma "
+        "(salvo Almacén / General). Configúrelos en Stock o Recetas."
+    )
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if st.button("Ir a Stock", key=f"{key_prefix}_stock", use_container_width=True):
+            st.session_state["nav_section_pending"] = "Stock"
+            st.rerun()
+    with col_b:
+        if st.button("Ir a Recetas", key=f"{key_prefix}_recetas", use_container_width=True):
+            st.session_state["nav_section_pending"] = "Recetas"
+            st.rerun()

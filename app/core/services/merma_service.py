@@ -18,6 +18,7 @@ from app.core.services.excel_bloques import RegistroExportable
 from app.core.services.exportacion_semanal_service import ConfiguracionExportacionModulo
 from app.core.services.formatting import formato_fecha
 from app.core.services.text_search import coincide_busqueda
+from app.core.services.stock_service import disponible_en_servicio
 from app.core.storage.session_store import get_data, persist_data
 
 CESTA_MERMA_KEY = "bm_cesta_merma"
@@ -150,12 +151,16 @@ def quitar_de_cesta_merma(
     ]
 
 
-def productos_con_stock(buscar: str = "") -> list[dict]:
+def productos_con_stock(buscar: str = "", *, servicio: str | None = None) -> list[dict]:
     data = get_data()
     termino = buscar.strip()
     resultado = []
 
     for producto in sorted(data.productos, key=lambda p: p.nombre):
+        if servicio is not None and not disponible_en_servicio(
+            producto.servicios_disponibles, servicio,
+        ):
+            continue
         lotes = [l for l in data.lotes if l.producto_id == producto.id and l.cantidad_restante > 0]
         if not lotes:
             continue

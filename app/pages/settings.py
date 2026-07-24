@@ -192,6 +192,12 @@ def _render_diagnostico_tecnico() -> None:
 
     with st.expander("Incidencias detectadas", expanded=True):
         st.info(resumen.productos_sin_servicio_msg)
+        _render_lista_incidencias(
+            "Productos sin servicios disponibles", resumen.productos_sin_servicio
+        )
+        _render_lista_incidencias(
+            "Recetas sin servicios disponibles", resumen.recetas_sin_servicio
+        )
         _render_lista_incidencias("Lotes con stock negativo", resumen.lotes_stock_negativo)
         _render_lista_incidencias(
             "Productos con stock total negativo", resumen.productos_stock_negativo
@@ -207,6 +213,22 @@ def _render_diagnostico_tecnico() -> None:
         )
         _render_lista_incidencias("Posibles duplicidades", resumen.posibles_duplicidades)
         _render_lista_incidencias("Otras incidencias", resumen.otras_incidencias)
+
+    st.markdown("##### Formato por unidad (comprobación)")
+    try:
+        from app.core.services.unidad_service import ejemplos_formato_unidades
+
+        st.dataframe(
+            ejemplos_formato_unidades(),
+            use_container_width=True,
+            hide_index=True,
+        )
+        st.caption(
+            "Ud/paquete/botella paso 1 · Kg/L paso 0,01 · gr paso 1 · ml paso 10. "
+            "0,02 kg es válido; no se aceptan negativos al normalizar."
+        )
+    except Exception as exc:  # noqa: BLE001
+        st.caption(f"No se pudo mostrar la tabla de unidades: {exc}")
 
     st.markdown("##### Copia de seguridad")
     st.caption(
@@ -407,7 +429,7 @@ def render() -> None:
 
     st.success(
         "DIAGNÓSTICO TÉCNICO — si ve este mensaje verde, está usando el código actualizado "
-        "(versión Fase 2 · backup)."
+        "(versión Fase 4A · catálogo)."
     )
 
     # Siempre visible al entrar en Configuración (no depende de pestañas).

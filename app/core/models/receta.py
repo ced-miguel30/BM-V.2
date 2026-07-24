@@ -27,4 +27,7 @@ class Receta:
     ingredientes: list[IngredienteReceta] = field(default_factory=list)
     # Categoría obligatoria en la UI; default Desayuno para recetas antiguas
     # y para llamadas internas que aún no pasan el argumento.
+    # Distinta de servicios_disponibles (lista de registros donde aparece).
     categoria: CategoriaReceta = CategoriaReceta.DESAYUNO
+    # Lista vacía = «No configurado» (no significa «todos»).
+    servicios_disponibles: list[str] = field(default_factory=list)

@@ -30,10 +30,9 @@ class ResumenDiagnostico:
     referencias_huerfanas: list[str] = field(default_factory=list)
     recetas_sin_ingredientes: list[str] = field(default_factory=list)
     productos_sin_unidad: list[str] = field(default_factory=list)
-    # Hasta Fase 4A el campo no existe: mensaje explícito, no conteo inventado.
-    productos_sin_servicio_msg: str = (
-        "Campo pendiente de Fase 4A (servicios_disponibles). No aplicable aún."
-    )
+    productos_sin_servicio: list[str] = field(default_factory=list)
+    recetas_sin_servicio: list[str] = field(default_factory=list)
+    productos_sin_servicio_msg: str = ""
     registros_sin_snapshots: list[str] = field(default_factory=list)
     posibles_duplicidades: list[str] = field(default_factory=list)
     otras_incidencias: list[str] = field(default_factory=list)
@@ -136,6 +135,22 @@ def generar_diagnostico(data: AppData) -> ResumenDiagnostico:
         if unidad is None or not isinstance(unidad, UnidadProducto):
             sin_unidad.append(f"{p.nombre} ({p.id})")
 
+    sin_servicio_prod = [
+        f"{p.nombre} ({p.id})"
+        for p in data.productos
+        if not getattr(p, "servicios_disponibles", None)
+    ]
+    sin_servicio_rec = [
+        f"{r.nombre} ({r.id})"
+        for r in data.recetas
+        if not getattr(r, "servicios_disponibles", None)
+    ]
+    msg_servicios = (
+        f"Productos sin servicios_disponibles: {len(sin_servicio_prod)}. "
+        f"Recetas sin servicios_disponibles: {len(sin_servicio_rec)}. "
+        "Vacío = No configurado (aún no se filtran registros; eso es Fase 4B)."
+    )
+
     sin_snapshots: list[str] = []
     for desayuno in data.desayunos:
         tiene_consumo = bool(desayuno.lineas) or bool(desayuno.registros_recetas)
@@ -207,6 +222,9 @@ def generar_diagnostico(data: AppData) -> ResumenDiagnostico:
         referencias_huerfanas=huerfanas,
         recetas_sin_ingredientes=recetas_vacias,
         productos_sin_unidad=sin_unidad,
+        productos_sin_servicio=sin_servicio_prod,
+        recetas_sin_servicio=sin_servicio_rec,
+        productos_sin_servicio_msg=msg_servicios,
         registros_sin_snapshots=sin_snapshots,
         posibles_duplicidades=duplicidades,
         otras_incidencias=otras,

@@ -40,8 +40,14 @@ def _datos() -> AppData:
     return AppData(
         productos=[
             Producto("p01", "Pan", UnidadProducto.KG, es_bebida=False),
-            Producto("p02", "Café", UnidadProducto.L, es_bebida=True),
-            Producto("p03", "Zumo", UnidadProducto.L, es_bebida=True),
+            Producto(
+                "p02", "Café", UnidadProducto.L, es_bebida=True,
+                servicios_disponibles=["bebidas"],
+            ),
+            Producto(
+                "p03", "Zumo", UnidadProducto.L, es_bebida=True,
+                servicios_disponibles=["bebidas"],
+            ),
         ],
         lotes=[
             LoteStock("l01", "p01", 5.0, 1.0, 1.0, fecha_compra=date(2026, 7, 1)),
@@ -49,7 +55,10 @@ def _datos() -> AppData:
             LoteStock("l03", "p03", 4.0, 2.0, 2.0, fecha_compra=date(2026, 7, 1)),
         ],
         recetas=[
-            Receta("r_beb", "Café latte", [IngredienteReceta("p02", 0.2)], CategoriaReceta.BEBIDAS),
+            Receta(
+                "r_beb", "Café latte", [IngredienteReceta("p02", 0.2)],
+                CategoriaReceta.BEBIDAS, servicios_disponibles=["bebidas"],
+            ),
             Receta("r_des", "Tostada", [IngredienteReceta("p01", 0.1)], CategoriaReceta.DESAYUNO),
             Receta("r_com", "Paella", [IngredienteReceta("p01", 0.3)], CategoriaReceta.COMIDA),
             Receta("r_cen", "Sopa", [IngredienteReceta("p01", 0.2)], CategoriaReceta.CENA),

@@ -86,3 +86,15 @@ class TipoServicio(str, Enum):
     COMIDA = "comida"
     CENA = "cena"
     BEBIDAS = "bebidas"
+
+
+# Servicios en los que un producto/receta puede aparecer en registros.
+# Distinto de categoria_inventario y de CategoriaReceta.
+SERVICIO_DISPONIBLE_LABEL: dict[TipoServicio, str] = {
+    TipoServicio.DESAYUNO: "Desayuno",
+    TipoServicio.COMIDA: "Comida",
+    TipoServicio.CENA: "Cena",
+    TipoServicio.BEBIDAS: "Bebidas",
+}
+
+SERVICIOS_DISPONIBLES_VALORES: frozenset[str] = frozenset(s.value for s in TipoServicio)

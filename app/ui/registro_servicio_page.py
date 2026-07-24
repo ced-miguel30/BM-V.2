@@ -11,11 +11,16 @@ from app.core.services.data_service import get_repository
 from app.core.services.exportacion_semanal_service import limite_semana
 from app.core.services.formatting import formato_fecha
 from app.core.services.receta_service import listar_recetas
+from app.core.services.unidad_service import (
+    formato_number_input,
+    normalizar_cantidad,
+    paso_unidad,
+)
 from app.ui.cesta_render import boton_exportar_semana, render_cesta_servicio
-from app.ui.components import empty_state, page_header, section_divider
+from app.ui.components import aviso_servicios_pendientes, empty_state, page_header, section_divider
 from app.ui.search import render_buscador_producto
 
-PASO_CANTIDAD = 0.5
+PASO_CANTIDAD = 1.0  # Compat; inputs usan paso_unidad().
 
 
 def _lunes_semana_actual() -> date:
@@ -56,6 +61,7 @@ def render_pagina_registro_servicio(
     mostrar_cabecera: bool = True,
 ) -> None:
     """Página completa de registro + historial + exportación para un tipo."""
+    _ = categorias_receta  # Conservado por compat; el filtro activo es servicios_disponibles.
     repo = get_repository()
     stock_key = f"bm_stock_pendiente_{key_prefix}"
 
@@ -67,6 +73,7 @@ def render_pagina_registro_servicio(
         "Añada recetas o productos sueltos a la cesta. Use cantidades positivas (c/ extra) "
         "o negativas (s/) para ajustar ingredientes."
     )
+    aviso_servicios_pendientes(key_prefix=f"{key_prefix}_aviso_serv")
 
     col_buscar, col_cesta = st.columns([2, 1])
 
@@ -86,7 +93,7 @@ def render_pagina_registro_servicio(
 
         section_divider()
         st.markdown("##### Añadir receta")
-        recetas = listar_recetas(categorias=categorias_receta)
+        recetas = listar_recetas(servicio_disponible=servicio.tipo_servicio)
         if recetas:
             mapa_recetas = {r.nombre: r.id for r in recetas}
             receta_nombre = st.selectbox(
@@ -114,13 +121,15 @@ def render_pagina_registro_servicio(
                 placeholder="Escriba para buscar producto...",
             )
             if producto_mod:
+                unidad_mod = producto_mod.get("unidad", "Ud")
                 cant_mod = st.number_input(
                     "Cantidad (+ extra / − omitir)",
-                    value=1.0,
-                    step=PASO_CANTIDAD,
-                    format="%.1f",
+                    value=float(paso_unidad(unidad_mod)),
+                    step=paso_unidad(unidad_mod),
+                    format=formato_number_input(unidad_mod),
                     key=f"{key_prefix}_cant_mod",
                 )
+                cant_mod = normalizar_cantidad(cant_mod, unidad_mod)
                 if st.button(
                     "Añadir extra/omisión",
                     key=f"{key_prefix}_btn_mod",
@@ -160,7 +169,8 @@ def render_pagina_registro_servicio(
                     st.error(resultado.mensaje)
         else:
             empty_state(
-                "No hay recetas de esta categoría. Créelas en la sección Recetas.",
+                "No hay recetas con este servicio disponible. "
+                "Configúrelas en Recetas (servicios disponibles).",
                 icon="📖",
             )
 
@@ -174,13 +184,15 @@ def render_pagina_registro_servicio(
             placeholder="Escriba el nombre del producto...",
         )
         if producto_sel:
+            unidad_prod = producto_sel.get("unidad", "Ud")
             cantidad = st.number_input(
                 "Cantidad (+ extra / − omitir)",
-                value=1.0,
-                step=PASO_CANTIDAD,
-                format="%.1f",
+                value=float(paso_unidad(unidad_prod)),
+                step=paso_unidad(unidad_prod),
+                format=formato_number_input(unidad_prod),
                 key=f"{key_prefix}_cantidad",
             )
+            cantidad = normalizar_cantidad(cantidad, unidad_prod)
             if st.button(
                 "Añadir producto a la cesta",
                 type="secondary",
@@ -196,7 +208,11 @@ def render_pagina_registro_servicio(
         elif todos_productos:
             empty_state("No hay coincidencias para la búsqueda.", icon="🔍")
         else:
-            empty_state("No hay productos disponibles en el catálogo.", icon="🔍")
+            empty_state(
+                "No hay productos con este servicio disponible. "
+                "Configúrelos en Stock (servicios disponibles).",
+                icon="🔍",
+            )
 
     with col_cesta:
         render_cesta_servicio(

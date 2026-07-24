@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from datetime import date, datetime
 
 from app.core.models import Actividad, AppData, LoteStock, Producto, UnidadProducto
+from app.core.models.enums import SERVICIOS_DISPONIBLES_VALORES
 from app.core.repositories.data_repository import DataRepository
 from app.core.services.excel_bloques import RegistroExportable
 from app.core.services.exportacion_semanal_service import ConfiguracionExportacionModulo
@@ -11,6 +12,47 @@ from app.core.services.formatting import formato_fecha, formato_moneda
 from app.core.storage.session_store import get_data, persist_data
 
 UNIDADES = [u.value for u in UnidadProducto]
+
+
+def normalizar_servicios_disponibles(valores: list[str] | None) -> list[str]:
+    """Filtra y ordena valores válidos; no inventa servicios si la lista está vacía."""
+    if not valores:
+        return []
+    orden = ["desayuno", "comida", "cena", "bebidas"]
+    limpios = []
+    for v in valores:
+        if not isinstance(v, str):
+            continue
+        clave = v.strip().lower()
+        if clave in SERVICIOS_DISPONIBLES_VALORES and clave not in limpios:
+            limpios.append(clave)
+    return [s for s in orden if s in limpios]
+
+
+def normalizar_categoria_inventario(valor: str | None) -> str | None:
+    if valor is None:
+        return None
+    texto = valor.strip()
+    return texto or None
+
+
+def disponible_en_servicio(
+    servicios_disponibles: list[str] | None,
+    servicio: str,
+    *,
+    permitir_general_sin_filtro: bool = True,
+) -> bool:
+    """True si el ítem puede usarse en el servicio de registro/merma.
+
+    Lista vacía ≠ todos: sin configurar no está disponible.
+    Para merma «general» (almacén), por defecto no se exige etiqueta de servicio
+    de registro (general no forma parte de servicios_disponibles).
+    """
+    if servicio == "general" and permitir_general_sin_filtro:
+        return True
+    if not servicios_disponibles:
+        return False
+    return servicio in servicios_disponibles
 
 
 @dataclass
@@ -57,6 +99,8 @@ def crear_producto(
     stock_minimo: float | None,
     *,
     es_bebida: bool = False,
+    servicios_disponibles: list[str] | None = None,
+    categoria_inventario: str | None = None,
 ) -> ResultadoOperacion:
     nombre = nombre.strip()
     if not nombre:
@@ -84,6 +128,8 @@ def crear_producto(
         UnidadProducto(unidad),
         stock_min,
         es_bebida=es_bebida,
+        servicios_disponibles=normalizar_servicios_disponibles(servicios_disponibles),
+        categoria_inventario=normalizar_categoria_inventario(categoria_inventario),
     )
     data.productos.append(producto)
     accion = "Crear bebida" if es_bebida else "Crear producto"
@@ -97,9 +143,42 @@ def crear_bebida(
     nombre: str,
     unidad: str,
     stock_minimo: float | None,
+    *,
+    servicios_disponibles: list[str] | None = None,
+    categoria_inventario: str | None = None,
 ) -> ResultadoOperacion:
     """Alias para crear un producto marcado como bebida."""
-    return crear_producto(nombre, unidad, stock_minimo, es_bebida=True)
+    return crear_producto(
+        nombre,
+        unidad,
+        stock_minimo,
+        es_bebida=True,
+        servicios_disponibles=servicios_disponibles,
+        categoria_inventario=categoria_inventario,
+    )
+
+
+def editar_producto_catalogo(
+    producto_id: str,
+    *,
+    servicios_disponibles: list[str] | None = None,
+    categoria_inventario: str | None = None,
+) -> ResultadoOperacion:
+    """Actualiza solo campos de catálogo (servicios / categoría inventario)."""
+    data = get_data()
+    producto = next((p for p in data.productos if p.id == producto_id), None)
+    if not producto:
+        return ResultadoOperacion(False, "Producto no encontrado.")
+
+    producto.servicios_disponibles = normalizar_servicios_disponibles(servicios_disponibles)
+    producto.categoria_inventario = normalizar_categoria_inventario(categoria_inventario)
+    _registrar_actividad(
+        data,
+        "Editar catálogo producto",
+        f"«{producto.nombre}»: servicios/categoría inventario actualizados",
+    )
+    persist_data(data)
+    return ResultadoOperacion(True, f"Producto «{producto.nombre}» actualizado.")
 
 
 def registrar_lote(

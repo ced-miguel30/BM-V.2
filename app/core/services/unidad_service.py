@@ -157,3 +157,104 @@ def escalar_presentacion(cantidad_presentacion: float, factor: float, unidad_pre
     """Escala una cantidad de presentación (p. ej. al cambiar las porciones
     de una receta) conservando la unidad elegida por el usuario."""
     return round(cantidad_presentacion * factor, _DECIMALES_VISUALES.get(unidad_presentacion, 4))
+
+
+# --- Paso / formato numérico por unidad (Fase 3 estabilización) ---
+
+# Orientación del plan: ud/paquete/botella=1; kg/l=0.01; g=1; ml=10.
+_PASO_POR_UNIDAD: dict[str, float] = {
+    UnidadProducto.UD.value: 1.0,
+    UnidadProducto.KG.value: 0.01,
+    UnidadProducto.GR.value: 1.0,
+    UnidadProducto.L.value: 0.01,
+    UnidadProducto.OTRO.value: 1.0,
+    UNIDAD_MG: 1.0,
+    UNIDAD_ML: 10.0,
+    UNIDAD_CL: 1.0,
+    "g": 1.0,
+    "paquete": 1.0,
+    "botella": 1.0,
+    "porciones": 1.0,
+}
+
+_DECIMALES_PASO: dict[str, int] = {
+    UnidadProducto.UD.value: 0,
+    UnidadProducto.KG.value: 2,
+    UnidadProducto.GR.value: 0,
+    UnidadProducto.L.value: 2,
+    UnidadProducto.OTRO.value: 0,
+    UNIDAD_MG: 0,
+    UNIDAD_ML: 0,
+    UNIDAD_CL: 0,
+    "g": 0,
+    "paquete": 0,
+    "botella": 0,
+    "porciones": 0,
+}
+
+
+def _clave_unidad(unidad: UnidadProducto | str | None) -> str:
+    if unidad is None:
+        return UnidadProducto.UD.value
+    if isinstance(unidad, UnidadProducto):
+        return unidad.value
+    return str(unidad).strip() or UnidadProducto.UD.value
+
+
+def paso_unidad(unidad: UnidadProducto | str | None) -> float:
+    """Incremento de `number_input` según la unidad."""
+    return _PASO_POR_UNIDAD.get(_clave_unidad(unidad), 1.0)
+
+
+def decimales_unidad(unidad: UnidadProducto | str | None) -> int:
+    """Número de decimales para mostrar / normalizar según la unidad."""
+    return _DECIMALES_PASO.get(_clave_unidad(unidad), 2)
+
+
+def formato_number_input(unidad: UnidadProducto | str | None) -> str:
+    """Cadena `format` de Streamlit `number_input` según decimales de la unidad."""
+    dec = decimales_unidad(unidad)
+    if dec <= 0:
+        return "%.0f"
+    return f"%.{dec}f"
+
+
+def formatear_cantidad(cantidad: float, unidad: UnidadProducto | str | None = None) -> str:
+    """Cantidad legible según la precisión de la unidad (sin negativos forzados aquí)."""
+    dec = decimales_unidad(unidad)
+    if dec <= 0:
+        return f"{cantidad:.0f}"
+    texto = f"{cantidad:.{dec}f}".rstrip("0").rstrip(".")
+    return texto if texto else "0"
+
+
+def normalizar_cantidad(cantidad: float, unidad: UnidadProducto | str | None = None) -> float:
+    """Impide negativos y redondea a la precisión de la unidad."""
+    if cantidad < 0:
+        cantidad = 0.0
+    dec = decimales_unidad(unidad)
+    return round(float(cantidad), max(dec, 0))
+
+
+def ejemplos_formato_unidades() -> list[dict[str, str]]:
+    """Filas para la tabla de diagnóstico (comprobación visual de pasos)."""
+    ejemplos = [
+        (UnidadProducto.UD.value, 3.0),
+        (UnidadProducto.KG.value, 0.02),
+        (UnidadProducto.GR.value, 15.0),
+        (UnidadProducto.L.value, 0.01),
+        (UNIDAD_ML, 30.0),
+        ("paquete", 2.0),
+        ("botella", 1.0),
+    ]
+    filas: list[dict[str, str]] = []
+    for unidad, cantidad in ejemplos:
+        filas.append(
+            {
+                "Unidad": unidad,
+                "Paso": formatear_cantidad(paso_unidad(unidad), unidad),
+                "Ejemplo": formatear_cantidad(cantidad, unidad),
+                "Format number_input": formato_number_input(unidad),
+            }
+        )
+    return filas

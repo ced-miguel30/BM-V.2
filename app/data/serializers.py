@@ -100,6 +100,8 @@ def appdata_to_dict(data: AppData) -> dict:
                 "unidad": p.unidad.value,
                 "stock_minimo": p.stock_minimo,
                 "es_bebida": p.es_bebida,
+                "servicios_disponibles": list(p.servicios_disponibles),
+                "categoria_inventario": p.categoria_inventario,
             }
             for p in data.productos
         ],
@@ -195,6 +197,7 @@ def appdata_to_dict(data: AppData) -> dict:
                 "id": r.id,
                 "nombre": r.nombre,
                 "categoria": r.categoria.value,
+                "servicios_disponibles": list(r.servicios_disponibles),
                 "ingredientes": [
                     {
                         "producto_id": i.producto_id,
@@ -270,6 +273,12 @@ def dict_to_appdata(payload: dict) -> AppData:
                 UnidadProducto(p["unidad"]),
                 p.get("stock_minimo"),
                 p.get("es_bebida", False),
+                # Ausente → lista vacía («No configurado»); no inventar servicios.
+                [
+                    s for s in p.get("servicios_disponibles", [])
+                    if isinstance(s, str)
+                ],
+                p.get("categoria_inventario"),
             )
             for p in payload.get("productos", [])
         ],
@@ -379,6 +388,10 @@ def dict_to_appdata(payload: dict) -> AppData:
                 ],
                 # Recetas antiguas sin categoría → Desayuno (compatibilidad).
                 CategoriaReceta(r.get("categoria", CategoriaReceta.DESAYUNO.value)),
+                [
+                    s for s in r.get("servicios_disponibles", [])
+                    if isinstance(s, str)
+                ],
             )
             for r in payload.get("recetas", [])
         ],

@@ -4,11 +4,10 @@ from datetime import date, datetime, time
 
 import streamlit as st
 
-from app.core.models import CategoriaReceta
+from app.core.models import TipoServicio
 from app.core.services import desayuno_service
 from app.core.services.data_service import get_repository
 from app.core.services.desayuno_service import (
-    PASO_CANTIDAD,
     ajustar_cantidad_suelto,
     ajustar_linea_grupo,
     ajustar_porciones_grupo,
@@ -33,6 +32,11 @@ from app.core.services.desayuno_service import (
     quitar_mod_pendiente,
     registrar_desayuno,
 )
+from app.core.services.unidad_service import (
+    formato_number_input,
+    normalizar_cantidad,
+    paso_unidad,
+)
 from app.core.services.exportacion_semanal_service import limite_semana
 from app.core.services.formatting import formato_fecha
 from app.core.services.receta_service import listar_recetas
@@ -43,7 +47,13 @@ from app.ui.cesta_render import (
     ok_o_error as _ok_o_error,
     quitar_y_rerun as _quitar_y_rerun,
 )
-from app.ui.components import empty_state, page_header, render_sub_tabs, section_divider
+from app.ui.components import (
+    aviso_servicios_pendientes,
+    empty_state,
+    page_header,
+    render_sub_tabs,
+    section_divider,
+)
 from app.ui.search import render_autocomplete, render_buscador_producto
 
 STOCK_PENDIENTE_KEY = "bm_stock_pendiente_registro"
@@ -170,12 +180,14 @@ def _render_cesta_desayuno(repo) -> None:
 
 def _render_registro_desayuno() -> None:
     repo = get_repository()
+    servicio = TipoServicio.DESAYUNO.value
 
     st.markdown("#### Registro rápido de desayuno")
     st.caption(
         "Añada recetas o productos sueltos a la cesta. Use cantidades positivas (c/ extra) "
         "o negativas (s/) para ajustar ingredientes."
     )
+    aviso_servicios_pendientes(key_prefix="desayuno_aviso_serv")
 
     col_buscar, col_cesta = st.columns([2, 1])
 
@@ -191,9 +203,7 @@ def _render_registro_desayuno() -> None:
 
         section_divider()
         st.markdown("##### Añadir receta")
-        recetas = listar_recetas(
-            categorias=[CategoriaReceta.DESAYUNO, CategoriaReceta.BEBIDAS],
-        )
+        recetas = listar_recetas(servicio_disponible=servicio)
         if recetas:
             mapa_recetas = {r.nombre: r.id for r in recetas}
             receta_nombre = st.selectbox(
@@ -213,7 +223,7 @@ def _render_registro_desayuno() -> None:
             )
 
             st.caption("Extras u omisiones para esta receta (antes de añadir a la cesta)")
-            catalogo = productos_catalogo("")
+            catalogo = productos_catalogo("", servicio=servicio)
             producto_mod = render_buscador_producto(
                 catalogo,
                 "desayuno_mod_receta",
@@ -221,13 +231,15 @@ def _render_registro_desayuno() -> None:
                 placeholder="Escriba para buscar producto...",
             )
             if producto_mod:
+                unidad_mod = producto_mod.get("unidad", "Ud")
                 cant_mod = st.number_input(
                     "Cantidad (+ extra / − omitir)",
-                    value=1.0,
-                    step=PASO_CANTIDAD,
-                    format="%.1f",
+                    value=float(paso_unidad(unidad_mod)),
+                    step=paso_unidad(unidad_mod),
+                    format=formato_number_input(unidad_mod),
                     key="desayuno_cant_mod",
                 )
+                cant_mod = normalizar_cantidad(cant_mod, unidad_mod)
                 if st.button(
                     "Añadir extra/omisión",
                     key="desayuno_btn_mod",
@@ -266,11 +278,15 @@ def _render_registro_desayuno() -> None:
                 else:
                     st.error(resultado.mensaje)
         else:
-            empty_state("No hay recetas definidas. Créelas en la sección Recetas.", icon="📖")
+            empty_state(
+                "No hay recetas con servicio desayuno disponible. "
+                "Configúrelas en Recetas.",
+                icon="📖",
+            )
 
         section_divider()
         st.markdown("##### Añadir producto suelto")
-        todos_productos = productos_catalogo("")
+        todos_productos = productos_catalogo("", servicio=servicio)
         producto_sel = render_buscador_producto(
             todos_productos,
             "desayuno",
@@ -278,13 +294,15 @@ def _render_registro_desayuno() -> None:
             placeholder="Escriba el nombre del producto...",
         )
         if producto_sel:
+            unidad_prod = producto_sel.get("unidad", "Ud")
             cantidad = st.number_input(
                 "Cantidad (+ extra / − omitir)",
-                value=1.0,
-                step=PASO_CANTIDAD,
-                format="%.1f",
+                value=float(paso_unidad(unidad_prod)),
+                step=paso_unidad(unidad_prod),
+                format=formato_number_input(unidad_prod),
                 key="desayuno_cantidad",
             )
+            cantidad = normalizar_cantidad(cantidad, unidad_prod)
             if st.button(
                 "Añadir producto a la cesta",
                 type="secondary",
@@ -297,10 +315,14 @@ def _render_registro_desayuno() -> None:
                     st.rerun()
                 else:
                     st.error(resultado.mensaje)
-        elif productos_catalogo(""):
+        elif todos_productos:
             empty_state("No hay coincidencias para la búsqueda.", icon="🔍")
         else:
-            empty_state("No hay productos registrados en el catálogo.", icon="🔍")
+            empty_state(
+                "No hay productos con servicio desayuno disponible. "
+                "Configúrelos en Stock.",
+                icon="🔍",
+            )
 
     with col_cesta:
         _render_cesta_desayuno(repo)
@@ -395,14 +417,31 @@ def _render_registro_merma() -> None:
     repo = get_repository()
 
     st.markdown("#### Registro de merma")
-    st.caption("Seleccione el lote concreto (con fecha de compra) y añádalo a la cesta.")
+    st.caption(
+        "Seleccione primero dónde se produjo la merma; luego elija producto y lote. "
+        "Lista vacía de servicios ≠ todos (excepto Almacén / General)."
+    )
+    aviso_servicios_pendientes(key_prefix="merma_aviso_serv")
 
     col_buscar, col_cesta = st.columns([2, 1])
 
     with col_buscar:
-        todos_productos = productos_con_stock("")
-        producto_sel = render_buscador_producto(todos_productos, "merma")
         fecha = st.date_input("Fecha", value=date.today(), max_value=date.today(), key="merma_fecha")
+        servicio_ui = st.selectbox(
+            "¿Dónde se produjo la merma?",
+            OPCIONES_SERVICIO_UI,
+            key="merma_servicio",
+        )
+        servicio_val = valor_servicio_desde_ui(servicio_ui)
+        if not servicio_val:
+            st.info("Seleccione el servicio o área para filtrar productos disponibles.")
+            todos_productos = []
+        else:
+            todos_productos = productos_con_stock("", servicio=servicio_val)
+
+        producto_sel = None
+        if todos_productos or servicio_val:
+            producto_sel = render_buscador_producto(todos_productos, "merma")
 
         if producto_sel:
             producto_id = producto_sel["id"]
@@ -423,24 +462,19 @@ def _render_registro_merma() -> None:
                     lote_id = lote_sel["id"]
 
                     motivo = st.selectbox("Motivo", MOTIVOS, key="merma_motivo")
-                    servicio_ui = st.selectbox(
-                        "¿Dónde se produjo la merma?",
-                        OPCIONES_SERVICIO_UI,
-                        key="merma_servicio",
-                    )
-                    st.caption("Selecciona el servicio o área donde se produjo esta merma.")
+                    unidad_merma = producto_sel.get("unidad", "Ud") if producto_sel else "Ud"
                     cantidad = st.number_input(
                         "Cantidad",
                         min_value=0.0,
                         value=0.0,
-                        step=0.1,
-                        format="%.2f",
+                        step=paso_unidad(unidad_merma),
+                        format=formato_number_input(unidad_merma),
                         key="merma_cantidad",
                     )
+                    cantidad = normalizar_cantidad(cantidad, unidad_merma)
                     comentario = st.text_area("Comentario (opcional)", key="merma_comentario")
 
                     if st.button("Añadir a la cesta", type="secondary", use_container_width=True, key="merma_btn_anadir"):
-                        servicio_val = valor_servicio_desde_ui(servicio_ui)
                         resultado = anadir_a_cesta_merma(
                             lote_id, cantidad, motivo, servicio_val, comentario,
                         )
@@ -451,10 +485,16 @@ def _render_registro_merma() -> None:
                             st.error(resultado.mensaje)
             else:
                 empty_state("No hay lotes con stock para este producto.", icon="🏷️")
+        elif not servicio_val:
+            pass
         elif todos_productos:
             empty_state("No hay coincidencias para la búsqueda.", icon="🔍")
         else:
-            empty_state("No hay productos con stock disponible.", icon="🔍")
+            empty_state(
+                "No hay productos con stock para este servicio. "
+                "Configure servicios disponibles en Stock (Almacén / General no filtra).",
+                icon="🔍",
+            )
 
     with col_cesta:
         cesta = get_cesta_merma()
