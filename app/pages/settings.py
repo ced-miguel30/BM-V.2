@@ -154,10 +154,11 @@ def _render_lista_incidencias(titulo: str, items: list[str], *, limite: int = 30
 
 
 def _render_diagnostico_tecnico() -> None:
-    """Bloque de solo lectura. No escribe datos ni corrige incidencias."""
+    """Bloque de solo lectura + descarga de backup (no restaura ni escribe en disco)."""
     st.markdown("### Diagnóstico técnico")
     st.caption(
-        "Solo lectura. No modifica datos, no crea copias y no corrige incidencias."
+        "Solo lectura. El diagnóstico no modifica datos. "
+        "La descarga de copia genera un ZIP en memoria sin alterar los JSON originales."
     )
 
     try:
@@ -206,6 +207,31 @@ def _render_diagnostico_tecnico() -> None:
         )
         _render_lista_incidencias("Posibles duplicidades", resumen.posibles_duplicidades)
         _render_lista_incidencias("Otras incidencias", resumen.otras_incidencias)
+
+    st.markdown("##### Copia de seguridad")
+    st.caption(
+        "Descarga un ZIP con los JSON de disco (sin transformar), "
+        "el estado actual en memoria y manifest.json. No hay restauración automática."
+    )
+    try:
+        from app.core.services.backup_service import generar_backup_zip
+
+        backup = generar_backup_zip(get_repository().data)
+    except Exception as exc:  # noqa: BLE001
+        st.error("No se pudo generar la copia de seguridad.")
+        st.caption(f"Detalle: {exc}")
+        return
+
+    st.download_button(
+        label="Descargar copia de seguridad de datos",
+        data=backup.contenido,
+        file_name=backup.nombre_archivo,
+        mime="application/zip",
+        type="primary",
+        use_container_width=True,
+        key="settings_descargar_backup_zip",
+    )
+    st.caption("Incluye: " + ", ".join(backup.archivos_incluidos))
 
 
 def _boton_exportar_actividad() -> None:
@@ -380,7 +406,8 @@ def render() -> None:
     )
 
     st.success(
-        "DIAGNÓSTICO TÉCNICO — si ve este mensaje verde, está usando el código actualizado."
+        "DIAGNÓSTICO TÉCNICO — si ve este mensaje verde, está usando el código actualizado "
+        "(versión Fase 2 · backup)."
     )
 
     # Siempre visible al entrar en Configuración (no depende de pestañas).
