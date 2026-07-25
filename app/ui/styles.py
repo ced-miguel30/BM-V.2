@@ -390,6 +390,25 @@ def inject_global_styles() -> None:
                 padding: 0.4rem 0;
             }}
 
+            .bm-cesta-tipo {{
+                display: inline-block;
+                padding: 0.1rem 0.45rem;
+                border-radius: 4px;
+                font-size: 0.7rem;
+                font-weight: 650;
+                letter-spacing: 0.02em;
+                background: rgba(11, 31, 58, 0.08);
+                color: {NAVY};
+                vertical-align: middle;
+            }}
+
+            .bm-cesta-meta {{
+                font-size: 0.78rem;
+                color: {MID_GRAY};
+                margin-top: 0.15rem;
+                line-height: 1.35;
+            }}
+
             .bm-cesta-nombre {{
                 color: {DARK_TEXT};
                 font-weight: 600;

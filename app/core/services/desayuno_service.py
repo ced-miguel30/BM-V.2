@@ -8,7 +8,7 @@ de este módulo se mantiene para no romper páginas ni tests existentes.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time
 
 from app.core.models import (
     AppData,
@@ -505,3 +505,100 @@ def configuracion_exportacion() -> ConfiguracionExportacionModulo:
         titulo_documento="Registro de Desayuno",
         obtener_registros=registros_exportables,
     )
+
+
+class DesayunoRegistroAdapter:
+    """Fachada duck-typed para la UI compartida de registro (Fase 6).
+
+    No fusiona storage: sigue usando desayunos[] y desayuno_service.
+    """
+
+    def __init__(self) -> None:
+        self.tipo_servicio = TipoServicio.DESAYUNO.value
+        self.etiqueta = "Desayuno"
+
+    def productos_catalogo(self, buscar: str = "") -> list[dict]:
+        return productos_catalogo(buscar, servicio=self.tipo_servicio)
+
+    def get_cesta(self):
+        return get_cesta()
+
+    def get_cesta_recetas(self):
+        return get_cesta_recetas()
+
+    def get_mods_pendientes(self):
+        return get_mods_pendientes()
+
+    def limpiar_cesta(self) -> None:
+        limpiar_cesta()
+
+    def cesta_vacia(self) -> bool:
+        return cesta_vacia()
+
+    def anadir_mod_pendiente_receta(self, producto_id: str, cantidad: float) -> ResultadoOperacion:
+        return anadir_mod_pendiente_receta(producto_id, cantidad)
+
+    def quitar_mod_pendiente(self, mod_id: str) -> None:
+        quitar_mod_pendiente(mod_id)
+
+    def anadir_a_cesta(self, producto_id: str, cantidad: float) -> ResultadoOperacion:
+        return anadir_a_cesta(producto_id, cantidad)
+
+    def anadir_receta_a_cesta(self, receta_id: str, porciones: float, mods=None) -> ResultadoOperacion:
+        return anadir_receta_a_cesta(receta_id, porciones, mods)
+
+    def quitar_grupo_receta(self, grupo_id: str) -> None:
+        quitar_grupo_receta(grupo_id)
+
+    def quitar_linea_grupo(self, grupo_id: str, linea_id: str) -> None:
+        quitar_linea_grupo(grupo_id, linea_id)
+
+    def paso_linea_grupo(self, grupo_id: str, linea_id: str) -> float:
+        return paso_linea_grupo(grupo_id, linea_id)
+
+    def ajustar_linea_grupo(self, grupo_id: str, linea_id: str, delta: float) -> ResultadoOperacion:
+        return ajustar_linea_grupo(grupo_id, linea_id, delta)
+
+    def modificar_porciones_grupo(self, grupo_id: str, porciones: float) -> ResultadoOperacion:
+        return modificar_porciones_grupo(grupo_id, porciones)
+
+    def ajustar_porciones_grupo(self, grupo_id: str, delta: float) -> ResultadoOperacion:
+        return ajustar_porciones_grupo(grupo_id, delta)
+
+    def paso_linea_suelta(self, linea_id: str) -> float:
+        return paso_linea_suelta(linea_id)
+
+    def quitar_linea_suelta(self, linea_id: str) -> None:
+        quitar_linea_suelta(linea_id)
+
+    def ajustar_cantidad_suelto(self, linea_id: str, delta: float) -> ResultadoOperacion:
+        return ajustar_cantidad_suelto(linea_id, delta)
+
+    def coste_total_cesta(self) -> float:
+        return coste_total_cesta()
+
+    def registrar(
+        self,
+        fecha: date,
+        num_huespedes: int = 0,
+        *,
+        ignorar_stock: bool = False,
+    ) -> ResultadoOperacion:
+        return registrar_desayuno(fecha, int(num_huespedes), ignorar_stock=ignorar_stock)
+
+    def historial_ordenado(self):
+        data = get_data()
+        return sorted(
+            data.desayunos,
+            key=lambda r: (r.fecha, r.hora or time.min),
+            reverse=True,
+        )
+
+    def registros_exportables(self, inicio: date, hasta: datetime):
+        return registros_exportables(inicio, hasta)
+
+    def configuracion_exportacion(self) -> ConfiguracionExportacionModulo:
+        return configuracion_exportacion()
+
+
+desayuno_registro = DesayunoRegistroAdapter()

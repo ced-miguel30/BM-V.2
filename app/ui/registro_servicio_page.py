@@ -1,4 +1,4 @@
-"""Renderer genérico de página de registro de servicio (comida/cena/bebidas)."""
+"""Renderer genérico de página de registro de servicio (desayuno/comida/cena/bebidas)."""
 
 from __future__ import annotations
 
@@ -59,6 +59,8 @@ def render_pagina_registro_servicio(
     mensaje_vacio_historial: str,
     mostrar_huespedes: bool = False,
     mostrar_cabecera: bool = True,
+    min_huespedes: int = 0,
+    default_huespedes: int = 0,
 ) -> None:
     """Página completa de registro + historial + exportación para un tipo."""
     _ = categorias_receta  # Conservado por compat; el filtro activo es servicios_disponibles.
@@ -70,8 +72,8 @@ def render_pagina_registro_servicio(
 
     st.markdown(f"#### Registro rápido de {etiqueta.lower()}")
     st.caption(
-        "Añada recetas o productos sueltos a la cesta. Use cantidades positivas (c/ extra) "
-        "o negativas (s/) para ajustar ingredientes."
+        "Patrón: fecha → receta o producto directo → cantidad → cesta → confirmar. "
+        "Cantidades positivas (c/ extra) o negativas (s/) ajustan ingredientes."
     )
     aviso_servicios_pendientes(key_prefix=f"{key_prefix}_aviso_serv")
 
@@ -85,14 +87,18 @@ def render_pagina_registro_servicio(
         if mostrar_huespedes:
             num_huespedes = int(st.number_input(
                 "Nº de huéspedes",
-                min_value=0,
-                value=0,
+                min_value=min_huespedes,
+                value=max(default_huespedes, min_huespedes),
                 step=1,
                 key=f"{key_prefix}_num_huespedes",
             ))
 
         section_divider()
-        st.markdown("##### Añadir receta")
+        st.markdown(
+            '##### Añadir receta '
+            '<span class="bm-cesta-tipo">Receta</span>',
+            unsafe_allow_html=True,
+        )
         recetas = listar_recetas(servicio_disponible=servicio.tipo_servicio)
         if recetas:
             mapa_recetas = {r.nombre: r.id for r in recetas}
@@ -175,7 +181,11 @@ def render_pagina_registro_servicio(
             )
 
         section_divider()
-        st.markdown("##### Añadir producto suelto")
+        st.markdown(
+            '##### Añadir producto suelto '
+            '<span class="bm-cesta-tipo">Producto directo</span>',
+            unsafe_allow_html=True,
+        )
         todos_productos = servicio.productos_catalogo("")
         producto_sel = render_buscador_producto(
             todos_productos,
@@ -274,13 +284,19 @@ def render_pagina_registro_servicio(
         columnas = {
             "Fecha": [formato_fecha(r.fecha) for r in registros_semana],
             "Hora": [r.hora.strftime("%H:%M") if r.hora else "—" for r in registros_semana],
+        }
+        if mostrar_huespedes:
+            columnas["Huéspedes"] = [
+                getattr(r, "num_huespedes", 0) for r in registros_semana
+            ]
+        columnas.update({
             "Elementos": [len(r.lineas) + len(r.registros_recetas) for r in registros_semana],
             "Cantidad total": [
                 round(sum(abs(l.cantidad) for l in r.lineas), 2) for r in registros_semana
             ],
             "Coste": [repo.formato_precio(r.coste_total) for r in registros_semana],
             "Registrado por": [r.registrado_por for r in registros_semana],
-        }
+        })
         st.dataframe(columnas, use_container_width=True, hide_index=True)
 
         opciones_detalle = {

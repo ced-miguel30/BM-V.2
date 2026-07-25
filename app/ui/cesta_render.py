@@ -7,12 +7,15 @@ from datetime import datetime
 
 import streamlit as st
 
+from app.core.models import SERVICIO_DISPONIBLE_LABEL, TipoServicio
 from app.core.services.cesta_service import (
     cantidad_texto_linea_receta,
     etiqueta_linea_receta,
     etiqueta_linea_suelta,
 )
 from app.core.services.exportacion_semanal_service import exportar_semana_actual
+from app.core.services.inventory_batch_service import calcular_coste_linea, stock_disponible
+from app.core.storage.session_store import get_data
 
 
 def clave_orden(texto: str) -> str:
@@ -110,6 +113,41 @@ def fila_cesta(
                 on_quitar()
 
 
+def _etiqueta_servicio(tipo_servicio: str) -> str:
+    try:
+        return SERVICIO_DISPONIBLE_LABEL[TipoServicio(tipo_servicio)]
+    except (ValueError, KeyError):
+        return tipo_servicio.capitalize() if tipo_servicio else "—"
+
+
+def _texto_disponibilidad(data, producto_id: str, cantidad: float) -> str:
+    stock = stock_disponible(data, producto_id)
+    necesaria = max(cantidad, 0.0)
+    if necesaria <= 0:
+        return "Sin consumo"
+    if stock <= 0:
+        return "Sin stock"
+    if stock < necesaria:
+        return "Stock insuficiente"
+    if stock < necesaria * 2:
+        return "Stock justo"
+    return "Disponible"
+
+
+def _bloque_titulo_cesta(
+    nombre: str,
+    tipo_lbl: str,
+    *,
+    meta: str,
+) -> str:
+    return (
+        f'<div class="bm-cesta-nombre">'
+        f'<span class="bm-cesta-tipo">{tipo_lbl}</span> {nombre}'
+        f"</div>"
+        f'<div class="bm-cesta-meta">{meta}</div>'
+    )
+
+
 def render_cesta_servicio(
     servicio,
     repo,
@@ -122,6 +160,8 @@ def render_cesta_servicio(
     grupos = servicio.get_cesta_recetas()
     cesta = servicio.get_cesta()
     hay_contenido = bool(grupos or cesta)
+    data = get_data()
+    servicio_lbl = _etiqueta_servicio(getattr(servicio, "tipo_servicio", ""))
 
     with st.container(border=True):
         st.markdown(
@@ -148,8 +188,34 @@ def render_cesta_servicio(
 
             if tipo == "receta":
                 grupo = elemento
+                coste_grupo = round(
+                    sum(
+                        calcular_coste_linea(data, ing.producto_id, max(ing.cantidad, 0))
+                        for ing in grupo.ingredientes
+                    ),
+                    2,
+                )
+                # Disponibilidad: peor caso entre ingredientes con consumo positivo.
+                estados = [
+                    _texto_disponibilidad(data, ing.producto_id, ing.cantidad)
+                    for ing in grupo.ingredientes
+                    if ing.cantidad > 0
+                ]
+                if not estados:
+                    disp = "—"
+                elif "Sin stock" in estados or "Stock insuficiente" in estados:
+                    disp = "Stock insuficiente"
+                elif "Stock justo" in estados:
+                    disp = "Stock justo"
+                else:
+                    disp = "Disponible"
+                meta = (
+                    f"{grupo.porciones:g} porciones · "
+                    f"{repo.formato_precio(coste_grupo)} · "
+                    f"{servicio_lbl} · {disp}"
+                )
                 fila_cesta(
-                    f'<div class="bm-cesta-nombre">{grupo.nombre_receta}</div>',
+                    _bloque_titulo_cesta(grupo.nombre_receta, "Receta", meta=meta),
                     f"{key_prefix}_grp_{grupo.grupo_id}",
                     lambda g=grupo: quitar_y_rerun(servicio.quitar_grupo_receta, g.grupo_id),
                     cantidad_texto=f"{grupo.porciones:g}",
@@ -161,8 +227,16 @@ def render_cesta_servicio(
                 )
                 for ing in grupo.ingredientes:
                     paso = servicio.paso_linea_grupo(grupo.grupo_id, ing.linea_id)
+                    coste_ing = calcular_coste_linea(data, ing.producto_id, max(ing.cantidad, 0))
+                    disp_ing = _texto_disponibilidad(data, ing.producto_id, ing.cantidad)
+                    meta_ing = (
+                        f"{repo.formato_precio(coste_ing)} · {servicio_lbl} · {disp_ing}"
+                    )
                     fila_cesta(
-                        f'<div class="bm-cesta-detalle">{etiqueta_linea_receta(ing)}</div>',
+                        (
+                            f'<div class="bm-cesta-detalle">{etiqueta_linea_receta(ing)}</div>'
+                            f'<div class="bm-cesta-meta">{meta_ing}</div>'
+                        ),
                         f"{key_prefix}_ing_{grupo.grupo_id}_{ing.linea_id}",
                         lambda g=grupo, i=ing: quitar_y_rerun(
                             servicio.quitar_linea_grupo, g.grupo_id, i.linea_id
@@ -179,8 +253,17 @@ def render_cesta_servicio(
             else:
                 linea = elemento
                 paso = servicio.paso_linea_suelta(linea.linea_id)
+                coste_ln = calcular_coste_linea(data, linea.producto_id, max(linea.cantidad, 0))
+                disp_ln = _texto_disponibilidad(data, linea.producto_id, linea.cantidad)
+                meta_ln = (
+                    f"{abs(linea.cantidad):g} {linea.unidad} · "
+                    f"{repo.formato_precio(coste_ln)} · "
+                    f"{servicio_lbl} · {disp_ln}"
+                )
                 fila_cesta(
-                    f'<div class="bm-cesta-nombre">{etiqueta_linea_suelta(linea)}</div>',
+                    _bloque_titulo_cesta(
+                        etiqueta_linea_suelta(linea), "Producto directo", meta=meta_ln,
+                    ),
                     f"{key_prefix}_suelto_{linea.linea_id}",
                     lambda l=linea: quitar_y_rerun(servicio.quitar_linea_suelta, l.linea_id),
                     cantidad_texto=f"{abs(linea.cantidad):g}",
