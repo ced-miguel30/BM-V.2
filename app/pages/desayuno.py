@@ -523,11 +523,39 @@ def _render_registro_merma() -> None:
         elif todos_productos:
             empty_state("No hay coincidencias para la búsqueda.", icon="🔍")
         else:
-            empty_state(
-                "No hay productos con stock para este servicio. "
-                "Configure servicios disponibles en Stock (Almacén / General no filtra).",
-                icon="🔍",
-            )
+            # Distinguir: sin stock vs sin servicios_disponibles para este origen.
+            con_stock_total = productos_con_stock("")
+            n_total = len(con_stock_total)
+            if n_total == 0:
+                empty_state(
+                    "No hay productos con stock disponible en ningún lote.",
+                    icon="🔍",
+                )
+            else:
+                etiqueta_serv = servicio_ui if servicio_val else "este servicio"
+                st.warning(
+                    f"Ningún producto con stock está configurado para «{etiqueta_serv}». "
+                    f"Hay {n_total} producto(s) con stock, pero lista vacía de servicios ≠ todos. "
+                    "Elija «Almacén / General» para verlos todos, o asigne servicios en Stock "
+                    "(Configurar producto/bebida existente)."
+                )
+                col_g, col_s = st.columns(2)
+                with col_g:
+                    if st.button(
+                        "Usar Almacén / General",
+                        key="merma_usar_general",
+                        use_container_width=True,
+                    ):
+                        st.session_state["merma_servicio"] = "Almacén / General"
+                        st.rerun()
+                with col_s:
+                    if st.button(
+                        "Ir a Stock",
+                        key="merma_ir_stock",
+                        use_container_width=True,
+                    ):
+                        st.session_state["nav_section_pending"] = "Stock"
+                        st.rerun()
 
     with col_cesta:
         cesta = get_cesta_merma()
