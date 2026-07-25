@@ -32,6 +32,7 @@ from app.core.models import (
     RegistroRecetaDesayuno,
     RegistroRecetaServicio,
     RegistroServicio,
+    ResponsableMerma,
     RolUsuario,
     TipoAlerta,
     UnidadProducto,
@@ -222,14 +223,23 @@ def appdata_to_dict(data: AppData) -> dict:
                         "motivo": ln.motivo.value,
                         "comentario": ln.comentario,
                         "lote_id": ln.lote_id,
-                        # Aditivo: ausente en JSON antiguo → None al cargar.
+                        # Aditivos: ausentes en JSON antiguo → None al cargar.
                         "tipo_servicio_snapshot": ln.tipo_servicio_snapshot,
+                        "turno_snapshot": ln.turno_snapshot,
+                        "responsable_id": ln.responsable_id,
+                        "responsable_nombre": ln.responsable_nombre,
+                        "producto_nombre_snapshot": ln.producto_nombre_snapshot,
+                        "unidad_snapshot": ln.unidad_snapshot,
                     }
                     for ln in m.lineas
                 ],
                 "coste_total": m.coste_total, "registrado_por": m.registrado_por,
             }
             for m in data.mermas
+        ],
+        "responsables_merma": [
+            {"id": r.id, "nombre": r.nombre, "activo": r.activo}
+            for r in data.responsables_merma
         ],
         "alertas": [
             {
@@ -408,6 +418,11 @@ def dict_to_appdata(payload: dict) -> AppData:
                         ln.get("lote_id"),
                         # NULL / ausente = histórico sin desglose; no reinterpretar.
                         ln.get("tipo_servicio_snapshot"),
+                        ln.get("turno_snapshot"),
+                        ln.get("responsable_id"),
+                        ln.get("responsable_nombre"),
+                        ln.get("producto_nombre_snapshot"),
+                        ln.get("unidad_snapshot"),
                     )
                     for ln in m.get("lineas", [])
                 ],
@@ -415,6 +430,12 @@ def dict_to_appdata(payload: dict) -> AppData:
                 hora=_parse_time(m.get("hora")),
             )
             for m in payload.get("mermas", [])
+        ],
+        responsables_merma=[
+            ResponsableMerma(
+                r["id"], r["nombre"], r.get("activo", True),
+            )
+            for r in payload.get("responsables_merma", [])
         ],
         alertas=[
             AlertaOperativa(

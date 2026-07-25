@@ -63,7 +63,7 @@ STOCK_PENDIENTE_KEY = "bm_stock_pendiente_registro"
 def _lineas_merma_texto(repo, merma) -> str:
     partes = []
     for linea in merma.lineas:
-        nombre = repo.get_nombre_producto(linea.producto_id)
+        nombre = linea.producto_nombre_snapshot or repo.get_nombre_producto(linea.producto_id)
         partes.append(f"{nombre} ({linea.cantidad}) — {linea.motivo.value}")
     return ", ".join(partes)
 
@@ -400,17 +400,22 @@ def _render_registro_merma() -> None:
     from app.core.services.merma_service import (
         MOTIVOS,
         OPCIONES_SERVICIO_UI,
+        OPCIONES_TURNO_UI,
+        PLACEHOLDER_RESPONSABLE,
         anadir_a_cesta_merma,
         configuracion_exportacion as configuracion_exportacion_merma,
         coste_total_cesta_merma,
         etiqueta_servicio_merma,
+        etiqueta_turno_merma,
         get_cesta_merma,
         limpiar_cesta_merma,
+        listar_responsables_merma,
         lotes_disponibles,
         productos_con_stock,
         quitar_de_cesta_merma,
         registrar_merma,
         valor_servicio_desde_ui,
+        valor_turno_desde_ui,
     )
     from app.ui.search import opciones_desde_etiquetas
 
@@ -418,7 +423,7 @@ def _render_registro_merma() -> None:
 
     st.markdown("#### Registro de merma")
     st.caption(
-        "Seleccione primero dónde se produjo la merma; luego elija producto y lote. "
+        "Orden: fecha → servicio → turno → responsable → producto → lote → motivo → cantidad. "
         "Lista vacía de servicios ≠ todos (excepto Almacén / General)."
     )
     aviso_servicios_pendientes(key_prefix="merma_aviso_serv")
@@ -433,17 +438,42 @@ def _render_registro_merma() -> None:
             key="merma_servicio",
         )
         servicio_val = valor_servicio_desde_ui(servicio_ui)
+        turno_ui = st.selectbox("Turno", OPCIONES_TURNO_UI, key="merma_turno")
+        turno_val = valor_turno_desde_ui(turno_ui)
+
+        responsables = listar_responsables_merma(solo_activos=True)
+        if not responsables:
+            st.warning(
+                "No hay responsables activos. Añádalos en Configuración → Responsables merma."
+            )
+            if st.button("Ir a Responsables merma", key="merma_ir_responsables"):
+                st.session_state["nav_section_pending"] = "Configuración"
+                st.session_state["settings_subtab_pending"] = "Responsables merma"
+                st.rerun()
+            mapa_resp: dict[str, str] = {}
+            resp_sel = PLACEHOLDER_RESPONSABLE
+        else:
+            mapa_resp = {r.nombre: r.id for r in responsables}
+            opciones_resp = [PLACEHOLDER_RESPONSABLE] + list(mapa_resp.keys())
+            resp_sel = st.selectbox("Responsable", opciones_resp, key="merma_responsable")
+
+        resp_id = mapa_resp.get(resp_sel) if resp_sel != PLACEHOLDER_RESPONSABLE else None
+        resp_nombre = resp_sel if resp_id else None
+
         if not servicio_val:
             st.info("Seleccione el servicio o área para filtrar productos disponibles.")
+            todos_productos = []
+        elif not turno_val or not resp_id:
+            st.info("Seleccione turno y responsable antes de elegir producto.")
             todos_productos = []
         else:
             todos_productos = productos_con_stock("", servicio=servicio_val)
 
         producto_sel = None
-        if todos_productos or servicio_val:
+        if todos_productos:
             producto_sel = render_buscador_producto(todos_productos, "merma")
 
-        if producto_sel:
+        if producto_sel and servicio_val and turno_val and resp_id:
             producto_id = producto_sel["id"]
 
             lotes = lotes_disponibles(producto_id)
@@ -477,6 +507,9 @@ def _render_registro_merma() -> None:
                     if st.button("Añadir a la cesta", type="secondary", use_container_width=True, key="merma_btn_anadir"):
                         resultado = anadir_a_cesta_merma(
                             lote_id, cantidad, motivo, servicio_val, comentario,
+                            turno_snapshot=turno_val,
+                            responsable_id=resp_id,
+                            responsable_nombre=resp_nombre,
                         )
                         if resultado.ok:
                             st.success(resultado.mensaje)
@@ -485,7 +518,7 @@ def _render_registro_merma() -> None:
                             st.error(resultado.mensaje)
             else:
                 empty_state("No hay lotes con stock para este producto.", icon="🏷️")
-        elif not servicio_val:
+        elif not servicio_val or not turno_val or not resp_id:
             pass
         elif todos_productos:
             empty_state("No hay coincidencias para la búsqueda.", icon="🔍")
@@ -517,9 +550,11 @@ def _render_registro_merma() -> None:
                         st.markdown('<div class="bm-cesta-divider"></div>', unsafe_allow_html=True)
 
                     servicio_txt = etiqueta_servicio_merma(linea.tipo_servicio_snapshot)
+                    turno_txt = etiqueta_turno_merma(linea.turno_snapshot)
                     detalle = (
                         f"Lote {linea.lote_id} · compra {linea.fecha_compra_txt} · "
-                        f"{linea.motivo} · {servicio_txt}"
+                        f"{linea.motivo} · {servicio_txt} · {turno_txt} · "
+                        f"{linea.responsable_nombre}"
                     )
                     if linea.comentario:
                         detalle += f" · {linea.comentario}"
@@ -527,12 +562,18 @@ def _render_registro_merma() -> None:
                     _fila_cesta(
                         f'<div class="bm-cesta-nombre">{linea.nombre} — {linea.cantidad:g} {linea.unidad}</div>'
                         f'<div class="bm-cesta-detalle">{detalle}</div>',
-                        f"merma_{linea.lote_id}_{linea.motivo}_{linea.tipo_servicio_snapshot}",
+                        (
+                            f"merma_{linea.lote_id}_{linea.motivo}_"
+                            f"{linea.tipo_servicio_snapshot}_{linea.turno_snapshot}_"
+                            f"{linea.responsable_id}"
+                        ),
                         lambda l=linea: _quitar_y_rerun(
                             quitar_de_cesta_merma,
                             l.lote_id,
                             l.motivo,
                             l.tipo_servicio_snapshot,
+                            l.turno_snapshot,
+                            l.responsable_id,
                         ),
                         ayuda_quitar="Eliminar de la cesta",
                     )
@@ -560,7 +601,10 @@ def _render_registro_merma() -> None:
 
     section_divider()
     st.markdown("#### Historial de merma")
-    st.caption("Solo se muestran los registros de la semana en curso. Las semanas anteriores quedan archivadas y disponibles en las exportaciones.")
+    st.caption(
+        "Solo se muestran los registros de la semana en curso. "
+        "Líneas antiguas sin turno/responsable muestran «Dato no disponible» en exportación."
+    )
     _boton_exportar_semana(configuracion_exportacion_merma(), "merma")
 
     mermas = repo.mermas_ordenadas()

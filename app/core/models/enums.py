@@ -21,7 +21,27 @@ class MotivoMerma(str, Enum):
     EXPIRACION = "Expiración"
     PRODUCTO_MALO = "Producto malo"
     PRODUCTO_ABIERTO = "Producto abierto"
+    ROTURA = "Rotura"
+    SOBRAS = "Sobras"
+    ERROR_PREPARACION = "Error de preparación"
     OTRO = "Otro"
+
+
+class TurnoMerma(str, Enum):
+    """Turno operativo de la línea de merma (snapshot histórico)."""
+
+    MANANA = "manana"
+    TARDE = "tarde"
+    NOCHE = "noche"
+
+
+TURNO_MERMA_LABEL: dict[TurnoMerma, str] = {
+    TurnoMerma.MANANA: "Mañana",
+    TurnoMerma.TARDE: "Tarde",
+    TurnoMerma.NOCHE: "Noche",
+}
+
+TURNO_MERMA_VALORES: frozenset[str] = frozenset(t.value for t in TurnoMerma)
 
 
 class OrigenServicioMerma(str, Enum):

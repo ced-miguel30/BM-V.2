@@ -20,12 +20,15 @@ from app.core.models.enums import (
     RolUsuario,
     SERVICIO_DISPONIBLE_LABEL,
     SERVICIOS_DISPONIBLES_VALORES,
+    TURNO_MERMA_LABEL,
+    TURNO_MERMA_VALORES,
     TipoAlerta,
     TipoServicio,
+    TurnoMerma,
     UnidadProducto,
 )
 from app.core.models.lote import LoteStock
-from app.core.models.merma import LineaMerma, RegistroMerma
+from app.core.models.merma import LineaMerma, RegistroMerma, ResponsableMerma
 from app.core.models.producto import Producto
 from app.core.models.receta import IngredienteReceta, Receta
 from app.core.models.registro_servicio import (
@@ -67,11 +70,15 @@ __all__ = [
     "RegistroRecetaDesayuno",
     "RegistroRecetaServicio",
     "RegistroServicio",
+    "ResponsableMerma",
     "RolUsuario",
     "SERVICIO_DISPONIBLE_LABEL",
     "SERVICIOS_DISPONIBLES_VALORES",
+    "TURNO_MERMA_LABEL",
+    "TURNO_MERMA_VALORES",
     "TipoAlerta",
     "TipoServicio",
+    "TurnoMerma",
     "UnidadProducto",
     "Usuario",
 ]

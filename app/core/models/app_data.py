@@ -7,7 +7,7 @@ from app.core.models.alerta import AlertaOperativa
 from app.core.models.configuracion import ConfiguracionHotel
 from app.core.models.desayuno import RegistroDesayuno
 from app.core.models.lote import LoteStock
-from app.core.models.merma import RegistroMerma
+from app.core.models.merma import RegistroMerma, ResponsableMerma
 from app.core.models.producto import Producto
 from app.core.models.receta import Receta
 from app.core.models.registro_servicio import RegistroServicio
@@ -26,5 +26,6 @@ class AppData:
     alertas_descartadas: list[str] = field(default_factory=list)
     actividades: list[Actividad] = field(default_factory=list)
     usuarios: list[Usuario] = field(default_factory=list)
+    responsables_merma: list[ResponsableMerma] = field(default_factory=list)
     configuracion: ConfiguracionHotel | None = None
     usuario_actual_id: str = ""

@@ -412,9 +412,94 @@ def _render_datos_demo() -> None:
     )
 
 
+def _render_responsables_merma() -> None:
+    from app.core.services.merma_service import (
+        crear_responsable_merma,
+        desactivar_responsable_merma,
+        listar_responsables_merma,
+        reactivar_responsable_merma,
+        renombrar_responsable_merma,
+    )
+
+    st.markdown("#### Responsables de merma")
+    st.caption(
+        "Catálogo para el registro de merma. No se borran: desactive o reactive. "
+        "Renombrar no cambia el texto ya guardado en el histórico."
+    )
+
+    todos = listar_responsables_merma(solo_activos=False)
+    if todos:
+        st.dataframe(
+            {
+                "Nombre": [r.nombre for r in todos],
+                "Estado": ["Activo" if r.activo else "Inactivo" for r in todos],
+            },
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        empty_state("Todavía no hay responsables. Cree el primero abajo.", icon="👤")
+
+    section_divider()
+    st.markdown("##### Añadir responsable")
+    with st.form("form_responsable_merma", clear_on_submit=True):
+        nombre = st.text_input("Nombre", key="settings_resp_merma_nombre")
+        if st.form_submit_button("Crear responsable", type="primary"):
+            resultado = crear_responsable_merma(nombre)
+            if resultado.ok:
+                st.success(resultado.mensaje)
+                st.rerun()
+            else:
+                st.error(resultado.mensaje)
+
+    if not todos:
+        return
+
+    section_divider()
+    st.markdown("##### Editar / activar")
+    opciones = {f"{r.nombre} ({'activo' if r.activo else 'inactivo'})": r.id for r in todos}
+    sel = st.selectbox(
+        "Seleccionar responsable",
+        list(opciones.keys()),
+        key="settings_sel_resp_merma",
+    )
+    resp_id = opciones[sel]
+    actual = next(r for r in todos if r.id == resp_id)
+
+    with st.form("form_edit_resp_merma"):
+        nuevo = st.text_input("Nombre", value=actual.nombre, key="settings_edit_resp_nombre")
+        if st.form_submit_button("Guardar nombre", use_container_width=True):
+            resultado = renombrar_responsable_merma(resp_id, nuevo)
+            if resultado.ok:
+                st.success(resultado.mensaje)
+                st.rerun()
+            else:
+                st.error(resultado.mensaje)
+
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if actual.activo:
+            if st.button("Desactivar", use_container_width=True, key="settings_desact_resp"):
+                resultado = desactivar_responsable_merma(resp_id)
+                if resultado.ok:
+                    st.success(resultado.mensaje)
+                    st.rerun()
+                else:
+                    st.error(resultado.mensaje)
+        else:
+            if st.button("Reactivar", use_container_width=True, key="settings_react_resp"):
+                resultado = reactivar_responsable_merma(resp_id)
+                if resultado.ok:
+                    st.success(resultado.mensaje)
+                    st.rerun()
+                else:
+                    st.error(resultado.mensaje)
+
+
 _SUBTABS = {
     "Usuarios": _render_usuarios,
     "Configuración": _render_configuracion,
+    "Responsables merma": _render_responsables_merma,
     "Actividad": _render_actividad,
     "Exportación": _render_exportacion,
     "Datos demo": _render_datos_demo,
@@ -422,14 +507,16 @@ _SUBTABS = {
 
 
 def render() -> None:
+    from app.ui.theme import APP_VERSION
+
     page_header(
         "Configuración",
-        "Diagnóstico técnico, usuarios, establecimiento, actividad y exportación",
+        "Diagnóstico técnico, usuarios, responsables de merma y exportación",
     )
 
     st.success(
         "DIAGNÓSTICO TÉCNICO — si ve este mensaje verde, está usando el código actualizado "
-        "(versión Fase 4A · catálogo)."
+        f"(versión {APP_VERSION})."
     )
 
     # Siempre visible al entrar en Configuración (no depende de pestañas).
@@ -437,6 +524,9 @@ def render() -> None:
     section_divider()
 
     opciones = list(_SUBTABS.keys())
+    pending = st.session_state.pop("settings_subtab_pending", None)
+    if pending in opciones:
+        st.session_state["settings_subtab"] = pending
     # Evita que un valor antiguo de session_state oculte opciones nuevas.
     if st.session_state.get("settings_subtab") not in (None, *opciones):
         del st.session_state["settings_subtab"]

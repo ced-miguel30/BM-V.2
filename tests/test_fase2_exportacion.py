@@ -199,12 +199,19 @@ class TestRegistrosExportablesMerma(unittest.TestCase):
         self.assertEqual(registro.tipo, "Merma")
         self.assertEqual(
             registro.columnas,
-            ["Producto", "Lote", "Cantidad", "Unidad", "Motivo", "Servicio", "Coste", "Comentario"],
+            [
+                "Producto", "Lote", "Cantidad", "Unidad", "Motivo",
+                "Servicio", "Turno", "Responsable", "Coste", "Comentario",
+            ],
         )
         fila = registro.filas[0]
         self.assertEqual(
             fila,
-            ["Pan", "lote_x", 5.0, "Ud", "Producto malo", "Sin desglose histórico", 1.5, "Se cayó"],
+            [
+                "Pan", "lote_x", 5.0, "Ud", "Producto malo",
+                "Sin desglose histórico", "Dato no disponible", "Dato no disponible",
+                1.5, "Se cayó",
+            ],
         )
 
     def test_dias_sin_mermas_no_generan_registros(self) -> None:

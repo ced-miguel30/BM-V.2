@@ -1,4 +1,4 @@
-"""Servicio de registro de merma — con selección de lote y servicio de origen."""
+"""Servicio de registro de merma — lote, servicio, turno y responsable."""
 
 from dataclasses import dataclass
 from datetime import date, datetime
@@ -12,22 +12,32 @@ from app.core.models import (
     ORIGEN_SERVICIO_MERMA_VALORES,
     OrigenServicioMerma,
     RegistroMerma,
+    ResponsableMerma,
+    TURNO_MERMA_LABEL,
+    TURNO_MERMA_VALORES,
+    TurnoMerma,
 )
 from app.core.repositories.data_repository import DataRepository
 from app.core.services.excel_bloques import RegistroExportable
 from app.core.services.exportacion_semanal_service import ConfiguracionExportacionModulo
 from app.core.services.formatting import formato_fecha
-from app.core.services.text_search import coincide_busqueda
 from app.core.services.stock_service import disponible_en_servicio
+from app.core.services.text_search import coincide_busqueda
 from app.core.storage.session_store import get_data, persist_data
 
 CESTA_MERMA_KEY = "bm_cesta_merma"
 MOTIVOS = [m.value for m in MotivoMerma]
 PLACEHOLDER_SERVICIO = "Selecciona un servicio"
+PLACEHOLDER_TURNO = "Selecciona un turno"
+PLACEHOLDER_RESPONSABLE = "Selecciona un responsable"
 OPCIONES_SERVICIO_UI = [PLACEHOLDER_SERVICIO] + [
     ORIGEN_SERVICIO_MERMA_LABEL[m] for m in OrigenServicioMerma
 ]
-_LABEL_A_VALOR = {v: k.value for k, v in ORIGEN_SERVICIO_MERMA_LABEL.items()}
+OPCIONES_TURNO_UI = [PLACEHOLDER_TURNO] + [
+    TURNO_MERMA_LABEL[t] for t in TurnoMerma
+]
+_LABEL_A_VALOR_SERVICIO = {v: k.value for k, v in ORIGEN_SERVICIO_MERMA_LABEL.items()}
+_LABEL_A_VALOR_TURNO = {v: k.value for k, v in TURNO_MERMA_LABEL.items()}
 
 
 @dataclass
@@ -46,6 +56,9 @@ class LineaCestaMerma:
     cantidad: float
     motivo: str
     tipo_servicio_snapshot: str
+    turno_snapshot: str
+    responsable_id: str
+    responsable_nombre: str
     comentario: str | None = None
 
 
@@ -58,11 +71,32 @@ def etiqueta_servicio_merma(valor: str | None) -> str:
         return valor
 
 
+def etiqueta_turno_merma(valor: str | None) -> str:
+    if not valor:
+        return "Dato no disponible"
+    try:
+        return TURNO_MERMA_LABEL[TurnoMerma(valor)]
+    except ValueError:
+        return valor
+
+
+def etiqueta_responsable_merma(nombre: str | None) -> str:
+    if not nombre:
+        return "Dato no disponible"
+    return nombre
+
+
 def valor_servicio_desde_ui(etiqueta: str) -> str | None:
     """Devuelve el valor persistible o None si es el placeholder."""
     if not etiqueta or etiqueta == PLACEHOLDER_SERVICIO:
         return None
-    return _LABEL_A_VALOR.get(etiqueta)
+    return _LABEL_A_VALOR_SERVICIO.get(etiqueta)
+
+
+def valor_turno_desde_ui(etiqueta: str) -> str | None:
+    if not etiqueta or etiqueta == PLACEHOLDER_TURNO:
+        return None
+    return _LABEL_A_VALOR_TURNO.get(etiqueta)
 
 
 def _next_id(prefix: str, ids: list[str]) -> str:
@@ -115,14 +149,117 @@ def _etiqueta_lote(lote: LoteStock, repo: DataRepository) -> str:
     )
 
 
+def _clave_linea(
+    lote_id: str,
+    motivo: str,
+    tipo_servicio_snapshot: str,
+    turno_snapshot: str,
+    responsable_id: str,
+) -> tuple[str, str, str, str, str]:
+    return (lote_id, motivo, tipo_servicio_snapshot, turno_snapshot, responsable_id)
+
+
+def _misma_clave(linea: LineaCestaMerma, clave: tuple[str, str, str, str, str]) -> bool:
+    return _clave_linea(
+        linea.lote_id,
+        linea.motivo,
+        linea.tipo_servicio_snapshot,
+        linea.turno_snapshot,
+        linea.responsable_id,
+    ) == clave
+
+
+# --- Catálogo responsables (Configuración) ---
+
+def listar_responsables_merma(*, solo_activos: bool = False) -> list[ResponsableMerma]:
+    data = get_data()
+    items = list(data.responsables_merma)
+    if solo_activos:
+        items = [r for r in items if r.activo]
+    return sorted(items, key=lambda r: r.nombre.lower())
+
+
+def crear_responsable_merma(nombre: str) -> ResultadoOperacion:
+    texto = (nombre or "").strip()
+    if not texto:
+        return ResultadoOperacion(False, "Indique un nombre de responsable.")
+    data = get_data()
+    if any(r.nombre.lower() == texto.lower() for r in data.responsables_merma):
+        return ResultadoOperacion(False, "Ya existe un responsable con ese nombre.")
+    nuevo = ResponsableMerma(
+        _next_id("rm", [r.id for r in data.responsables_merma]),
+        texto,
+        True,
+    )
+    data.responsables_merma.append(nuevo)
+    _registrar_actividad(data, "Responsable merma", f"Alta: {texto}")
+    persist_data(data)
+    return ResultadoOperacion(True, f"Responsable «{texto}» creado.")
+
+
+def renombrar_responsable_merma(responsable_id: str, nombre: str) -> ResultadoOperacion:
+    texto = (nombre or "").strip()
+    if not texto:
+        return ResultadoOperacion(False, "Indique un nombre de responsable.")
+    data = get_data()
+    actual = next((r for r in data.responsables_merma if r.id == responsable_id), None)
+    if not actual:
+        return ResultadoOperacion(False, "Responsable no encontrado.")
+    if any(
+        r.id != responsable_id and r.nombre.lower() == texto.lower()
+        for r in data.responsables_merma
+    ):
+        return ResultadoOperacion(False, "Ya existe un responsable con ese nombre.")
+    anterior = actual.nombre
+    actual.nombre = texto
+    _registrar_actividad(
+        data, "Responsable merma", f"Renombrado: {anterior} → {texto}",
+    )
+    persist_data(data)
+    return ResultadoOperacion(
+        True,
+        f"Nombre actualizado a «{texto}». "
+        "El histórico de merma conserva el nombre capturado en cada línea.",
+    )
+
+
+def desactivar_responsable_merma(responsable_id: str) -> ResultadoOperacion:
+    data = get_data()
+    actual = next((r for r in data.responsables_merma if r.id == responsable_id), None)
+    if not actual:
+        return ResultadoOperacion(False, "Responsable no encontrado.")
+    if not actual.activo:
+        return ResultadoOperacion(False, "El responsable ya está inactivo.")
+    actual.activo = False
+    _registrar_actividad(data, "Responsable merma", f"Desactivado: {actual.nombre}")
+    persist_data(data)
+    return ResultadoOperacion(True, f"Responsable «{actual.nombre}» desactivado.")
+
+
+def reactivar_responsable_merma(responsable_id: str) -> ResultadoOperacion:
+    data = get_data()
+    actual = next((r for r in data.responsables_merma if r.id == responsable_id), None)
+    if not actual:
+        return ResultadoOperacion(False, "Responsable no encontrado.")
+    if actual.activo:
+        return ResultadoOperacion(False, "El responsable ya está activo.")
+    actual.activo = True
+    _registrar_actividad(data, "Responsable merma", f"Reactivado: {actual.nombre}")
+    persist_data(data)
+    return ResultadoOperacion(True, f"Responsable «{actual.nombre}» reactivado.")
+
+
 def get_cesta_merma() -> list[LineaCestaMerma]:
     import streamlit as st
 
     if CESTA_MERMA_KEY not in st.session_state:
         st.session_state[CESTA_MERMA_KEY] = []
-    # Compat: líneas de sesión antiguas sin tipo_servicio_snapshot → vaciar.
     cesta = st.session_state[CESTA_MERMA_KEY]
-    if cesta and not hasattr(cesta[0], "tipo_servicio_snapshot"):
+    # Compat: líneas antiguas de sesión sin turno/responsable → vaciar.
+    if cesta and (
+        not hasattr(cesta[0], "turno_snapshot")
+        or not hasattr(cesta[0], "responsable_id")
+    ):
         st.session_state[CESTA_MERMA_KEY] = []
     return st.session_state[CESTA_MERMA_KEY]
 
@@ -137,17 +274,17 @@ def quitar_de_cesta_merma(
     lote_id: str,
     motivo: str,
     tipo_servicio_snapshot: str,
+    turno_snapshot: str,
+    responsable_id: str,
 ) -> None:
     import streamlit as st
 
+    clave = _clave_linea(
+        lote_id, motivo, tipo_servicio_snapshot, turno_snapshot, responsable_id,
+    )
     cesta = get_cesta_merma()
     st.session_state[CESTA_MERMA_KEY] = [
-        l for l in cesta
-        if not (
-            l.lote_id == lote_id
-            and l.motivo == motivo
-            and l.tipo_servicio_snapshot == tipo_servicio_snapshot
-        )
+        l for l in cesta if not _misma_clave(l, clave)
     ]
 
 
@@ -196,15 +333,17 @@ def lotes_disponibles(producto_id: str) -> list[dict]:
     ]
 
 
-def _cantidad_en_cesta(lote_id: str, motivo: str, tipo_servicio_snapshot: str) -> float:
-    return sum(
-        l.cantidad for l in get_cesta_merma()
-        if (
-            l.lote_id == lote_id
-            and l.motivo == motivo
-            and l.tipo_servicio_snapshot == tipo_servicio_snapshot
-        )
+def _cantidad_en_cesta(
+    lote_id: str,
+    motivo: str,
+    tipo_servicio_snapshot: str,
+    turno_snapshot: str,
+    responsable_id: str,
+) -> float:
+    clave = _clave_linea(
+        lote_id, motivo, tipo_servicio_snapshot, turno_snapshot, responsable_id,
     )
+    return sum(l.cantidad for l in get_cesta_merma() if _misma_clave(l, clave))
 
 
 def calcular_coste_lote(lote_id: str, cantidad: float) -> float:
@@ -221,6 +360,10 @@ def anadir_a_cesta_merma(
     motivo: str,
     tipo_servicio_snapshot: str | None,
     comentario: str | None = None,
+    *,
+    turno_snapshot: str | None = None,
+    responsable_id: str | None = None,
+    responsable_nombre: str | None = None,
 ) -> ResultadoOperacion:
     if cantidad <= 0:
         return ResultadoOperacion(False, "La cantidad debe ser mayor que 0.")
@@ -231,8 +374,24 @@ def anadir_a_cesta_merma(
             False,
             "Seleccione dónde se produjo la merma (Desayuno, Comida, Cena, Bebidas o Almacén / General).",
         )
+    if not turno_snapshot or turno_snapshot not in TURNO_MERMA_VALORES:
+        return ResultadoOperacion(False, "Seleccione el turno (Mañana, Tarde o Noche).")
+    if not responsable_id or not (responsable_nombre or "").strip():
+        return ResultadoOperacion(False, "Seleccione un responsable activo.")
 
     data = get_data()
+    responsable = next(
+        (r for r in data.responsables_merma if r.id == responsable_id and r.activo),
+        None,
+    )
+    if not responsable:
+        return ResultadoOperacion(
+            False,
+            "El responsable no está activo. Gestionelos en Configuración.",
+        )
+    # Snapshot de texto al añadir (no se altera si luego se renombra el catálogo).
+    nombre_resp = (responsable_nombre or responsable.nombre).strip()
+
     lote = _get_lote(data, lote_id)
     if not lote:
         return ResultadoOperacion(False, "El lote seleccionado no existe.")
@@ -244,7 +403,9 @@ def anadir_a_cesta_merma(
     if not producto:
         return ResultadoOperacion(False, "Producto no encontrado.")
 
-    ya_en_cesta = _cantidad_en_cesta(lote_id, motivo, tipo_servicio_snapshot)
+    ya_en_cesta = _cantidad_en_cesta(
+        lote_id, motivo, tipo_servicio_snapshot, turno_snapshot, responsable_id,
+    )
     if ya_en_cesta + cantidad > lote.cantidad_restante:
         return ResultadoOperacion(
             False,
@@ -253,13 +414,12 @@ def anadir_a_cesta_merma(
 
     comentario_limpio = comentario.strip() if comentario else None
     cesta = get_cesta_merma()
+    clave = _clave_linea(
+        lote_id, motivo, tipo_servicio_snapshot, turno_snapshot, responsable_id,
+    )
 
     for linea in cesta:
-        if (
-            linea.lote_id == lote_id
-            and linea.motivo == motivo
-            and linea.tipo_servicio_snapshot == tipo_servicio_snapshot
-        ):
+        if _misma_clave(linea, clave):
             linea.cantidad = round(linea.cantidad + cantidad, 4)
             if comentario_limpio:
                 linea.comentario = comentario_limpio
@@ -274,6 +434,9 @@ def anadir_a_cesta_merma(
         cantidad=cantidad,
         motivo=motivo,
         tipo_servicio_snapshot=tipo_servicio_snapshot,
+        turno_snapshot=turno_snapshot,
+        responsable_id=responsable_id,
+        responsable_nombre=nombre_resp,
         comentario=comentario_limpio,
     ))
     return ResultadoOperacion(True, f"«{producto.nombre}» (lote {lote_id}) añadido a la cesta.")
@@ -307,6 +470,16 @@ def registrar_merma(fecha: date) -> ResultadoOperacion:
                 False,
                 "Hay líneas sin servicio válido. Quite y vuelva a añadirlas eligiendo el servicio.",
             )
+        if item.turno_snapshot not in TURNO_MERMA_VALORES:
+            return ResultadoOperacion(
+                False,
+                "Hay líneas sin turno válido. Quite y vuelva a añadirlas eligiendo el turno.",
+            )
+        if not item.responsable_id or not item.responsable_nombre:
+            return ResultadoOperacion(
+                False,
+                "Hay líneas sin responsable. Quite y vuelva a añadirlas.",
+            )
 
     data = get_data()
     lineas: list[LineaMerma] = []
@@ -329,6 +502,11 @@ def registrar_merma(fecha: date) -> ResultadoOperacion:
             item.comentario,
             item.lote_id,
             item.tipo_servicio_snapshot,
+            item.turno_snapshot,
+            item.responsable_id,
+            item.responsable_nombre,
+            item.nombre,
+            item.unidad,
         ))
 
     coste_total = round(sum(l.coste for l in lineas), 2)
@@ -372,7 +550,7 @@ def registros_exportables(inicio: date, hasta: datetime) -> list[RegistroExporta
     fin = hasta.date()
     columnas = [
         "Producto", "Lote", "Cantidad", "Unidad", "Motivo",
-        "Servicio", "Coste", "Comentario",
+        "Servicio", "Turno", "Responsable", "Coste", "Comentario",
     ]
 
     resultado: list[RegistroExportable] = []
@@ -382,9 +560,9 @@ def registros_exportables(inicio: date, hasta: datetime) -> list[RegistroExporta
 
         filas: list[list] = []
         for ln in m.lineas:
-            nombre = repo.get_nombre_producto(ln.producto_id)
+            nombre = ln.producto_nombre_snapshot or repo.get_nombre_producto(ln.producto_id)
             producto = repo.get_producto(ln.producto_id)
-            unidad = producto.unidad.value if producto else ""
+            unidad = ln.unidad_snapshot or (producto.unidad.value if producto else "")
             filas.append([
                 nombre,
                 ln.lote_id or "—",
@@ -392,6 +570,8 @@ def registros_exportables(inicio: date, hasta: datetime) -> list[RegistroExporta
                 unidad,
                 ln.motivo.value,
                 etiqueta_servicio_merma(ln.tipo_servicio_snapshot),
+                etiqueta_turno_merma(ln.turno_snapshot),
+                etiqueta_responsable_merma(ln.responsable_nombre),
                 ln.coste,
                 ln.comentario or "",
             ])

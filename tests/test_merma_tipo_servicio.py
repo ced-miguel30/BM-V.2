@@ -25,6 +25,7 @@ from app.core.models import (
     OrigenServicioMerma,
     Producto,
     RegistroMerma,
+    ResponsableMerma,
     UnidadProducto,
     Usuario,
 )
@@ -33,6 +34,12 @@ from app.core.repositories.data_repository import DataRepository
 from app.core.services import merma_analisis_service as merma_an
 from app.core.services import merma_service
 from app.data.serializers import appdata_to_dict, dict_to_appdata
+
+_KW_BASE = dict(
+    turno_snapshot="manana",
+    responsable_id="rm01",
+    responsable_nombre="Ana Cocina",
+)
 
 
 def _catalogo() -> AppData:
@@ -46,6 +53,7 @@ def _catalogo() -> AppData:
             LoteStock("l_pan", "p_pan", 10.0, 5.0, 5.0, date(2026, 7, 1)),
         ],
         usuarios=[Usuario("u1", "Ana", RolUsuario.ADMIN, True)],
+        responsables_merma=[ResponsableMerma("rm01", "Ana Cocina", True)],
         usuario_actual_id="u1",
     )
 
@@ -116,10 +124,10 @@ class TestFase2CestaYRegistro(unittest.TestCase):
     def test_cafe_desayuno_y_comida(self) -> None:
         with self._ctx(), patch("app.core.services.alert_service.sincronizar_alertas"):
             r1 = merma_service.anadir_a_cesta_merma(
-                "l_cafe", 0.2, MotivoMerma.MERMA.value, "desayuno",
+                "l_cafe", 0.2, MotivoMerma.MERMA.value, "desayuno", **_KW_BASE,
             )
             r2 = merma_service.anadir_a_cesta_merma(
-                "l_cafe", 0.3, MotivoMerma.MERMA.value, "comida",
+                "l_cafe", 0.3, MotivoMerma.MERMA.value, "comida", **_KW_BASE,
             )
             self.assertTrue(r1.ok)
             self.assertTrue(r2.ok)
@@ -130,20 +138,20 @@ class TestFase2CestaYRegistro(unittest.TestCase):
     def test_mismo_lote_motivo_servicios_distintos_no_fusionan(self) -> None:
         with self._ctx():
             merma_service.anadir_a_cesta_merma(
-                "l_cafe", 0.1, MotivoMerma.MERMA.value, "desayuno",
+                "l_cafe", 0.1, MotivoMerma.MERMA.value, "desayuno", **_KW_BASE,
             )
             merma_service.anadir_a_cesta_merma(
-                "l_cafe", 0.1, MotivoMerma.MERMA.value, "cena",
+                "l_cafe", 0.1, MotivoMerma.MERMA.value, "cena", **_KW_BASE,
             )
             self.assertEqual(len(self.cesta), 2)
 
     def test_pan_cena_y_bebida_general(self) -> None:
         with self._ctx():
             r_pan = merma_service.anadir_a_cesta_merma(
-                "l_pan", 0.5, MotivoMerma.MERMA.value, "cena",
+                "l_pan", 0.5, MotivoMerma.MERMA.value, "cena", **_KW_BASE,
             )
             r_gen = merma_service.anadir_a_cesta_merma(
-                "l_cafe", 0.2, MotivoMerma.PRODUCTO_MALO.value, "general",
+                "l_cafe", 0.2, MotivoMerma.PRODUCTO_MALO.value, "general", **_KW_BASE,
             )
             self.assertTrue(r_pan.ok)
             self.assertTrue(r_gen.ok)
@@ -151,11 +159,11 @@ class TestFase2CestaYRegistro(unittest.TestCase):
     def test_rechaza_sin_servicio(self) -> None:
         with self._ctx():
             r = merma_service.anadir_a_cesta_merma(
-                "l_cafe", 0.1, MotivoMerma.MERMA.value, None,
+                "l_cafe", 0.1, MotivoMerma.MERMA.value, None, **_KW_BASE,
             )
             self.assertFalse(r.ok)
             r2 = merma_service.anadir_a_cesta_merma(
-                "l_cafe", 0.1, MotivoMerma.MERMA.value, "otro",
+                "l_cafe", 0.1, MotivoMerma.MERMA.value, "otro", **_KW_BASE,
             )
             self.assertFalse(r2.ok)
             self.assertEqual(len(self.cesta), 0)
@@ -163,16 +171,18 @@ class TestFase2CestaYRegistro(unittest.TestCase):
     def test_registrar_descuenta_stock_y_guarda_snapshot(self) -> None:
         with self._ctx(), patch("app.core.services.alert_service.sincronizar_alertas"):
             merma_service.anadir_a_cesta_merma(
-                "l_cafe", 1.0, MotivoMerma.MERMA.value, "desayuno",
+                "l_cafe", 1.0, MotivoMerma.MERMA.value, "desayuno", **_KW_BASE,
             )
             restante_antes = self.data.lotes[0].cantidad_restante
             ok = merma_service.registrar_merma(date(2026, 7, 15))
             self.assertTrue(ok.ok)
             self.assertEqual(self.data.lotes[0].cantidad_restante, restante_antes - 1.0)
             self.assertEqual(len(self.data.mermas), 1)
-            self.assertEqual(
-                self.data.mermas[0].lineas[0].tipo_servicio_snapshot, "desayuno",
-            )
+            ln = self.data.mermas[0].lineas[0]
+            self.assertEqual(ln.tipo_servicio_snapshot, "desayuno")
+            self.assertEqual(ln.turno_snapshot, "manana")
+            self.assertEqual(ln.responsable_nombre, "Ana Cocina")
+            self.assertEqual(ln.producto_nombre_snapshot, "Café")
             self.assertEqual(len(self.cesta), 0)
 
 
@@ -271,6 +281,91 @@ class TestHelpersUI(unittest.TestCase):
         self.assertEqual(
             merma_service.valor_servicio_desde_ui("Almacén / General"), "general",
         )
+
+    def test_valor_turno_desde_ui(self) -> None:
+        self.assertIsNone(
+            merma_service.valor_turno_desde_ui(merma_service.PLACEHOLDER_TURNO)
+        )
+        self.assertEqual(merma_service.valor_turno_desde_ui("Mañana"), "manana")
+        self.assertEqual(merma_service.valor_turno_desde_ui("Noche"), "noche")
+
+
+class TestFase5TurnoResponsable(unittest.TestCase):
+    def setUp(self) -> None:
+        self.data = _catalogo()
+        self.cesta: list = []
+
+    def _ctx(self):
+        return patch.multiple(
+            merma_service,
+            get_data=lambda: self.data,
+            persist_data=lambda d: None,
+            get_cesta_merma=lambda: self.cesta,
+            limpiar_cesta_merma=lambda: self.cesta.clear(),
+        )
+
+    def test_turnos_distintos_no_fusionan(self) -> None:
+        with self._ctx():
+            merma_service.anadir_a_cesta_merma(
+                "l_cafe", 0.1, MotivoMerma.MERMA.value, "desayuno",
+                turno_snapshot="manana",
+                responsable_id="rm01",
+                responsable_nombre="Ana Cocina",
+            )
+            merma_service.anadir_a_cesta_merma(
+                "l_cafe", 0.1, MotivoMerma.MERMA.value, "desayuno",
+                turno_snapshot="tarde",
+                responsable_id="rm01",
+                responsable_nombre="Ana Cocina",
+            )
+            self.assertEqual(len(self.cesta), 2)
+
+    def test_renombrar_responsable_no_cambia_snapshot(self) -> None:
+        with self._ctx(), patch("app.core.services.alert_service.sincronizar_alertas"):
+            merma_service.anadir_a_cesta_merma(
+                "l_cafe", 0.5, MotivoMerma.MERMA.value, "desayuno", **_KW_BASE,
+            )
+            self.assertTrue(merma_service.registrar_merma(date(2026, 7, 15)).ok)
+            snap = self.data.mermas[0].lineas[0].responsable_nombre
+            self.assertEqual(snap, "Ana Cocina")
+            merma_service.renombrar_responsable_merma("rm01", "Ana Renombrada")
+            self.assertEqual(self.data.responsables_merma[0].nombre, "Ana Renombrada")
+            self.assertEqual(
+                self.data.mermas[0].lineas[0].responsable_nombre, "Ana Cocina",
+            )
+
+    def test_historico_sin_turno_carga_none(self) -> None:
+        payload = {
+            "productos": [],
+            "lotes": [],
+            "recetas": [],
+            "desayunos": [],
+            "mermas": [
+                {
+                    "id": "m1",
+                    "fecha": "2026-07-10",
+                    "lineas": [
+                        {
+                            "producto_id": "p1",
+                            "cantidad": 1.0,
+                            "coste": 2.0,
+                            "motivo": "Merma",
+                            "tipo_servicio_snapshot": "desayuno",
+                        }
+                    ],
+                    "coste_total": 2.0,
+                    "registrado_por": "Ana",
+                }
+            ],
+            "alertas": [],
+            "usuarios": [],
+            "actividades": [],
+        }
+        data = dict_to_appdata(payload)
+        ln = data.mermas[0].lineas[0]
+        self.assertIsNone(ln.turno_snapshot)
+        self.assertIsNone(ln.responsable_id)
+        self.assertEqual(merma_service.etiqueta_turno_merma(ln.turno_snapshot), "Dato no disponible")
 
 
 if __name__ == "__main__":
