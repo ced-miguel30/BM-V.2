@@ -199,6 +199,7 @@ def appdata_to_dict(data: AppData) -> dict:
                 "nombre": r.nombre,
                 "categoria": r.categoria.value,
                 "servicios_disponibles": list(r.servicios_disponibles),
+                "porciones_estandar": r.porciones_estandar,
                 "ingredientes": [
                     {
                         "producto_id": i.producto_id,
@@ -402,6 +403,8 @@ def dict_to_appdata(payload: dict) -> AppData:
                     s for s in r.get("servicios_disponibles", [])
                     if isinstance(s, str)
                 ],
+                # Ausente / null = no configurado (Fase 7).
+                r.get("porciones_estandar"),
             )
             for r in payload.get("recetas", [])
         ],

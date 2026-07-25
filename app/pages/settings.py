@@ -230,6 +230,87 @@ def _render_diagnostico_tecnico() -> None:
     except Exception as exc:  # noqa: BLE001
         st.caption(f"No se pudo mostrar la tabla de unidades: {exc}")
 
+    st.markdown("##### Simulador de recetas (solo lectura)")
+    st.caption(
+        "Calcula factor, ingredientes y coste teórico sin guardar ni descontar stock. "
+        "Configure «porciones estándar» en Recetas. Análisis y registros reales no cambian."
+    )
+    try:
+        from app.core.services.receta_service import (
+            etiqueta_porciones_estandar,
+            listar_recetas,
+            simular_receta,
+        )
+
+        recetas_sim = listar_recetas()
+        if not recetas_sim:
+            st.info("No hay recetas para simular.")
+        else:
+            mapa = {r.nombre: r.id for r in recetas_sim}
+            nombre_sel = st.selectbox(
+                "Receta",
+                list(mapa.keys()),
+                key="diag_sim_receta",
+            )
+            receta_sel = next(r for r in recetas_sim if r.id == mapa[nombre_sel])
+            st.caption(
+                f"Porciones estándar: "
+                f"{etiqueta_porciones_estandar(receta_sel.porciones_estandar)}"
+            )
+            porciones_sim = st.number_input(
+                "Porciones a simular",
+                min_value=0.0,
+                value=float(receta_sel.porciones_estandar or 0) or 10.0,
+                step=1.0,
+                format="%.0f",
+                key="diag_sim_porciones",
+            )
+            if st.button("Simular", key="diag_sim_btn", type="secondary"):
+                resultado = simular_receta(mapa[nombre_sel], porciones_sim)
+                st.session_state["diag_sim_resultado"] = resultado
+
+            resultado = st.session_state.get("diag_sim_resultado")
+            if resultado is not None:
+                if not resultado.ok:
+                    st.warning(resultado.mensaje)
+                else:
+                    st.success(resultado.mensaje)
+                    m1, m2, m3, m4 = st.columns(4)
+                    m1.metric("Estándar", f"{resultado.porciones_estandar:g}")
+                    m2.metric("Simuladas", f"{resultado.porciones_simuladas:g}")
+                    m3.metric("Factor", f"{resultado.factor:g}")
+                    m4.metric(
+                        "Coste teórico",
+                        get_repository().formato_precio(resultado.coste_total),
+                    )
+                    if resultado.lineas:
+                        st.dataframe(
+                            {
+                                "Producto": [ln.nombre for ln in resultado.lineas],
+                                "Cantidad": [
+                                    f"{ln.cantidad_mostrar:g} {ln.unidad_mostrar}"
+                                    for ln in resultado.lineas
+                                ],
+                                "Nativa": [
+                                    f"{ln.cantidad_nativa:g} {ln.unidad_nativa}"
+                                    for ln in resultado.lineas
+                                ],
+                                "Coste est.": [
+                                    get_repository().formato_precio(ln.coste_estimado)
+                                    for ln in resultado.lineas
+                                ],
+                                "Stock actual": [
+                                    f"{ln.stock_actual:g} {ln.unidad_nativa}"
+                                    for ln in resultado.lineas
+                                ],
+                            },
+                            use_container_width=True,
+                            hide_index=True,
+                        )
+                    st.caption("La simulación no se guarda. Stock y Análisis intactos.")
+    except Exception as exc:  # noqa: BLE001
+        st.caption(f"No se pudo cargar el simulador: {exc}")
+
     st.markdown("##### Copia de seguridad")
     st.caption(
         "Descarga un ZIP con los JSON de disco (sin transformar), "

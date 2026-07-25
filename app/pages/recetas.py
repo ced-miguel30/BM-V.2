@@ -16,7 +16,9 @@ from app.core.services.receta_service import (
     editar_receta,
     eliminar_receta,
     etiqueta_categoria,
+    etiqueta_porciones_estandar,
     listar_recetas,
+    normalizar_porciones_estandar,
     obtener_receta,
     resumen_ingredientes,
 )
@@ -231,6 +233,7 @@ def _render_listado() -> None:
                 "Receta": receta.nombre,
                 "Categoría receta": etiqueta_categoria(receta.categoria),
                 "Servicios disponibles": _etiqueta_servicios(receta.servicios_disponibles),
+                "Porciones estándar": etiqueta_porciones_estandar(receta.porciones_estandar),
                 "Ingredientes": len(receta.ingredientes),
                 "Detalle": resumen_ingredientes(receta),
             })
@@ -246,13 +249,26 @@ def _render_crear() -> None:
     nombre = st.text_input("Nombre de la receta", placeholder="Ej: Sándwich mixto", key="receta_nuevo_nombre")
     categoria = _selector_categoria("receta_nuevo_categoria")
     servicios = _selector_servicios_disponibles("receta_nuevo_servicios")
+    porciones_std = st.number_input(
+        "Porciones estándar (rendimiento)",
+        min_value=0.0,
+        value=0.0,
+        step=1.0,
+        format="%.0f",
+        key="receta_nuevo_porciones_std",
+        help="Rendimiento base de la ficha. 0 = no configurado. Usado por el simulador (Diagnóstico).",
+    )
     st.markdown("##### Ingredientes")
     _render_editor_ingredientes(session_key, "receta_nuevo")
 
     if st.button("Crear receta", type="primary", key="receta_btn_crear"):
         ingredientes = _ingredientes_a_modelo(session_key)
         resultado = crear_receta(
-            nombre, ingredientes, categoria, servicios_disponibles=servicios,
+            nombre,
+            ingredientes,
+            categoria,
+            servicios_disponibles=servicios,
+            porciones_estandar=normalizar_porciones_estandar(porciones_std),
         )
         if resultado.ok:
             st.session_state[session_key] = []
@@ -288,6 +304,16 @@ def _render_editar_eliminar() -> None:
         f"receta_edit_servicios_{receta_id}",
         receta.servicios_disponibles,
     )
+    valor_std = float(receta.porciones_estandar) if receta.porciones_estandar else 0.0
+    porciones_std = st.number_input(
+        "Porciones estándar (rendimiento)",
+        min_value=0.0,
+        value=valor_std,
+        step=1.0,
+        format="%.0f",
+        key=f"receta_edit_porciones_std_{receta_id}",
+        help="0 = no configurado (el simulador mostrará «Dato no disponible»).",
+    )
     st.markdown("##### Ingredientes")
     _render_editor_ingredientes(session_key, f"receta_edit_{receta_id}")
 
@@ -299,6 +325,7 @@ def _render_editar_eliminar() -> None:
             ingredientes,
             categoria,
             servicios_disponibles=servicios,
+            porciones_estandar=normalizar_porciones_estandar(porciones_std),
         )
         if resultado.ok:
             st.success(resultado.mensaje)

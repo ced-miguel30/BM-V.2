@@ -1,6 +1,6 @@
 """Servicio de gestión de recetas."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 
 from app.core.models import (
@@ -11,11 +11,12 @@ from app.core.models import (
     Receta,
 )
 from app.core.repositories.data_repository import DataRepository
+from app.core.services.inventory_batch_service import calcular_coste_linea, stock_disponible
 from app.core.services.stock_service import (
     disponible_en_servicio,
     normalizar_servicios_disponibles,
 )
-from app.core.services.unidad_service import cantidad_y_unidad_mostrar
+from app.core.services.unidad_service import cantidad_y_unidad_mostrar, resolver_presentacion
 from app.core.storage.session_store import get_data, persist_data
 
 
@@ -23,6 +24,50 @@ from app.core.storage.session_store import get_data, persist_data
 class ResultadoOperacion:
     ok: bool
     mensaje: str
+
+
+@dataclass
+class LineaSimulacionReceta:
+    producto_id: str
+    nombre: str
+    cantidad_nativa: float
+    unidad_nativa: str
+    cantidad_mostrar: float
+    unidad_mostrar: str
+    coste_estimado: float
+    stock_actual: float
+
+
+@dataclass
+class ResultadoSimulacionReceta:
+    ok: bool
+    mensaje: str
+    receta_id: str = ""
+    nombre_receta: str = ""
+    porciones_estandar: float | None = None
+    porciones_simuladas: float | None = None
+    factor: float | None = None
+    lineas: list[LineaSimulacionReceta] = field(default_factory=list)
+    coste_total: float = 0.0
+
+
+def normalizar_porciones_estandar(valor: float | int | str | None) -> float | None:
+    """None o ≤0 → no configurado. No hace backfill."""
+    if valor is None or valor == "":
+        return None
+    try:
+        numero = float(valor)
+    except (TypeError, ValueError):
+        return None
+    if numero <= 0:
+        return None
+    return round(numero, 4)
+
+
+def etiqueta_porciones_estandar(valor: float | None) -> str:
+    if valor is None or valor <= 0:
+        return "Dato no disponible"
+    return f"{valor:g}"
 
 
 def _next_id(prefix: str, ids: list[str]) -> str:
@@ -167,6 +212,7 @@ def crear_receta(
     categoria: CategoriaReceta | str = CategoriaReceta.DESAYUNO,
     *,
     servicios_disponibles: list[str] | None = None,
+    porciones_estandar: float | None = None,
 ) -> ResultadoOperacion:
     nombre = _normalizar_nombre(nombre)
     if not nombre:
@@ -190,6 +236,7 @@ def crear_receta(
         ingredientes,
         categoria_resuelta,
         normalizar_servicios_disponibles(servicios_disponibles),
+        normalizar_porciones_estandar(porciones_estandar),
     )
     data.recetas.append(receta)
     _registrar_actividad(
@@ -211,6 +258,7 @@ def editar_receta(
     categoria: CategoriaReceta | str = CategoriaReceta.DESAYUNO,
     *,
     servicios_disponibles: list[str] | None = None,
+    porciones_estandar: float | None = None,
 ) -> ResultadoOperacion:
     nombre = _normalizar_nombre(nombre)
     if not nombre:
@@ -233,11 +281,13 @@ def editar_receta(
         return error
 
     servicios = normalizar_servicios_disponibles(servicios_disponibles)
+    rendimiento = normalizar_porciones_estandar(porciones_estandar)
     solo_categoria = (
         receta.nombre == nombre
         and receta.ingredientes == ingredientes
         and receta.categoria != categoria_resuelta
         and receta.servicios_disponibles == servicios
+        and receta.porciones_estandar == rendimiento
     )
     categoria_anterior = receta.categoria
 
@@ -245,6 +295,7 @@ def editar_receta(
     receta.ingredientes = ingredientes
     receta.categoria = categoria_resuelta
     receta.servicios_disponibles = servicios
+    receta.porciones_estandar = rendimiento
 
     if solo_categoria:
         detalle = (
@@ -258,6 +309,95 @@ def editar_receta(
     _registrar_actividad(data, "Editar receta", detalle)
     persist_data(data)
     return ResultadoOperacion(True, f"Receta «{nombre}» guardada correctamente.")
+
+
+def simular_receta(
+    receta_id: str,
+    porciones_simuladas: float,
+) -> ResultadoSimulacionReceta:
+    """Simulación solo lectura: factor, ingredientes y coste teórico.
+
+    No escribe AppData ni altera stock/análisis.
+    """
+    receta = obtener_receta(receta_id)
+    if not receta:
+        return ResultadoSimulacionReceta(False, "Receta no encontrada.")
+
+    estandar = normalizar_porciones_estandar(receta.porciones_estandar)
+    if estandar is None:
+        return ResultadoSimulacionReceta(
+            False,
+            "Dato no disponible: configure porciones estándar en Recetas "
+            "antes de simular.",
+            receta_id=receta.id,
+            nombre_receta=receta.nombre,
+            porciones_estandar=None,
+            porciones_simuladas=porciones_simuladas,
+        )
+
+    try:
+        simuladas = float(porciones_simuladas)
+    except (TypeError, ValueError):
+        return ResultadoSimulacionReceta(
+            False, "Indique un número válido de porciones simuladas.",
+            receta_id=receta.id,
+            nombre_receta=receta.nombre,
+            porciones_estandar=estandar,
+        )
+    if simuladas <= 0:
+        return ResultadoSimulacionReceta(
+            False, "Las porciones simuladas deben ser mayores que 0.",
+            receta_id=receta.id,
+            nombre_receta=receta.nombre,
+            porciones_estandar=estandar,
+        )
+
+    factor = round(simuladas / estandar, 6)
+    data = get_data()
+    repo = DataRepository(data)
+    lineas: list[LineaSimulacionReceta] = []
+    coste_total = 0.0
+
+    for ing in receta.ingredientes:
+        producto = repo.get_producto(ing.producto_id)
+        if not producto:
+            continue
+        cantidad_nativa = round(ing.cantidad * factor, 4)
+        cant_m, uni_m = resolver_presentacion(
+            ing.cantidad,
+            producto.unidad,
+            cantidad_presentacion=ing.cantidad_presentacion,
+            unidad_presentacion=ing.unidad_presentacion,
+            factor=factor,
+        )
+        coste = calcular_coste_linea(data, producto.id, max(cantidad_nativa, 0))
+        coste_total += coste
+        lineas.append(LineaSimulacionReceta(
+            producto_id=producto.id,
+            nombre=producto.nombre,
+            cantidad_nativa=cantidad_nativa,
+            unidad_nativa=producto.unidad.value,
+            cantidad_mostrar=cant_m,
+            unidad_mostrar=uni_m,
+            coste_estimado=coste,
+            stock_actual=stock_disponible(data, producto.id),
+        ))
+
+    return ResultadoSimulacionReceta(
+        True,
+        (
+            f"Simulación de «{receta.nombre}»: "
+            f"{simuladas:g} porciones (estándar {estandar:g}) → factor {factor:g}. "
+            "No se ha guardado ni descontado stock."
+        ),
+        receta_id=receta.id,
+        nombre_receta=receta.nombre,
+        porciones_estandar=estandar,
+        porciones_simuladas=simuladas,
+        factor=factor,
+        lineas=lineas,
+        coste_total=round(coste_total, 2),
+    )
 
 
 def eliminar_receta(receta_id: str) -> ResultadoOperacion:

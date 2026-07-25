@@ -31,3 +31,5 @@ class Receta:
     categoria: CategoriaReceta = CategoriaReceta.DESAYUNO
     # Lista vacía = «No configurado» (no significa «todos»).
     servicios_disponibles: list[str] = field(default_factory=list)
+    # Rendimiento base de la receta (Fase 7). None = no configurado (sin backfill).
+    porciones_estandar: float | None = None
