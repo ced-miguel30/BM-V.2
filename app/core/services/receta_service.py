@@ -70,6 +70,40 @@ def etiqueta_porciones_estandar(valor: float | None) -> str:
     return f"{valor:g}"
 
 
+def calcular_factor_escalado(
+    porciones: float,
+    porciones_estandar: float | None,
+) -> tuple[float | None, float | None, str | None]:
+    """Factor = porciones / estándar (misma regla que el simulador Fase 7).
+
+    Devuelve (factor, estandar_normalizado, error). Error no nulo → no escalar.
+    """
+    estandar = normalizar_porciones_estandar(porciones_estandar)
+    if estandar is None:
+        return None, None, (
+            "Configure porciones estándar en Recetas antes de usar esta receta "
+            "(igual que en el simulador)."
+        )
+    try:
+        pedidas = float(porciones)
+    except (TypeError, ValueError):
+        return None, estandar, "Indique un número válido de porciones."
+    if pedidas <= 0:
+        return None, estandar, "Las porciones deben ser mayores que 0."
+    return round(pedidas / estandar, 6), estandar, None
+
+
+def factor_desde_registro_receta(rr) -> float:
+    """Factor para export/detalle: snapshot nuevo o, si falta, porciones (histórico)."""
+    factor = getattr(rr, "factor_aplicado", None)
+    if factor is not None:
+        try:
+            return float(factor)
+        except (TypeError, ValueError):
+            pass
+    return float(rr.porciones)
+
+
 def _next_id(prefix: str, ids: list[str]) -> str:
     numeros = []
     for item_id in ids:

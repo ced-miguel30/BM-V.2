@@ -39,6 +39,32 @@ def _render_detalle(servicio, registro) -> None:
     reg = registros[0]
     hora_txt = reg.hora.strftime("%H:%M") if reg.hora else "—"
     st.caption(f"Nº {reg.identificador} · Hora {hora_txt} · {reg.usuario or '—'}")
+    idx_tipo = reg.columnas.index("Tipo") if "Tipo" in reg.columnas else None
+    idx_detalle = reg.columnas.index("Detalle") if "Detalle" in reg.columnas else None
+    idx_coste = reg.columnas.index("Coste") if "Coste" in reg.columnas else None
+    if idx_tipo is not None and idx_detalle is not None:
+        factores = [
+            fila[idx_detalle]
+            for fila in reg.filas
+            if fila[idx_tipo] == "Receta" and fila[idx_detalle]
+        ]
+        if factores:
+            st.caption("Escalado: " + " · ".join(str(f) for f in factores))
+    if idx_coste is not None:
+        costes = []
+        for fila in reg.filas:
+            raw = fila[idx_coste]
+            if raw in ("", None):
+                continue
+            try:
+                costes.append(float(raw))
+            except (TypeError, ValueError):
+                continue
+        if costes:
+            st.caption(
+                f"Coste líneas de detalle: "
+                f"{get_repository().formato_precio(sum(costes))}"
+            )
     st.dataframe(
         {col: [fila[i] for fila in reg.filas] for i, col in enumerate(reg.columnas)},
         use_container_width=True,
@@ -108,15 +134,31 @@ def render_pagina_registro_servicio(
                 key=f"{key_prefix}_sel_receta",
             )
             receta_id = mapa_recetas[receta_nombre]
+            receta_obj = next(r for r in recetas if r.id == receta_id)
+            default_porciones = float(receta_obj.porciones_estandar or 0) or 1.0
+            if receta_obj.porciones_estandar:
+                st.caption(
+                    f"Porciones estándar: {receta_obj.porciones_estandar:g}. "
+                    "El factor será porciones pedidas ÷ estándar (igual que el simulador)."
+                )
+            else:
+                st.warning(
+                    "Esta receta no tiene porciones estándar. "
+                    "Configúrela en Recetas antes de añadirla a la cesta."
+                )
 
             porciones = st.number_input(
-                "Porciones",
-                min_value=1.0,
-                value=1.0,
+                "Porciones a preparar",
+                min_value=0.0,
+                value=default_porciones,
                 step=1.0,
                 format="%.0f",
-                key=f"{key_prefix}_porciones",
+                key=f"{key_prefix}_porciones_{receta_id}",
+                help="Rendimiento deseado. Factor = pedidas / estándar.",
             )
+            if receta_obj.porciones_estandar and porciones > 0:
+                factor_prev = porciones / receta_obj.porciones_estandar
+                st.caption(f"Factor previsto: {factor_prev:g}")
 
             st.caption("Extras u omisiones para esta receta (antes de añadir a la cesta)")
             catalogo = servicio.productos_catalogo("")

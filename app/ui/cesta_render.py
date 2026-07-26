@@ -209,8 +209,17 @@ def render_cesta_servicio(
                     disp = "Stock justo"
                 else:
                     disp = "Disponible"
+                factor = getattr(grupo, "factor_aplicado", None)
+                estandar = getattr(grupo, "porciones_estandar", None)
+                if factor is not None and estandar is not None:
+                    escala_txt = (
+                        f"{grupo.porciones:g} porciones "
+                        f"(est. {estandar:g}, factor {factor:g})"
+                    )
+                else:
+                    escala_txt = f"{grupo.porciones:g} porciones"
                 meta = (
-                    f"{grupo.porciones:g} porciones · "
+                    f"{escala_txt} · "
                     f"{repo.formato_precio(coste_grupo)} · "
                     f"{servicio_lbl} · {disp}"
                 )

@@ -10,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from app.core.repositories.data_repository import DataRepository
+from app.core.services.receta_service import calcular_factor_escalado
 from app.core.services.unidad_service import cantidad_para_mostrar, presentacion_legible, resolver_presentacion
 from app.core.storage.session_store import get_data
 
@@ -58,6 +59,8 @@ class GrupoRecetaCesta:
     nombre_receta: str
     porciones: float
     ingredientes: list[LineaCestaIngrediente] = field(default_factory=list)
+    porciones_estandar: float | None = None
+    factor_aplicado: float | None = None
 
 
 @dataclass
@@ -125,7 +128,12 @@ class MotorCesta:
         key = self.keys["recetas"]
         if key not in st.session_state:
             st.session_state[key] = []
-        return st.session_state[key]
+        grupos = st.session_state[key]
+        # Compat sesión pre-Fase 8: sin factor → vaciar para no mezclar semánticas.
+        if grupos and not hasattr(grupos[0], "factor_aplicado"):
+            st.session_state[key] = []
+            return st.session_state[key]
+        return grupos
 
     def _guardar_cesta(self, cesta: list[LineaCesta]) -> None:
         import streamlit as st
@@ -253,9 +261,6 @@ class MotorCesta:
         *,
         categorias_permitidas: list | None = None,
     ) -> ResultadoOperacionCesta:
-        if porciones <= 0:
-            return ResultadoOperacionCesta(False, "Las porciones deben ser mayores que 0.")
-
         data = get_data()
         repo = DataRepository(data)
         receta = repo.get_receta(receta_id)
@@ -269,19 +274,24 @@ class MotorCesta:
         if not receta.ingredientes:
             return ResultadoOperacionCesta(False, f"La receta «{receta.nombre}» no tiene ingredientes.")
 
+        factor, estandar, error = calcular_factor_escalado(porciones, receta.porciones_estandar)
+        if error or factor is None or estandar is None:
+            return ResultadoOperacionCesta(False, error or "No se pudo calcular el factor de escalado.")
+
         ingredientes: list[LineaCestaIngrediente] = []
         for ing in receta.ingredientes:
             producto = repo.get_producto(ing.producto_id)
             if not producto:
                 return ResultadoOperacionCesta(False, "Un ingrediente de la receta ya no existe en el catálogo.")
-            cantidad = round(ing.cantidad * porciones, 4)
+            cantidad = round(ing.cantidad * factor, 4)
             cantidad_mostrar, unidad_mostrar = resolver_presentacion(
                 ing.cantidad,
                 producto.unidad,
                 cantidad_presentacion=ing.cantidad_presentacion,
                 unidad_presentacion=ing.unidad_presentacion,
-                factor=porciones,
+                factor=factor,
             )
+            paso = (ing.cantidad / estandar) if ing.cantidad > 0 else PASO_CANTIDAD
             ingredientes.append(LineaCestaIngrediente(
                 self._nueva_linea_id(),
                 producto.id,
@@ -291,7 +301,7 @@ class MotorCesta:
                 es_base_receta=True,
                 es_extra=False,
                 es_omision=False,
-                paso_edicion=ing.cantidad if ing.cantidad > 0 else PASO_CANTIDAD,
+                paso_edicion=paso,
                 cantidad_mostrar=cantidad_mostrar,
                 unidad_mostrar=unidad_mostrar,
             ))
@@ -305,12 +315,17 @@ class MotorCesta:
             receta.nombre,
             porciones,
             ingredientes,
+            porciones_estandar=estandar,
+            factor_aplicado=factor,
         )
         grupos = self.get_cesta_recetas()
         grupos.append(grupo)
         self._guardar_cesta_recetas(grupos)
         self.limpiar_mods_pendientes()
-        return ResultadoOperacionCesta(True, f"«{receta.nombre}» (×{porciones:g}) añadida a la cesta.")
+        return ResultadoOperacionCesta(
+            True,
+            f"«{receta.nombre}» ({porciones:g} porciones, factor {factor:g}) añadida a la cesta.",
+        )
 
     def quitar_grupo_receta(self, grupo_id: str) -> None:
         grupos = [g for g in self.get_cesta_recetas() if g.grupo_id != grupo_id]
@@ -397,9 +412,6 @@ class MotorCesta:
         return ResultadoOperacionCesta(True, "Cantidad actualizada.")
 
     def modificar_porciones_grupo(self, grupo_id: str, porciones: float) -> ResultadoOperacionCesta:
-        if porciones <= 0:
-            return ResultadoOperacionCesta(False, "Las porciones deben ser mayores que 0.")
-
         data = get_data()
         repo = DataRepository(data)
         grupo = self._buscar_grupo(grupo_id)
@@ -410,7 +422,14 @@ class MotorCesta:
         if not receta:
             return ResultadoOperacionCesta(False, "Receta no encontrada.")
 
+        estandar_ref = grupo.porciones_estandar if grupo.porciones_estandar else receta.porciones_estandar
+        factor, estandar, error = calcular_factor_escalado(porciones, estandar_ref)
+        if error or factor is None or estandar is None:
+            return ResultadoOperacionCesta(False, error or "No se pudo calcular el factor de escalado.")
+
         grupo.porciones = porciones
+        grupo.porciones_estandar = estandar
+        grupo.factor_aplicado = factor
 
         for linea in grupo.ingredientes:
             if not linea.es_base_receta:
@@ -421,17 +440,20 @@ class MotorCesta:
             producto = repo.get_producto(linea.producto_id)
             if not producto:
                 continue
-            linea.cantidad = round(ing_template.cantidad * porciones, 4)
+            linea.cantidad = round(ing_template.cantidad * factor, 4)
+            linea.paso_edicion = (
+                (ing_template.cantidad / estandar) if ing_template.cantidad > 0 else PASO_CANTIDAD
+            )
             linea.cantidad_mostrar, linea.unidad_mostrar = resolver_presentacion(
                 ing_template.cantidad,
                 producto.unidad,
                 cantidad_presentacion=ing_template.cantidad_presentacion,
                 unidad_presentacion=ing_template.unidad_presentacion,
-                factor=porciones,
+                factor=factor,
             )
 
         self._guardar_cesta_recetas(self.get_cesta_recetas())
-        return ResultadoOperacionCesta(True, "Porciones actualizadas.")
+        return ResultadoOperacionCesta(True, f"Porciones actualizadas (factor {factor:g}).")
 
     def ajustar_porciones_grupo(self, grupo_id: str, delta: float) -> ResultadoOperacionCesta:
         grupo = self._buscar_grupo(grupo_id)

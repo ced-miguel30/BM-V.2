@@ -40,6 +40,7 @@ from app.core.services.inventory_batch_service import (
 )
 from app.core.services.stock_service import disponible_en_servicio
 from app.core.services.text_search import coincide_busqueda
+from app.core.services.receta_service import factor_desde_registro_receta
 from app.core.services.unidad_service import resolver_presentacion
 from app.core.storage.session_store import get_data, persist_data
 
@@ -302,6 +303,8 @@ class ServicioRegistro:
                 omisiones,
                 categoria_receta=cat,
                 categoria_receta_snapshot=cat,
+                porciones_estandar_snapshot=grupo.porciones_estandar,
+                factor_aplicado=grupo.factor_aplicado,
             ))
         return registros
 
@@ -442,9 +445,20 @@ class ServicioRegistro:
 
             filas: list[list] = []
             for rr in reg.registros_recetas:
+                factor = factor_desde_registro_receta(rr)
+                est_txt = (
+                    f"{rr.porciones_estandar_snapshot:g}"
+                    if rr.porciones_estandar_snapshot
+                    else "—"
+                )
                 filas.append([
-                    "Receta", rr.nombre_receta, f"× {rr.porciones:g} porciones",
-                    rr.porciones, "porciones", "", rr.categoria_receta or "",
+                    "Receta",
+                    rr.nombre_receta,
+                    f"{rr.porciones:g} porciones (est. {est_txt}, factor {factor:g})",
+                    rr.porciones,
+                    "porciones",
+                    "",
+                    rr.categoria_receta or "",
                 ])
                 receta = repo.get_receta(rr.receta_id)
                 omitidos = {o.producto_id for o in rr.omisiones}
@@ -459,7 +473,7 @@ class ServicioRegistro:
                         producto_ing.unidad,
                         cantidad_presentacion=ing.cantidad_presentacion,
                         unidad_presentacion=ing.unidad_presentacion,
-                        factor=rr.porciones,
+                        factor=factor,
                     )
                     filas.append([
                         "Ingrediente", repo.get_nombre_producto(ing.producto_id), "",

@@ -308,6 +308,11 @@ def _render_diagnostico_tecnico() -> None:
                             hide_index=True,
                         )
                     st.caption("La simulación no se guarda. Stock y Análisis intactos.")
+                    st.caption(
+                        "Fase 8: al registrar con las mismas porciones, el descuento de stock "
+                        "usa este factor. Compruebe factor y costes en el detalle del historial "
+                        "del registro (no en Análisis)."
+                    )
     except Exception as exc:  # noqa: BLE001
         st.caption(f"No se pudo cargar el simulador: {exc}")
 

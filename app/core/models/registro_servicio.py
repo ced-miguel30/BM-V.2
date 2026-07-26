@@ -54,6 +54,9 @@ class RegistroRecetaServicio:
     omisiones: list[OmisionRecetaServicio] = field(default_factory=list)
     categoria_receta: str | None = None
     categoria_receta_snapshot: str | None = None
+    # Snapshots Fase 8 (aditivos; históricos → None).
+    porciones_estandar_snapshot: float | None = None
+    factor_aplicado: float | None = None
 
 
 @dataclass

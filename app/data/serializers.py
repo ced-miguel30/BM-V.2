@@ -138,6 +138,8 @@ def appdata_to_dict(data: AppData) -> dict:
                         "nombre_receta": rr.nombre_receta,
                         "porciones": rr.porciones,
                         "categoria_receta_snapshot": rr.categoria_receta_snapshot,
+                        "porciones_estandar_snapshot": rr.porciones_estandar_snapshot,
+                        "factor_aplicado": rr.factor_aplicado,
                         "extras": [
                             {"producto_id": e.producto_id, "cantidad": e.cantidad}
                             for e in rr.extras
@@ -178,6 +180,8 @@ def appdata_to_dict(data: AppData) -> dict:
                         "porciones": rr.porciones,
                         "categoria_receta": rr.categoria_receta,
                         "categoria_receta_snapshot": rr.categoria_receta_snapshot,
+                        "porciones_estandar_snapshot": rr.porciones_estandar_snapshot,
+                        "factor_aplicado": rr.factor_aplicado,
                         "extras": [
                             {"producto_id": e.producto_id, "cantidad": e.cantidad}
                             for e in rr.extras
@@ -329,6 +333,8 @@ def dict_to_appdata(payload: dict) -> AppData:
                             for o in rr.get("omisiones", [])
                         ],
                         categoria_receta_snapshot=rr.get("categoria_receta_snapshot"),
+                        porciones_estandar_snapshot=rr.get("porciones_estandar_snapshot"),
+                        factor_aplicado=rr.get("factor_aplicado"),
                     )
                     for rr in d.get("registros_recetas", [])
                 ],
@@ -374,6 +380,8 @@ def dict_to_appdata(payload: dict) -> AppData:
                             "categoria_receta_snapshot",
                             rr.get("categoria_receta"),
                         ),
+                        porciones_estandar_snapshot=rr.get("porciones_estandar_snapshot"),
+                        factor_aplicado=rr.get("factor_aplicado"),
                     )
                     for rr in r.get("registros_recetas", [])
                 ],

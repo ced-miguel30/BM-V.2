@@ -179,7 +179,7 @@ class TestCestaConUnidadDePresentacion(unittest.TestCase):
             lotes=[LoteStock("l01", "p01", precio_total=10.0, cantidad=1.0, cantidad_restante=1.0)],
             recetas=[Receta("r01", "Tostada con queso", [
                 IngredienteReceta("p01", 0.01, cantidad_presentacion=10.0, unidad_presentacion="gr"),
-            ])],
+            ], porciones_estandar=1.0)],
         )
         self._patcher = patch("app.core.services.desayuno_service.get_data", return_value=self.data)
         self._patcher_cesta = patch("app.core.services.cesta_service.get_data", return_value=self.data)
