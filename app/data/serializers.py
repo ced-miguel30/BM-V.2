@@ -17,16 +17,19 @@ from app.core.models import (
     ExtraRecetaDesayuno,
     ExtraRecetaServicio,
     IngredienteReceta,
+    LineaAjuste,
     LineaDesayuno,
     LineaDetalleOrigen,
     LineaMerma,
     LineaServicio,
     LoteStock,
+    MotivoAjuste,
     MotivoMerma,
     OmisionRecetaDesayuno,
     OmisionRecetaServicio,
     Producto,
     Receta,
+    RegistroAjuste,
     RegistroDesayuno,
     RegistroMerma,
     RegistroRecetaDesayuno,
@@ -242,6 +245,28 @@ def appdata_to_dict(data: AppData) -> dict:
             }
             for m in data.mermas
         ],
+        "ajustes": [
+            {
+                "id": a.id,
+                "fecha": a.fecha.isoformat(),
+                "hora": a.hora.isoformat() if a.hora else None,
+                "lineas": [
+                    {
+                        "producto_id": ln.producto_id,
+                        "lote_id": ln.lote_id,
+                        "cantidad_antes": ln.cantidad_antes,
+                        "cantidad_despues": ln.cantidad_despues,
+                        "motivo": ln.motivo.value,
+                        "comentario": ln.comentario,
+                        "producto_nombre_snapshot": ln.producto_nombre_snapshot,
+                        "unidad_snapshot": ln.unidad_snapshot,
+                    }
+                    for ln in a.lineas
+                ],
+                "registrado_por": a.registrado_por,
+            }
+            for a in data.ajustes
+        ],
         "responsables_merma": [
             {"id": r.id, "nombre": r.nombre, "activo": r.activo}
             for r in data.responsables_merma
@@ -441,6 +466,28 @@ def dict_to_appdata(payload: dict) -> AppData:
                 hora=_parse_time(m.get("hora")),
             )
             for m in payload.get("mermas", [])
+        ],
+        ajustes=[
+            RegistroAjuste(
+                a["id"],
+                _parse_date(a["fecha"]),  # type: ignore[arg-type]
+                [
+                    LineaAjuste(
+                        ln["producto_id"],
+                        ln["lote_id"],
+                        ln["cantidad_antes"],
+                        ln["cantidad_despues"],
+                        MotivoAjuste(ln["motivo"]),
+                        ln.get("comentario"),
+                        ln.get("producto_nombre_snapshot"),
+                        ln.get("unidad_snapshot"),
+                    )
+                    for ln in a.get("lineas", [])
+                ],
+                a.get("registrado_por", ""),
+                hora=_parse_time(a.get("hora")),
+            )
+            for a in payload.get("ajustes", [])
         ],
         responsables_merma=[
             ResponsableMerma(

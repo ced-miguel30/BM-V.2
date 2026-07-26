@@ -186,9 +186,11 @@ def _render_diagnostico_tecnico() -> None:
     c7.metric("— Otros servicios", resumen.num_registros_servicio)
     c8.metric("Líneas de detalle", resumen.num_lineas_detalle)
 
-    c9, c10, _, _ = st.columns(4)
+    c9, c10, c11, c12 = st.columns(4)
     c9.metric("Mermas", resumen.num_mermas)
     c10.metric("Líneas de merma", resumen.num_lineas_merma)
+    c11.metric("Ajustes", resumen.num_ajustes)
+    c12.metric("Líneas de ajuste", resumen.num_lineas_ajuste)
 
     with st.expander("Incidencias detectadas", expanded=True):
         st.info(resumen.productos_sin_servicio_msg)

@@ -1,4 +1,5 @@
 from app.core.models.actividad import Actividad
+from app.core.models.ajuste import LineaAjuste, RegistroAjuste
 from app.core.models.alerta import AlertaOperativa
 from app.core.models.app_data import AppData
 from app.core.models.configuracion import ConfiguracionHotel
@@ -12,6 +13,7 @@ from app.core.models.desayuno import (
 from app.core.models.enums import (
     CATEGORIA_RECETA_LABEL,
     CategoriaReceta,
+    MotivoAjuste,
     MotivoMerma,
     ORIGEN_SERVICIO_MERMA_LABEL,
     ORIGEN_SERVICIO_MERMA_VALORES,
@@ -51,11 +53,13 @@ __all__ = [
     "ExtraRecetaDesayuno",
     "ExtraRecetaServicio",
     "IngredienteReceta",
+    "LineaAjuste",
     "LineaDesayuno",
     "LineaDetalleOrigen",
     "LineaMerma",
     "LineaServicio",
     "LoteStock",
+    "MotivoAjuste",
     "MotivoMerma",
     "OmisionRecetaDesayuno",
     "OmisionRecetaServicio",
@@ -65,6 +69,7 @@ __all__ = [
     "OrigenServicioMerma",
     "Producto",
     "Receta",
+    "RegistroAjuste",
     "RegistroDesayuno",
     "RegistroMerma",
     "RegistroRecetaDesayuno",

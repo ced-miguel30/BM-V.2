@@ -27,6 +27,14 @@ class MotivoMerma(str, Enum):
     OTRO = "Otro"
 
 
+class MotivoAjuste(str, Enum):
+    """Motivos de ajuste de inventario (Fase 10)."""
+
+    RECONTEO_FISICO = "Reconteo físico"
+    ERROR_REGISTRO = "Error de registro"
+    OTRO = "Otro"
+
+
 class TurnoMerma(str, Enum):
     """Turno operativo de la línea de merma (snapshot histórico)."""
 

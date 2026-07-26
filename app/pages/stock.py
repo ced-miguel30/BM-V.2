@@ -499,9 +499,145 @@ def _render_alertas_stock() -> None:
                 st.error(resultado.mensaje)
 
 
+def _render_ajustes_inventario() -> None:
+    """Ajuste de cantidad restante por lote con trazabilidad (Fase 10)."""
+    from app.core.services import ajuste_service
+    from app.core.services.unidad_service import formato_number_input, paso_unidad
+
+    repo = get_repository()
+    st.markdown("#### Ajustes de inventario")
+    st.caption(
+        "Corrige el stock teórico del lote frente al recuento real. "
+        "Solo cambia la cantidad restante; la compra histórica (precio, cantidad "
+        "original, fechas) no se modifica. Toda corrección queda registrada."
+    )
+
+    lotes = ajuste_service.lotes_ajustables()
+    if not lotes:
+        empty_state("No hay lotes para ajustar. Registre una compra primero.", icon="🏷️")
+    else:
+        mapa = {l["label"]: l for l in lotes}
+        etiqueta = st.selectbox(
+            "Lote",
+            list(mapa.keys()),
+            key="ajuste_sel_lote",
+        )
+        lote_sel = mapa[etiqueta]
+        unidad = lote_sel["unidad"]
+        st.caption(
+            f"Actual restante: {lote_sel['restante']:g} {unidad}. "
+            "Indique la cantidad real tras el recuento."
+        )
+        col_a, col_b = st.columns(2)
+        with col_a:
+            cantidad_nueva = st.number_input(
+                "Cantidad restante nueva",
+                min_value=0.0,
+                value=float(lote_sel["restante"]),
+                step=paso_unidad(unidad),
+                format=formato_number_input(unidad),
+                key="ajuste_cantidad_nueva",
+            )
+            motivo = st.selectbox(
+                "Motivo",
+                ajuste_service.MOTIVOS_AJUSTE,
+                key="ajuste_motivo",
+            )
+        with col_b:
+            fecha = st.date_input(
+                "Fecha del ajuste",
+                value=date.today(),
+                max_value=date.today(),
+                key="ajuste_fecha",
+            )
+            comentario = st.text_input(
+                "Comentario (opcional)",
+                key="ajuste_comentario",
+                placeholder="Ej: recuento de cámara fría",
+            )
+
+        preview, err = ajuste_service.previsualizar_ajuste(
+            lote_sel["id"],
+            cantidad_nueva,
+            motivo,
+            comentario,
+        )
+        if err:
+            st.info(err)
+        elif preview is not None:
+            st.markdown("##### Vista previa (antes de confirmar)")
+            st.dataframe(
+                {
+                    "Producto": [preview.nombre],
+                    "Lote": [preview.lote_id],
+                    "Actual": [f"{preview.cantidad_antes:g} {preview.unidad}"],
+                    "Nueva": [f"{preview.cantidad_despues:g} {preview.unidad}"],
+                    "Δ": [f"{preview.delta:+g} {preview.unidad}"],
+                    "Motivo": [preview.motivo],
+                    "Compra intacta": [
+                        f"{preview.cantidad_compra:g} · "
+                        f"{formato_moneda(preview.precio_total, repo.get_simbolo_moneda())} · "
+                        f"{preview.fecha_compra_txt}"
+                    ],
+                },
+                use_container_width=True,
+                hide_index=True,
+            )
+            if st.button(
+                "Confirmar ajuste",
+                type="primary",
+                use_container_width=True,
+                key="ajuste_btn_confirmar",
+            ):
+                resultado = ajuste_service.aplicar_ajuste(
+                    fecha,
+                    lote_sel["id"],
+                    cantidad_nueva,
+                    motivo,
+                    comentario,
+                )
+                if resultado.ok:
+                    st.success(resultado.mensaje)
+                    st.rerun()
+                else:
+                    st.error(resultado.mensaje)
+
+    section_divider()
+    st.markdown("#### Historial de ajustes")
+    st.caption("Registros de la semana en curso. Las correcciones quedan archivadas en los datos.")
+    lunes = _lunes_semana_actual()
+    ajustes_semana = [
+        a for a in ajuste_service.historial_ordenado()
+        if a.fecha >= lunes
+    ]
+    if not ajustes_semana:
+        empty_state("No hay ajustes en la semana actual.", icon="📋")
+        return
+
+    filas = []
+    for reg in ajustes_semana:
+        for ln in reg.lineas:
+            nombre = ln.producto_nombre_snapshot or repo.get_nombre_producto(ln.producto_id)
+            unidad = ln.unidad_snapshot or ""
+            filas.append({
+                "Fecha": formato_fecha(reg.fecha),
+                "Hora": reg.hora.strftime("%H:%M") if reg.hora else "—",
+                "Producto": nombre,
+                "Lote": ln.lote_id,
+                "Antes": f"{ln.cantidad_antes:g} {unidad}".strip(),
+                "Después": f"{ln.cantidad_despues:g} {unidad}".strip(),
+                "Δ": f"{ln.delta:+g} {unidad}".strip(),
+                "Motivo": ln.motivo.value if hasattr(ln.motivo, "value") else str(ln.motivo),
+                "Usuario": reg.registrado_por or "—",
+                "Comentario": ln.comentario or "—",
+            })
+    st.dataframe(pd.DataFrame(filas), use_container_width=True, hide_index=True)
+
+
 _SUBTABS = {
     "Registro producto": _render_registro_producto,
     "Registro bebidas": _render_registro_bebidas,
+    "Ajustes inventario": _render_ajustes_inventario,
     "Alertas stock": _render_alertas_stock,
 }
 

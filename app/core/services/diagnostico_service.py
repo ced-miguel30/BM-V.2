@@ -24,6 +24,8 @@ class ResumenDiagnostico:
     num_lineas_detalle: int
     num_mermas: int
     num_lineas_merma: int
+    num_ajustes: int
+    num_lineas_ajuste: int
 
     lotes_stock_negativo: list[str] = field(default_factory=list)
     productos_stock_negativo: list[str] = field(default_factory=list)
@@ -125,6 +127,17 @@ def generar_diagnostico(data: AppData) -> ResumenDiagnostico:
                     f"Merma {merma.id} → lote inexistente {linea.lote_id}"
                 )
 
+    for ajuste in getattr(data, "ajustes", []) or []:
+        for linea in ajuste.lineas:
+            if linea.producto_id not in producto_ids:
+                huerfanas.append(
+                    f"Ajuste {ajuste.id} → producto inexistente {linea.producto_id}"
+                )
+            if linea.lote_id and linea.lote_id not in lote_ids:
+                huerfanas.append(
+                    f"Ajuste {ajuste.id} → lote inexistente {linea.lote_id}"
+                )
+
     recetas_vacias = [
         f"{r.nombre} ({r.id})" for r in data.recetas if not r.ingredientes
     ]
@@ -195,6 +208,9 @@ def generar_diagnostico(data: AppData) -> ResumenDiagnostico:
         _ids_duplicados([r.id for r in data.registros_servicio], "Registro servicio")
     )
     duplicidades.extend(_ids_duplicados([m.id for m in data.mermas], "Merma"))
+    duplicidades.extend(
+        _ids_duplicados([a.id for a in getattr(data, "ajustes", []) or []], "Ajuste")
+    )
 
     otras: list[str] = []
     nombres_prod = [p.nombre.strip().lower() for p in data.productos if p.nombre]
@@ -205,6 +221,8 @@ def generar_diagnostico(data: AppData) -> ResumenDiagnostico:
         len(r.lineas_detalle) for r in data.registros_servicio
     )
     num_lineas_merma = sum(len(m.lineas) for m in data.mermas)
+    ajustes = getattr(data, "ajustes", []) or []
+    num_lineas_ajuste = sum(len(a.lineas) for a in ajustes)
 
     return ResumenDiagnostico(
         num_productos=len(data.productos),
@@ -217,6 +235,8 @@ def generar_diagnostico(data: AppData) -> ResumenDiagnostico:
         num_lineas_detalle=num_detalle,
         num_mermas=len(data.mermas),
         num_lineas_merma=num_lineas_merma,
+        num_ajustes=len(ajustes),
+        num_lineas_ajuste=num_lineas_ajuste,
         lotes_stock_negativo=lotes_negativos,
         productos_stock_negativo=productos_neg,
         referencias_huerfanas=huerfanas,
