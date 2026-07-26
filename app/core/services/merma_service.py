@@ -450,7 +450,12 @@ def coste_total_cesta_merma() -> float:
 def _descontar_lote(data: AppData, lote_id: str, cantidad: float) -> float:
     lote = _get_lote(data, lote_id)
     if not lote:
-        return 0.0
+        raise ValueError(f"Lote {lote_id} no encontrado.")
+    if cantidad > lote.cantidad_restante + 1e-9:
+        raise ValueError(
+            f"Stock insuficiente en lote {lote_id}: "
+            f"pide {cantidad:g}, queda {lote.cantidad_restante:g}."
+        )
     coste = round(cantidad * _coste_unidad_lote(lote), 2)
     lote.cantidad_restante = round(lote.cantidad_restante - cantidad, 4)
     return coste
@@ -484,47 +489,73 @@ def registrar_merma(fecha: date) -> ResultadoOperacion:
     data = get_data()
     lineas: list[LineaMerma] = []
 
+    # Validación acumulada por lote (varias líneas del mismo lote).
+    restante_sim: dict[str, float] = {}
     for item in cesta:
         lote = _get_lote(data, item.lote_id)
-        if not lote or item.cantidad > lote.cantidad_restante:
+        if not lote:
             return ResultadoOperacion(
                 False,
-                f"Stock insuficiente en el lote {item.lote_id} al registrar.",
+                f"Stock insuficiente en el lote {item.lote_id} al registrar. "
+                "No se ha modificado nada.",
             )
+        rem = restante_sim.get(item.lote_id, lote.cantidad_restante)
+        if item.cantidad > rem + 1e-9:
+            return ResultadoOperacion(
+                False,
+                f"Stock insuficiente en el lote {item.lote_id} al registrar. "
+                "No se ha modificado nada.",
+            )
+        restante_sim[item.lote_id] = round(rem - item.cantidad, 4)
 
-    for item in cesta:
-        coste = _descontar_lote(data, item.lote_id, item.cantidad)
-        lineas.append(LineaMerma(
-            item.producto_id,
-            item.cantidad,
-            coste,
-            MotivoMerma(item.motivo),
-            item.comentario,
-            item.lote_id,
-            item.tipo_servicio_snapshot,
-            item.turno_snapshot,
-            item.responsable_id,
-            item.responsable_nombre,
-            item.nombre,
-            item.unidad,
-        ))
+    from app.core.services.inventory_batch_service import (
+        restaurar_cantidades_restantes,
+        snapshot_cantidades_restantes,
+    )
 
-    coste_total = round(sum(l.coste for l in lineas), 2)
-    registro = RegistroMerma(
-        _next_id("m", [m.id for m in data.mermas]),
-        fecha,
-        lineas,
-        coste_total,
-        _nombre_usuario(data),
-        hora=datetime.now().time(),
-    )
-    data.mermas.append(registro)
-    _registrar_actividad(
-        data,
-        "Registro merma",
-        f"Merma del {fecha.strftime('%d/%m/%Y')} — {coste_total:.2f} €",
-    )
-    persist_data(data)
+    snap = snapshot_cantidades_restantes(data)
+    n_mermas = len(data.mermas)
+    n_actividades = len(data.actividades)
+    try:
+        for item in cesta:
+            coste = _descontar_lote(data, item.lote_id, item.cantidad)
+            lineas.append(LineaMerma(
+                item.producto_id,
+                item.cantidad,
+                coste,
+                MotivoMerma(item.motivo),
+                item.comentario,
+                item.lote_id,
+                item.tipo_servicio_snapshot,
+                item.turno_snapshot,
+                item.responsable_id,
+                item.responsable_nombre,
+                item.nombre,
+                item.unidad,
+            ))
+
+        coste_total = round(sum(l.coste for l in lineas), 2)
+        registro = RegistroMerma(
+            _next_id("m", [m.id for m in data.mermas]),
+            fecha,
+            lineas,
+            coste_total,
+            _nombre_usuario(data),
+            hora=datetime.now().time(),
+        )
+        data.mermas.append(registro)
+        _registrar_actividad(
+            data,
+            "Registro merma",
+            f"Merma del {fecha.strftime('%d/%m/%Y')} — {coste_total:.2f} €",
+        )
+        persist_data(data)
+    except Exception:
+        restaurar_cantidades_restantes(data, snap)
+        del data.mermas[n_mermas:]
+        del data.actividades[: max(0, len(data.actividades) - n_actividades)]
+        raise
+
     limpiar_cesta_merma()
 
     from app.core.services.alert_service import sincronizar_alertas

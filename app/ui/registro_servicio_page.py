@@ -275,11 +275,39 @@ def render_pagina_registro_servicio(
             vacio_mensaje=f"Todavía no has añadido productos a {etiqueta.lower()}.",
         )
 
+        plan_stock = None
+        if hasattr(servicio, "previsualizar_stock") and not servicio.cesta_vacia():
+            plan_stock = servicio.previsualizar_stock()
+            if plan_stock.lineas:
+                st.caption("Vista previa de stock (antes de confirmar)")
+                st.dataframe(
+                    {
+                        "Producto": [ln.nombre for ln in plan_stock.lineas],
+                        "Actual": [
+                            f"{ln.actual:g} {ln.unidad}".strip() for ln in plan_stock.lineas
+                        ],
+                        "Salida": [
+                            f"{ln.salida:g} {ln.unidad}".strip() for ln in plan_stock.lineas
+                        ],
+                        "Resultante": [
+                            f"{ln.resultante:g} {ln.unidad}".strip() for ln in plan_stock.lineas
+                        ],
+                    },
+                    use_container_width=True,
+                    hide_index=True,
+                )
+                if not plan_stock.ok:
+                    st.error(
+                        "Stock insuficiente: al confirmar no se modificará nada. "
+                        "Ajuste la cesta o reponga inventario."
+                    )
+
         if st.button(
             f"Registrar {etiqueta.lower()}",
             type="primary",
             use_container_width=True,
             key=f"{key_prefix}_btn_registrar",
+            disabled=bool(plan_stock is not None and not plan_stock.ok),
         ):
             resultado = servicio.registrar(fecha, num_huespedes)
             if resultado.ok:
@@ -287,7 +315,7 @@ def render_pagina_registro_servicio(
                 st.success(resultado.mensaje)
                 st.rerun()
             elif resultado.codigo == "STOCK_INSUFICIENTE":
-                st.session_state[stock_key] = True
+                st.session_state.pop(stock_key, None)
                 st.error(resultado.mensaje)
                 if resultado.detalle_stock:
                     for linea in resultado.detalle_stock:
@@ -295,22 +323,6 @@ def render_pagina_registro_servicio(
             else:
                 st.session_state.pop(stock_key, None)
                 st.error(resultado.mensaje)
-
-        if st.session_state.get(stock_key):
-            st.warning("Hay productos sin stock suficiente. Puede ignorar la validación y registrar igual.")
-            if st.button(
-                "Ignorar y registrar igual",
-                type="secondary",
-                use_container_width=True,
-                key=f"{key_prefix}_btn_ignorar_stock",
-            ):
-                resultado = servicio.registrar(fecha, num_huespedes, ignorar_stock=True)
-                if resultado.ok:
-                    st.session_state.pop(stock_key, None)
-                    st.success(resultado.mensaje)
-                    st.rerun()
-                else:
-                    st.error(resultado.mensaje)
 
     section_divider()
     st.markdown(f"#### Historial de {etiqueta.lower()}")

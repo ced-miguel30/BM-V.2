@@ -38,8 +38,13 @@ from app.core.services.detalle_origen_service import (
 from app.core.services.excel_bloques import RegistroExportable
 from app.core.services.exportacion_semanal_service import ConfiguracionExportacionModulo
 from app.core.services.inventory_batch_service import (
+    PlanDescuentoStock,
+    aplicar_descuento_atomico,
     calcular_coste_linea,
     descontar_lotes,
+    planificar_descuento,
+    snapshot_cantidades_restantes,
+    restaurar_cantidades_restantes,
     stock_disponible,
 )
 from app.core.services.stock_service import disponible_en_servicio
@@ -313,24 +318,25 @@ def _construir_registros_recetas(data: AppData, grupos: list[GrupoRecetaCesta]) 
     return registros
 
 
-def _validar_stock_registro(
+def _plan_stock_fusionado(
     data: AppData,
     fusionado: dict[str, tuple[float, bool]],
-) -> list[str]:
+) -> PlanDescuentoStock:
     repo = DataRepository(data)
-    deficits: list[str] = []
-    for producto_id, (cantidad, _) in fusionado.items():
-        if cantidad <= 0:
-            continue
-        disponible = stock_disponible(data, producto_id)
-        if cantidad > disponible:
-            nombre = repo.get_nombre_producto(producto_id)
-            producto = repo.get_producto(producto_id)
-            unidad = producto.unidad.value if producto else ""
-            deficits.append(
-                f"{nombre}: necesita {cantidad:g} {unidad}, disponible {disponible:g} {unidad}",
-            )
-    return deficits
+    demandas = {pid: cant for pid, (cant, _) in fusionado.items() if cant > 0}
+    nombres = {pid: repo.get_nombre_producto(pid) for pid in demandas}
+    unidades: dict[str, str] = {}
+    for pid in demandas:
+        producto = repo.get_producto(pid)
+        unidades[pid] = producto.unidad.value if producto else ""
+    return planificar_descuento(data, demandas, nombres=nombres, unidades=unidades)
+
+
+def previsualizar_stock_registro() -> PlanDescuentoStock:
+    """Preview actual/salida/resultante de la cesta (sin mutar)."""
+    if cesta_vacia():
+        return PlanDescuentoStock()
+    return _plan_stock_fusionado(get_data(), _aplanar_cesta())
 
 
 def registrar_desayuno(
@@ -339,6 +345,12 @@ def registrar_desayuno(
     *,
     ignorar_stock: bool = False,
 ) -> ResultadoOperacion:
+    """Registra el desayuno con descuento atómico.
+
+    `ignorar_stock` queda deshabilitado (Fase 9): se ignora el bypass.
+    """
+    _ = ignorar_stock  # Bypass retirado; no permitir stock negativo.
+
     if cesta_vacia():
         return ResultadoOperacion(
             False,
@@ -357,68 +369,70 @@ def registrar_desayuno(
     grupos = list(get_cesta_recetas())
     cesta_suelta = list(get_cesta())
 
-    if not ignorar_stock:
-        deficits = _validar_stock_registro(data, fusionado)
-        if deficits:
-            return ResultadoOperacion(
-                False,
-                "Stock insuficiente para registrar el desayuno.",
-                codigo="STOCK_INSUFICIENTE",
-                detalle_stock=deficits,
-            )
+    plan = _plan_stock_fusionado(data, fusionado)
+    if not plan.ok:
+        return ResultadoOperacion(
+            False,
+            "Stock insuficiente para registrar el desayuno. No se ha modificado nada.",
+            codigo="STOCK_INSUFICIENTE",
+            detalle_stock=plan.deficits,
+        )
 
     registro_id = _next_id("d", [d.id for d in data.desayunos])
+    demandas = {pid: cant for pid, (cant, _) in fusionado.items() if cant > 0}
+    extras = {pid: es_extra for pid, (cant, es_extra) in fusionado.items() if cant > 0}
 
-    # Agregado (compat rankings/UI) + descuento FIFO por producto.
-    lineas: list[LineaDesayuno] = []
-    costes_agregados: dict[str, float] = {}
-    cantidades_agregadas: dict[str, float] = {}
-    for producto_id, (cantidad, es_extra) in fusionado.items():
-        coste = _descontar_fifo(
-            data,
-            producto_id,
-            cantidad,
-            permitir_negativo=ignorar_stock,
+    snap = snapshot_cantidades_restantes(data)
+    n_desayunos = len(data.desayunos)
+    n_actividades = len(data.actividades)
+    try:
+        costes_agregados = aplicar_descuento_atomico(data, demandas)
+        lineas = [
+            LineaDesayuno(pid, demandas[pid], costes_agregados.get(pid, 0.0), extras[pid])
+            for pid in demandas
+        ]
+        cantidades_agregadas = dict(demandas)
+
+        lineas_detalle = construir_lineas_detalle(
+            cesta_suelta,
+            grupos,
+            tipo_servicio=TipoServicio.DESAYUNO.value,
+            registro_id=registro_id,
+            data=data,
         )
-        lineas.append(LineaDesayuno(producto_id, cantidad, coste, es_extra))
-        costes_agregados[producto_id] = coste
-        cantidades_agregadas[producto_id] = cantidad
+        asignar_costes_proporcionales(lineas_detalle, costes_agregados, cantidades_agregadas)
 
-    # Detalle con origen explícito (no fusiona directo + receta).
-    lineas_detalle = construir_lineas_detalle(
-        cesta_suelta,
-        grupos,
-        tipo_servicio=TipoServicio.DESAYUNO.value,
-        registro_id=registro_id,
-        data=data,
-    )
-    asignar_costes_proporcionales(lineas_detalle, costes_agregados, cantidades_agregadas)
+        registros_recetas = _construir_registros_recetas(data, grupos)
+        coste_total = round(sum(l.coste for l in lineas), 2)
+        registro = RegistroDesayuno(
+            registro_id,
+            fecha,
+            lineas,
+            coste_total,
+            _nombre_usuario(data),
+            num_huespedes,
+            registros_recetas,
+            datetime.now().time(),
+            lineas_detalle,
+        )
+        data.desayunos.append(registro)
 
-    registros_recetas = _construir_registros_recetas(data, grupos)
-    coste_total = round(sum(l.coste for l in lineas), 2)
-    registro = RegistroDesayuno(
-        registro_id,
-        fecha,
-        lineas,
-        coste_total,
-        _nombre_usuario(data),
-        num_huespedes,
-        registros_recetas,
-        datetime.now().time(),
-        lineas_detalle,
-    )
-    data.desayunos.append(registro)
+        detalle_recetas = ""
+        if registros_recetas:
+            detalle_recetas = f" — {len(registros_recetas)} receta(s)"
 
-    detalle_recetas = ""
-    if registros_recetas:
-        detalle_recetas = f" — {len(registros_recetas)} receta(s)"
+        _registrar_actividad(
+            data,
+            "Registro desayuno",
+            f"Desayuno del {fecha.strftime('%d/%m/%Y')} — {coste_total:.2f} € — {num_huespedes} huéspedes{detalle_recetas}",
+        )
+        persist_data(data)
+    except Exception:
+        restaurar_cantidades_restantes(data, snap)
+        del data.desayunos[n_desayunos:]
+        del data.actividades[: max(0, len(data.actividades) - n_actividades)]
+        raise
 
-    _registrar_actividad(
-        data,
-        "Registro desayuno",
-        f"Desayuno del {fecha.strftime('%d/%m/%Y')} — {coste_total:.2f} € — {num_huespedes} huéspedes{detalle_recetas}",
-    )
-    persist_data(data)
     limpiar_cesta()
 
     from app.core.services.alert_service import sincronizar_alertas
@@ -592,6 +606,9 @@ class DesayunoRegistroAdapter:
 
     def coste_total_cesta(self) -> float:
         return coste_total_cesta()
+
+    def previsualizar_stock(self) -> PlanDescuentoStock:
+        return previsualizar_stock_registro()
 
     def registrar(
         self,
