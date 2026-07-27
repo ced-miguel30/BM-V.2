@@ -21,17 +21,6 @@
       "es_bebida": false,
       "servicios_disponibles": [],
       "categoria_inventario": null
-    },
-    {
-      "id": "p03",
-      "nombre": "croissant",
-      "unidad": "Ud",
-      "stock_minimo": 5.0,
-      "es_bebida": false,
-      "servicios_disponibles": [
-        "desayuno"
-      ],
-      "categoria_inventario": null
     }
   ],
   "lotes": [
@@ -51,19 +40,8 @@
       "producto_id": "p2",
       "precio_total": 2.0,
       "cantidad": 20.0,
-      "cantidad_restante": 15.0,
+      "cantidad_restante": 14.0,
       "fecha_compra": "2026-07-01",
-      "fecha_expiracion": null,
-      "marca_proveedor": null,
-      "alerta_expiracion_dias": null
-    },
-    {
-      "id": "l03",
-      "producto_id": "p03",
-      "precio_total": 5.0,
-      "cantidad": 5.0,
-      "cantidad_restante": 5.0,
-      "fecha_compra": null,
       "fecha_expiracion": null,
       "marca_proveedor": null,
       "alerta_expiracion_dias": null
@@ -73,7 +51,7 @@
     {
       "id": "d01",
       "fecha": "2026-07-21",
-      "hora": "13:16:43.734049",
+      "hora": "14:09:16.507097",
       "lineas": [
         {
           "producto_id": "p1",
@@ -175,23 +153,52 @@
     }
   ],
   "mermas": [],
+  "ajustes": [
+    {
+      "id": "aj01",
+      "fecha": "2026-07-27",
+      "hora": "08:44:44.550764",
+      "lineas": [
+        {
+          "producto_id": "p2",
+          "lote_id": "l2",
+          "cantidad_antes": 15.0,
+          "cantidad_despues": 12.0,
+          "motivo": "Reconteo físico",
+          "comentario": null,
+          "producto_nombre_snapshot": "Huevo",
+          "unidad_snapshot": "Ud"
+        }
+      ],
+      "registrado_por": "Ana"
+    },
+    {
+      "id": "aj02",
+      "fecha": "2026-07-27",
+      "hora": "08:45:01.952288",
+      "lineas": [
+        {
+          "producto_id": "p2",
+          "lote_id": "l2",
+          "cantidad_antes": 12.0,
+          "cantidad_despues": 14.0,
+          "motivo": "Reconteo físico",
+          "comentario": null,
+          "producto_nombre_snapshot": "Huevo",
+          "unidad_snapshot": "Ud"
+        }
+      ],
+      "registrado_por": "Ana"
+    }
+  ],
   "responsables_merma": [],
   "alertas": [
     {
       "id": "a01",
-      "tipo": "stock_bajo",
-      "titulo": "Stock bajo — croissant",
-      "mensaje": "Quedan 5 Ud. Stock mínimo: 5.",
-      "fecha": "2026-07-26",
-      "activa": true,
-      "producto_id": "p03"
-    },
-    {
-      "id": "a02",
       "tipo": "desayuno_no_registrado",
       "titulo": "Desayuno de hoy no registrado",
       "mensaje": "Aún no se ha registrado el consumo del desayuno de hoy.",
-      "fecha": "2026-07-26",
+      "fecha": "2026-07-27",
       "activa": true,
       "producto_id": null
     }
@@ -208,32 +215,104 @@
   "configuracion": null,
   "actividades": [
     {
-      "id": "act19",
-      "fecha_hora": "2026-07-26T13:40:53.176347",
+      "id": "act25",
+      "fecha_hora": "2026-07-27T08:45:01.952308",
       "usuario": "Ana",
-      "accion": "Registrar lote",
-      "detalle": "Lote de «croissant» — 5.0 Ud — 5.00 €",
+      "accion": "Ajuste inventario",
+      "detalle": "Huevo lote l2: 12 → 14 Ud (+2) — Reconteo físico",
       "modulo": null,
       "resultado": null,
       "tipo_exportacion": null,
       "periodo_afectado": null,
       "archivo_generado": null
+    },
+    {
+      "id": "act24",
+      "fecha_hora": "2026-07-27T08:44:44.550790",
+      "usuario": "Ana",
+      "accion": "Ajuste inventario",
+      "detalle": "Huevo lote l2: 15 → 12 Ud (-3) — Reconteo físico",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
+    },
+    {
+      "id": "act23",
+      "fecha_hora": "2026-07-27T08:42:16.284726",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de actividad — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Actividad_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "actividad",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Actividad_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act22",
+      "fecha_hora": "2026-07-27T08:42:16.227881",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de consumo — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Consumo_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "consumo",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Consumo_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act21",
+      "fecha_hora": "2026-07-27T08:42:16.189002",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de bebidas — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Bebidas_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "bebidas",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Bebidas_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act20",
+      "fecha_hora": "2026-07-27T08:42:16.155057",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de stock — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Stock_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "stock",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Stock_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
+      "id": "act19",
+      "fecha_hora": "2026-07-27T08:42:16.125331",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de merma — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Merma_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "merma",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Merma_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
     },
     {
       "id": "act18",
-      "fecha_hora": "2026-07-26T13:40:19.496739",
-      "usuario": "Ana",
-      "accion": "Crear producto",
-      "detalle": "«croissant» (Ud) creado",
-      "modulo": null,
-      "resultado": null,
-      "tipo_exportacion": null,
-      "periodo_afectado": null,
-      "archivo_generado": null
+      "fecha_hora": "2026-07-27T08:42:16.095620",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de desayuno — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "desayuno",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
     },
     {
       "id": "act17",
-      "fecha_hora": "2026-07-26T13:16:44.399456",
+      "fecha_hora": "2026-07-26T14:09:17.138636",
       "usuario": "Sistema",
       "accion": "Exportación",
       "detalle": "Exportación automática de registro_bebidas — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Bebidas_2026-07-26_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
@@ -245,7 +324,7 @@
     },
     {
       "id": "act16",
-      "fecha_hora": "2026-07-26T13:16:44.367117",
+      "fecha_hora": "2026-07-26T14:09:17.099849",
       "usuario": "Sistema",
       "accion": "Exportación",
       "detalle": "Exportación automática de cena — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Cena_2026-07-26_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
@@ -257,7 +336,7 @@
     },
     {
       "id": "act15",
-      "fecha_hora": "2026-07-26T13:16:44.336554",
+      "fecha_hora": "2026-07-26T14:09:17.051797",
       "usuario": "Sistema",
       "accion": "Exportación",
       "detalle": "Exportación automática de comida — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Comida_2026-07-26_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
@@ -269,7 +348,7 @@
     },
     {
       "id": "act14",
-      "fecha_hora": "2026-07-26T13:16:44.261560",
+      "fecha_hora": "2026-07-26T14:09:16.946625",
       "usuario": "Sistema",
       "accion": "Exportación",
       "detalle": "Exportación automática de actividad — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Actividad_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
@@ -281,7 +360,7 @@
     },
     {
       "id": "act13",
-      "fecha_hora": "2026-07-26T13:16:44.204506",
+      "fecha_hora": "2026-07-26T14:09:16.899233",
       "usuario": "Sistema",
       "accion": "Exportación",
       "detalle": "Exportación automática de consumo — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Consumo_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
@@ -293,7 +372,7 @@
     },
     {
       "id": "act12",
-      "fecha_hora": "2026-07-26T13:16:44.147145",
+      "fecha_hora": "2026-07-26T14:09:16.859228",
       "usuario": "Sistema",
       "accion": "Exportación",
       "detalle": "Exportación automática de stock — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Stock_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
@@ -305,7 +384,7 @@
     },
     {
       "id": "act11",
-      "fecha_hora": "2026-07-26T13:16:44.089277",
+      "fecha_hora": "2026-07-26T14:09:16.822637",
       "usuario": "Sistema",
       "accion": "Exportación",
       "detalle": "Exportación automática de bebidas — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Bebidas_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
@@ -317,7 +396,7 @@
     },
     {
       "id": "act10",
-      "fecha_hora": "2026-07-26T13:16:44.047301",
+      "fecha_hora": "2026-07-26T14:09:16.786765",
       "usuario": "Sistema",
       "accion": "Exportación",
       "detalle": "Exportación automática de desayuno — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
@@ -329,19 +408,19 @@
     },
     {
       "id": "act09",
-      "fecha_hora": "2026-07-26T13:16:43.994228",
+      "fecha_hora": "2026-07-26T14:09:16.749275",
       "usuario": "Ana",
       "accion": "Exportación",
-      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_131643.xlsx — resultado correcto",
+      "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_140916.xlsx — resultado correcto",
       "modulo": "prueba",
       "resultado": "Correcto",
       "tipo_exportacion": "Manual",
       "periodo_afectado": "2026-07-20 a 2026-07-23",
-      "archivo_generado": "Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_131643.xlsx"
+      "archivo_generado": "Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23_140916.xlsx"
     },
     {
       "id": "act08",
-      "fecha_hora": "2026-07-26T13:16:43.986023",
+      "fecha_hora": "2026-07-26T14:09:16.741574",
       "usuario": "Ana",
       "accion": "Exportación",
       "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Desayuno_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
@@ -353,7 +432,7 @@
     },
     {
       "id": "act07",
-      "fecha_hora": "2026-07-26T13:16:43.968920",
+      "fecha_hora": "2026-07-26T14:09:16.724016",
       "usuario": "Sistema",
       "accion": "Exportación",
       "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
@@ -365,7 +444,7 @@
     },
     {
       "id": "act06",
-      "fecha_hora": "2026-07-26T13:16:43.880377",
+      "fecha_hora": "2026-07-26T14:09:16.646786",
       "usuario": "Sistema",
       "accion": "Exportación",
       "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-26_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
@@ -377,7 +456,7 @@
     },
     {
       "id": "act05",
-      "fecha_hora": "2026-07-26T13:16:43.840227",
+      "fecha_hora": "2026-07-26T14:09:16.612432",
       "usuario": "Sistema",
       "accion": "Exportación",
       "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-26_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
@@ -389,7 +468,7 @@
     },
     {
       "id": "act04",
-      "fecha_hora": "2026-07-26T13:16:43.809056",
+      "fecha_hora": "2026-07-26T14:09:16.574766",
       "usuario": "Sistema",
       "accion": "Exportación",
       "detalle": "Exportación automática de prueba — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Prueba_2026-07-26_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
@@ -401,7 +480,7 @@
     },
     {
       "id": "act03",
-      "fecha_hora": "2026-07-26T13:16:43.778715",
+      "fecha_hora": "2026-07-26T14:09:16.553235",
       "usuario": "Ana",
       "accion": "Exportación",
       "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Prueba_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
@@ -413,7 +492,7 @@
     },
     {
       "id": "act02",
-      "fecha_hora": "2026-07-26T13:16:43.760699",
+      "fecha_hora": "2026-07-26T14:09:16.534242",
       "usuario": "Ana",
       "accion": "Exportación",
       "detalle": "Exportación manual de prueba — periodo 2026-07-20 a 2026-07-23 — archivo Registro_de_Merma_2026-07-23_2026-07-20_a_2026-07-23.xlsx — resultado correcto",
@@ -425,7 +504,7 @@
     },
     {
       "id": "act01",
-      "fecha_hora": "2026-07-26T13:16:43.734066",
+      "fecha_hora": "2026-07-26T14:09:16.507110",
       "usuario": "Ana",
       "accion": "Registro desayuno",
       "detalle": "Desayuno del 21/07/2026 — 1.00 € — 10 huéspedes — 1 receta(s)",
