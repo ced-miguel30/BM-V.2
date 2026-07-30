@@ -45,6 +45,17 @@
       "fecha_expiracion": null,
       "marca_proveedor": null,
       "alerta_expiracion_dias": null
+    },
+    {
+      "id": "l03",
+      "producto_id": "p1",
+      "precio_total": 5.0,
+      "cantidad": 5.0,
+      "cantidad_restante": 10.0,
+      "fecha_compra": null,
+      "fecha_expiracion": null,
+      "marca_proveedor": null,
+      "alerta_expiracion_dias": null
     }
   ],
   "desayunos": [
@@ -108,7 +119,13 @@
           "categoria_receta_snapshot": "desayuno",
           "consumos_lote": []
         }
-      ]
+      ],
+      "anulado": false,
+      "fecha_anulacion": null,
+      "hora_anulacion": null,
+      "motivo_anulacion": "",
+      "referencia_anulacion": "",
+      "anulado_por": ""
     }
   ],
   "registros_servicio": [],
@@ -191,6 +208,24 @@
         }
       ],
       "registrado_por": "Ana"
+    },
+    {
+      "id": "aj03",
+      "fecha": "2026-07-30",
+      "hora": "20:54:05.803438",
+      "lineas": [
+        {
+          "producto_id": "p1",
+          "lote_id": "l03",
+          "cantidad_antes": 5.0,
+          "cantidad_despues": 10.0,
+          "motivo": "Error de registro",
+          "comentario": null,
+          "producto_nombre_snapshot": "Harina",
+          "unidad_snapshot": "Kg"
+        }
+      ],
+      "registrado_por": "Ana"
     }
   ],
   "responsables_merma": [],
@@ -216,6 +251,30 @@
   ],
   "configuracion": null,
   "actividades": [
+    {
+      "id": "act27",
+      "fecha_hora": "2026-07-30T20:54:05.803464",
+      "usuario": "Ana",
+      "accion": "Ajuste inventario",
+      "detalle": "Harina lote l03: 5 → 10 Kg (+5) — Error de registro",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
+    },
+    {
+      "id": "act26",
+      "fecha_hora": "2026-07-30T20:53:31.607566",
+      "usuario": "Ana",
+      "accion": "Registrar lote",
+      "detalle": "Lote de «Harina» — 5.0 Kg — 5.00 €",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
+    },
     {
       "id": "act25",
       "fecha_hora": "2026-07-27T08:45:01.952308",

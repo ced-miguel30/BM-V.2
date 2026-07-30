@@ -531,7 +531,10 @@ class ServicioRegistro:
                 usuario=reg.registrado_por or None,
                 columnas=columnas,
                 filas=filas,
-                resumen=[("Coste total", repo.formato_precio(reg.coste_total))],
+                resumen=[
+                    ("Coste total", repo.formato_precio(reg.coste_total)),
+                    ("Estado", "Anulado" if getattr(reg, "anulado", False) else "Activo"),
+                ],
             ))
         return resultado
 

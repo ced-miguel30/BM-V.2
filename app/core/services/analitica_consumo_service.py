@@ -251,6 +251,8 @@ def iter_eventos_producto(
     eventos: list[EventoProducto] = []
 
     for d in app.desayunos:
+        if getattr(d, "anulado", False):
+            continue
         if not _en_periodo(d.fecha, desde, hasta):
             continue
         for det in d.lineas_detalle:
@@ -263,6 +265,8 @@ def iter_eventos_producto(
             ))
 
     for r in app.registros_servicio:
+        if getattr(r, "anulado", False):
+            continue
         if not _en_periodo(r.fecha, desde, hasta):
             continue
         for det in r.lineas_detalle:
@@ -339,11 +343,15 @@ def iter_eventos_receta(
     app = _app_data(data)
     eventos: list[EventoReceta] = []
     for d in app.desayunos:
+        if getattr(d, "anulado", False):
+            continue
         if not _en_periodo(d.fecha, desde, hasta):
             continue
         for rr in d.registros_recetas:
             eventos.append(_evento_receta_desayuno(rr, d, app))
     for r in app.registros_servicio:
+        if getattr(r, "anulado", False):
+            continue
         if not _en_periodo(r.fecha, desde, hasta):
             continue
         for rr in r.registros_recetas:
@@ -365,6 +373,8 @@ def desglose_desayuno(
     total = 0.0
 
     for d in app.desayunos:
+        if getattr(d, "anulado", False):
+            continue
         if not _en_periodo(d.fecha, desde, hasta):
             continue
         total += float(d.coste_total)
@@ -396,7 +406,9 @@ def _suma_registros_servicio(
         sum(
             float(r.coste_total)
             for r in app.registros_servicio
-            if r.tipo_servicio == tipo and _en_periodo(r.fecha, desde, hasta)
+            if r.tipo_servicio == tipo
+            and not getattr(r, "anulado", False)
+            and _en_periodo(r.fecha, desde, hasta)
         ),
         2,
     )
@@ -583,9 +595,13 @@ def resumen_consumo(
     costes = coste_servicios_excluyentes(desde, hasta, data=app)
     n_reg = 0
     for d in app.desayunos:
+        if getattr(d, "anulado", False):
+            continue
         if _en_periodo(d.fecha, desde, hasta):
             n_reg += 1
     for r in app.registros_servicio:
+        if getattr(r, "anulado", False):
+            continue
         if _en_periodo(r.fecha, desde, hasta):
             n_reg += 1
     pares = [

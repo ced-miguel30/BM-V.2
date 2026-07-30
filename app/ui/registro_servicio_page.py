@@ -29,6 +29,36 @@ def _lunes_semana_actual() -> date:
 
 
 def _render_detalle(servicio, registro) -> None:
+    from app.core.services.anulacion_registro_service import (
+        TIPO_DESAYUNO,
+        TIPO_SERVICIO,
+        anular_registro,
+        puede_anular_registro,
+        previsualizar_anulacion,
+        registro_esta_anulado,
+    )
+    from app.core.storage.session_store import get_data
+
+    data = get_data()
+    tipo_reg = (
+        TIPO_DESAYUNO
+        if getattr(servicio, "tipo_servicio", "") == "desayuno"
+        else TIPO_SERVICIO
+    )
+
+    if registro_esta_anulado(registro):
+        st.warning("Estado: **Anulado**")
+        st.caption(
+            f"Fecha anulación: "
+            f"{formato_fecha(registro.fecha_anulacion) if registro.fecha_anulacion else '—'} "
+            f"{registro.hora_anulacion.strftime('%H:%M') if registro.hora_anulacion else ''} "
+            f"· Por: {registro.anulado_por or '—'} "
+            f"· Motivo: {registro.motivo_anulacion or '—'} "
+            f"· Ref: {registro.referencia_anulacion or '—'}"
+        )
+    else:
+        st.caption("Estado: Activo")
+
     hasta = datetime.combine(registro.fecha, time.max)
     registros = [
         r for r in servicio.registros_exportables(registro.fecha, hasta)
@@ -72,6 +102,55 @@ def _render_detalle(servicio, registro) -> None:
     )
     if reg.resumen:
         st.caption(" · ".join(f"{clave}: {valor}" for clave, valor in reg.resumen))
+
+    st.markdown("##### Anulación")
+    puede = puede_anular_registro(data, registro, tipo=tipo_reg)
+    preview = previsualizar_anulacion(data, registro, tipo=tipo_reg)
+    if preview.lineas:
+        st.dataframe(
+            {
+                "Producto": [ln.nombre for ln in preview.lineas],
+                "Lote": [ln.lote_id for ln in preview.lineas],
+                "Consumido": [ln.cantidad_consumida for ln in preview.lineas],
+                "Restante actual": [ln.cantidad_restante_actual for ln in preview.lineas],
+                "A devolver": [ln.cantidad_a_devolver for ln in preview.lineas],
+                "Resultante": [ln.cantidad_resultante for ln in preview.lineas],
+                "Ud": [ln.unidad for ln in preview.lineas],
+            },
+            use_container_width=True,
+            hide_index=True,
+        )
+    if not puede.ok:
+        for motivo in puede.motivos_bloqueo:
+            st.error(motivo)
+        return
+
+    motivo = st.text_input(
+        "Motivo de anulación (obligatorio)",
+        key=f"anul_motivo_{registro.id}",
+    )
+    referencia = st.text_input(
+        "Referencia (opcional)",
+        key=f"anul_ref_{registro.id}",
+    )
+    confirma = st.checkbox(
+        "Confirmo que quiero anular este registro y reponer el stock a los lotes originales",
+        key=f"anul_ok_{registro.id}",
+    )
+    if st.button(
+        "Anular registro",
+        type="primary",
+        disabled=not confirma or not (motivo or "").strip(),
+        key=f"anul_btn_{registro.id}",
+    ):
+        resultado = anular_registro(
+            data, registro.id, tipo_reg, motivo, referencia,
+        )
+        if resultado.ok:
+            st.success(resultado.mensaje)
+            st.rerun()
+        else:
+            st.error(resultado.mensaje)
 
 
 def render_pagina_registro_servicio(
@@ -334,29 +413,51 @@ def render_pagina_registro_servicio(
 
     registros = servicio.historial_ordenado()
     registros_semana = [r for r in registros if r.fecha >= _lunes_semana_actual()]
-    if registros_semana:
+    # Listado operativo: excluir anulados. Historial/detalle: incluir con etiqueta.
+    registros_activos = [
+        r for r in registros_semana if not getattr(r, "anulado", False)
+    ]
+    registros_anulados_semana = [
+        r for r in registros_semana if getattr(r, "anulado", False)
+    ]
+    if registros_activos:
         columnas = {
-            "Fecha": [formato_fecha(r.fecha) for r in registros_semana],
-            "Hora": [r.hora.strftime("%H:%M") if r.hora else "—" for r in registros_semana],
+            "Fecha": [formato_fecha(r.fecha) for r in registros_activos],
+            "Hora": [r.hora.strftime("%H:%M") if r.hora else "—" for r in registros_activos],
         }
         if mostrar_huespedes:
             columnas["Huéspedes"] = [
-                getattr(r, "num_huespedes", 0) for r in registros_semana
+                getattr(r, "num_huespedes", 0) for r in registros_activos
             ]
         columnas.update({
-            "Elementos": [len(r.lineas) + len(r.registros_recetas) for r in registros_semana],
+            "Elementos": [len(r.lineas) + len(r.registros_recetas) for r in registros_activos],
             "Cantidad total": [
-                round(sum(abs(l.cantidad) for l in r.lineas), 2) for r in registros_semana
+                round(sum(abs(l.cantidad) for l in r.lineas), 2) for r in registros_activos
             ],
-            "Coste": [repo.formato_precio(r.coste_total) for r in registros_semana],
-            "Registrado por": [r.registrado_por for r in registros_semana],
+            "Coste": [repo.formato_precio(r.coste_total) for r in registros_activos],
+            "Registrado por": [r.registrado_por for r in registros_activos],
         })
         st.dataframe(columnas, use_container_width=True, hide_index=True)
+    elif not registros_semana:
+        empty_state(mensaje_vacio_historial, icon="📅")
+    else:
+        st.caption("No hay registros activos esta semana (solo anulados).")
 
-        opciones_detalle = {
-            f"{r.id} — {formato_fecha(r.fecha)} {r.hora.strftime('%H:%M') if r.hora else ''}".strip(): r
-            for r in registros_semana
-        }
+    if registros_anulados_semana:
+        st.caption(
+            f"{len(registros_anulados_semana)} registro(s) anulado(s) esta semana "
+            "(visibles en el selector de detalle)."
+        )
+
+    if registros_semana:
+        opciones_detalle = {}
+        for r in registros_semana:
+            marca = " [Anulado]" if getattr(r, "anulado", False) else ""
+            clave = (
+                f"{r.id}{marca} — {formato_fecha(r.fecha)} "
+                f"{r.hora.strftime('%H:%M') if r.hora else ''}"
+            ).strip()
+            opciones_detalle[clave] = r
         etiqueta_sel = st.selectbox(
             "Ver detalle de un registro",
             ["—"] + list(opciones_detalle.keys()),
@@ -364,5 +465,5 @@ def render_pagina_registro_servicio(
         )
         if etiqueta_sel != "—":
             _render_detalle(servicio, opciones_detalle[etiqueta_sel])
-    else:
-        empty_state(mensaje_vacio_historial, icon="📅")
+    elif not registros_activos:
+        pass  # empty_state ya mostrado si no hay semana

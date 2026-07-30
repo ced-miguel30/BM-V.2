@@ -50,3 +50,10 @@ class RegistroDesayuno:
     hora: time | None = None
     # Detalle de origen por línea (aditivo; registros antiguos → lista vacía).
     lineas_detalle: list[LineaDetalleOrigen] = field(default_factory=list)
+    # Fase 11A — soft-delete (aditivo; históricos → False / vacíos).
+    anulado: bool = False
+    fecha_anulacion: date | None = None
+    hora_anulacion: time | None = None
+    motivo_anulacion: str = ""
+    referencia_anulacion: str = ""
+    anulado_por: str = ""

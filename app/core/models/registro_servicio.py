@@ -83,3 +83,10 @@ class RegistroServicio:
     registros_recetas: list[RegistroRecetaServicio] = field(default_factory=list)
     hora: time | None = None
     lineas_detalle: list[LineaDetalleOrigen] = field(default_factory=list)
+    # Fase 11A — soft-delete (aditivo; históricos → False / vacíos).
+    anulado: bool = False
+    fecha_anulacion: date | None = None
+    hora_anulacion: time | None = None
+    motivo_anulacion: str = ""
+    referencia_anulacion: str = ""
+    anulado_por: str = ""

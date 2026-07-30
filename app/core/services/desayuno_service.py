@@ -533,6 +533,7 @@ def registros_exportables(inicio: date, hasta: datetime) -> list[RegistroExporta
             resumen=[
                 ("Huéspedes", str(d.num_huespedes)),
                 ("Coste total", repo.formato_precio(d.coste_total)),
+                ("Estado", "Anulado" if getattr(d, "anulado", False) else "Activo"),
             ],
         ))
     return resultado

@@ -178,6 +178,18 @@ def appdata_to_dict(data: AppData) -> dict:
                     for rr in d.registros_recetas
                 ],
                 "lineas_detalle": [_detalle_to_dict(det) for det in d.lineas_detalle],
+                "anulado": bool(getattr(d, "anulado", False)),
+                "fecha_anulacion": (
+                    d.fecha_anulacion.isoformat()
+                    if getattr(d, "fecha_anulacion", None) else None
+                ),
+                "hora_anulacion": (
+                    d.hora_anulacion.isoformat()
+                    if getattr(d, "hora_anulacion", None) else None
+                ),
+                "motivo_anulacion": getattr(d, "motivo_anulacion", "") or "",
+                "referencia_anulacion": getattr(d, "referencia_anulacion", "") or "",
+                "anulado_por": getattr(d, "anulado_por", "") or "",
             }
             for d in data.desayunos
         ],
@@ -220,6 +232,18 @@ def appdata_to_dict(data: AppData) -> dict:
                     for rr in r.registros_recetas
                 ],
                 "lineas_detalle": [_detalle_to_dict(det) for det in r.lineas_detalle],
+                "anulado": bool(getattr(r, "anulado", False)),
+                "fecha_anulacion": (
+                    r.fecha_anulacion.isoformat()
+                    if getattr(r, "fecha_anulacion", None) else None
+                ),
+                "hora_anulacion": (
+                    r.hora_anulacion.isoformat()
+                    if getattr(r, "hora_anulacion", None) else None
+                ),
+                "motivo_anulacion": getattr(r, "motivo_anulacion", "") or "",
+                "referencia_anulacion": getattr(r, "referencia_anulacion", "") or "",
+                "anulado_por": getattr(r, "anulado_por", "") or "",
             }
             for r in data.registros_servicio
         ],
@@ -390,6 +414,12 @@ def dict_to_appdata(payload: dict) -> AppData:
                 lineas_detalle=[
                     _detalle_from_dict(det) for det in d.get("lineas_detalle", [])
                 ],
+                anulado=bool(d.get("anulado", False)),
+                fecha_anulacion=_parse_date(d.get("fecha_anulacion")),
+                hora_anulacion=_parse_time(d.get("hora_anulacion")),
+                motivo_anulacion=d.get("motivo_anulacion", "") or "",
+                referencia_anulacion=d.get("referencia_anulacion", "") or "",
+                anulado_por=d.get("anulado_por", "") or "",
             )
             for d in payload.get("desayunos", [])
         ],
@@ -437,6 +467,12 @@ def dict_to_appdata(payload: dict) -> AppData:
                 lineas_detalle=[
                     _detalle_from_dict(det) for det in r.get("lineas_detalle", [])
                 ],
+                anulado=bool(r.get("anulado", False)),
+                fecha_anulacion=_parse_date(r.get("fecha_anulacion")),
+                hora_anulacion=_parse_time(r.get("hora_anulacion")),
+                motivo_anulacion=r.get("motivo_anulacion", "") or "",
+                referencia_anulacion=r.get("referencia_anulacion", "") or "",
+                anulado_por=r.get("anulado_por", "") or "",
             )
             for r in payload.get("registros_servicio", [])
         ],
