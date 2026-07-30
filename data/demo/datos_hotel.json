@@ -92,7 +92,8 @@
           "tipo_servicio": "desayuno",
           "categoria_receta": "desayuno",
           "es_bebida_snapshot": false,
-          "categoria_receta_snapshot": "desayuno"
+          "categoria_receta_snapshot": "desayuno",
+          "consumos_lote": []
         },
         {
           "origen": "ingrediente_receta",
@@ -104,7 +105,8 @@
           "tipo_servicio": "desayuno",
           "categoria_receta": "desayuno",
           "es_bebida_snapshot": false,
-          "categoria_receta_snapshot": "desayuno"
+          "categoria_receta_snapshot": "desayuno",
+          "consumos_lote": []
         }
       ]
     }
@@ -198,7 +200,7 @@
       "tipo": "desayuno_no_registrado",
       "titulo": "Desayuno de hoy no registrado",
       "mensaje": "Aún no se ha registrado el consumo del desayuno de hoy.",
-      "fecha": "2026-07-27",
+      "fecha": "2026-07-30",
       "activa": true,
       "producto_id": null
     }

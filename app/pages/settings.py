@@ -216,6 +216,22 @@ def _render_diagnostico_tecnico() -> None:
         _render_lista_incidencias("Posibles duplicidades", resumen.posibles_duplicidades)
         _render_lista_incidencias("Otras incidencias", resumen.otras_incidencias)
 
+    st.markdown("##### Trazabilidad por lote (Fase 10.5)")
+    st.metric(
+        "Líneas con trazabilidad por lote",
+        getattr(resumen, "num_lineas_con_trazabilidad_lote", 0),
+    )
+    st.caption(getattr(resumen, "nota_trazabilidad_lote", ""))
+    with st.expander("Trazabilidad por lote — detalle", expanded=False):
+        _render_lista_incidencias(
+            "Sin trazabilidad histórica por lote",
+            getattr(resumen, "sin_trazabilidad_historica_lote", []),
+        )
+        _render_lista_incidencias(
+            "Incidencias de trazabilidad por lote",
+            getattr(resumen, "incidencias_trazabilidad_lote", []),
+        )
+
     st.markdown("##### Formato por unidad (comprobación)")
     try:
         from app.core.services.unidad_service import ejemplos_formato_unidades

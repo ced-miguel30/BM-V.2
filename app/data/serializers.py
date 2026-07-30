@@ -41,6 +41,7 @@ from app.core.models import (
     UnidadProducto,
     Usuario,
 )
+from app.core.models.registro_servicio import ConsumoLoteDetalle
 
 
 class _Encoder(json.JSONEncoder):
@@ -64,6 +65,24 @@ def _parse_time(value: str | None) -> time | None:
     return time.fromisoformat(value) if value else None
 
 
+def _consumo_lote_to_dict(c: ConsumoLoteDetalle) -> dict:
+    return {
+        "lote_id": c.lote_id,
+        "producto_id": c.producto_id,
+        "cantidad": c.cantidad,
+        "coste": c.coste,
+    }
+
+
+def _consumo_lote_from_dict(raw: dict) -> ConsumoLoteDetalle:
+    return ConsumoLoteDetalle(
+        lote_id=raw.get("lote_id", ""),
+        producto_id=raw.get("producto_id", ""),
+        cantidad=float(raw.get("cantidad", 0.0)),
+        coste=float(raw.get("coste", 0.0)),
+    )
+
+
 def _detalle_to_dict(det: LineaDetalleOrigen) -> dict:
     return {
         "origen": det.origen,
@@ -76,6 +95,7 @@ def _detalle_to_dict(det: LineaDetalleOrigen) -> dict:
         "categoria_receta": det.categoria_receta,
         "es_bebida_snapshot": det.es_bebida_snapshot,
         "categoria_receta_snapshot": det.categoria_receta_snapshot,
+        "consumos_lote": [_consumo_lote_to_dict(c) for c in det.consumos_lote],
     }
 
 
@@ -91,6 +111,9 @@ def _detalle_from_dict(raw: dict) -> LineaDetalleOrigen:
         categoria_receta=raw.get("categoria_receta"),
         es_bebida_snapshot=raw.get("es_bebida_snapshot"),
         categoria_receta_snapshot=raw.get("categoria_receta_snapshot"),
+        consumos_lote=[
+            _consumo_lote_from_dict(c) for c in raw.get("consumos_lote", [])
+        ],
     )
 
 

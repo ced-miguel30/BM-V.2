@@ -5,6 +5,16 @@ from datetime import date, time
 
 
 @dataclass
+class ConsumoLoteDetalle:
+    """Fragmento de descuento FIFO atribuido a una línea de detalle (Fase 10.5)."""
+
+    lote_id: str
+    producto_id: str
+    cantidad: float
+    coste: float
+
+
+@dataclass
 class LineaDetalleOrigen:
     """Consumo individual con origen explícito para análisis futuros.
 
@@ -24,6 +34,8 @@ class LineaDetalleOrigen:
     # Snapshots al registrar (aditivos; antiguos → None → fallback catálogo).
     es_bebida_snapshot: bool | None = None
     categoria_receta_snapshot: str | None = None
+    # Desglose FIFO por lote (aditivo; históricos → []).
+    consumos_lote: list[ConsumoLoteDetalle] = field(default_factory=list)
 
 
 @dataclass

@@ -28,8 +28,10 @@ from app.core.services.cesta_service import (
     etiqueta_linea_suelta,
 )
 from app.core.services.detalle_origen_service import (
+    asignar_consumos_lote,
     asignar_costes_proporcionales,
     construir_lineas_detalle,
+    validar_consumos_lote,
 )
 from app.core.services.excel_bloques import RegistroExportable
 from app.core.services.exportacion_semanal_service import ConfiguracionExportacionModulo
@@ -375,7 +377,8 @@ class ServicioRegistro:
         n_regs = len(data.registros_servicio)
         n_actividades = len(data.actividades)
         try:
-            costes_agregados = aplicar_descuento_atomico(data, demandas)
+            resultado_desc = aplicar_descuento_atomico(data, demandas)
+            costes_agregados = resultado_desc.costes
             lineas = [
                 LineaServicio(pid, demandas[pid], costes_agregados.get(pid, 0.0), extras[pid])
                 for pid in demandas
@@ -390,6 +393,10 @@ class ServicioRegistro:
                 data=data,
             )
             asignar_costes_proporcionales(lineas_detalle, costes_agregados, cantidades_agregadas)
+            asignar_consumos_lote(lineas_detalle, resultado_desc.movimientos)
+            validar_consumos_lote(
+                lineas_detalle, resultado_desc.movimientos, costes_agregados, data,
+            )
 
             registros_recetas = self._construir_registros_recetas(data, grupos)
             coste_total = round(sum(l.coste for l in lineas), 2)

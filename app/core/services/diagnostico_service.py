@@ -38,6 +38,15 @@ class ResumenDiagnostico:
     registros_sin_snapshots: list[str] = field(default_factory=list)
     posibles_duplicidades: list[str] = field(default_factory=list)
     otras_incidencias: list[str] = field(default_factory=list)
+    # Fase 10.5 — trazabilidad por lote (solo lectura).
+    num_lineas_con_trazabilidad_lote: int = 0
+    sin_trazabilidad_historica_lote: list[str] = field(default_factory=list)
+    incidencias_trazabilidad_lote: list[str] = field(default_factory=list)
+    nota_trazabilidad_lote: str = (
+        "Limitación: sin versión de registro, una línea con consumos_lote vacío "
+        "se etiqueta como «Sin trazabilidad histórica por lote» (no corrupción). "
+        "El alta nueva exige consumos_lote completo antes de persistir."
+    )
 
 
 def _ids_duplicados(ids: list[str], etiqueta: str) -> list[str]:
@@ -217,6 +226,66 @@ def generar_diagnostico(data: AppData) -> ResumenDiagnostico:
     if len(nombres_prod) != len(set(nombres_prod)):
         otras.append("Hay nombres de producto repetidos (mismo nombre, distinto id).")
 
+    num_con_traza = 0
+    sin_traza_hist: list[str] = []
+    incid_traza: list[str] = []
+    lotes_map = {l.id: l for l in data.lotes}
+
+    def _revisar_detalle(etiqueta: str, det) -> None:
+        nonlocal num_con_traza
+        if det.cantidad <= 0:
+            return
+        consumos = getattr(det, "consumos_lote", None) or []
+        if not consumos:
+            sin_traza_hist.append(
+                f"{etiqueta}: Sin trazabilidad histórica por lote "
+                f"(producto {det.producto_id}, cant. {det.cantidad:g})"
+            )
+            return
+        num_con_traza += 1
+        suma_cant = round(sum(c.cantidad for c in consumos), 4)
+        suma_coste = round(sum(c.coste for c in consumos), 2)
+        if abs(suma_cant - round(det.cantidad, 4)) > 1e-9:
+            incid_traza.append(
+                f"{etiqueta}: Incidencia: trazabilidad por lote incompleta "
+                f"(cantidad {suma_cant:g} ≠ {det.cantidad:g})"
+            )
+        if suma_coste != round(det.coste, 2):
+            incid_traza.append(
+                f"{etiqueta}: Incidencia: trazabilidad por lote incompleta "
+                f"(coste {suma_coste:.2f} ≠ {det.coste:.2f})"
+            )
+        for c in consumos:
+            if not c.lote_id:
+                incid_traza.append(
+                    f"{etiqueta}: Incidencia: trazabilidad por lote incompleta "
+                    "(lote_id vacío)"
+                )
+                continue
+            if c.producto_id != det.producto_id:
+                incid_traza.append(
+                    f"{etiqueta}: Incidencia: trazabilidad por lote incompleta "
+                    f"(producto fragmento {c.producto_id} ≠ {det.producto_id})"
+                )
+            lote = lotes_map.get(c.lote_id)
+            if lote is None:
+                incid_traza.append(
+                    f"{etiqueta}: Incidencia: trazabilidad por lote incompleta "
+                    f"(lote inexistente {c.lote_id})"
+                )
+            elif lote.producto_id != c.producto_id:
+                incid_traza.append(
+                    f"{etiqueta}: Incidencia: trazabilidad por lote incompleta "
+                    f"(lote {c.lote_id} es {lote.producto_id}, no {c.producto_id})"
+                )
+
+    for desayuno in data.desayunos:
+        for det in desayuno.lineas_detalle:
+            _revisar_detalle(f"Desayuno {desayuno.id}", det)
+    for reg in data.registros_servicio:
+        for det in reg.lineas_detalle:
+            _revisar_detalle(f"Registro {reg.id} ({reg.tipo_servicio})", det)
+
     num_detalle = sum(len(d.lineas_detalle) for d in data.desayunos) + sum(
         len(r.lineas_detalle) for r in data.registros_servicio
     )
@@ -248,4 +317,7 @@ def generar_diagnostico(data: AppData) -> ResumenDiagnostico:
         registros_sin_snapshots=sin_snapshots,
         posibles_duplicidades=duplicidades,
         otras_incidencias=otras,
+        num_lineas_con_trazabilidad_lote=num_con_traza,
+        sin_trazabilidad_historica_lote=sin_traza_hist,
+        incidencias_trazabilidad_lote=incid_traza,
     )

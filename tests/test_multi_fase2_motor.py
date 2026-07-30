@@ -77,7 +77,7 @@ class TestInventoryBatchFifo(unittest.TestCase):
 
     def test_descuenta_primero_el_lote_mas_antiguo(self) -> None:
         data = _datos_stock()
-        coste = descontar_lotes(data, "p01", 0.5)
+        coste = descontar_lotes(data, "p01", 0.5).coste
         # 0.5 de l01 a 10€/ud → 5.0
         self.assertEqual(coste, 5.0)
         self.assertEqual(data.lotes[0].cantidad_restante, 0.5)

@@ -131,20 +131,42 @@ def planificar_descuento(
     return PlanDescuentoStock(lineas=lineas, ok=not deficits, deficits=deficits)
 
 
+@dataclass
+class MovimientoDescuentoLote:
+    """Trozo real descontado de un lote en el bucle FIFO (Fase 10.5)."""
+
+    lote_id: str
+    producto_id: str
+    cantidad: float
+    coste: float
+
+
+@dataclass
+class ResultadoDescuentoLotes:
+    coste: float
+    movimientos: list[MovimientoDescuentoLote] = field(default_factory=list)
+
+
+@dataclass
+class ResultadoDescuentoAtomico:
+    costes: dict[str, float] = field(default_factory=dict)
+    movimientos: list[MovimientoDescuentoLote] = field(default_factory=list)
+
+
 def descontar_lotes(
     data: AppData,
     producto_id: str,
     cantidad: float,
     *,
     permitir_negativo: bool = False,
-) -> float:
-    """Descuenta `cantidad` de los lotes FIFO y devuelve el coste.
+) -> ResultadoDescuentoLotes:
+    """Descuenta `cantidad` de los lotes FIFO; devuelve coste y movimientos reales.
 
     Si no hay stock suficiente y `permitir_negativo` es False, no muta nada
     de este producto y lanza ValueError (Fase 9).
     """
     if cantidad <= 0:
-        return 0.0
+        return ResultadoDescuentoLotes(coste=0.0, movimientos=[])
 
     if not permitir_negativo:
         disponible = stock_disponible(data, producto_id)
@@ -156,31 +178,55 @@ def descontar_lotes(
 
     restante = cantidad
     coste = 0.0
+    movimientos: list[MovimientoDescuentoLote] = []
     ultimo_lote_tocado: LoteStock | None = None
     for lote in lotes_ordenados_consumo(data, producto_id):
         if restante <= 0:
             break
         tomar = min(restante, lote.cantidad_restante)
-        coste += tomar * coste_unidad_lote(lote)
+        coste_trozo = tomar * coste_unidad_lote(lote)
+        coste += coste_trozo
         lote.cantidad_restante = round(lote.cantidad_restante - tomar, 4)
         restante -= tomar
         ultimo_lote_tocado = lote
+        movimientos.append(MovimientoDescuentoLote(
+            lote_id=lote.id,
+            producto_id=producto_id,
+            cantidad=round(tomar, 4),
+            coste=round(coste_trozo, 2),
+        ))
 
     if restante > 0 and permitir_negativo:
         lote_destino = ultimo_lote_tocado or _ultimo_lote_producto(data, producto_id)
         if lote_destino:
+            # Misma semántica previa: el restante negativo no suma coste.
             lote_destino.cantidad_restante = round(
                 lote_destino.cantidad_restante - restante, 4,
             )
+            movimientos.append(MovimientoDescuentoLote(
+                lote_id=lote_destino.id,
+                producto_id=producto_id,
+                cantidad=round(restante, 4),
+                coste=0.0,
+            ))
 
-    return round(coste, 2)
+    # Reconciliar coste agregado vs suma de trozos (residuo en el último).
+    coste_total = round(coste, 2)
+    if movimientos:
+        suma_trozos = round(sum(m.coste for m in movimientos), 2)
+        if suma_trozos != coste_total:
+            movimientos[-1].coste = round(
+                movimientos[-1].coste + (coste_total - suma_trozos), 2,
+            )
+
+    return ResultadoDescuentoLotes(coste=coste_total, movimientos=movimientos)
 
 
 def aplicar_descuento_atomico(
     data: AppData,
     demandas: dict[str, float],
-) -> dict[str, float]:
-    """Descuenta todos los productos o ninguno. Devuelve costes por producto_id.
+) -> ResultadoDescuentoAtomico:
+    """Descuenta todos los productos o ninguno. Devuelve costes y movimientos.
 
     Requiere stock suficiente (sin negativos). Si falla a mitad, restaura lotes.
     """
@@ -190,14 +236,17 @@ def aplicar_descuento_atomico(
 
     snap = snapshot_cantidades_restantes(data)
     costes: dict[str, float] = {}
+    movimientos: list[MovimientoDescuentoLote] = []
     try:
         for producto_id, cantidad in demandas.items():
             if cantidad <= 0:
                 continue
-            costes[producto_id] = descontar_lotes(
+            resultado = descontar_lotes(
                 data, producto_id, cantidad, permitir_negativo=False,
             )
+            costes[producto_id] = resultado.coste
+            movimientos.extend(resultado.movimientos)
     except Exception:
         restaurar_cantidades_restantes(data, snap)
         raise
-    return costes
+    return ResultadoDescuentoAtomico(costes=costes, movimientos=movimientos)

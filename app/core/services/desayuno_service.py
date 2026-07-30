@@ -32,8 +32,10 @@ from app.core.services.cesta_service import (
     etiqueta_linea_suelta,
 )
 from app.core.services.detalle_origen_service import (
+    asignar_consumos_lote,
     asignar_costes_proporcionales,
     construir_lineas_detalle,
+    validar_consumos_lote,
 )
 from app.core.services.excel_bloques import RegistroExportable
 from app.core.services.exportacion_semanal_service import ConfiguracionExportacionModulo
@@ -122,7 +124,9 @@ def _registrar_actividad(data: AppData, accion: str, detalle: str) -> None:
 
 def _descontar_fifo(data: AppData, producto_id: str, cantidad: float, *, permitir_negativo: bool = False) -> float:
     """Alias interno: el comportamiento sigue siendo FIFO por fecha_compra."""
-    return descontar_lotes(data, producto_id, cantidad, permitir_negativo=permitir_negativo)
+    return descontar_lotes(
+        data, producto_id, cantidad, permitir_negativo=permitir_negativo,
+    ).coste
 
 
 def get_cesta() -> list[LineaCesta]:
@@ -386,7 +390,8 @@ def registrar_desayuno(
     n_desayunos = len(data.desayunos)
     n_actividades = len(data.actividades)
     try:
-        costes_agregados = aplicar_descuento_atomico(data, demandas)
+        resultado_desc = aplicar_descuento_atomico(data, demandas)
+        costes_agregados = resultado_desc.costes
         lineas = [
             LineaDesayuno(pid, demandas[pid], costes_agregados.get(pid, 0.0), extras[pid])
             for pid in demandas
@@ -401,6 +406,10 @@ def registrar_desayuno(
             data=data,
         )
         asignar_costes_proporcionales(lineas_detalle, costes_agregados, cantidades_agregadas)
+        asignar_consumos_lote(lineas_detalle, resultado_desc.movimientos)
+        validar_consumos_lote(
+            lineas_detalle, resultado_desc.movimientos, costes_agregados, data,
+        )
 
         registros_recetas = _construir_registros_recetas(data, grupos)
         coste_total = round(sum(l.coste for l in lineas), 2)
