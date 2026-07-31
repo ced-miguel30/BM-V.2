@@ -39,6 +39,14 @@ BUCKET_SIN_DESGLOSE = "sin_desglose_historico"
 BUCKET_COMIDA = "comida"
 BUCKET_CENA = "cena"
 
+# Etiquetas UI de origen de bebida → bucket interno (Análisis Consumo/Costes).
+MAPA_ORIGEN_BEBIDA: dict[str, str] = {
+    "Desayuno": BUCKET_BEBIDA_EN_DESAYUNO,
+    "Comida": BUCKET_BEBIDA_EN_COMIDA,
+    "Cena": BUCKET_BEBIDA_EN_CENA,
+    "Registro independiente": BUCKET_BEBIDA_INDEPENDIENTE,
+}
+
 ORIGEN_REGISTRO = {
     TipoServicio.DESAYUNO.value: "registro_desayuno",
     TipoServicio.COMIDA.value: "registro_comida",
@@ -737,6 +745,7 @@ __all__ = [
     "EventoReceta",
     "FAMILIA_PRODUCTO",
     "FAMILIA_RECETA",
+    "MAPA_ORIGEN_BEBIDA",
     "TEXTO_EXPLICACION_CALCULO",
     "coherencia_detalle_vs_coste_total",
     "coste_bucket_bebida",

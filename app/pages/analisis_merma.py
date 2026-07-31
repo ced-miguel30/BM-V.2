@@ -8,16 +8,16 @@ import pandas as pd
 import streamlit as st
 
 from app.core.models import MotivoMerma, OrigenServicioMerma, TURNO_MERMA_LABEL, TurnoMerma
-from app.core.services import analitica_consumo_service as analitica
 from app.core.services import merma_analisis_service as merma_an
 from app.core.services.data_service import get_repository
-from app.core.services.exportacion_semanal_service import limite_semana
 from app.core.services.formatting import formato_fecha
 from app.ui.charts import chart_barras_horizontales, chart_lineas_categorias
 from app.ui.components import (
     chart_placeholder,
     empty_state,
     metric_card,
+    periodo_filtro_analisis,
+    render_explicacion_calculo,
     render_sub_tabs,
     section_divider,
 )
@@ -42,30 +42,6 @@ _PESTANA_A_AMBITO = {
 }
 
 _SIN_TURNO = "__sin_turno__"
-
-
-def _periodo_simple(key: str) -> tuple[date, date] | None:
-    hoy = date.today()
-    inicio_mes = hoy.replace(day=1)
-    op = st.radio(
-        "Periodo",
-        ["Esta semana", "Este mes", "Rango personalizado"],
-        horizontal=True,
-        key=f"{key}_periodo",
-    )
-    if op == "Esta semana":
-        return limite_semana(hoy)[0], hoy
-    if op == "Este mes":
-        return inicio_mes, hoy
-    c1, c2 = st.columns(2)
-    with c1:
-        desde = st.date_input("Desde", value=inicio_mes, key=f"{key}_desde")
-    with c2:
-        hasta = st.date_input("Hasta", value=hoy, max_value=hoy, key=f"{key}_hasta")
-    if desde > hasta:
-        st.error("Revise las fechas.")
-        return None
-    return desde, hasta
 
 
 def _tabla(filas: list[dict], columnas: list[str]) -> None:
@@ -300,10 +276,9 @@ def render_gestor_merma() -> None:
         "Agrupación por el servicio indicado al registrar la merma. "
         "«Sin desglose histórico» son líneas antiguas sin `tipo_servicio_snapshot`."
     )
-    with st.expander("Explicación del cálculo", expanded=False):
-        st.markdown(analitica.TEXTO_EXPLICACION_CALCULO)
+    render_explicacion_calculo()
 
-    periodo = _periodo_simple("merma")
+    periodo = periodo_filtro_analisis("merma")
     if periodo is None:
         return
     desde, hasta = periodo

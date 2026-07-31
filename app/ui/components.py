@@ -241,3 +241,79 @@ def aviso_servicios_pendientes(*, key_prefix: str = "aviso_serv") -> None:
         if st.button("Ir a Recetas", key=f"{key_prefix}_recetas", use_container_width=True):
             st.session_state["nav_section_pending"] = "Recetas"
             st.rerun()
+
+
+def periodo_filtro_analisis(
+    key: str,
+    *,
+    mensaje_error: str = "Revise las fechas.",
+) -> tuple | None:
+    """Periodo compartido de Análisis: semana / mes / rango. Sin cambiar el contrato del Dashboard."""
+    from datetime import date
+
+    from app.core.services.exportacion_semanal_service import limite_semana
+
+    hoy = date.today()
+    inicio_mes = hoy.replace(day=1)
+    periodo_sel = st.radio(
+        "Periodo",
+        ["Esta semana", "Este mes", "Rango personalizado"],
+        horizontal=True,
+        key=f"{key}_periodo",
+    )
+    if periodo_sel == "Esta semana":
+        return limite_semana(hoy)[0], hoy
+    if periodo_sel == "Este mes":
+        return inicio_mes, hoy
+    c1, c2 = st.columns(2)
+    with c1:
+        desde = st.date_input("Desde", value=inicio_mes, key=f"{key}_desde")
+    with c2:
+        hasta = st.date_input("Hasta", value=hoy, max_value=hoy, key=f"{key}_hasta")
+    if desde > hasta:
+        st.error(mensaje_error)
+        return None
+    return desde, hasta
+
+
+def render_explicacion_calculo() -> None:
+    """Expander común de Análisis (texto canónico en analitica_consumo_service)."""
+    from app.core.services import analitica_consumo_service as analitica
+
+    with st.expander("Explicación del cálculo", expanded=False):
+        st.markdown(analitica.TEXTO_EXPLICACION_CALCULO)
+
+
+def ir_analisis(
+    subtab: str = "Consumo",
+    *,
+    consumo_pestana: str | None = None,
+    costes_pestana: str | None = None,
+    merma_pestana: str | None = None,
+    _st=None,
+) -> None:
+    """Deep-link a Análisis (aplicar nav_section_pending antes del radio del sidebar)."""
+    ui = _st if _st is not None else st
+    ui.session_state["nav_section_pending"] = "Análisis"
+    ui.session_state["analisis_subtab"] = subtab
+    if consumo_pestana:
+        ui.session_state["consumo_pestana"] = consumo_pestana
+    if costes_pestana:
+        ui.session_state["costes_pestana"] = costes_pestana
+    if merma_pestana:
+        ui.session_state["merma_pestana"] = merma_pestana
+    ui.rerun()
+
+
+def ir_stock(subtab: str = "Inventario", *, _st=None) -> None:
+    ui = _st if _st is not None else st
+    ui.session_state["nav_section_pending"] = "Stock"
+    ui.session_state["stock_subtab"] = subtab
+    ui.rerun()
+
+
+def ir_registros(subtab: str = "Desayuno", *, _st=None) -> None:
+    ui = _st if _st is not None else st
+    ui.session_state["nav_section_pending"] = "Registros"
+    ui.session_state["registros_subtab"] = subtab
+    ui.rerun()

@@ -4,7 +4,7 @@ from datetime import date, timedelta
 
 from app.core.models import MotivoMerma, TipoAlerta
 from app.core.services.data_service import get_repository
-from app.core.services.text_search import contiene_texto, empieza_por, normalizar_texto
+from app.core.services.text_search import normalizar_texto
 
 
 PREGUNTAS_SUGERIDAS = [
@@ -169,22 +169,6 @@ def responder_pregunta(pregunta_id: str) -> str:
         return "Prioridades:\n\n" + "\n".join(f"- {p}" for p in puntos)
 
     return "No reconozco la pregunta. Use una de las preguntas sugeridas."
-
-
-def opciones_preguntas_bi() -> list[dict]:
-    return [{"id": pid, "label": pregunta} for pid, pregunta in PREGUNTAS_SUGERIDAS]
-
-
-def sugerencias_preguntas(texto: str) -> list[tuple[str, str]]:
-    texto = texto.strip()
-    if not texto:
-        return []
-    resultado = []
-    for pid, pregunta in PREGUNTAS_SUGERIDAS:
-        limpia = pregunta.lstrip("¿").strip()
-        if empieza_por(limpia, texto) or contiene_texto(pregunta, texto):
-            resultado.append((pid, pregunta))
-    return resultado
 
 
 def buscar_pregunta(texto: str) -> str | None:

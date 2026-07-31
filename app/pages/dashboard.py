@@ -19,6 +19,9 @@ from app.ui.components import (
     badge_info,
     badge_warning,
     empty_state,
+    ir_analisis,
+    ir_registros,
+    ir_stock,
     metric_card,
     page_header,
     section_divider,
@@ -41,31 +44,22 @@ def _ir_analisis(
     costes_pestana: str | None = None,
     merma_pestana: str | None = None,
 ) -> None:
-    """Deep-link a Análisis (pestaña + subpestaña del gestor)."""
-    # No tocar nav_section aquí: el radio del sidebar ya está instanciado.
-    # Se aplica en render_sidebar() antes de crear el widget.
-    st.session_state["nav_section_pending"] = "Análisis"
-    st.session_state["analisis_subtab"] = subtab
-    if consumo_pestana:
-        st.session_state["consumo_pestana"] = consumo_pestana
-    if costes_pestana:
-        st.session_state["costes_pestana"] = costes_pestana
-    if merma_pestana:
-        st.session_state["merma_pestana"] = merma_pestana
-    st.rerun()
+    """Compatibilidad tests / llamadas internas → helper compartido."""
+    ir_analisis(
+        subtab,
+        consumo_pestana=consumo_pestana,
+        costes_pestana=costes_pestana,
+        merma_pestana=merma_pestana,
+        _st=st,
+    )
 
 
 def _ir_stock(subtab: str = "Inventario") -> None:
-    st.session_state["nav_section_pending"] = "Stock"
-    st.session_state["stock_subtab"] = subtab
-    st.rerun()
+    ir_stock(subtab, _st=st)
 
 
 def _ir_registros(subtab: str = "Desayuno") -> None:
-    st.session_state["nav_section_pending"] = "Registros"
-    st.session_state["registros_subtab"] = subtab
-    st.rerun()
-
+    ir_registros(subtab, _st=st)
 
 def _tarjeta_categoria(
     titulo: str,

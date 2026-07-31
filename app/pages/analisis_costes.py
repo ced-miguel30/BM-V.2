@@ -12,7 +12,6 @@ from app.core.services import analitica_consumo_service as analitica
 from app.core.services import costes_service
 from app.core.services import dashboard_service as dash
 from app.core.services.data_service import get_repository
-from app.core.services.exportacion_semanal_service import limite_semana
 from app.core.services.formatting import formato_fecha
 from app.ui.charts import (
     chart_barras_horizontales,
@@ -23,33 +22,11 @@ from app.ui.components import (
     chart_placeholder,
     empty_state,
     metric_card,
+    periodo_filtro_analisis,
+    render_explicacion_calculo,
     render_sub_tabs,
     section_divider,
 )
-
-
-def _periodo_simple(key: str) -> tuple[date, date] | None:
-    hoy = date.today()
-    inicio_mes = hoy.replace(day=1)
-    op = st.radio(
-        "Periodo",
-        ["Esta semana", "Este mes", "Rango personalizado"],
-        horizontal=True,
-        key=f"{key}_periodo",
-    )
-    if op == "Esta semana":
-        return limite_semana(hoy)[0], hoy
-    if op == "Este mes":
-        return inicio_mes, hoy
-    c1, c2 = st.columns(2)
-    with c1:
-        desde = st.date_input("Desde", value=inicio_mes, key=f"{key}_desde")
-    with c2:
-        hasta = st.date_input("Hasta", value=hoy, max_value=hoy, key=f"{key}_hasta")
-    if desde > hasta:
-        st.error("Revise las fechas.")
-        return None
-    return desde, hasta
 
 
 def _tabla(filas: list[dict], columnas: list[str]) -> None:
@@ -334,12 +311,7 @@ def _render_bebidas(desde: date, hasta: date) -> None:
         ["Todas", "Desayuno", "Comida", "Cena", "Registro independiente"],
         key="costes_bebidas_sub",
     )
-    mapa = {
-        "Desayuno": analitica.BUCKET_BEBIDA_EN_DESAYUNO,
-        "Comida": analitica.BUCKET_BEBIDA_EN_COMIDA,
-        "Cena": analitica.BUCKET_BEBIDA_EN_CENA,
-        "Registro independiente": analitica.BUCKET_BEBIDA_INDEPENDIENTE,
-    }
+    mapa = analitica.MAPA_ORIGEN_BEBIDA
     if sub == "Todas":
         st.caption("Vista transversal de coste de bebidas (no es categoría Dashboard).")
         dist = [
@@ -438,10 +410,9 @@ def render_gestor_costes() -> None:
         "(solo para Consumo). Merma y expiración no se asignan a Desayuno/Comida/Cena "
         "sin vínculo fiable. Las métricas son monetarias."
     )
-    with st.expander("Explicación del cálculo", expanded=False):
-        st.markdown(analitica.TEXTO_EXPLICACION_CALCULO)
+    render_explicacion_calculo()
 
-    periodo = _periodo_simple("costes")
+    periodo = periodo_filtro_analisis("costes")
     if periodo is None:
         return
     desde, hasta = periodo
@@ -449,7 +420,6 @@ def render_gestor_costes() -> None:
 
     hist = analitica.resumen_historico_incompleto(desde, hasta)
     if hist["hay_aviso"]:
-        from app.core.services.data_service import get_repository
         repo = get_repository()
         st.warning(
             f"Histórico incompleto: {hist['n_sin_detalle']} registro(s) sin detalle "

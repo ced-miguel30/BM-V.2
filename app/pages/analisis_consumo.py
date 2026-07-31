@@ -18,35 +18,18 @@ from app.ui.components import (
     chart_placeholder,
     empty_state,
     metric_card,
+    periodo_filtro_analisis,
+    render_explicacion_calculo,
     render_sub_tabs,
     section_divider,
 )
 
 
-def _periodo_ui(key_prefix: str) -> tuple[date, date] | None:
-    hoy = date.today()
-    inicio_mes = hoy.replace(day=1)
-    opciones = ["Esta semana", "Este mes", "Rango personalizado"]
-    periodo_sel = st.radio(
-        "Periodo", opciones, horizontal=True, key=f"{key_prefix}_periodo",
-    )
-    if periodo_sel == "Esta semana":
-        return limite_semana(hoy)[0], hoy
-    if periodo_sel == "Este mes":
-        return inicio_mes, hoy
-    c1, c2 = st.columns(2)
-    with c1:
-        desde = st.date_input("Desde", value=inicio_mes, key=f"{key_prefix}_desde")
-    with c2:
-        hasta = st.date_input("Hasta", value=hoy, max_value=hoy, key=f"{key_prefix}_hasta")
-    if desde > hasta:
-        st.error("La fecha «Desde» no puede ser posterior a «Hasta».")
-        return None
-    return desde, hasta
-
-
 def _filtros_comunes(key_prefix: str) -> tuple[date, date, str, str] | None:
-    periodo = _periodo_ui(key_prefix)
+    periodo = periodo_filtro_analisis(
+        key_prefix,
+        mensaje_error="La fecha «Desde» no puede ser posterior a «Hasta».",
+    )
     if periodo is None:
         return None
     desde, hasta = periodo
@@ -346,12 +329,7 @@ def _render_bebidas(desde: date, hasta: date, busqueda: str, tipo: str) -> None:
         key="consumo_bebidas_origen",
     )
     kw = busqueda or None
-    bucket_map = {
-        "Desayuno": analitica.BUCKET_BEBIDA_EN_DESAYUNO,
-        "Comida": analitica.BUCKET_BEBIDA_EN_COMIDA,
-        "Cena": analitica.BUCKET_BEBIDA_EN_CENA,
-        "Registro independiente": analitica.BUCKET_BEBIDA_INDEPENDIENTE,
-    }
+    bucket_map = analitica.MAPA_ORIGEN_BEBIDA
     if sub == "Todas":
         st.caption("Análisis transversal: no suma como categoría del Dashboard.")
         coste = sum(
@@ -424,8 +402,7 @@ def render_gestor_consumo() -> None:
         "Análisis por servicio y origen. Los rankings «menos» solo incluyen "
         "elementos con consumo > 0. Las cantidades se agregan por unidad normalizada."
     )
-    with st.expander("Explicación del cálculo", expanded=False):
-        st.markdown(analitica.TEXTO_EXPLICACION_CALCULO)
+    render_explicacion_calculo()
 
     filtros = _filtros_comunes("consumo")
     if filtros is None:
