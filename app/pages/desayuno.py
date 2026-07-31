@@ -284,20 +284,129 @@ def _render_registro_merma() -> None:
 
     mermas = repo.mermas_ordenadas()
     mermas_semana = [m for m in mermas if m.fecha >= _lunes_semana_actual()]
-    if mermas_semana:
+    mermas_activas = [m for m in mermas_semana if not getattr(m, "anulado", False)]
+    mermas_anuladas = [m for m in mermas_semana if getattr(m, "anulado", False)]
+
+    if mermas_activas:
         st.dataframe(
             {
-                "Fecha": [formato_fecha(m.fecha) for m in mermas_semana],
-                "Hora": [m.hora.strftime("%H:%M") if m.hora else "—" for m in mermas_semana],
-                "Productos": [_lineas_merma_texto(repo, m) for m in mermas_semana],
-                "Coste": [repo.formato_precio(m.coste_total) for m in mermas_semana],
-                "Registrado por": [m.registrado_por for m in mermas_semana],
+                "Fecha": [formato_fecha(m.fecha) for m in mermas_activas],
+                "Hora": [m.hora.strftime("%H:%M") if m.hora else "—" for m in mermas_activas],
+                "Productos": [_lineas_merma_texto(repo, m) for m in mermas_activas],
+                "Coste": [repo.formato_precio(m.coste_total) for m in mermas_activas],
+                "Registrado por": [m.registrado_por for m in mermas_activas],
             },
             use_container_width=True,
             hide_index=True,
         )
-    else:
+    elif not mermas_semana:
         empty_state("No hay registros de merma esta semana.", icon="📋")
+    else:
+        st.caption("No hay mermas activas esta semana (solo anuladas).")
+
+    if mermas_anuladas:
+        st.caption(
+            f"{len(mermas_anuladas)} merma(s) anulada(s) esta semana "
+            "(visibles en el selector de detalle)."
+        )
+
+    if mermas_semana:
+        from app.core.services.anulacion_merma_service import (
+            anular_merma,
+            merma_esta_anulada,
+            puede_anular_merma,
+            previsualizar_anulacion_merma,
+        )
+        from app.core.storage.session_store import get_data
+
+        opciones = {}
+        for m in mermas_semana:
+            marca = " [Anulado]" if getattr(m, "anulado", False) else ""
+            clave = (
+                f"{m.id}{marca} — {formato_fecha(m.fecha)} "
+                f"{m.hora.strftime('%H:%M') if m.hora else ''}"
+            ).strip()
+            opciones[clave] = m
+        sel = st.selectbox(
+            "Ver detalle / anular merma",
+            ["—"] + list(opciones.keys()),
+            key="merma_detalle_sel",
+        )
+        if sel != "—":
+            merma = opciones[sel]
+            data = get_data()
+            if merma_esta_anulada(merma):
+                st.warning("Estado: **Anulado**")
+                st.caption(
+                    f"Fecha: {formato_fecha(merma.fecha_anulacion) if merma.fecha_anulacion else '—'} "
+                    f"{merma.hora_anulacion.strftime('%H:%M') if merma.hora_anulacion else ''} "
+                    f"· Por: {merma.anulado_por or '—'} "
+                    f"· Motivo: {merma.motivo_anulacion or '—'} "
+                    f"· Ref: {merma.referencia_anulacion or '—'}"
+                )
+            else:
+                st.caption("Estado: Activo")
+
+            st.dataframe(
+                {
+                    "Producto": [
+                        ln.producto_nombre_snapshot or repo.get_nombre_producto(ln.producto_id)
+                        for ln in merma.lineas
+                    ],
+                    "Lote": [ln.lote_id or "—" for ln in merma.lineas],
+                    "Cantidad": [ln.cantidad for ln in merma.lineas],
+                    "Motivo": [ln.motivo.value for ln in merma.lineas],
+                    "Coste": [ln.coste for ln in merma.lineas],
+                },
+                use_container_width=True,
+                hide_index=True,
+            )
+
+            st.markdown("##### Anulación")
+            puede = puede_anular_merma(data, merma)
+            preview = previsualizar_anulacion_merma(data, merma)
+            if preview.lineas:
+                st.dataframe(
+                    {
+                        "Producto": [ln.nombre for ln in preview.lineas],
+                        "Lote": [ln.lote_id for ln in preview.lineas],
+                        "Consumido": [ln.cantidad_consumida for ln in preview.lineas],
+                        "Restante actual": [ln.cantidad_restante_actual for ln in preview.lineas],
+                        "A devolver": [ln.cantidad_a_devolver for ln in preview.lineas],
+                        "Resultante": [ln.cantidad_resultante for ln in preview.lineas],
+                        "Ud": [ln.unidad for ln in preview.lineas],
+                    },
+                    use_container_width=True,
+                    hide_index=True,
+                )
+            if not puede.ok:
+                for motivo in puede.motivos_bloqueo:
+                    st.error(motivo)
+            else:
+                motivo_a = st.text_input(
+                    "Motivo de anulación (obligatorio)",
+                    key=f"merma_anul_motivo_{merma.id}",
+                )
+                ref_a = st.text_input(
+                    "Referencia (opcional)",
+                    key=f"merma_anul_ref_{merma.id}",
+                )
+                conf = st.checkbox(
+                    "Confirmo anular esta merma y reponer stock a los lotes originales",
+                    key=f"merma_anul_ok_{merma.id}",
+                )
+                if st.button(
+                    "Anular merma",
+                    type="primary",
+                    disabled=not conf or not (motivo_a or "").strip(),
+                    key=f"merma_anul_btn_{merma.id}",
+                ):
+                    resultado = anular_merma(data, merma.id, motivo_a, ref_a)
+                    if resultado.ok:
+                        st.success(resultado.mensaje)
+                        st.rerun()
+                    else:
+                        st.error(resultado.mensaje)
 
 
 def render_registro_desayuno() -> None:

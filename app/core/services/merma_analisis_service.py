@@ -81,6 +81,8 @@ def iter_lineas_merma(
     app = _data(data)
     resultado: list[LineaMermaAnalitica] = []
     for reg in app.mermas:
+        if getattr(reg, "anulado", False):
+            continue
         if desde is not None and reg.fecha < desde:
             continue
         if hasta is not None and reg.fecha > hasta:

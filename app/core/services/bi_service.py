@@ -46,6 +46,8 @@ def _merma_por_producto_mes() -> list[dict]:
     costes: dict[str, float] = {}
 
     for merma in repo.data.mermas:
+        if getattr(merma, "anulado", False):
+            continue
         if inicio <= merma.fecha <= hoy:
             for linea in merma.lineas:
                 if linea.motivo != MotivoMerma.EXPIRACION:

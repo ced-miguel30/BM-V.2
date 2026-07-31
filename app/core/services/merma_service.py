@@ -615,7 +615,10 @@ def registros_exportables(inicio: date, hasta: datetime) -> list[RegistroExporta
             usuario=m.registrado_por or None,
             columnas=columnas,
             filas=filas,
-            resumen=[("Coste total", repo.formato_precio(m.coste_total))],
+            resumen=[
+                ("Coste total", repo.formato_precio(m.coste_total)),
+                ("Estado", "Anulado" if getattr(m, "anulado", False) else "Activo"),
+            ],
         ))
     return resultado
 

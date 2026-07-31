@@ -42,3 +42,10 @@ class RegistroMerma:
     coste_total: float = 0.0
     registrado_por: str = ""
     hora: time | None = None
+    # Fase 11B — soft-delete (aditivo; históricos → False / vacíos).
+    anulado: bool = False
+    fecha_anulacion: date | None = None
+    hora_anulacion: time | None = None
+    motivo_anulacion: str = ""
+    referencia_anulacion: str = ""
+    anulado_por: str = ""

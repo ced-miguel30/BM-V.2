@@ -100,6 +100,8 @@ class DataRepository:
     def coste_merma_periodo(self, inicio: date, fin: date) -> float:
         total = 0.0
         for merma in self._data.mermas:
+            if getattr(merma, "anulado", False):
+                continue
             if inicio <= merma.fecha <= fin:
                 for linea in merma.lineas:
                     if linea.motivo != MotivoMerma.EXPIRACION:
@@ -109,6 +111,8 @@ class DataRepository:
     def coste_expiracion_periodo(self, inicio: date, fin: date) -> float:
         total = 0.0
         for merma in self._data.mermas:
+            if getattr(merma, "anulado", False):
+                continue
             if inicio <= merma.fecha <= fin:
                 for linea in merma.lineas:
                     if linea.motivo == MotivoMerma.EXPIRACION:

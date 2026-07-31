@@ -289,6 +289,18 @@ def appdata_to_dict(data: AppData) -> dict:
                     for ln in m.lineas
                 ],
                 "coste_total": m.coste_total, "registrado_por": m.registrado_por,
+                "anulado": bool(getattr(m, "anulado", False)),
+                "fecha_anulacion": (
+                    m.fecha_anulacion.isoformat()
+                    if getattr(m, "fecha_anulacion", None) else None
+                ),
+                "hora_anulacion": (
+                    m.hora_anulacion.isoformat()
+                    if getattr(m, "hora_anulacion", None) else None
+                ),
+                "motivo_anulacion": getattr(m, "motivo_anulacion", "") or "",
+                "referencia_anulacion": getattr(m, "referencia_anulacion", "") or "",
+                "anulado_por": getattr(m, "anulado_por", "") or "",
             }
             for m in data.mermas
         ],
@@ -523,6 +535,12 @@ def dict_to_appdata(payload: dict) -> AppData:
                 ],
                 m.get("coste_total", 0), m.get("registrado_por", ""),
                 hora=_parse_time(m.get("hora")),
+                anulado=bool(m.get("anulado", False)),
+                fecha_anulacion=_parse_date(m.get("fecha_anulacion")),
+                hora_anulacion=_parse_time(m.get("hora_anulacion")),
+                motivo_anulacion=m.get("motivo_anulacion", "") or "",
+                referencia_anulacion=m.get("referencia_anulacion", "") or "",
+                anulado_por=m.get("anulado_por", "") or "",
             )
             for m in payload.get("mermas", [])
         ],
