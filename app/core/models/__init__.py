@@ -13,6 +13,8 @@ from app.core.models.desayuno import (
 from app.core.models.enums import (
     CATEGORIA_RECETA_LABEL,
     CategoriaReceta,
+    ESTADO_ALERTA_LABEL,
+    EstadoAlerta,
     MotivoAjuste,
     MotivoMerma,
     ORIGEN_SERVICIO_MERMA_LABEL,
@@ -50,6 +52,8 @@ __all__ = [
     "CATEGORIA_RECETA_LABEL",
     "CategoriaReceta",
     "ConfiguracionHotel",
+    "ESTADO_ALERTA_LABEL",
+    "EstadoAlerta",
     "ExtraRecetaDesayuno",
     "ExtraRecetaServicio",
     "IngredienteReceta",

@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from datetime import date, datetime
 
-from app.core.models import AlertaOperativa, AppData, TipoAlerta
+from app.core.models import AlertaOperativa, AppData, EstadoAlerta, TipoAlerta
 from app.core.repositories.data_repository import DataRepository
 from app.core.storage.session_store import get_data, persist_data
 
@@ -18,6 +18,18 @@ _TIPOS_STOCK_AUTO = {
 }
 
 _TIPOS_DESAYUNO_AUTO = {TipoAlerta.DESAYUNO_NO_REGISTRADO}
+
+_TIPOS_AUTO = _TIPOS_STOCK_AUTO | _TIPOS_DESAYUNO_AUTO
+
+_ESTADOS_ABIERTOS = {
+    EstadoAlerta.PENDIENTE.value,
+    EstadoAlerta.REVISADA.value,
+}
+
+_ESTADOS_CIERRE = {
+    EstadoAlerta.RESUELTA.value,
+    EstadoAlerta.IGNORADA.value,
+}
 
 
 @dataclass
@@ -55,12 +67,20 @@ def _registrar_actividad(data: AppData, accion: str, detalle: str) -> None:
     data.actividades.insert(0, actividad)
 
 
+def _estado_alerta(alerta: AlertaOperativa) -> str:
+    valor = getattr(alerta, "estado", None) or EstadoAlerta.PENDIENTE.value
+    try:
+        return EstadoAlerta(valor).value
+    except ValueError:
+        return EstadoAlerta.PENDIENTE.value
+
+
 def _firma_alerta(alerta: AlertaOperativa) -> str:
     """Identificador estable para recordar alertas automáticas descartadas."""
     if alerta.tipo in {TipoAlerta.STOCK_BAJO, TipoAlerta.STOCK_CERO, TipoAlerta.STOCK_NEGATIVO}:
         return f"{alerta.tipo.value}|{alerta.producto_id or ''}"
     if alerta.tipo in {TipoAlerta.EXPIRADO, TipoAlerta.EXPIRACION_PROXIMA}:
-        lote_id = _lote_id_desde_mensaje(alerta.mensaje)
+        lote_id = getattr(alerta, "lote_id", None) or _lote_id_desde_mensaje(alerta.mensaje)
         return f"{alerta.tipo.value}|{alerta.producto_id or ''}|{lote_id}"
     if alerta.tipo == TipoAlerta.DESAYUNO_NO_REGISTRADO:
         return alerta.tipo.value
@@ -80,8 +100,24 @@ def _conservar_alertas(data: AppData) -> list[AlertaOperativa]:
     """Mantiene alertas manuales y las que no se regeneran automáticamente."""
     return [
         a for a in data.alertas
-        if a.tipo not in _TIPOS_STOCK_AUTO and a.tipo not in _TIPOS_DESAYUNO_AUTO
+        if a.tipo not in _TIPOS_AUTO
     ]
+
+
+def _mapa_estados_previos(data: AppData) -> dict[str, str]:
+    return {
+        _firma_alerta(a): _estado_alerta(a)
+        for a in data.alertas
+        if a.tipo in _TIPOS_AUTO
+    }
+
+
+def _aplicar_estados_previos(
+    candidatas: list[AlertaOperativa],
+    previos: dict[str, str],
+) -> None:
+    for alerta in candidatas:
+        alerta.estado = previos.get(_firma_alerta(alerta), EstadoAlerta.PENDIENTE.value)
 
 
 def _generar_alertas_stock(data: AppData, repo: DataRepository, hoy: date) -> list[AlertaOperativa]:
@@ -122,6 +158,8 @@ def _generar_alertas_stock(data: AppData, repo: DataRepository, hoy: date) -> li
         contador += 1
 
     for lote in data.lotes:
+        if getattr(lote, "anulado", False):
+            continue
         if lote.cantidad_restante <= 0 or not lote.fecha_expiracion:
             continue
         producto = repo.get_producto(lote.producto_id)
@@ -141,6 +179,7 @@ def _generar_alertas_stock(data: AppData, repo: DataRepository, hoy: date) -> li
                 f"El lote {lote.id} (compra {fecha_compra_txt}) expiró hace {abs(dias_restantes)} día(s).",
                 hoy,
                 producto_id=producto.id,
+                lote_id=lote.id,
             ))
             contador += 1
         elif dias_restantes <= dias_umbral:
@@ -151,6 +190,7 @@ def _generar_alertas_stock(data: AppData, repo: DataRepository, hoy: date) -> li
                 f"El lote {lote.id} (compra {fecha_compra_txt}) expira en {dias_restantes} día(s).",
                 hoy,
                 producto_id=producto.id,
+                lote_id=lote.id,
             ))
             contador += 1
 
@@ -197,6 +237,7 @@ def sincronizar_alertas() -> AppData:
     repo = DataRepository(data)
     hoy = date.today()
 
+    estados_previos = _mapa_estados_previos(data)
     conservadas = _conservar_alertas(data)
     auto_stock_raw = _generar_alertas_stock(data, repo, hoy)
     auto_desayuno_raw = _generar_alerta_desayuno(data, repo, hoy)
@@ -206,6 +247,7 @@ def sincronizar_alertas() -> AppData:
     descartadas = set(data.alertas_descartadas)
     auto_stock = _filtrar_auto_descartadas(auto_stock_raw, descartadas)
     auto_desayuno = _filtrar_auto_descartadas(auto_desayuno_raw, descartadas)
+    _aplicar_estados_previos(auto_stock + auto_desayuno, estados_previos)
 
     data.alertas = conservadas + auto_stock + auto_desayuno
     _reasignar_ids(data.alertas)
@@ -235,6 +277,7 @@ def crear_alerta_manual(
         mensaje,
         date.today(),
         producto_id=producto_id,
+        estado=EstadoAlerta.PENDIENTE.value,
     )
     data.alertas.append(alerta)
     _registrar_actividad(data, "Alerta manual", f"«{titulo}» creada")
@@ -242,33 +285,72 @@ def crear_alerta_manual(
     return ResultadoOperacion(True, "Alerta manual creada correctamente.")
 
 
-def remover_alerta(alerta_id: str) -> ResultadoOperacion:
+def cambiar_estado_alerta(alerta_id: str, nuevo_estado: str) -> ResultadoOperacion:
+    """Cambia el workflow de una alerta. Revisada no oculta la causa persistente."""
+    try:
+        estado = EstadoAlerta(nuevo_estado)
+    except ValueError:
+        return ResultadoOperacion(False, "Estado de alerta no válido.")
+
     data = get_data()
     usuario = _nombre_usuario(data)
     for alerta in data.alertas:
-        if alerta.id == alerta_id:
-            if alerta.tipo in _TIPOS_STOCK_AUTO:
+        if alerta.id != alerta_id:
+            continue
+
+        anterior = _estado_alerta(alerta)
+        alerta.estado = estado.value
+
+        if estado.value in _ESTADOS_CIERRE:
+            if alerta.tipo in _TIPOS_AUTO:
                 firma = _firma_alerta(alerta)
                 if firma not in data.alertas_descartadas:
                     data.alertas_descartadas.append(firma)
             else:
                 alerta.activa = False
-            _registrar_actividad(
-                data,
-                "Remover alerta",
-                f"{usuario} eliminó la alerta «{alerta.titulo}»",
-            )
-            persist_data(data)
-            return ResultadoOperacion(True, "Alerta removida.")
+        elif estado.value in _ESTADOS_ABIERTOS:
+            if alerta.tipo in _TIPOS_AUTO:
+                firma = _firma_alerta(alerta)
+                data.alertas_descartadas = [
+                    f for f in data.alertas_descartadas if f != firma
+                ]
+            else:
+                alerta.activa = True
+
+        _registrar_actividad(
+            data,
+            "Estado alerta",
+            f"{usuario} cambió «{alerta.titulo}» de {anterior} a {estado.value}",
+        )
+        persist_data(data)
+        return ResultadoOperacion(True, f"Alerta marcada como {estado.value}.")
+
     return ResultadoOperacion(False, "No se encontró la alerta.")
 
 
+def remover_alerta(alerta_id: str) -> ResultadoOperacion:
+    """Compatibilidad: equivale a Ignorada."""
+    return cambiar_estado_alerta(alerta_id, EstadoAlerta.IGNORADA.value)
+
+
 def resolver_alerta(alerta_id: str) -> ResultadoOperacion:
-    """Alias de compatibilidad."""
-    return remover_alerta(alerta_id)
+    """Compatibilidad: equivale a Resuelta."""
+    return cambiar_estado_alerta(alerta_id, EstadoAlerta.RESUELTA.value)
+
+
+def alerta_esta_abierta(alerta: AlertaOperativa) -> bool:
+    return bool(alerta.activa) and _estado_alerta(alerta) in _ESTADOS_ABIERTOS
 
 
 def alertas_stock_activas(data: AppData) -> list[AlertaOperativa]:
-    """Alertas de stock visibles en la pestaña Alertas stock."""
+    """Alertas de stock visibles (pendiente/revisada)."""
     tipos = _TIPOS_STOCK_AUTO | {TipoAlerta.MANUAL}
-    return [a for a in data.alertas if a.activa and a.tipo in tipos]
+    return [
+        a for a in data.alertas
+        if alerta_esta_abierta(a) and a.tipo in tipos
+    ]
+
+
+def alertas_operativas_abiertas(data: AppData) -> list[AlertaOperativa]:
+    """Todas las alertas abiertas para dashboard / resumen operativo."""
+    return [a for a in data.alertas if alerta_esta_abierta(a)]

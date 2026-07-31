@@ -346,6 +346,8 @@ def appdata_to_dict(data: AppData) -> dict:
             {
                 "id": a.id, "tipo": a.tipo.value, "titulo": a.titulo, "mensaje": a.mensaje,
                 "fecha": a.fecha.isoformat(), "activa": a.activa, "producto_id": a.producto_id,
+                "estado": getattr(a, "estado", "pendiente") or "pendiente",
+                "lote_id": getattr(a, "lote_id", None),
             }
             for a in data.alertas
         ],
@@ -595,6 +597,8 @@ def dict_to_appdata(payload: dict) -> AppData:
                 a["id"], TipoAlerta(a["tipo"]), a["titulo"], a["mensaje"],
                 _parse_date(a["fecha"]),  # type: ignore[arg-type]
                 a.get("activa", True), a.get("producto_id"),
+                estado=a.get("estado") or "pendiente",
+                lote_id=a.get("lote_id"),
             )
             for a in payload.get("alertas", [])
         ],

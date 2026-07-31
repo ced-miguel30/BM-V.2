@@ -255,7 +255,9 @@
       "mensaje": "Aún no se ha registrado el consumo del desayuno de hoy.",
       "fecha": "2026-07-31",
       "activa": true,
-      "producto_id": null
+      "producto_id": null,
+      "estado": "pendiente",
+      "lote_id": null
     }
   ],
   "alertas_descartadas": [],

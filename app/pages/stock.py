@@ -5,12 +5,12 @@ from datetime import date, datetime
 import pandas as pd
 import streamlit as st
 
-from app.core.models import TipoAlerta
+from app.core.models import ESTADO_ALERTA_LABEL, EstadoAlerta, TipoAlerta
 from app.core.models.enums import SERVICIO_DISPONIBLE_LABEL, TipoServicio
 from app.core.services.alert_service import (
     alertas_stock_activas,
+    cambiar_estado_alerta,
     crear_alerta_manual,
-    remover_alerta,
     sincronizar_alertas,
 )
 from app.core.services.data_service import get_repository
@@ -548,6 +548,13 @@ def _etiqueta_item(repo, producto_id: str | None) -> str:
     return f"{producto.nombre} ({tipo})"
 
 
+def _ir_stock_accion(subtab: str, *, compra_tipo: str | None = None) -> None:
+    st.session_state["stock_subtab"] = subtab
+    if compra_tipo:
+        st.session_state["stock_compra_tipo"] = compra_tipo
+    st.rerun()
+
+
 def _render_alertas_stock() -> None:
     sincronizar_alertas()
     repo = get_repository()
@@ -555,29 +562,69 @@ def _render_alertas_stock() -> None:
 
     st.markdown("#### Alertas activas")
     st.caption(
-        "Alertas automáticas de productos y bebidas, más las que cree manualmente."
+        "Pendiente / Revisada siguen visibles mientras la causa exista. "
+        "Resuelta e Ignorada ocultan la alerta (si la causa persiste, no reaparece hasta que desaparezca)."
     )
 
     if alertas:
         for alerta in alertas:
             etiqueta = _TIPO_ETIQUETA.get(alerta.tipo, alerta.tipo.value)
+            try:
+                estado = EstadoAlerta(getattr(alerta, "estado", None) or "pendiente")
+            except ValueError:
+                estado = EstadoAlerta.PENDIENTE
+            estado_txt = ESTADO_ALERTA_LABEL[estado]
             item = _etiqueta_item(repo, alerta.producto_id)
             item_txt = f"  \n*{item}*" if item else ""
-            col_info, col_btn = st.columns([5, 1])
-            with col_info:
-                st.markdown(
-                    f"**{alerta.titulo}** `{etiqueta}`  \n"
-                    f"{alerta.mensaje}{item_txt}  \n"
-                    f"*{formato_fecha(alerta.fecha)}*"
-                )
-            with col_btn:
-                if st.button("Remover", key=f"remover_alerta_{alerta.id}", use_container_width=True):
-                    resultado = remover_alerta(alerta.id)
-                    if resultado.ok:
+            lote_id = getattr(alerta, "lote_id", None)
+            lote_txt = f"  \nLote: `{lote_id}`" if lote_id else ""
+
+            st.markdown(
+                f"**{alerta.titulo}** `{etiqueta}` · **{estado_txt}**  \n"
+                f"{alerta.mensaje}{item_txt}{lote_txt}  \n"
+                f"*{formato_fecha(alerta.fecha)}*"
+            )
+
+            acciones = st.columns(5)
+            with acciones[0]:
+                if estado != EstadoAlerta.REVISADA and st.button(
+                    "Revisada", key=f"alerta_rev_{alerta.id}", use_container_width=True,
+                ):
+                    r = cambiar_estado_alerta(alerta.id, EstadoAlerta.REVISADA.value)
+                    if r.ok:
                         sincronizar_alertas()
                         st.rerun()
-                    else:
-                        st.error(resultado.mensaje)
+                    st.error(r.mensaje)
+            with acciones[1]:
+                if st.button("Resuelta", key=f"alerta_res_{alerta.id}", use_container_width=True):
+                    r = cambiar_estado_alerta(alerta.id, EstadoAlerta.RESUELTA.value)
+                    if r.ok:
+                        sincronizar_alertas()
+                        st.rerun()
+                    st.error(r.mensaje)
+            with acciones[2]:
+                if st.button("Ignorada", key=f"alerta_ign_{alerta.id}", use_container_width=True):
+                    r = cambiar_estado_alerta(alerta.id, EstadoAlerta.IGNORADA.value)
+                    if r.ok:
+                        sincronizar_alertas()
+                        st.rerun()
+                    st.error(r.mensaje)
+            with acciones[3]:
+                if alerta.producto_id and st.button(
+                    "Ir a compra", key=f"alerta_compra_{alerta.id}", use_container_width=True,
+                ):
+                    producto = repo.get_producto(alerta.producto_id)
+                    tipo = "Bebida" if producto and producto.es_bebida else "Producto"
+                    _ir_stock_accion("Compras", compra_tipo=tipo)
+            with acciones[4]:
+                if alerta.producto_id and st.button(
+                    "Ver producto", key=f"alerta_prod_{alerta.id}", use_container_width=True,
+                ):
+                    producto = repo.get_producto(alerta.producto_id)
+                    tipo = "Bebida" if producto and producto.es_bebida else "Producto"
+                    st.session_state["stock_prod_tipo"] = tipo
+                    _ir_stock_accion("Productos")
+            section_divider()
     else:
         empty_state("No hay alertas de stock activas.", icon="✅")
 

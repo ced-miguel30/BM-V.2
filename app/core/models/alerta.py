@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from datetime import date
 
-from app.core.models.enums import TipoAlerta
+from app.core.models.enums import EstadoAlerta, TipoAlerta
 
 
 @dataclass
@@ -15,3 +15,5 @@ class AlertaOperativa:
     fecha: date
     activa: bool = True
     producto_id: str | None = None
+    estado: str = EstadoAlerta.PENDIENTE.value
+    lote_id: str | None = None

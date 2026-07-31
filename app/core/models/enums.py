@@ -86,6 +86,21 @@ class TipoAlerta(str, Enum):
     MANUAL = "manual"
 
 
+class EstadoAlerta(str, Enum):
+    PENDIENTE = "pendiente"
+    REVISADA = "revisada"
+    RESUELTA = "resuelta"
+    IGNORADA = "ignorada"
+
+
+ESTADO_ALERTA_LABEL: dict[EstadoAlerta, str] = {
+    EstadoAlerta.PENDIENTE: "Pendiente",
+    EstadoAlerta.REVISADA: "Revisada",
+    EstadoAlerta.RESUELTA: "Resuelta",
+    EstadoAlerta.IGNORADA: "Ignorada",
+}
+
+
 class CategoriaReceta(str, Enum):
     DESAYUNO = "desayuno"
     COMIDA = "comida"
