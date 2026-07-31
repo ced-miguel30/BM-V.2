@@ -47,6 +47,9 @@ class LineaMermaAnalitica:
     registro_id: str
     lote_id: str | None
     comentario: str | None
+    turno_snapshot: str | None = None
+    responsable_id: str | None = None
+    responsable_nombre: str | None = None
 
 
 def _data(data: AppData | None) -> AppData:
@@ -77,6 +80,9 @@ def iter_lineas_merma(
     data: AppData | None = None,
     ambito: str = AMBITO_TODO,
     motivos: list[str] | None = None,
+    turnos: list[str] | None = None,
+    responsables: list[str] | None = None,
+    producto_id: str | None = None,
 ) -> list[LineaMermaAnalitica]:
     app = _data(data)
     resultado: list[LineaMermaAnalitica] = []
@@ -90,6 +96,19 @@ def iter_lineas_merma(
         for ln in reg.lineas:
             motivo = ln.motivo.value if isinstance(ln.motivo, MotivoMerma) else str(ln.motivo)
             if motivos is not None and motivo not in motivos:
+                continue
+            turno = getattr(ln, "turno_snapshot", None)
+            if turnos is not None:
+                # Incluye histórico sin turno solo si el filtro lo pide explícitamente con ""
+                if turno is None:
+                    if "" not in turnos:
+                        continue
+                elif turno not in turnos:
+                    continue
+            resp_id = getattr(ln, "responsable_id", None)
+            if responsables is not None and (resp_id or "") not in responsables:
+                continue
+            if producto_id is not None and ln.producto_id != producto_id:
                 continue
             bucket = bucket_servicio_linea(ln.tipo_servicio_snapshot)
             if ambito != AMBITO_TODO and bucket != ambito:
@@ -108,9 +127,31 @@ def iter_lineas_merma(
                     registro_id=reg.id,
                     lote_id=ln.lote_id,
                     comentario=ln.comentario,
+                    turno_snapshot=turno,
+                    responsable_id=resp_id,
+                    responsable_nombre=getattr(ln, "responsable_nombre", None),
                 )
             )
     return resultado
+
+
+def resumen_historico_merma(
+    desde: date | None = None,
+    hasta: date | None = None,
+    *,
+    data: AppData | None = None,
+) -> dict:
+    lineas = iter_lineas_merma(desde, hasta, data=data, ambito=AMBITO_TODO)
+    sin_servicio = sum(1 for l in lineas if l.bucket_servicio == BUCKET_SIN_DESGLOSE)
+    sin_turno = sum(1 for l in lineas if not l.turno_snapshot)
+    sin_responsable = sum(1 for l in lineas if not l.responsable_id)
+    return {
+        "n_lineas": len(lineas),
+        "n_sin_servicio": sin_servicio,
+        "n_sin_turno": sin_turno,
+        "n_sin_responsable": sin_responsable,
+        "hay_aviso": sin_servicio > 0 or sin_turno > 0 or sin_responsable > 0,
+    }
 
 
 def coste_por_grupo_servicio(
@@ -169,6 +210,9 @@ def ranking_productos_merma(
     data: AppData | None = None,
     ambito: str = AMBITO_TODO,
     motivos: list[str] | None = None,
+    turnos: list[str] | None = None,
+    responsables: list[str] | None = None,
+    producto_id: str | None = None,
     ascendente: bool = False,
     limite: int | None = None,
     busqueda: str | None = None,
@@ -178,7 +222,14 @@ def ranking_productos_merma(
     app = _data(data)
     acumulado: dict[str, dict] = {}
     for l in iter_lineas_merma(
-        desde, hasta, data=app, ambito=ambito, motivos=motivos,
+        desde,
+        hasta,
+        data=app,
+        ambito=ambito,
+        motivos=motivos,
+        turnos=turnos,
+        responsables=responsables,
+        producto_id=producto_id,
     ):
         if busqueda and busqueda.strip():
             if busqueda.strip().casefold() not in l.nombre.casefold():

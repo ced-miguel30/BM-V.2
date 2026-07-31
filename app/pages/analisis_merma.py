@@ -7,8 +7,10 @@ from datetime import date
 import pandas as pd
 import streamlit as st
 
-from app.core.models import MotivoMerma, OrigenServicioMerma
+from app.core.models import MotivoMerma, OrigenServicioMerma, TURNO_MERMA_LABEL, TurnoMerma
+from app.core.services import analitica_consumo_service as analitica
 from app.core.services import merma_analisis_service as merma_an
+from app.core.services.data_service import get_repository
 from app.core.services.exportacion_semanal_service import limite_semana
 from app.core.services.formatting import formato_fecha
 from app.ui.charts import chart_barras_horizontales, chart_lineas_categorias
@@ -38,6 +40,8 @@ _PESTANA_A_AMBITO = {
     "Almacén / General": OrigenServicioMerma.GENERAL.value,
     "Sin desglose histórico": merma_an.BUCKET_SIN_DESGLOSE,
 }
+
+_SIN_TURNO = "__sin_turno__"
 
 
 def _periodo_simple(key: str) -> tuple[date, date] | None:
@@ -85,6 +89,57 @@ def _filtro_motivo(key: str) -> list[str] | None:
     return sel
 
 
+def _filtros_merma_extra(key: str) -> tuple[list[str] | None, list[str] | None]:
+    """Turno y responsable. None = sin filtrar."""
+    repo = get_repository()
+    etiquetas_turno = [TURNO_MERMA_LABEL[t] for t in TurnoMerma] + ["Sin turno (histórico)"]
+    valor_turno = {TURNO_MERMA_LABEL[t]: t.value for t in TurnoMerma}
+    valor_turno["Sin turno (histórico)"] = _SIN_TURNO
+
+    c1, c2 = st.columns(2)
+    with c1:
+        turnos_sel = st.multiselect(
+            "Turno",
+            etiquetas_turno,
+            default=etiquetas_turno,
+            key=f"{key}_turnos",
+        )
+    with c2:
+        responsables = [r for r in repo.data.responsables_merma if r.activo] or list(
+            repo.data.responsables_merma
+        )
+        opts_resp = ["(Sin responsable histórico)"] + [r.nombre for r in responsables]
+        id_por_nombre = {r.nombre: r.id for r in responsables}
+        resp_sel = st.multiselect(
+            "Responsable",
+            opts_resp,
+            default=opts_resp,
+            key=f"{key}_responsables",
+        )
+
+    turnos: list[str] | None
+    if not turnos_sel or len(turnos_sel) == len(etiquetas_turno):
+        turnos = None
+    else:
+        turnos = []
+        for e in turnos_sel:
+            v = valor_turno[e]
+            turnos.append("" if v == _SIN_TURNO else v)
+
+    responsables_ids: list[str] | None
+    if not resp_sel or len(resp_sel) == len(opts_resp):
+        responsables_ids = None
+    else:
+        responsables_ids = []
+        for nombre in resp_sel:
+            if nombre == "(Sin responsable histórico)":
+                responsables_ids.append("")
+            else:
+                responsables_ids.append(id_por_nombre.get(nombre, ""))
+
+    return turnos, responsables_ids
+
+
 def _bloque_rankings(
     desde: date,
     hasta: date,
@@ -95,14 +150,28 @@ def _bloque_rankings(
     motivos = _filtro_motivo(key)
     if motivos is None:
         return
-    busqueda = st.text_input("Buscador", value="", key=f"{key}_busqueda")
+    turnos, responsables = _filtros_merma_extra(key)
+    busqueda = st.text_input("Buscador producto/receta", value="", key=f"{key}_busqueda")
     mas = merma_an.ranking_productos_merma(
-        desde, hasta, ambito=ambito, motivos=motivos,
-        busqueda=busqueda or None, limite=15,
+        desde,
+        hasta,
+        ambito=ambito,
+        motivos=motivos,
+        turnos=turnos,
+        responsables=responsables,
+        busqueda=busqueda or None,
+        limite=15,
     )
     menos = merma_an.ranking_productos_merma(
-        desde, hasta, ambito=ambito, motivos=motivos,
-        busqueda=busqueda or None, ascendente=True, limite=15,
+        desde,
+        hasta,
+        ambito=ambito,
+        motivos=motivos,
+        turnos=turnos,
+        responsables=responsables,
+        busqueda=busqueda or None,
+        ascendente=True,
+        limite=15,
     )
     c1, c2 = st.columns(2)
     with c1:
@@ -131,7 +200,6 @@ def _render_resumen(desde: date, hasta: date) -> None:
         )
     with c5:
         sin = por.get(merma_an.BUCKET_SIN_DESGLOSE, 0.0)
-        from app.core.services.data_service import get_repository
         metric_card(
             "Sin desglose histórico",
             get_repository().formato_precio(sin),
@@ -232,12 +300,22 @@ def render_gestor_merma() -> None:
         "Agrupación por el servicio indicado al registrar la merma. "
         "«Sin desglose histórico» son líneas antiguas sin `tipo_servicio_snapshot`."
     )
+    with st.expander("Explicación del cálculo", expanded=False):
+        st.markdown(analitica.TEXTO_EXPLICACION_CALCULO)
 
     periodo = _periodo_simple("merma")
     if periodo is None:
         return
     desde, hasta = periodo
     st.caption(f"Periodo: {formato_fecha(desde)} — {formato_fecha(hasta)}")
+
+    hist = merma_an.resumen_historico_merma(desde, hasta)
+    if hist["hay_aviso"]:
+        st.warning(
+            f"Histórico incompleto en merma: {hist['n_sin_servicio']} sin servicio, "
+            f"{hist['n_sin_turno']} sin turno, {hist['n_sin_responsable']} sin responsable "
+            f"(de {hist['n_lineas']} líneas)."
+        )
 
     pestana = render_sub_tabs(_PESTANAS, key="merma_pestana")
     section_divider()

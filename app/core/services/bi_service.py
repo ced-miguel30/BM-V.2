@@ -21,7 +21,12 @@ def resumen_automatico() -> str:
     hoy = date.today()
     inicio = hoy.replace(day=1)
 
-    total = repo.formato_precio(repo.coste_total_mes())
+    from app.core.services import analitica_consumo_service as analitica
+
+    consumo = analitica.coste_servicios_excluyentes(inicio, hoy, data=repo.data).coste_general
+    merma = repo.coste_merma_periodo(inicio, hoy)
+    expiracion = repo.coste_expiracion_periodo(inicio, hoy)
+    total = consumo + merma + expiracion
     top = repo.top_productos_costosos_periodo(inicio, hoy, 1)
     alertas = len(repo.alertas_activas())
     stock_bajo = len(repo.productos_stock_bajo())
@@ -32,7 +37,9 @@ def resumen_automatico() -> str:
         producto_top = "sin datos suficientes"
 
     return (
-        f"Coste total del mes: **{total}**. "
+        f"Coste total del mes: **{repo.formato_precio(total)}** "
+        f"(consumo {repo.formato_precio(consumo)} + merma {repo.formato_precio(merma)} "
+        f"+ expiración {repo.formato_precio(expiracion)}). "
         f"Producto más costoso: {producto_top}. "
         f"Alertas activas: **{alertas}**. "
         f"Productos con stock bajo: **{stock_bajo}**."
@@ -75,9 +82,13 @@ def responder_pregunta(pregunta_id: str) -> str:
     hace_14 = hoy - timedelta(days=14)
 
     if pregunta_id == "anomalia":
-        consumo = repo.coste_consumo_mes()
-        merma = repo.coste_merma_mes()
-        expiracion = repo.coste_expiracion_mes()
+        from app.core.services import analitica_consumo_service as analitica
+
+        consumo = analitica.coste_servicios_excluyentes(
+            inicio_mes, hoy, data=repo.data,
+        ).coste_general
+        merma = repo.coste_merma_periodo(inicio_mes, hoy)
+        expiracion = repo.coste_expiracion_periodo(inicio_mes, hoy)
         total = consumo + merma + expiracion
         partes = []
 

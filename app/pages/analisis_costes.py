@@ -438,12 +438,24 @@ def render_gestor_costes() -> None:
         "(solo para Consumo). Merma y expiración no se asignan a Desayuno/Comida/Cena "
         "sin vínculo fiable. Las métricas son monetarias."
     )
+    with st.expander("Explicación del cálculo", expanded=False):
+        st.markdown(analitica.TEXTO_EXPLICACION_CALCULO)
 
     periodo = _periodo_simple("costes")
     if periodo is None:
         return
     desde, hasta = periodo
     st.caption(f"Periodo: {formato_fecha(desde)} — {formato_fecha(hasta)}")
+
+    hist = analitica.resumen_historico_incompleto(desde, hasta)
+    if hist["hay_aviso"]:
+        from app.core.services.data_service import get_repository
+        repo = get_repository()
+        st.warning(
+            f"Histórico incompleto: {hist['n_sin_detalle']} registro(s) sin detalle "
+            f"({repo.formato_precio(hist['coste_sin_detalle'])}). "
+            "El total de consumo usa `coste_total` del registro; el desglose interno puede faltar."
+        )
 
     pestana = render_sub_tabs(
         ["Resumen", "Desayuno", "Comida", "Cena", "Bebidas"],

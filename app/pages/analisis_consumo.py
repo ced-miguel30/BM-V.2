@@ -424,11 +424,29 @@ def render_gestor_consumo() -> None:
         "Análisis por servicio y origen. Los rankings «menos» solo incluyen "
         "elementos con consumo > 0. Las cantidades se agregan por unidad normalizada."
     )
+    with st.expander("Explicación del cálculo", expanded=False):
+        st.markdown(analitica.TEXTO_EXPLICACION_CALCULO)
 
     filtros = _filtros_comunes("consumo")
     if filtros is None:
         return
     desde, hasta, busqueda, tipo = filtros
+
+    hist = analitica.resumen_historico_incompleto(desde, hasta)
+    if hist["hay_aviso"]:
+        repo = get_repository()
+        partes = []
+        if hist["n_sin_detalle"]:
+            partes.append(
+                f"{hist['n_sin_detalle']} registro(s) sin detalle de origen "
+                f"({repo.formato_precio(hist['coste_sin_detalle'])})"
+            )
+        if hist["n_divergencias_detalle_total"]:
+            partes.append(
+                f"{hist['n_divergencias_detalle_total']} registro(s) con suma de detalle "
+                "≠ coste_total (revisar)"
+            )
+        st.warning("Histórico incompleto o incoherente: " + "; ".join(partes) + ".")
 
     section_divider()
     pestana = render_sub_tabs(

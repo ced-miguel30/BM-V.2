@@ -646,6 +646,82 @@ def periodo_anterior(desde: date, hasta: date) -> tuple[date, date]:
     return desde_ant, hasta_ant
 
 
+TEXTO_EXPLICACION_CALCULO = """
+**Cómo se calculan los totales (anti doble conteo)**
+
+1. **Coste de consumo global** = suma de `coste_total` de registros de Desayuno + Comida + Cena + Bebidas (excluyentes). Los registros anulados no entran.
+2. **Recetas vs productos:** el coste monetario sale solo de líneas de producto (`lineas_detalle` / eventos producto). Las recetas aportan porciones/frecuencia; **nunca** se suma el coste de una receta junto con el de sus ingredientes en el mismo total.
+3. **Escalado de recetas (Fase 8):** el factor multiplica cantidades al registrar; el análisis **no** vuelve a escalar. Lee el detalle y el `coste_total` ya persistidos.
+4. **Desayuno interno:** «Desayuno» + «Bebidas en desayuno» son desglose interno de `desayuno_total`, no una 5.ª categoría del Dashboard.
+5. **Merma / expiración:** se analizan aparte; no se atribuyen a un servicio de consumo sin vínculo fiable.
+6. **Histórico incompleto:** registros sin `lineas_detalle` (o merma sin `tipo_servicio_snapshot` / turno / responsable) se advierten; no se reinventan datos antiguos.
+""".strip()
+
+
+def _detalle_coste(lineas_detalle: list) -> float:
+    return round(sum(float(getattr(d, "coste", 0.0) or 0.0) for d in lineas_detalle), 2)
+
+
+def resumen_historico_incompleto(
+    desde: date | None = None,
+    hasta: date | None = None,
+    *,
+    data: AppData | None = None,
+) -> dict:
+    """Registros con coste pero sin detalle de origen (histórico incompleto)."""
+    app = _app_data(data)
+    sin_detalle = 0
+    coste_sin_detalle = 0.0
+    divergencias = 0
+
+    for d in app.desayunos:
+        if getattr(d, "anulado", False):
+            continue
+        if not _en_periodo(d.fecha, desde, hasta):
+            continue
+        detalle = list(getattr(d, "lineas_detalle", None) or [])
+        if not detalle:
+            if float(d.coste_total or 0) > 0:
+                sin_detalle += 1
+                coste_sin_detalle += float(d.coste_total or 0)
+            continue
+        if abs(_detalle_coste(detalle) - float(d.coste_total or 0)) > 0.02:
+            divergencias += 1
+
+    for r in app.registros_servicio:
+        if getattr(r, "anulado", False):
+            continue
+        if not _en_periodo(r.fecha, desde, hasta):
+            continue
+        detalle = list(getattr(r, "lineas_detalle", None) or [])
+        if not detalle:
+            if float(r.coste_total or 0) > 0:
+                sin_detalle += 1
+                coste_sin_detalle += float(r.coste_total or 0)
+            continue
+        if abs(_detalle_coste(detalle) - float(r.coste_total or 0)) > 0.02:
+            divergencias += 1
+
+    return {
+        "n_sin_detalle": sin_detalle,
+        "coste_sin_detalle": round(coste_sin_detalle, 2),
+        "n_divergencias_detalle_total": divergencias,
+        "hay_aviso": sin_detalle > 0 or divergencias > 0,
+    }
+
+
+def coherencia_detalle_vs_coste_total(
+    lineas_detalle: list,
+    coste_total: float,
+    *,
+    tolerancia: float = 0.02,
+) -> bool:
+    """True si hay detalle y su suma coincide con coste_total (escalado ya aplicado)."""
+    if not lineas_detalle:
+        return False
+    return abs(_detalle_coste(lineas_detalle) - float(coste_total or 0)) <= tolerancia
+
+
 __all__ = [
     "BUCKET_BEBIDA_EN_CENA",
     "BUCKET_BEBIDA_EN_COMIDA",
@@ -661,12 +737,15 @@ __all__ = [
     "EventoReceta",
     "FAMILIA_PRODUCTO",
     "FAMILIA_RECETA",
+    "TEXTO_EXPLICACION_CALCULO",
+    "coherencia_detalle_vs_coste_total",
     "coste_bucket_bebida",
     "coste_servicios_excluyentes",
     "desglose_desayuno",
     "iter_eventos_producto",
     "iter_eventos_receta",
     "periodo_anterior",
+    "resumen_historico_incompleto",
     "ranking_productos",
     "ranking_recetas",
     "resolver_categoria_receta",
