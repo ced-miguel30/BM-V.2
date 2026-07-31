@@ -33,7 +33,13 @@
       "fecha_compra": "2026-07-01",
       "fecha_expiracion": null,
       "marca_proveedor": null,
-      "alerta_expiracion_dias": null
+      "alerta_expiracion_dias": null,
+      "anulado": false,
+      "fecha_anulacion": null,
+      "hora_anulacion": null,
+      "motivo_anulacion": "",
+      "referencia_anulacion": "",
+      "anulado_por": ""
     },
     {
       "id": "l2",
@@ -44,7 +50,13 @@
       "fecha_compra": "2026-07-01",
       "fecha_expiracion": null,
       "marca_proveedor": null,
-      "alerta_expiracion_dias": null
+      "alerta_expiracion_dias": null,
+      "anulado": false,
+      "fecha_anulacion": null,
+      "hora_anulacion": null,
+      "motivo_anulacion": "",
+      "referencia_anulacion": "",
+      "anulado_por": ""
     },
     {
       "id": "l03",
@@ -55,7 +67,13 @@
       "fecha_compra": null,
       "fecha_expiracion": null,
       "marca_proveedor": null,
-      "alerta_expiracion_dias": null
+      "alerta_expiracion_dias": null,
+      "anulado": false,
+      "fecha_anulacion": null,
+      "hora_anulacion": null,
+      "motivo_anulacion": "",
+      "referencia_anulacion": "",
+      "anulado_por": ""
     }
   ],
   "desayunos": [
@@ -235,7 +253,7 @@
       "tipo": "desayuno_no_registrado",
       "titulo": "Desayuno de hoy no registrado",
       "mensaje": "Aún no se ha registrado el consumo del desayuno de hoy.",
-      "fecha": "2026-07-30",
+      "fecha": "2026-07-31",
       "activa": true,
       "producto_id": null
     }

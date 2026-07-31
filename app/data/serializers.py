@@ -140,6 +140,18 @@ def appdata_to_dict(data: AppData) -> dict:
                 "fecha_expiracion": l.fecha_expiracion.isoformat() if l.fecha_expiracion else None,
                 "marca_proveedor": l.marca_proveedor,
                 "alerta_expiracion_dias": l.alerta_expiracion_dias,
+                "anulado": bool(getattr(l, "anulado", False)),
+                "fecha_anulacion": (
+                    l.fecha_anulacion.isoformat()
+                    if getattr(l, "fecha_anulacion", None) else None
+                ),
+                "hora_anulacion": (
+                    l.hora_anulacion.isoformat()
+                    if getattr(l, "hora_anulacion", None) else None
+                ),
+                "motivo_anulacion": getattr(l, "motivo_anulacion", "") or "",
+                "referencia_anulacion": getattr(l, "referencia_anulacion", "") or "",
+                "anulado_por": getattr(l, "anulado_por", "") or "",
             }
             for l in data.lotes
         ],
@@ -386,6 +398,12 @@ def dict_to_appdata(payload: dict) -> AppData:
                 l["id"], l["producto_id"], l["precio_total"], l["cantidad"], l["cantidad_restante"],
                 _parse_date(l.get("fecha_compra")), _parse_date(l.get("fecha_expiracion")),
                 l.get("marca_proveedor"), l.get("alerta_expiracion_dias"),
+                anulado=bool(l.get("anulado", False)),
+                fecha_anulacion=_parse_date(l.get("fecha_anulacion")),
+                hora_anulacion=_parse_time(l.get("hora_anulacion")),
+                motivo_anulacion=l.get("motivo_anulacion", "") or "",
+                referencia_anulacion=l.get("referencia_anulacion", "") or "",
+                anulado_por=l.get("anulado_por", "") or "",
             )
             for l in payload.get("lotes", [])
         ],

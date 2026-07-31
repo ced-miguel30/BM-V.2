@@ -93,6 +93,8 @@ def lotes_ajustables(producto_id: str | None = None) -> list[dict]:
         key=lambda l: (l.fecha_compra or date.min, l.id),
         reverse=True,
     ):
+        if getattr(lote, "anulado", False):
+            continue
         if producto_id and lote.producto_id != producto_id:
             continue
         producto = repo.get_producto(lote.producto_id)

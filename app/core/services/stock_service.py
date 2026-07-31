@@ -307,7 +307,10 @@ def registros_exportables(
                 formato_fecha(lote.fecha_expiracion),
                 tipo_movimiento,
             ]],
-            resumen=[("Precio total", formato_moneda(lote.precio_total, simbolo))],
+            resumen=[
+                ("Precio total", formato_moneda(lote.precio_total, simbolo)),
+                ("Estado", "Anulado" if getattr(lote, "anulado", False) else "Activo"),
+            ],
         ))
     return resultado
 

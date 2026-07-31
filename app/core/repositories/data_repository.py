@@ -54,7 +54,10 @@ class DataRepository:
         return formato_moneda(valor, self.get_simbolo_moneda())
 
     def stock_total_producto(self, producto_id: str) -> float:
-        return sum(l.cantidad_restante for l in self._data.lotes if l.producto_id == producto_id)
+        return sum(
+            l.cantidad_restante for l in self._data.lotes
+            if l.producto_id == producto_id and not getattr(l, "anulado", False)
+        )
 
     def alertas_activas(self) -> list[AlertaOperativa]:
         return [a for a in self._data.alertas if a.activa]
@@ -241,6 +244,8 @@ class DataRepository:
         hoy = date.today()
         resultado = []
         for lote in self._data.lotes:
+            if getattr(lote, "anulado", False):
+                continue
             if lote.fecha_expiracion and lote.cantidad_restante > 0:
                 dias_restantes = (lote.fecha_expiracion - hoy).days
                 if 0 <= dias_restantes <= dias:

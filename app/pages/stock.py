@@ -141,7 +141,8 @@ def _render_historial_compras(repo, *, es_bebida: bool, key_prefix: str) -> None
     st.markdown("#### Historial de compras")
     st.caption(
         "Solo se muestran las compras de la semana en curso (con fecha de compra). "
-        "Las semanas anteriores quedan archivadas y disponibles en las exportaciones."
+        "Las semanas anteriores quedan archivadas y disponibles en las exportaciones. "
+        "Una compra solo se puede anular si el lote está intacto y sin dependencias."
     )
     _boton_exportar_semana(stock_service.configuracion_exportacion(es_bebida=es_bebida), key_prefix)
     section_divider()
@@ -172,7 +173,7 @@ def _render_historial_compras(repo, *, es_bebida: bool, key_prefix: str) -> None
     )
     filtro = filtro_sel["label"] if filtro_sel else etiqueta_todos
 
-    filas = []
+    lotes_filtrados = []
     for lote in sorted(
         lotes_semana,
         key=lambda l: (l.fecha_compra or date.min, l.id),
@@ -181,6 +182,15 @@ def _render_historial_compras(repo, *, es_bebida: bool, key_prefix: str) -> None
         nombre = repo.get_nombre_producto(lote.producto_id)
         if filtro != etiqueta_todos and nombre != filtro:
             continue
+        lotes_filtrados.append(lote)
+
+    # Listado operativo: excluir anuladas; selector incluye todas con etiqueta.
+    lotes_activos = [l for l in lotes_filtrados if not getattr(l, "anulado", False)]
+    lotes_anulados = [l for l in lotes_filtrados if getattr(l, "anulado", False)]
+
+    filas = []
+    for lote in lotes_activos:
+        nombre = repo.get_nombre_producto(lote.producto_id)
         filas.append({
             "Bebida" if es_bebida else "Producto": nombre,
             "Lote": lote.id,
@@ -194,8 +204,107 @@ def _render_historial_compras(repo, *, es_bebida: bool, key_prefix: str) -> None
 
     if filas:
         st.dataframe(pd.DataFrame(filas), use_container_width=True, hide_index=True)
-    else:
+    elif not lotes_filtrados:
         empty_state("No hay compras en la semana actual para este filtro.", icon="🔍")
+    else:
+        st.caption("No hay compras activas esta semana (solo anuladas).")
+
+    if lotes_anulados:
+        st.caption(
+            f"{len(lotes_anulados)} compra(s) anulada(s) esta semana "
+            "(visibles en el selector de detalle)."
+        )
+
+    if lotes_filtrados:
+        from app.core.services.anulacion_compra_service import (
+            anular_compra,
+            lote_esta_anulado,
+            puede_anular_compra,
+            previsualizar_anulacion_compra,
+        )
+        from app.core.storage.session_store import get_data
+
+        opciones = {}
+        for lote in lotes_filtrados:
+            nombre = repo.get_nombre_producto(lote.producto_id)
+            marca = " [Anulado]" if getattr(lote, "anulado", False) else ""
+            clave = (
+                f"{lote.id}{marca} — {nombre} — "
+                f"{formato_fecha(lote.fecha_compra)}"
+            )
+            opciones[clave] = lote
+
+        sel = st.selectbox(
+            "Ver detalle / anular compra",
+            ["—"] + list(opciones.keys()),
+            key=f"{key_prefix}_compra_detalle_sel",
+        )
+        if sel != "—":
+            lote = opciones[sel]
+            data = get_data()
+            preview = previsualizar_anulacion_compra(data, lote)
+            if lote_esta_anulado(lote):
+                st.warning("Estado: **Anulado**")
+                st.caption(
+                    f"Fecha: {formato_fecha(lote.fecha_anulacion) if lote.fecha_anulacion else '—'} "
+                    f"{lote.hora_anulacion.strftime('%H:%M') if lote.hora_anulacion else ''} "
+                    f"· Por: {lote.anulado_por or '—'} "
+                    f"· Motivo: {lote.motivo_anulacion or '—'} "
+                    f"· Ref: {lote.referencia_anulacion or '—'}"
+                )
+            else:
+                st.caption("Estado: Activo")
+
+            st.dataframe(
+                {
+                    "Campo": [
+                        "Producto", "Lote", "Cantidad compra", "Restante",
+                        "Precio total", "Proveedor",
+                    ],
+                    "Valor": [
+                        preview.nombre,
+                        preview.lote_id,
+                        f"{preview.cantidad_compra:g} {preview.unidad}",
+                        f"{preview.cantidad_restante:g} {preview.unidad}",
+                        formato_moneda(preview.precio_total, repo.get_simbolo_moneda()),
+                        lote.marca_proveedor or "—",
+                    ],
+                },
+                use_container_width=True,
+                hide_index=True,
+            )
+            st.caption(preview.efecto)
+
+            st.markdown("##### Anulación de compra")
+            puede = puede_anular_compra(data, lote)
+            if not puede.ok:
+                for motivo in puede.motivos_bloqueo:
+                    st.error(motivo)
+            else:
+                motivo_a = st.text_input(
+                    "Motivo de anulación (obligatorio)",
+                    key=f"{key_prefix}_compra_anul_motivo_{lote.id}",
+                )
+                ref_a = st.text_input(
+                    "Referencia (opcional)",
+                    key=f"{key_prefix}_compra_anul_ref_{lote.id}",
+                )
+                conf = st.checkbox(
+                    "Confirmo anular esta compra intacta (restante → 0; histórico conservado)",
+                    key=f"{key_prefix}_compra_anul_ok_{lote.id}",
+                )
+                if st.button(
+                    "Anular compra",
+                    type="primary",
+                    disabled=not conf or not (motivo_a or "").strip(),
+                    key=f"{key_prefix}_compra_anul_btn_{lote.id}",
+                ):
+                    resultado = anular_compra(data, lote.id, motivo_a, ref_a)
+                    if resultado.ok:
+                        st.success(resultado.mensaje)
+                        st.rerun()
+                    else:
+                        st.error(resultado.mensaje)
 
 
 def _render_registro_catalogo(*, es_bebida: bool) -> None:

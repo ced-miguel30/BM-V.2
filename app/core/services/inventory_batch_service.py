@@ -19,7 +19,9 @@ def lotes_ordenados_consumo(data: AppData, producto_id: str) -> list[LoteStock]:
     """Lotes con stock > 0, del más antiguo al más reciente (FIFO)."""
     lotes = [
         l for l in data.lotes
-        if l.producto_id == producto_id and l.cantidad_restante > 0
+        if l.producto_id == producto_id
+        and l.cantidad_restante > 0
+        and not getattr(l, "anulado", False)
     ]
     return sorted(
         lotes,
@@ -41,7 +43,10 @@ def coste_unidad_lote(lote: LoteStock) -> float:
 
 
 def stock_disponible(data: AppData, producto_id: str) -> float:
-    return sum(l.cantidad_restante for l in data.lotes if l.producto_id == producto_id)
+    return sum(
+        l.cantidad_restante for l in data.lotes
+        if l.producto_id == producto_id and not getattr(l, "anulado", False)
+    )
 
 
 def calcular_coste_linea(data: AppData, producto_id: str, cantidad: float) -> float:
