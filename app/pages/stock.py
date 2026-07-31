@@ -307,13 +307,18 @@ def _render_historial_compras(repo, *, es_bebida: bool, key_prefix: str) -> None
                         st.error(resultado.mensaje)
 
 
-def _render_registro_catalogo(*, es_bebida: bool) -> None:
+def _render_catalogo_solo(*, es_bebida: bool) -> None:
+    """Alta y configuración de catálogo (sin compras ni inventario)."""
     repo = get_repository()
     key_prefix = "bebida" if es_bebida else "producto"
     etiqueta = "bebida" if es_bebida else "producto"
-    etiqueta_cap = "Bebida" if es_bebida else "Producto"
     crear_fn = crear_bebida if es_bebida else crear_producto
     mapa_fn = mapa_bebidas if es_bebida else lambda d: mapa_productos(d, es_bebida=False)
+
+    st.caption(
+        "Categoría de inventario organiza el catálogo. "
+        "Servicios disponibles definen en qué registros puede usarse (vacío ≠ todos)."
+    )
 
     with st.expander(f"Crear {etiqueta}", expanded=True):
         st.markdown(f"##### Nueva {etiqueta}")
@@ -358,11 +363,7 @@ def _render_registro_catalogo(*, es_bebida: bool) -> None:
                 else:
                     st.error(resultado.mensaje)
 
-    with st.expander(f"Configurar {etiqueta} existente"):
-        st.caption(
-            "Asigne categoría de inventario y servicios disponibles. "
-            "Los filtros de registro se activarán en una fase posterior (4B)."
-        )
+    with st.expander(f"Configurar {etiqueta} existente", expanded=True):
         catalogo_map = mapa_fn(repo.data)
         if not catalogo_map:
             st.warning(f"No hay {etiqueta}s para configurar.")
@@ -375,6 +376,11 @@ def _render_registro_catalogo(*, es_bebida: bool) -> None:
             )
             producto = repo.get_producto(catalogo_map[sel_nombre])
             if producto:
+                st.caption(
+                    f"Actual — categoría: "
+                    f"**{producto.categoria_inventario or 'No configurado'}** · "
+                    f"servicios: **{_etiqueta_servicios(producto.servicios_disponibles)}**"
+                )
                 cat_edit = st.text_input(
                     "Categoría de inventario",
                     value=producto.categoria_inventario or "",
@@ -401,99 +407,135 @@ def _render_registro_catalogo(*, es_bebida: bool) -> None:
                     else:
                         st.error(resultado.mensaje)
 
-    with st.expander("Registrar lote / compra"):
-        st.markdown("##### Nuevo lote")
-        catalogo_map = mapa_fn(repo.data)
-        if not catalogo_map:
-            st.warning(f"Primero debe crear al menos una {etiqueta}.")
-        else:
-            nombres = list(catalogo_map.keys())
-            opciones_prod = [{"id": catalogo_map[n], "label": n} for n in nombres]
-            producto_sel = render_autocomplete(
-                opciones_prod,
-                f"stock_lote_{key_prefix}",
-                etiqueta_cap,
-                f"Buscar {etiqueta} registrada...",
-                etiqueta_selectbox=etiqueta_cap,
+
+def _render_registrar_lote(*, es_bebida: bool) -> None:
+    """Formulario de nuevo lote/compra para el catálogo indicado."""
+    repo = get_repository()
+    key_prefix = "bebida" if es_bebida else "producto"
+    etiqueta = "bebida" if es_bebida else "producto"
+    etiqueta_cap = "Bebida" if es_bebida else "Producto"
+    mapa_fn = mapa_bebidas if es_bebida else lambda d: mapa_productos(d, es_bebida=False)
+
+    st.markdown("#### Registrar compra / lote")
+    catalogo_map = mapa_fn(repo.data)
+    if not catalogo_map:
+        st.warning(f"Primero debe crear al menos una {etiqueta} en la pestaña Productos.")
+        return
+
+    nombres = list(catalogo_map.keys())
+    opciones_prod = [{"id": catalogo_map[n], "label": n} for n in nombres]
+    producto_sel = render_autocomplete(
+        opciones_prod,
+        f"stock_lote_{key_prefix}",
+        etiqueta_cap,
+        f"Buscar {etiqueta} registrada...",
+        etiqueta_selectbox=etiqueta_cap,
+    )
+    with st.form(f"form_registrar_lote_{key_prefix}", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+        with col1:
+            if producto_sel:
+                st.caption(f"{etiqueta_cap}: **{producto_sel['label']}**")
+            else:
+                st.warning(f"Seleccione una {etiqueta} arriba antes de registrar el lote.")
+            usar_compra = st.checkbox("Usar fecha de compra", value=False)
+            fecha_compra_val = st.date_input(
+                "Fecha de compra",
+                key=f"lote_fecha_compra_{key_prefix}",
             )
-            with st.form(f"form_registrar_lote_{key_prefix}", clear_on_submit=True):
-                col1, col2 = st.columns(2)
-                with col1:
-                    if producto_sel:
-                        st.caption(f"{etiqueta_cap}: **{producto_sel['label']}**")
-                    else:
-                        st.warning(f"Seleccione una {etiqueta} arriba antes de registrar el lote.")
-                    usar_compra = st.checkbox("Usar fecha de compra", value=False)
-                    fecha_compra_val = st.date_input(
-                        "Fecha de compra",
-                        key=f"lote_fecha_compra_{key_prefix}",
-                    )
-                    usar_exp = st.checkbox("Usar fecha de expiración", value=False)
-                    fecha_exp_val = st.date_input(
-                        "Fecha de expiración",
-                        key=f"lote_fecha_exp_{key_prefix}",
-                    )
-                with col2:
-                    precio = st.number_input(
-                        "Precio total",
-                        min_value=0.0,
-                        value=0.0,
-                        step=0.01,
-                        format="%.2f",
-                    )
-                    unidad_lote = "Ud"
-                    if producto_sel:
-                        prod_obj = repo.get_producto(producto_sel["id"])
-                        if prod_obj:
-                            unidad_lote = prod_obj.unidad.value
-                    cantidad = st.number_input(
-                        "Cantidad",
-                        min_value=0.0,
-                        value=0.0,
-                        step=paso_unidad(unidad_lote),
-                        format=formato_number_input(unidad_lote),
-                    )
-                    cantidad = normalizar_cantidad(cantidad, unidad_lote)
-                    proveedor = st.text_input("Marca / proveedor (opcional)")
-                    alerta_dias = st.number_input(
-                        "Alerta de expiración en X días (opcional)",
-                        min_value=0,
-                        value=0,
-                        step=1,
-                    )
-                enviado = st.form_submit_button("Registrar lote", type="primary")
-                if enviado:
-                    if not producto_sel:
-                        st.error(f"Seleccione una {etiqueta} antes de registrar el lote.")
-                    else:
-                        resultado = registrar_lote(
-                            producto_id=producto_sel["id"],
-                            precio_total=precio,
-                            cantidad=cantidad,
-                            fecha_compra=fecha_compra_val if usar_compra else None,
-                            fecha_expiracion=fecha_exp_val if usar_exp else None,
-                            marca_proveedor=proveedor,
-                            alerta_expiracion_dias=alerta_dias if alerta_dias > 0 else None,
-                        )
-                        if resultado.ok:
-                            sincronizar_alertas()
-                            st.success(resultado.mensaje)
-                            st.rerun()
-                        else:
-                            st.error(resultado.mensaje)
+            usar_exp = st.checkbox("Usar fecha de expiración", value=False)
+            fecha_exp_val = st.date_input(
+                "Fecha de expiración",
+                key=f"lote_fecha_exp_{key_prefix}",
+            )
+        with col2:
+            precio = st.number_input(
+                "Precio total",
+                min_value=0.0,
+                value=0.0,
+                step=0.01,
+                format="%.2f",
+            )
+            unidad_lote = "Ud"
+            if producto_sel:
+                prod_obj = repo.get_producto(producto_sel["id"])
+                if prod_obj:
+                    unidad_lote = prod_obj.unidad.value
+            cantidad = st.number_input(
+                "Cantidad",
+                min_value=0.0,
+                value=0.0,
+                step=paso_unidad(unidad_lote),
+                format=formato_number_input(unidad_lote),
+            )
+            cantidad = normalizar_cantidad(cantidad, unidad_lote)
+            proveedor = st.text_input("Marca / proveedor (opcional)")
+            alerta_dias = st.number_input(
+                "Alerta de expiración en X días (opcional)",
+                min_value=0,
+                value=0,
+                step=1,
+            )
+        enviado = st.form_submit_button("Registrar lote", type="primary")
+        if enviado:
+            if not producto_sel:
+                st.error(f"Seleccione una {etiqueta} antes de registrar el lote.")
+            else:
+                resultado = registrar_lote(
+                    producto_id=producto_sel["id"],
+                    precio_total=precio,
+                    cantidad=cantidad,
+                    fecha_compra=fecha_compra_val if usar_compra else None,
+                    fecha_expiracion=fecha_exp_val if usar_exp else None,
+                    marca_proveedor=proveedor,
+                    alerta_expiracion_dias=alerta_dias if alerta_dias > 0 else None,
+                )
+                if resultado.ok:
+                    sincronizar_alertas()
+                    st.success(resultado.mensaje)
+                    st.rerun()
+                else:
+                    st.error(resultado.mensaje)
 
+
+def _render_tab_productos() -> None:
+    st.markdown("#### Catálogo")
+    tipo = render_sub_tabs(["Producto", "Bebida"], key="stock_prod_tipo")
+    _render_catalogo_solo(es_bebida=(tipo == "Bebida"))
+
+
+def _render_tab_compras() -> None:
+    tipo = render_sub_tabs(["Producto", "Bebida"], key="stock_compra_tipo")
+    es_bebida = tipo == "Bebida"
+    key_prefix = "bebida" if es_bebida else "producto"
+    _render_registrar_lote(es_bebida=es_bebida)
     section_divider()
-    _render_inventario(repo, es_bebida=es_bebida)
+    _render_historial_compras(get_repository(), es_bebida=es_bebida, key_prefix=key_prefix)
+
+
+def _render_tab_inventario() -> None:
+    repo = get_repository()
+    st.markdown("#### Stock actual")
+    tipo = render_sub_tabs(["Producto", "Bebida"], key="stock_inv_tipo")
+    _render_inventario(repo, es_bebida=(tipo == "Bebida"))
     section_divider()
-    _render_historial_compras(repo, es_bebida=es_bebida, key_prefix=key_prefix)
+    _render_ajustes_inventario()
+    section_divider()
+    _render_alertas_stock()
 
 
-def _render_registro_producto() -> None:
-    _render_registro_catalogo(es_bebida=False)
+_SUBTABS = {
+    "Productos": _render_tab_productos,
+    "Compras": _render_tab_compras,
+    "Inventario": _render_tab_inventario,
+}
 
 
-def _render_registro_bebidas() -> None:
-    _render_registro_catalogo(es_bebida=True)
+def render() -> None:
+    page_header("Stock", "Inventario de productos y bebidas, compras por lote y alertas")
+
+    selected = render_sub_tabs(list(_SUBTABS.keys()), key="stock_subtab")
+    _SUBTABS[selected]()
 
 
 def _etiqueta_item(repo, producto_id: str | None) -> str:
@@ -741,18 +783,3 @@ def _render_ajustes_inventario() -> None:
                 "Comentario": ln.comentario or "—",
             })
     st.dataframe(pd.DataFrame(filas), use_container_width=True, hide_index=True)
-
-
-_SUBTABS = {
-    "Registro producto": _render_registro_producto,
-    "Registro bebidas": _render_registro_bebidas,
-    "Ajustes inventario": _render_ajustes_inventario,
-    "Alertas stock": _render_alertas_stock,
-}
-
-
-def render() -> None:
-    page_header("Stock", "Inventario de productos y bebidas, compras por lote y alertas")
-
-    selected = render_sub_tabs(list(_SUBTABS.keys()), key="stock_subtab")
-    _SUBTABS[selected]()
