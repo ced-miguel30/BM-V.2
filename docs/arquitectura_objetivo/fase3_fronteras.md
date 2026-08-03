@@ -40,10 +40,16 @@ Lectura de productos vía `listar_productos` / `obtener_producto` / `mapa_produc
 - `sincronizar_alertas(ctx)` tras aplicar.
 - UI sin cambios (kwargs `ctx` opcionales).
 
-## Siguiente subfase (4D)
+## Fase 4D — merma (hecha)
 
-Merma → contexto (STOP tras 4D).
+- `merma_service` vía AppContext; UoW compat parcheable (`get_data`/`persist_data` del módulo).
+- Cesta sigue en `st.session_state` (borde UI).
+- UI sin cambios.
+
+## Siguiente subfase (4E)
+
+Registro de servicio / desayuno → contexto (STOP tras 4E).
 
 ## Streamlit
 
-Humo opcional tras 4C: Stock → Inventario → ajuste. Validación UI clave: **Fase 5**.
+Humo opcional: Merma (alta + registro). Validación UI clave: **Fase 5**.

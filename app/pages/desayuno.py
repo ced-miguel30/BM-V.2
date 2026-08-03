@@ -80,6 +80,12 @@ def _render_registro_merma() -> None:
 
     with col_buscar:
         fecha = st.date_input("Fecha", value=date.today(), max_value=date.today(), key="merma_fecha")
+        # Aplicar cambio pendiente ANTES del selectbox (Streamlit no permite
+        # mutar la key del widget una vez instanciado en el mismo run).
+        if "merma_servicio_pending" in st.session_state:
+            st.session_state["merma_servicio"] = st.session_state.pop(
+                "merma_servicio_pending"
+            )
         servicio_ui = st.selectbox(
             "¿Dónde se produjo la merma?",
             OPCIONES_SERVICIO_UI,
@@ -92,12 +98,33 @@ def _render_registro_merma() -> None:
         responsables = listar_responsables_merma(solo_activos=True)
         if not responsables:
             st.warning(
-                "No hay responsables activos. Añádalos en Configuración → Responsables merma."
+                "No hay responsables activos. Sin responsable no se pueden elegir productos."
             )
-            if st.button("Ir a Responsables merma", key="merma_ir_responsables"):
-                st.session_state["nav_section_pending"] = "Configuración"
-                st.session_state["settings_subtab_pending"] = "Responsables merma"
-                st.rerun()
+            col_ir, col_crear = st.columns(2)
+            with col_ir:
+                if st.button("Ir a Responsables merma", key="merma_ir_responsables", use_container_width=True):
+                    st.session_state["nav_section_pending"] = "Configuración"
+                    st.session_state["settings_subtab_pending"] = "Responsables merma"
+                    st.rerun()
+            with col_crear:
+                from app.core.services.merma_service import crear_responsable_merma
+
+                nombre_sugerido = next(
+                    (u.nombre for u in repo.data.usuarios if u.id == repo.data.usuario_actual_id),
+                    None,
+                ) or (repo.data.usuarios[0].nombre if repo.data.usuarios else "Cocina")
+                if st.button(
+                    f"Crear «{nombre_sugerido}»",
+                    key="merma_crear_resp_rapido",
+                    type="primary",
+                    use_container_width=True,
+                ):
+                    resultado = crear_responsable_merma(nombre_sugerido)
+                    if resultado.ok:
+                        st.success(resultado.mensaje)
+                        st.rerun()
+                    else:
+                        st.error(resultado.mensaje)
             mapa_resp: dict[str, str] = {}
             resp_sel = PLACEHOLDER_RESPONSABLE
         else:
@@ -193,7 +220,7 @@ def _render_registro_merma() -> None:
                         key="merma_usar_general",
                         use_container_width=True,
                     ):
-                        st.session_state["merma_servicio"] = "Almacén / General"
+                        st.session_state["merma_servicio_pending"] = "Almacén / General"
                         st.rerun()
                 with col_s:
                     if st.button(

@@ -16,6 +16,7 @@ from app.core.models import (
     Receta,
     RegistroDesayuno,
     RegistroMerma,
+    ResponsableMerma,
     RolUsuario,
     TipoAlerta,
     UnidadProducto,
@@ -232,4 +233,9 @@ def crear_datos_mock() -> AppData:
         usuarios=usuarios,
         configuracion=configuracion,
         usuario_actual_id="u01",
+        responsables_merma=[
+            ResponsableMerma("rm01", "María García", True),
+            ResponsableMerma("rm02", "Carlos Ruiz", True),
+            ResponsableMerma("rm03", "Cocina", True),
+        ],
     )

@@ -2,7 +2,7 @@
 
 APP_NAME = "Breakfast Management"
 APP_SUBTITLE = "Gestión de desayuno"
-APP_VERSION = "Fase 4C · ajustes AppContext"
+APP_VERSION = "Fase 4D · merma AppContext"
 
 
 HOTEL_NAME = "Hotel Boutique"

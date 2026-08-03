@@ -1,8 +1,16 @@
-"""Servicio de registro de merma — lote, servicio, turno y responsable."""
+"""Servicio de registro de merma — lote, servicio, turno y responsable.
+
+Fase 4D: lecturas/escrituras vía AppContext (UoW, reloj, actor, auditoría).
+`get_data` / `persist_data` del módulo se mantienen (tests los parchean).
+"""
+
+from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date, datetime
 
+from app.core.application.context import AppContext
+from app.core.application.id_generator import next_id
 from app.core.models import (
     AppData,
     LineaMerma,
@@ -99,33 +107,34 @@ def valor_turno_desde_ui(etiqueta: str) -> str | None:
     return _LABEL_A_VALOR_TURNO.get(etiqueta)
 
 
-def _next_id(prefix: str, ids: list[str]) -> str:
-    numeros = []
-    for item_id in ids:
-        sufijo = item_id[len(prefix):]
-        if item_id.startswith(prefix) and sufijo.isdigit():
-            numeros.append(int(sufijo))
-    return f"{prefix}{(max(numeros, default=0) + 1):02d}"
+class _CompatSessionUow:
+    """UoW sobre get_data/persist_data del módulo (parcheable en tests)."""
+
+    def get_data(self) -> AppData:
+        return get_data()
+
+    def commit(self, data: AppData | None = None) -> AppData:
+        return persist_data(data if data is not None else get_data())
 
 
-def _nombre_usuario(data: AppData) -> str:
-    for u in data.usuarios:
-        if u.id == data.usuario_actual_id:
-            return u.nombre
-    return data.usuarios[0].nombre if data.usuarios else "Usuario"
+def _ctx(ctx: AppContext | None = None) -> AppContext:
+    if ctx is not None:
+        return ctx
+    from app.core.application.actor import actor_desde_appdata
+    from app.core.application.clock import SystemClock
 
-
-def _registrar_actividad(data: AppData, accion: str, detalle: str) -> None:
-    from app.core.models import Actividad
-
-    actividad = Actividad(
-        _next_id("act", [a.id for a in data.actividades]),
-        datetime.now(),
-        _nombre_usuario(data),
-        accion,
-        detalle,
+    uow = _CompatSessionUow()
+    return AppContext(
+        uow=uow,
+        actor=actor_desde_appdata(uow.get_data()),
+        clock=SystemClock(),
     )
-    data.actividades.insert(0, actividad)
+
+
+def _registrar_actividad(ctx: AppContext, accion: str, detalle: str) -> None:
+    from app.core.application.auditoria import registrar_actividad
+
+    registrar_actividad(ctx, accion, detalle, commit=False)
 
 
 def _get_lote(data: AppData, lote_id: str) -> LoteStock | None:
@@ -171,37 +180,52 @@ def _misma_clave(linea: LineaCestaMerma, clave: tuple[str, str, str, str, str]) 
 
 # --- Catálogo responsables (Configuración) ---
 
-def listar_responsables_merma(*, solo_activos: bool = False) -> list[ResponsableMerma]:
-    data = get_data()
+def listar_responsables_merma(
+    *,
+    solo_activos: bool = False,
+    ctx: AppContext | None = None,
+) -> list[ResponsableMerma]:
+    data = _ctx(ctx).data()
     items = list(data.responsables_merma)
     if solo_activos:
         items = [r for r in items if r.activo]
     return sorted(items, key=lambda r: r.nombre.lower())
 
 
-def crear_responsable_merma(nombre: str) -> ResultadoOperacion:
+def crear_responsable_merma(
+    nombre: str,
+    *,
+    ctx: AppContext | None = None,
+) -> ResultadoOperacion:
     texto = (nombre or "").strip()
     if not texto:
         return ResultadoOperacion(False, "Indique un nombre de responsable.")
-    data = get_data()
+    context = _ctx(ctx)
+    data = context.data()
     if any(r.nombre.lower() == texto.lower() for r in data.responsables_merma):
         return ResultadoOperacion(False, "Ya existe un responsable con ese nombre.")
     nuevo = ResponsableMerma(
-        _next_id("rm", [r.id for r in data.responsables_merma]),
+        next_id("rm", [r.id for r in data.responsables_merma]),
         texto,
         True,
     )
     data.responsables_merma.append(nuevo)
-    _registrar_actividad(data, "Responsable merma", f"Alta: {texto}")
-    persist_data(data)
+    _registrar_actividad(context, "Responsable merma", f"Alta: {texto}")
+    context.uow.commit(data)
     return ResultadoOperacion(True, f"Responsable «{texto}» creado.")
 
 
-def renombrar_responsable_merma(responsable_id: str, nombre: str) -> ResultadoOperacion:
+def renombrar_responsable_merma(
+    responsable_id: str,
+    nombre: str,
+    *,
+    ctx: AppContext | None = None,
+) -> ResultadoOperacion:
     texto = (nombre or "").strip()
     if not texto:
         return ResultadoOperacion(False, "Indique un nombre de responsable.")
-    data = get_data()
+    context = _ctx(ctx)
+    data = context.data()
     actual = next((r for r in data.responsables_merma if r.id == responsable_id), None)
     if not actual:
         return ResultadoOperacion(False, "Responsable no encontrado.")
@@ -213,9 +237,9 @@ def renombrar_responsable_merma(responsable_id: str, nombre: str) -> ResultadoOp
     anterior = actual.nombre
     actual.nombre = texto
     _registrar_actividad(
-        data, "Responsable merma", f"Renombrado: {anterior} → {texto}",
+        context, "Responsable merma", f"Renombrado: {anterior} → {texto}",
     )
-    persist_data(data)
+    context.uow.commit(data)
     return ResultadoOperacion(
         True,
         f"Nombre actualizado a «{texto}». "
@@ -223,29 +247,39 @@ def renombrar_responsable_merma(responsable_id: str, nombre: str) -> ResultadoOp
     )
 
 
-def desactivar_responsable_merma(responsable_id: str) -> ResultadoOperacion:
-    data = get_data()
+def desactivar_responsable_merma(
+    responsable_id: str,
+    *,
+    ctx: AppContext | None = None,
+) -> ResultadoOperacion:
+    context = _ctx(ctx)
+    data = context.data()
     actual = next((r for r in data.responsables_merma if r.id == responsable_id), None)
     if not actual:
         return ResultadoOperacion(False, "Responsable no encontrado.")
     if not actual.activo:
         return ResultadoOperacion(False, "El responsable ya está inactivo.")
     actual.activo = False
-    _registrar_actividad(data, "Responsable merma", f"Desactivado: {actual.nombre}")
-    persist_data(data)
+    _registrar_actividad(context, "Responsable merma", f"Desactivado: {actual.nombre}")
+    context.uow.commit(data)
     return ResultadoOperacion(True, f"Responsable «{actual.nombre}» desactivado.")
 
 
-def reactivar_responsable_merma(responsable_id: str) -> ResultadoOperacion:
-    data = get_data()
+def reactivar_responsable_merma(
+    responsable_id: str,
+    *,
+    ctx: AppContext | None = None,
+) -> ResultadoOperacion:
+    context = _ctx(ctx)
+    data = context.data()
     actual = next((r for r in data.responsables_merma if r.id == responsable_id), None)
     if not actual:
         return ResultadoOperacion(False, "Responsable no encontrado.")
     if actual.activo:
         return ResultadoOperacion(False, "El responsable ya está activo.")
     actual.activo = True
-    _registrar_actividad(data, "Responsable merma", f"Reactivado: {actual.nombre}")
-    persist_data(data)
+    _registrar_actividad(context, "Responsable merma", f"Reactivado: {actual.nombre}")
+    context.uow.commit(data)
     return ResultadoOperacion(True, f"Responsable «{actual.nombre}» reactivado.")
 
 
@@ -288,8 +322,13 @@ def quitar_de_cesta_merma(
     ]
 
 
-def productos_con_stock(buscar: str = "", *, servicio: str | None = None) -> list[dict]:
-    data = get_data()
+def productos_con_stock(
+    buscar: str = "",
+    *,
+    servicio: str | None = None,
+    ctx: AppContext | None = None,
+) -> list[dict]:
+    data = _ctx(ctx).data()
     termino = buscar.strip()
     resultado = []
 
@@ -314,8 +353,12 @@ def productos_con_stock(buscar: str = "", *, servicio: str | None = None) -> lis
     return resultado
 
 
-def lotes_disponibles(producto_id: str) -> list[dict]:
-    data = get_data()
+def lotes_disponibles(
+    producto_id: str,
+    *,
+    ctx: AppContext | None = None,
+) -> list[dict]:
+    data = _ctx(ctx).data()
     repo = DataRepository(data)
     lotes = [
         l for l in data.lotes
@@ -332,7 +375,6 @@ def lotes_disponibles(producto_id: str) -> list[dict]:
         for l in lotes
     ]
 
-
 def _cantidad_en_cesta(
     lote_id: str,
     motivo: str,
@@ -346,8 +388,13 @@ def _cantidad_en_cesta(
     return sum(l.cantidad for l in get_cesta_merma() if _misma_clave(l, clave))
 
 
-def calcular_coste_lote(lote_id: str, cantidad: float) -> float:
-    data = get_data()
+def calcular_coste_lote(
+    lote_id: str,
+    cantidad: float,
+    *,
+    ctx: AppContext | None = None,
+) -> float:
+    data = _ctx(ctx).data()
     lote = _get_lote(data, lote_id)
     if not lote:
         return 0.0
@@ -364,6 +411,7 @@ def anadir_a_cesta_merma(
     turno_snapshot: str | None = None,
     responsable_id: str | None = None,
     responsable_nombre: str | None = None,
+    ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
     if cantidad <= 0:
         return ResultadoOperacion(False, "La cantidad debe ser mayor que 0.")
@@ -379,7 +427,7 @@ def anadir_a_cesta_merma(
     if not responsable_id or not (responsable_nombre or "").strip():
         return ResultadoOperacion(False, "Seleccione un responsable activo.")
 
-    data = get_data()
+    data = _ctx(ctx).data()
     responsable = next(
         (r for r in data.responsables_merma if r.id == responsable_id and r.activo),
         None,
@@ -442,9 +490,9 @@ def anadir_a_cesta_merma(
     return ResultadoOperacion(True, f"«{producto.nombre}» (lote {lote_id}) añadido a la cesta.")
 
 
-def coste_total_cesta_merma() -> float:
+def coste_total_cesta_merma(*, ctx: AppContext | None = None) -> float:
     cesta = get_cesta_merma()
-    return sum(calcular_coste_lote(l.lote_id, l.cantidad) for l in cesta)
+    return sum(calcular_coste_lote(l.lote_id, l.cantidad, ctx=ctx) for l in cesta)
 
 
 def _descontar_lote(data: AppData, lote_id: str, cantidad: float) -> float:
@@ -461,12 +509,17 @@ def _descontar_lote(data: AppData, lote_id: str, cantidad: float) -> float:
     return coste
 
 
-def registrar_merma(fecha: date) -> ResultadoOperacion:
+def registrar_merma(
+    fecha: date,
+    *,
+    ctx: AppContext | None = None,
+) -> ResultadoOperacion:
     cesta = get_cesta_merma()
     if not cesta:
         return ResultadoOperacion(False, "La cesta está vacía. Añada líneas antes de registrar.")
 
-    if fecha > date.today():
+    context = _ctx(ctx)
+    if fecha > context.clock.today():
         return ResultadoOperacion(False, "No puede registrar mermas en fechas futuras.")
 
     for item in cesta:
@@ -486,7 +539,7 @@ def registrar_merma(fecha: date) -> ResultadoOperacion:
                 "Hay líneas sin responsable. Quite y vuelva a añadirlas.",
             )
 
-    data = get_data()
+    data = context.data()
     lineas: list[LineaMerma] = []
 
     # Validación acumulada por lote (varias líneas del mismo lote).
@@ -536,20 +589,20 @@ def registrar_merma(fecha: date) -> ResultadoOperacion:
 
         coste_total = round(sum(l.coste for l in lineas), 2)
         registro = RegistroMerma(
-            _next_id("m", [m.id for m in data.mermas]),
+            next_id("m", [m.id for m in data.mermas]),
             fecha,
             lineas,
             coste_total,
-            _nombre_usuario(data),
-            hora=datetime.now().time(),
+            context.actor.nombre,
+            hora=context.clock.now().time(),
         )
         data.mermas.append(registro)
         _registrar_actividad(
-            data,
+            context,
             "Registro merma",
             f"Merma del {fecha.strftime('%d/%m/%Y')} — {coste_total:.2f} €",
         )
-        persist_data(data)
+        context.uow.commit(data)
     except Exception:
         restaurar_cantidades_restantes(data, snap)
         del data.mermas[n_mermas:]
@@ -559,7 +612,7 @@ def registrar_merma(fecha: date) -> ResultadoOperacion:
     limpiar_cesta_merma()
 
     from app.core.services.alert_service import sincronizar_alertas
-    sincronizar_alertas()
+    sincronizar_alertas(context)
 
     return ResultadoOperacion(
         True,
@@ -567,16 +620,21 @@ def registrar_merma(fecha: date) -> ResultadoOperacion:
     )
 
 
-def fecha_mas_antigua() -> date | None:
+def fecha_mas_antigua(*, ctx: AppContext | None = None) -> date | None:
     """Fecha de la primera merma registrada (para sembrar exportaciones
     semanales pendientes si nunca se ha exportado nada todavía)."""
-    fechas = [m.fecha for m in get_data().mermas]
+    fechas = [m.fecha for m in _ctx(ctx).data().mermas]
     return min(fechas) if fechas else None
 
 
-def registros_exportables(inicio: date, hasta: datetime) -> list[RegistroExportable]:
+def registros_exportables(
+    inicio: date,
+    hasta: datetime,
+    *,
+    ctx: AppContext | None = None,
+) -> list[RegistroExportable]:
     """Desglose completo de cada merma entre `inicio` y `hasta`."""
-    data = get_data()
+    data = _ctx(ctx).data()
     repo = DataRepository(data)
     fin = hasta.date()
     columnas = [

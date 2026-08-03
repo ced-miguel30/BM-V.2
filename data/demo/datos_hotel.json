@@ -246,7 +246,18 @@
       "registrado_por": "Ana"
     }
   ],
-  "responsables_merma": [],
+  "responsables_merma": [
+    {
+      "id": "rm01",
+      "nombre": "Ana",
+      "activo": true
+    },
+    {
+      "id": "rm02",
+      "nombre": "Cocina",
+      "activo": true
+    }
+  ],
   "alertas": [
     {
       "id": "a01",
