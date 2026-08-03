@@ -47,6 +47,7 @@ from app.core.models.merma import LineaMerma, RegistroMerma, ResponsableMerma
 from app.core.models.movimiento import MovimientoInventario
 from app.core.models.producto import Producto
 from app.core.models.receta import IngredienteReceta, Receta
+from app.core.models.recuento import EstadoRecuento, LineaRecuento, SesionRecuento
 from app.core.models.registro_servicio import (
     ExtraRecetaServicio,
     LineaDetalleOrigen,
@@ -71,6 +72,7 @@ __all__ = [
     "DireccionMovimiento",
     "ESTADO_ALERTA_LABEL",
     "EstadoAlerta",
+    "EstadoRecuento",
     "ExtraRecetaDesayuno",
     "ExtraRecetaServicio",
     "IngredienteReceta",
@@ -78,6 +80,7 @@ __all__ = [
     "LineaDesayuno",
     "LineaDetalleOrigen",
     "LineaMerma",
+    "LineaRecuento",
     "LineaServicio",
     "LoteStock",
     "MotivoAjuste",
@@ -101,6 +104,7 @@ __all__ = [
     "RolUsuario",
     "SERVICIO_DISPONIBLE_LABEL",
     "SERVICIOS_DISPONIBLES_VALORES",
+    "SesionRecuento",
     "Subcategoria",
     "TIPO_ARTICULO_AYUDA",
     "TIPO_ARTICULO_LABEL",

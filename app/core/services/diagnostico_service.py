@@ -67,10 +67,22 @@ class ResumenDiagnostico:
     num_movimientos_reversion_consumo: int = 0
     num_movimientos_reversion_entrada: int = 0
     nota_ledger: str = (
-        "Ledger en modo espejo; stock calculado desde lotes. "
-        "Fase 7A completa: entradas, ajustes, mermas, consumos y anulaciones. "
-        "Sin backfill histórico. Ledger no es fuente de verdad."
+        "Ledger en modo configurable (legacy/shadow/ledger). "
+        "cantidad_restante se conserva como espejo de compatibilidad. "
+        "Sin backfill histórico. Modo por defecto: shadow."
     )
+    # Fase 7B — diagnóstico ampliado
+    ledger_balance_mode: str = "shadow"
+    ledger_activation_iso: str | None = None
+    ledger_cobertura: dict[str, int] = field(default_factory=dict)
+    ledger_diferencias_post: list[str] = field(default_factory=list)
+    lotes_legacy: int = 0
+    lotes_ledger: int = 0
+    aviso_modo_hibrido: str = ""
+    num_traslados: int = 0
+    num_recuentos_pendientes: int = 0
+    saldos_ubicacion_muestra: list[str] = field(default_factory=list)
+
 
 
 def _ids_duplicados(ids: list[str], etiqueta: str) -> list[str]:
@@ -341,6 +353,50 @@ def generar_diagnostico(data: AppData) -> ResumenDiagnostico:
     num_rev_ent = contar_movimientos_por_tipo(
         data, TipoMovimiento.REVERSION_ENTRADA
     )
+    num_traslados = contar_movimientos_por_tipo(data, TipoMovimiento.TRASLADO)
+
+    from app.core.services.ledger_config import (
+        frontera_activacion,
+        ledger_balance_mode,
+    )
+    from app.core.services.ledger_reconciliacion_service import (
+        EstadoCoberturaLedger,
+        reconciliacion_reforzada,
+    )
+    from app.core.services.recuento_service import listar_recuentos_pendientes
+    from app.core.services.ubicacion_stock_service import saldos_por_ubicacion_lote
+
+    modo = ledger_balance_mode(data)
+    frontera = frontera_activacion(data)
+    resumen_rec = reconciliacion_reforzada(data, fijar_frontera_si_falta=False)
+    lotes_legacy = resumen_rec.conteo_cobertura.get(
+        EstadoCoberturaLedger.HISTORICO_SIN_LEDGER.value, 0
+    ) + resumen_rec.conteo_cobertura.get(
+        EstadoCoberturaLedger.COBERTURA_PARCIAL.value, 0
+    )
+    lotes_ledger = resumen_rec.conteo_cobertura.get(
+        EstadoCoberturaLedger.COBERTURA_COMPLETA.value, 0
+    )
+    aviso = ""
+    if modo == "ledger" and lotes_legacy > 0:
+        aviso = (
+            "Modo híbrido: ledger activo para cobertura completa; "
+            f"{lotes_legacy} lote(s) siguen en lectura legacy/parcial."
+        )
+    elif modo == "shadow":
+        aviso = (
+            "Modo sombra: operativo = cantidad_restante; "
+            "ledger se compara en paralelo."
+        )
+
+    muestra_ubi: list[str] = []
+    for lote in data.lotes[:8]:
+        info = saldos_por_ubicacion_lote(data, lote.id)
+        if info.por_ubicacion:
+            partes = ", ".join(
+                f"{uid}:{s.saldo:g}" for uid, s in info.por_ubicacion.items()
+            )
+            muestra_ubi.append(f"{lote.id} → {partes}")
 
     return ResumenDiagnostico(
         num_productos=len(data.productos),
@@ -385,4 +441,18 @@ def generar_diagnostico(data: AppData) -> ResumenDiagnostico:
         num_movimientos_consumo=num_cons,
         num_movimientos_reversion_consumo=num_rev_cons,
         num_movimientos_reversion_entrada=num_rev_ent,
+        ledger_balance_mode=modo,
+        ledger_activation_iso=(
+            frontera.isoformat() if frontera else getattr(
+                data.configuracion, "ledger_activation_iso", None
+            ) if data.configuracion else None
+        ),
+        ledger_cobertura=dict(resumen_rec.conteo_cobertura),
+        ledger_diferencias_post=list(resumen_rec.inconsistencias_posteriores),
+        lotes_legacy=lotes_legacy,
+        lotes_ledger=lotes_ledger,
+        aviso_modo_hibrido=aviso,
+        num_traslados=num_traslados,
+        num_recuentos_pendientes=len(listar_recuentos_pendientes(data)),
+        saldos_ubicacion_muestra=muestra_ubi,
     )

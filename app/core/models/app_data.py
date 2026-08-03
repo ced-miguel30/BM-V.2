@@ -13,6 +13,7 @@ from app.core.models.merma import RegistroMerma, ResponsableMerma
 from app.core.models.movimiento import MovimientoInventario
 from app.core.models.producto import Producto
 from app.core.models.receta import Receta
+from app.core.models.recuento import SesionRecuento
 from app.core.models.registro_servicio import RegistroServicio
 from app.core.models.usuario import Usuario
 
@@ -39,5 +40,7 @@ class AppData:
     ubicaciones: list[Ubicacion] = field(default_factory=list)
     # Fase 7A — ledger espejo (no fuente de verdad del stock).
     movimientos: list[MovimientoInventario] = field(default_factory=list)
+    # Fase 7B.6 — recuentos por ubicación.
+    recuentos: list[SesionRecuento] = field(default_factory=list)
     configuracion: ConfiguracionHotel | None = None
     usuario_actual_id: str = ""

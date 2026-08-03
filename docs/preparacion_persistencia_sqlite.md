@@ -22,7 +22,9 @@ Fuente de verdad en memoria: `AppData` (`app/core/models/app_data.py`), serializ
 | `actividades` | `Actividad` | Auditoría operativa |
 | `usuarios` | `Usuario` | Operadores |
 | `responsables_merma` | `ResponsableMerma` | Catálogo merma |
-| `configuracion` | `ConfiguracionHotel` | Establecimiento / moneda / logo |
+| `configuracion` | `ConfiguracionHotel` | Establecimiento / moneda / logo / **ledger_*** (7B) |
+| `movimientos` | `MovimientoInventario` | Ledger append-only (7A/7B) |
+| `recuentos` | `SesionRecuento` | Recuentos por ubicación (7B.6) |
 | meta | `usuario_actual_id` | Sesión lógica |
 
 ---

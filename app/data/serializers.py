@@ -17,6 +17,7 @@ from app.core.models import (
     ConfiguracionHotel,
     Departamento,
     DireccionMovimiento,
+    EstadoRecuento,
     ExtraRecetaDesayuno,
     ExtraRecetaServicio,
     IngredienteReceta,
@@ -24,6 +25,7 @@ from app.core.models import (
     LineaDesayuno,
     LineaDetalleOrigen,
     LineaMerma,
+    LineaRecuento,
     LineaServicio,
     LoteStock,
     MotivoAjuste,
@@ -41,6 +43,7 @@ from app.core.models import (
     RegistroServicio,
     ResponsableMerma,
     RolUsuario,
+    SesionRecuento,
     Subcategoria,
     TipoAlerta,
     TipoArticulo,
@@ -194,6 +197,89 @@ def _movimiento_from_dict(raw: dict) -> MovimientoInventario:
         creado_en=_parse_datetime(creado_raw) if creado_raw else None,
         ubicacion_origen_id=raw.get("ubicacion_origen_id"),
         ubicacion_destino_id=raw.get("ubicacion_destino_id"),
+    )
+
+
+def _recuento_to_dict(r: SesionRecuento) -> dict:
+    return {
+        "id": r.id,
+        "ubicacion_id": r.ubicacion_id,
+        "fecha": r.fecha.isoformat() if r.fecha else None,
+        "usuario_id": r.usuario_id,
+        "estado": r.estado.value if hasattr(r.estado, "value") else r.estado,
+        "motivo": r.motivo,
+        "hora": r.hora.isoformat() if r.hora else None,
+        "creado_en": r.creado_en.isoformat() if r.creado_en else None,
+        "confirmado_en": (
+            r.confirmado_en.isoformat() if r.confirmado_en else None
+        ),
+        "anulado_en": r.anulado_en.isoformat() if r.anulado_en else None,
+        "snapshot_esperado": dict(r.snapshot_esperado or {}),
+        "lineas": [
+            {
+                "producto_id": ln.producto_id,
+                "lote_id": ln.lote_id,
+                "cantidad_esperada": ln.cantidad_esperada,
+                "cantidad_contada": ln.cantidad_contada,
+                "producto_nombre_snapshot": ln.producto_nombre_snapshot,
+                "unidad_snapshot": ln.unidad_snapshot,
+                "ajuste_id": ln.ajuste_id,
+            }
+            for ln in r.lineas
+        ],
+    }
+
+
+def _parse_estado_recuento(raw: Any) -> EstadoRecuento | str:
+    if isinstance(raw, EstadoRecuento):
+        return raw
+    s = "" if raw is None else str(raw)
+    try:
+        return EstadoRecuento(s)
+    except ValueError:
+        return s or EstadoRecuento.BORRADOR.value
+
+
+def _recuento_from_dict(raw: dict) -> SesionRecuento:
+    fecha_raw = raw.get("fecha")
+    fecha = _parse_date(fecha_raw) if fecha_raw else date.today()
+    if fecha is None:
+        fecha = date.today()
+    return SesionRecuento(
+        id=raw.get("id", ""),
+        ubicacion_id=raw.get("ubicacion_id", ""),
+        fecha=fecha,
+        usuario_id=raw.get("usuario_id"),
+        estado=_parse_estado_recuento(raw.get("estado")),
+        motivo=raw.get("motivo"),
+        lineas=[
+            LineaRecuento(
+                producto_id=ln.get("producto_id", ""),
+                lote_id=ln.get("lote_id", ""),
+                cantidad_esperada=float(ln.get("cantidad_esperada", 0)),
+                cantidad_contada=float(ln.get("cantidad_contada", 0)),
+                producto_nombre_snapshot=ln.get("producto_nombre_snapshot"),
+                unidad_snapshot=ln.get("unidad_snapshot"),
+                ajuste_id=ln.get("ajuste_id"),
+            )
+            for ln in raw.get("lineas", []) or []
+        ],
+        hora=_parse_time(raw.get("hora")),
+        creado_en=(
+            _parse_datetime(raw["creado_en"]) if raw.get("creado_en") else None
+        ),
+        confirmado_en=(
+            _parse_datetime(raw["confirmado_en"])
+            if raw.get("confirmado_en")
+            else None
+        ),
+        anulado_en=(
+            _parse_datetime(raw["anulado_en"]) if raw.get("anulado_en") else None
+        ),
+        snapshot_esperado={
+            str(k): float(v)
+            for k, v in (raw.get("snapshot_esperado") or {}).items()
+        },
     )
 
 
@@ -529,6 +615,10 @@ def appdata_to_dict(data: AppData) -> dict:
             _movimiento_to_dict(m)
             for m in getattr(data, "movimientos", []) or []
         ],
+        "recuentos": [
+            _recuento_to_dict(r)
+            for r in getattr(data, "recuentos", []) or []
+        ],
         "alertas": [
             {
                 "id": a.id, "tipo": a.tipo.value, "titulo": a.titulo, "mensaje": a.mensaje,
@@ -817,6 +907,10 @@ def dict_to_appdata(payload: dict) -> AppData:
         movimientos=[
             _movimiento_from_dict(m)
             for m in payload.get("movimientos", [])
+        ],
+        recuentos=[
+            _recuento_from_dict(r)
+            for r in payload.get("recuentos", [])
         ],
         alertas=[
             AlertaOperativa(

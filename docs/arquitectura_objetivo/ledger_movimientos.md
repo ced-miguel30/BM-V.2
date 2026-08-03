@@ -1,72 +1,64 @@
-# Ledger de movimientos — modo espejo (Fase 7A · completa)
+# Ledger de movimientos — Fase 7B (ledger, ubicación, traslados, recuentos)
 
-Documento vivo. **Fase 7A cerrada** en modo espejo.
+Documento vivo. **Fase 7B entregada**.
 
 ## Estado
 
 | Aspecto | Estado |
 |---------|--------|
-| Modelo + persistencia | **Hecho** |
-| Dual-write lote / ajustes | **Hecho (7A.2)** |
-| Dual-write merma / anulación merma | **Hecho (7A.3)** |
-| Dual-write consumos / anulación registro | **Hecho (7A.4)** |
-| Dual-write anulación de compra/entrada | **Hecho (7A.4)** |
-| Ledger como fuente de verdad | **No** (futura 7B) |
+| Dual-write 7A | **Hecho** |
+| Reconciliación + frontera activación | **Hecho (7B.1)** |
+| Saldo sombra | **Hecho (7B.2)** |
+| Stock por ubicación | **Hecho (7B.3)** |
+| Traslados | **Hecho (7B.4)** |
+| Ledger como fuente de verdad (configurable) | **Hecho (7B.5)** |
+| Recuentos por ubicación | **Hecho (7B.6)** |
 
-**Fuente de verdad del stock:** `LoteStock.cantidad_restante`.  
-**FIFO:** sin cambios.  
-**Versión:** `BM-V.2 · Ledger espejo completo`.
+**Versión:** `BM-V.2 · Ledger y stock por ubicación`.
 
-Mensaje operativo:
+## Modos de saldo (`ledger_balance_mode`)
 
-```text
-Ledger en modo espejo; stock calculado desde lotes.
-```
+| Modo | Lectura operativa | Notas |
+|------|-------------------|--------|
+| `legacy` | `cantidad_restante` | Sin comparación ledger |
+| `shadow` (**default**) | `cantidad_restante` | Ledger en paralelo; diagnostica diferencias |
+| `ledger` | Saldo ledger si cobertura completa / inconsistencia post-activación | Histórico parcial → legacy híbrido |
 
-## Tipos de movimiento
+`cantidad_restante` **no se elimina**. En modo ledger es espejo de compatibilidad; la autoridad es el movimiento.
 
-| Tipo | Dirección | Origen típico |
-|------|-----------|---------------|
-| `entrada_compra` | entrada | `lote` |
-| `ajuste_entrada` / `ajuste_salida` | ± | `ajuste` |
-| `merma` | salida | `merma` |
-| `reversion_merma` | entrada | `anulacion_merma` / `anulacion_merma_historica` |
-| `consumo` | salida | `desayuno` / `registro_servicio` |
-| `reversion_consumo` | entrada | `anulacion_registro` / `anulacion_registro_historica` |
-| `reversion_entrada` | salida | `anulacion_compra` / `anulacion_compra_historica` |
+## Frontera de activación
 
-Cantidad siempre > 0. Identidad de línea sin IDs en modelos:
+Persistida en `ConfiguracionHotel.ledger_activation_iso` (+ `ledger_schema_version`).  
+Se fija una vez (explícita o derivada del primer `creado_en` de movimientos). **No** se re-infiere desde `datetime.now()` en cada ejecución.
 
-- Merma: `lnNN`
-- Consumo: `detNN:fragNN`
+## Cobertura por lote
 
-## Principios
+`historico_sin_ledger` · `cobertura_parcial` · `cobertura_completa` · `inconsistencia_posterior_activacion` · `sin_movimientos`
 
-1. Append-only; correcciones = reversiones.
-2. Espejo complementario; no calcula stock operativo.
-3. Idempotencia por clave origen+línea+lote+tipo.
-4. Atomicidad: fallo del espejo revierte lotes, registros, flags, actividades y movimientos.
-5. Sin backfill. Históricos sin movimiento → cobertura parcial; anulaciones pueden generar reverso histórico sin inventar la salida original.
+Histórico pre-frontera no es error automático. No hay backfill ni corrección automática de saldos.
 
-## Reconciliación
+## Ubicaciones
 
-Informativa: entradas, consumos, mermas, ajustes, reversos, saldo teórico vs `cantidad_restante`, cobertura. **Nunca** modifica stock.
+Campos aditivos en movimiento: `ubicacion_origen_id`, `ubicacion_destino_id`.  
+Estado `sin_ubicacion_historica` = ausencia controlada (no es ID de catálogo).  
+`Producto.ubicacion_ids` = permitidas, no cantidades. Saldo por ubicación se deriva del ledger.
 
-## Limitaciones actuales
+## Traslados
 
-- Sin stock por ubicación, traslados, recuentos, préstamos, documentos.
-- Cobertura histórica parcial esperable.
-- Diagnóstico no auto-corrige.
+Tipo `traslado`: origen ≠ destino, cantidad > 0, stock hotel y coste invariantes, FIFO global intacto. Anulación = traslado reverso (append-only).
 
-## Fase 7B (futura, no implementar)
+## Recuentos
 
-Condiciones previas:
+Sesión borrador → confirmación atómica → `ajuste_entrada` / `ajuste_salida` + espejo ledger. Anulación vía ajustes inversos. Sin escáner ni multiusuario avanzado.
 
-1. Dual-write estable en producción (7A completa).
-2. Reconciliación sin divergencias sistemáticas en datos **nuevos**.
-3. Política explícita para histórico pre-ledger.
-4. Decisión de producto + periodo de convivencia.
-5. Invariantes testados stock(lote) = Σ firmados post-activación.
-6. Plan de rollback que no recalcule lotes borrando movimientos.
+## Rollback
 
-7B podría abordar: ledger como fuente de verdad, stock por ubicación, traslados, etc.
+- Volver a `shadow`/`legacy` por configuración sin borrar movimientos.
+- Cada subfase 7B es un commit independiente.
+- Backup 7A: `data/backups/datos_hotel_7a_freeze_*.json`.
+
+## Limitaciones
+
+- Modo default sigue siendo `shadow` (activar `ledger` solo sin diferencias post-activación).
+- Sin proveedores, documentos, facturas, API, Flet.
+- Sin préstamos / activos individuales.

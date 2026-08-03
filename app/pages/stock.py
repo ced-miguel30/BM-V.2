@@ -732,7 +732,84 @@ def _render_tab_inventario() -> None:
     section_divider()
     _render_ajustes_inventario()
     section_divider()
+    _render_recuentos_inventario()
+    section_divider()
     _render_alertas_stock()
+
+
+def _render_recuentos_inventario() -> None:
+    from app.core.services import recuento_service as rc
+    from app.core.services.ubicacion_stock_service import saldo_en_ubicacion
+
+    repo = get_repository()
+    data = repo.data
+    st.markdown("#### Recuentos por ubicación")
+    st.caption(
+        "Conteo físico: la diferencia confirmada genera ajuste (entrada/salida) "
+        "trazable en el ledger. No sobrescribe el saldo a mano."
+    )
+    ubis = [u for u in data.ubicaciones if getattr(u, "activo", True)]
+    lotes = [
+        l for l in data.lotes
+        if not getattr(l, "anulado", False) and float(l.cantidad_restante) >= 0
+    ]
+    if not ubis or not lotes:
+        empty_state("Se necesitan ubicaciones y lotes para recuentos.", icon="📋")
+        return
+    mapa_ubi = {f"{u.nombre} ({u.id})": u.id for u in ubis}
+    ubi_lbl = st.selectbox("Ubicación", list(mapa_ubi.keys()), key="rc_ubi")
+    ubi_id = mapa_ubi[ubi_lbl]
+    mapa_lote = {
+        f"{l.id} · esperado {saldo_en_ubicacion(data, l.id, ubi_id):g}": l
+        for l in lotes
+    }
+    lote_lbl = st.selectbox("Lote", list(mapa_lote.keys()), key="rc_lote")
+    lote = mapa_lote[lote_lbl]
+    contada = st.number_input(
+        "Cantidad contada",
+        min_value=0.0,
+        value=float(saldo_en_ubicacion(data, lote.id, ubi_id)),
+        key="rc_contada",
+    )
+    motivo = st.text_input("Motivo", key="rc_motivo")
+    if st.button("Crear borrador de recuento", key="rc_draft"):
+        res = rc.crear_borrador(
+            ubicacion_id=ubi_id,
+            lineas=[(lote.id, lote.producto_id, contada)],
+            motivo=motivo or None,
+        )
+        if res.ok:
+            st.success(res.mensaje)
+            st.session_state["rc_last_id"] = res.sesion.id if res.sesion else None
+            st.rerun()
+        else:
+            st.error(res.mensaje)
+
+    pendientes = rc.listar_recuentos_pendientes(data)
+    if pendientes:
+        st.markdown("##### Borradores pendientes")
+        for s in pendientes:
+            st.write(
+                f"`{s.id}` · {s.ubicacion_id} · "
+                + "; ".join(rc.preview_confirmacion(s))
+            )
+            c1, c2 = st.columns(2)
+            with c1:
+                if st.button("Confirmar", key=f"rc_ok_{s.id}"):
+                    conf = rc.confirmar_recuento(recuento_id=s.id)
+                    if conf.ok:
+                        st.success(conf.mensaje)
+                        st.rerun()
+                    else:
+                        st.error(conf.mensaje)
+            with c2:
+                if st.button("Anular borrador", key=f"rc_no_{s.id}"):
+                    an = rc.anular_recuento(recuento_id=s.id)
+                    if an.ok:
+                        st.success(an.mensaje)
+                        st.rerun()
+                    else:
+                        st.error(an.mensaje)
 
 
 def _render_tab_traslados() -> None:

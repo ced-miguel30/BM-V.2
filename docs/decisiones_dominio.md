@@ -50,20 +50,27 @@ Sin implementación de código en esta fase.
 | D41 | **Fase 7A.4 / 7A completa** — dual-write consumos + anulaciones registro/compra | Un movimiento por fragmento `consumos_lote` |
 | D42 | `origen_linea_id` consumo = `detNN:fragNN` | Índices estables append-only |
 | D43 | Anulación compra → `reversion_entrada` por restante anulado | Puede diferir de cantidad de entrada si hubo consumo (compra intacta exige restante=compra) |
-| D44 | Fase 7A cerrada en modo espejo | Stock sigue en lotes; 7B pendiente de aprobación |
+| D44 | Fase 7A cerrada en modo espejo | Stock seguía en lotes |
+| D45 | **Fase 7B** — frontera `ledger_activation_iso` persistida | No re-inferir en cada ejecución |
+| D46 | Modos `legacy` / `shadow` / `ledger`; default `shadow` | `cantidad_restante` no se elimina |
+| D47 | Stock por ubicación derivado del ledger | `ubicacion_origen_id` / `ubicacion_destino_id` aditivos |
+| D48 | `sin_ubicacion_historica` ≠ ubicación de catálogo | Sin backfill de ubicaciones |
+| D49 | Traslado neto 0 en lote; anulación = traslado reverso | FIFO global intacto |
+| D50 | Recuento → ajuste_entrada/salida + espejo | No sobrescribir saldo directo |
+| D51 | En modo `ledger`, autoridad = movimientos | Restante = espejo de compatibilidad |
 
 ## Decisiones pendientes (no bloquean F3)
 
 | ID | Pregunta | Notas |
 |----|----------|-------|
 | P01 | ¿Cuándo unificar `RegistroDesayuno` en `RegistroServicio`? | Tras desacople; alto riesgo |
-| P02 | ¿Stock por ubicación como tabla materializada o solo ledger? | Tras dual-write 7A |
+| P02 | ~~¿Stock por ubicación materializado vs ledger?~~ | **Cerrado en D47** — derivado del ledger |
 | P03 | Política exacta de préstamo/textil/activo | **Esbozo:** herramienta/préstamo; textil circulante; activo individual — **no implementados** |
 | P04 | ¿Movimiento `conciliacion` neutro en factura o solo metadatos? | F11 |
 | P05 | Migración de costes `float` → `Decimal` en consumo | Fuera de docs; spike posterior |
-| P06 | Multi-almacén vs multi-ubicación simple; jerarquía/tipos de ubicación | Asumir lista plana hasta F7 |
+| P06 | Multi-almacén vs multi-ubicación simple; jerarquía/tipos de ubicación | Lista plana en 7B |
 | P07 | Retención y borrado legal de archivos documentales | F9/F17 |
-| P08 | ¿Cuándo el ledger pasa a fuente de verdad? | Solo tras 7A.2–7A.4 + condiciones en ledger_movimientos.md |
+| P08 | ~~¿Cuándo el ledger pasa a fuente de verdad?~~ | **Cerrado en D46/D51** — modo configurable; default shadow |
 
 ## Compatibilidad histórica — reglas permanentes
 
@@ -74,8 +81,9 @@ Sin implementación de código en esta fase.
 5. `marca_proveedor` y costes ya guardados no se reescriben al crear Proveedor maestro.  
 6. Referencias de catálogo huérfanas se conservan y se etiquetan «Referencia no encontrada»; no se anulan en silencio.  
 7. `tipo_articulo` desconocido se conserva y se diagnostica; no se convierte en consumible.
-8. `movimientos` ausente → `[]`; tipos/direcciones desconocidos se conservan como string y se diagnostican.
+8. `movimientos` / `recuentos` ausentes → `[]`; tipos/direcciones desconocidos se conservan como string y se diagnostican.
+9. No asignar ubicaciones ficticias a históricos.
 
 ## Próximo paso de implementación
 
-**Fase 7B** — solo tras aprobación explícita (ledger como posible fuente de verdad / ubicación). 7A cerrada en modo espejo.
+**Fase 8** — proveedores y documentos (tras revisión de 7B).

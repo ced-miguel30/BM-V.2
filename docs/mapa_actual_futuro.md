@@ -8,13 +8,15 @@ Futuro: dominio documentado en [modelo_dominio_objetivo.md](modelo_dominio_objet
 | Actual (código) | Futuro (concepto) | Estrategia |
 |-----------------|-------------------|------------|
 | `Producto` + catálogos 6A–6C | Producto maestro | Completados |
-| `LoteStock.cantidad_restante` | Stock operativo | **Fuente de verdad vigente** |
-| `MovimientoInventario` | Ledger espejo | **Fase 7A completa** |
-| Dual-write ops → ledger | Espejo automático | Entradas, ajustes, mermas, consumos, anulaciones |
-| *(no aún)* | Ledger = fuente de verdad | **Fase 7B** (tras aprobación) |
-| *(no existe)* | Stock por ubicación / traslados | 7B+ |
+| `LoteStock.cantidad_restante` | Espejo / legacy | Conservado; no eliminado en 7B |
+| `MovimientoInventario` | Ledger | **7A espejo + 7B SoT configurable** |
+| Dual-write ops → ledger | Espejo automático | Entradas, ajustes, mermas, consumos, anulaciones, traslados, recuentos |
+| `ledger_balance_mode` | legacy / shadow / ledger | Default `shadow`; `ledger` activable |
+| Saldos por ubicación (derivados) | Stock por ubicación | 7B.3 — sin materializar en Producto |
+| `traslado` | Traslado entre ubicaciones | 7B.4 |
+| `SesionRecuento` | Recuento físico | 7B.6 → ajustes |
 | *(no existe)* | Proveedor, Impuesto, documentos | **F8+** |
 
 ## Próximo paso
 
-**Fase 7B** — solo tras aprobación explícita. Ledger sigue siendo espejo hasta entonces.
+**Fase 8** — proveedores / documentos (fuera de 7B). No avanzar sin revisión.

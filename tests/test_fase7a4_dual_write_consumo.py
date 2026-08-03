@@ -256,7 +256,7 @@ class TestFase7A4Consumo(unittest.TestCase):
     def test_09_json_antiguo_y_version(self) -> None:
         data = dict_to_appdata({"meta": {}, "productos": []})
         self.assertEqual(data.movimientos, [])
-        self.assertIn("Ledger espejo completo", APP_VERSION)
+        self.assertIn("Ledger", APP_VERSION)
 
     def test_10_stock_sigue_en_lotes(self) -> None:
         self._cesta_producto(1.0)

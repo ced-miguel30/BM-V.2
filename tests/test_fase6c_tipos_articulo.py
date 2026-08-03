@@ -330,8 +330,9 @@ class TestFase6CTiposArticulo(unittest.TestCase):
                 "p1", tipo_articulo=TipoArticulo.CONSUMIBLE.value,
             )
         despues = appdata_to_dict(data)
-        self.assertNotIn("movimientos", despues)
+        self.assertEqual(despues.get("movimientos", []), [])
         self.assertEqual(len(despues.get("lotes", [])), len(antes.get("lotes", [])))
+        self.assertEqual(despues.get("recuentos", []), [])
 
     def test_22_matriz_espacios_f5_intacta(self) -> None:
         self.assertEqual(esp.ESPACIO_DEFAULT, esp.ESPACIO_GESTOR)

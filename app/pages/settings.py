@@ -220,33 +220,54 @@ def _render_diagnostico_tecnico() -> None:
             getattr(resumen, "incidencias_catalogo", []),
         )
 
-    st.markdown("##### Ledger de movimientos (Fase 7A)")
-    st.caption("Ledger en modo espejo; stock calculado desde lotes.")
-    lm1, lm2, lm3 = st.columns(3)
-    lm1.metric("Movimientos totales", getattr(resumen, "num_movimientos", 0))
-    lm2.metric("Consumos", getattr(resumen, "num_movimientos_consumo", 0))
-    lm3.metric("Mermas", getattr(resumen, "num_movimientos_merma", 0))
-    lr1, lr2, lr3 = st.columns(3)
-    lr1.metric(
-        "Rev. consumo", getattr(resumen, "num_movimientos_reversion_consumo", 0)
-    )
-    lr2.metric(
-        "Rev. merma", getattr(resumen, "num_movimientos_reversion_merma", 0)
-    )
-    lr3.metric(
-        "Rev. entrada", getattr(resumen, "num_movimientos_reversion_entrada", 0)
-    )
+    st.markdown("##### Ledger y stock (Fase 7B)")
+    modo = getattr(resumen, "ledger_balance_mode", "shadow")
+    aviso = getattr(resumen, "aviso_modo_hibrido", "") or ""
+    if aviso:
+        st.warning(aviso)
     st.caption(
         getattr(
             resumen,
             "nota_ledger",
-            "Ledger en modo espejo; stock calculado desde lotes.",
+            "Ledger configurable; cantidad_restante conservada.",
         )
     )
-    with st.expander("Ledger — incidencias", expanded=False):
+    lm1, lm2, lm3 = st.columns(3)
+    lm1.metric("Modo saldo", modo)
+    lm2.metric(
+        "Frontera activación",
+        getattr(resumen, "ledger_activation_iso", None) or "—",
+    )
+    lm3.metric("Movimientos", getattr(resumen, "num_movimientos", 0))
+    lc1, lc2, lc3 = st.columns(3)
+    lc1.metric("Lotes ledger", getattr(resumen, "lotes_ledger", 0))
+    lc2.metric("Lotes legacy/parcial", getattr(resumen, "lotes_legacy", 0))
+    lc3.metric("Traslados", getattr(resumen, "num_traslados", 0))
+    lr1, lr2, lr3 = st.columns(3)
+    lr1.metric("Consumos", getattr(resumen, "num_movimientos_consumo", 0))
+    lr2.metric("Mermas", getattr(resumen, "num_movimientos_merma", 0))
+    lr3.metric(
+        "Recuentos pendientes",
+        getattr(resumen, "num_recuentos_pendientes", 0),
+    )
+    cob = getattr(resumen, "ledger_cobertura", {}) or {}
+    if cob:
+        st.caption("Cobertura: " + ", ".join(f"{k}={v}" for k, v in cob.items()))
+    with st.expander("Ledger — incidencias y diferencias", expanded=False):
         _render_lista_incidencias(
             "Incidencias de movimientos",
             getattr(resumen, "incidencias_movimientos", []),
+        )
+        _render_lista_incidencias(
+            "Diferencias posteriores a activación",
+            getattr(resumen, "ledger_diferencias_post", []),
+        )
+        _render_lista_incidencias(
+            "Saldos por ubicación (muestra)",
+            getattr(resumen, "saldos_ubicacion_muestra", []),
+        )
+        st.caption(
+            "No hay reparación automática destructiva desde este panel."
         )
 
     st.markdown("##### Trazabilidad por lote (Fase 10.5)")
