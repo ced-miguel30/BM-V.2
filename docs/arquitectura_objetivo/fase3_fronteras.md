@@ -59,10 +59,16 @@ Lectura de productos vía `listar_productos` / `obtener_producto` / `mapa_produc
 - Desayuno / registro de servicio aplican descuento vía `inventory_ops`.
 - UI sin cambios.
 
-## Siguiente subfase (4G)
+## Fase 4G — anulaciones (hecha)
 
-Anulaciones → contexto (STOP tras 4G).
+- `anulacion_registro|merma|compra_service` vía AppContext (reloj, actor, auditoría, UoW).
+- Si la UI pasa `AppData`, el commit sigue llamando `persist_data` sobre ese objeto.
+- UI sin cambios.
+
+## Siguiente subfase (4H)
+
+Exportación → contexto (STOP tras 4H) — última de Fase 4.
 
 ## Streamlit
 
-Humo opcional: un registro que descuente stock. Validación UI clave: **Fase 5**.
+Humo opcional: anular un registro/merma/compra. Validación UI clave: **Fase 5**.

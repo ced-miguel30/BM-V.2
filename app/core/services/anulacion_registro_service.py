@@ -2,6 +2,8 @@
 
 Usa `consumos_lote` ya persistido (Fase 10.5). No inventa FIFO ni lotes.
 No toca merma, compras ni ajustes.
+
+Fase 4G: operaciones vía AppContext (reloj, actor, auditoría, UoW).
 """
 
 from __future__ import annotations
@@ -9,7 +11,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, datetime, time
 
-from app.core.models import Actividad, AppData, RegistroDesayuno, RegistroServicio
+from app.core.application.context import AppContext
+from app.core.models import AppData, RegistroDesayuno, RegistroServicio
 from app.core.repositories.data_repository import DataRepository
 from app.core.services.inventory_batch_service import (
     restaurar_cantidades_restantes,
@@ -56,35 +59,54 @@ class ResultadoAnulacion:
     mensaje: str
 
 
+class _CompatSessionUow:
+    def get_data(self) -> AppData:
+        return get_data()
+
+    def commit(self, data: AppData | None = None) -> AppData:
+        return persist_data(data if data is not None else get_data())
+
+
+def _context(
+    data: AppData | None = None,
+    ctx: AppContext | None = None,
+) -> tuple[AppContext, AppData]:
+    """Resuelve contexto. Si hay `data` explícito, el commit persiste ese objeto."""
+    if ctx is not None:
+        return ctx, ctx.data()
+    from app.core.application.actor import actor_desde_appdata
+    from app.core.application.clock import SystemClock
+
+    if data is None:
+        uow = _CompatSessionUow()
+        app = uow.get_data()
+        return AppContext(uow=uow, actor=actor_desde_appdata(app), clock=SystemClock()), app
+
+    class _DataUow:
+        def get_data(self) -> AppData:
+            return data
+
+        def commit(self, payload: AppData | None = None) -> AppData:
+            return persist_data(payload if payload is not None else data)
+
+    return (
+        AppContext(
+            uow=_DataUow(),
+            actor=actor_desde_appdata(data),
+            clock=SystemClock(),
+        ),
+        data,
+    )
+
+
+def _registrar_actividad(ctx: AppContext, accion: str, detalle: str) -> None:
+    from app.core.application.auditoria import registrar_actividad
+
+    registrar_actividad(ctx, accion, detalle, commit=False)
+
+
 def registro_esta_anulado(registro) -> bool:
     return bool(getattr(registro, "anulado", False))
-
-
-def _next_id(prefix: str, ids: list[str]) -> str:
-    numeros = []
-    for item_id in ids:
-        sufijo = item_id[len(prefix):]
-        if item_id.startswith(prefix) and sufijo.isdigit():
-            numeros.append(int(sufijo))
-    return f"{prefix}{(max(numeros, default=0) + 1):02d}"
-
-
-def _nombre_usuario(data: AppData) -> str:
-    for u in data.usuarios:
-        if u.id == data.usuario_actual_id:
-            return u.nombre
-    return data.usuarios[0].nombre if data.usuarios else "Usuario"
-
-
-def _registrar_actividad(data: AppData, accion: str, detalle: str) -> None:
-    actividad = Actividad(
-        _next_id("act", [a.id for a in data.actividades]),
-        datetime.now(),
-        _nombre_usuario(data),
-        accion,
-        detalle,
-    )
-    data.actividades.insert(0, actividad)
 
 
 def _buscar_registro(
@@ -256,9 +278,11 @@ def anular_registro(
     tipo_registro: str,
     motivo: str,
     referencia: str = "",
+    *,
+    ctx: AppContext | None = None,
 ) -> ResultadoAnulacion:
     """Anula y repone stock. Todo o nada. Idempotente si ya anulado."""
-    data = data or get_data()
+    context, data = _context(data, ctx)
     motivo_limpio = (motivo or "").strip()
     if not motivo_limpio:
         return ResultadoAnulacion(False, "El motivo de anulación es obligatorio.")
@@ -301,13 +325,13 @@ def anular_registro(
                 raise ValueError(f"Lote desapareció durante la anulación: {lote_id}.")
             lote.cantidad_restante = round(lote.cantidad_restante + qty, 4)
 
-        ahora = datetime.now()
+        ahora = context.clock.now()
         registro.anulado = True
         registro.fecha_anulacion = ahora.date()
         registro.hora_anulacion = ahora.time().replace(microsecond=0)
         registro.motivo_anulacion = motivo_limpio
         registro.referencia_anulacion = (referencia or "").strip()
-        registro.anulado_por = _nombre_usuario(data)
+        registro.anulado_por = context.actor.nombre
 
         etiqueta = (
             "Desayuno"
@@ -315,14 +339,14 @@ def anular_registro(
             else getattr(registro, "tipo_servicio", "servicio")
         )
         _registrar_actividad(
-            data,
+            context,
             "Anulación registro",
             (
                 f"Anulado {etiqueta} {registro_id} — motivo: {motivo_limpio}"
                 + (f" — ref: {referencia}" if referencia else "")
             ),
         )
-        persist_data(data)
+        context.uow.commit(data)
     except Exception as exc:
         restaurar_cantidades_restantes(data, snap_lotes)
         (
@@ -337,7 +361,7 @@ def anular_registro(
         return ResultadoAnulacion(False, f"Anulación fallida; estado restaurado. ({exc})")
 
     from app.core.services.alert_service import sincronizar_alertas
-    sincronizar_alertas()
+    sincronizar_alertas(context)
 
     return ResultadoAnulacion(
         True,
@@ -345,9 +369,25 @@ def anular_registro(
     )
 
 
-def anular_desayuno(registro_id: str, motivo: str, referencia: str = "") -> ResultadoAnulacion:
-    return anular_registro(get_data(), registro_id, TIPO_DESAYUNO, motivo, referencia)
+def anular_desayuno(
+    registro_id: str,
+    motivo: str,
+    referencia: str = "",
+    *,
+    ctx: AppContext | None = None,
+) -> ResultadoAnulacion:
+    return anular_registro(
+        None, registro_id, TIPO_DESAYUNO, motivo, referencia, ctx=ctx,
+    )
 
 
-def anular_servicio(registro_id: str, motivo: str, referencia: str = "") -> ResultadoAnulacion:
-    return anular_registro(get_data(), registro_id, TIPO_SERVICIO, motivo, referencia)
+def anular_servicio(
+    registro_id: str,
+    motivo: str,
+    referencia: str = "",
+    *,
+    ctx: AppContext | None = None,
+) -> ResultadoAnulacion:
+    return anular_registro(
+        None, registro_id, TIPO_SERVICIO, motivo, referencia, ctx=ctx,
+    )

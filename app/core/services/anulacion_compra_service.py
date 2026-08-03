@@ -2,6 +2,8 @@
 
 Solo si el lote está intacto (cantidad_restante ≈ cantidad) y sin
 dependencias activas en merma/registros/ajustes. Sin borrado físico.
+
+Fase 4G: operaciones vía AppContext (reloj, actor, auditoría, UoW).
 """
 
 from __future__ import annotations
@@ -9,7 +11,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from app.core.models import Actividad, AppData, LoteStock
+from app.core.application.context import AppContext
+from app.core.models import AppData, LoteStock
 from app.core.repositories.data_repository import DataRepository
 from app.core.services.inventory_batch_service import (
     restaurar_cantidades_restantes,
@@ -45,35 +48,53 @@ class ResultadoAnulacionCompra:
     mensaje: str
 
 
+class _CompatSessionUow:
+    def get_data(self) -> AppData:
+        return get_data()
+
+    def commit(self, data: AppData | None = None) -> AppData:
+        return persist_data(data if data is not None else get_data())
+
+
+def _context(
+    data: AppData | None = None,
+    ctx: AppContext | None = None,
+) -> tuple[AppContext, AppData]:
+    if ctx is not None:
+        return ctx, ctx.data()
+    from app.core.application.actor import actor_desde_appdata
+    from app.core.application.clock import SystemClock
+
+    if data is None:
+        uow = _CompatSessionUow()
+        app = uow.get_data()
+        return AppContext(uow=uow, actor=actor_desde_appdata(app), clock=SystemClock()), app
+
+    class _DataUow:
+        def get_data(self) -> AppData:
+            return data
+
+        def commit(self, payload: AppData | None = None) -> AppData:
+            return persist_data(payload if payload is not None else data)
+
+    return (
+        AppContext(
+            uow=_DataUow(),
+            actor=actor_desde_appdata(data),
+            clock=SystemClock(),
+        ),
+        data,
+    )
+
+
+def _registrar_actividad(ctx: AppContext, accion: str, detalle: str) -> None:
+    from app.core.application.auditoria import registrar_actividad
+
+    registrar_actividad(ctx, accion, detalle, commit=False)
+
+
 def lote_esta_anulado(lote: LoteStock | None) -> bool:
     return bool(lote is not None and getattr(lote, "anulado", False))
-
-
-def _next_id(prefix: str, ids: list[str]) -> str:
-    numeros = []
-    for item_id in ids:
-        sufijo = item_id[len(prefix):]
-        if item_id.startswith(prefix) and sufijo.isdigit():
-            numeros.append(int(sufijo))
-    return f"{prefix}{(max(numeros, default=0) + 1):02d}"
-
-
-def _nombre_usuario(data: AppData) -> str:
-    for u in data.usuarios:
-        if u.id == data.usuario_actual_id:
-            return u.nombre
-    return data.usuarios[0].nombre if data.usuarios else "Usuario"
-
-
-def _registrar_actividad(data: AppData, accion: str, detalle: str) -> None:
-    actividad = Actividad(
-        _next_id("act", [a.id for a in data.actividades]),
-        datetime.now(),
-        _nombre_usuario(data),
-        accion,
-        detalle,
-    )
-    data.actividades.insert(0, actividad)
 
 
 def _buscar_lote(data: AppData, lote_id: str) -> LoteStock | None:
@@ -183,8 +204,10 @@ def anular_compra(
     lote_id: str,
     motivo: str,
     referencia: str = "",
+    *,
+    ctx: AppContext | None = None,
 ) -> ResultadoAnulacionCompra:
-    data = data or get_data()
+    context, data = _context(data, ctx)
     motivo_limpio = (motivo or "").strip()
     if not motivo_limpio:
         return ResultadoAnulacionCompra(False, "El motivo de anulación es obligatorio.")
@@ -220,23 +243,23 @@ def anular_compra(
 
     try:
         lote.cantidad_restante = 0.0
-        ahora = datetime.now()
+        ahora = context.clock.now()
         lote.anulado = True
         lote.fecha_anulacion = ahora.date()
         lote.hora_anulacion = ahora.time().replace(microsecond=0)
         lote.motivo_anulacion = motivo_limpio
         lote.referencia_anulacion = (referencia or "").strip()
-        lote.anulado_por = _nombre_usuario(data)
+        lote.anulado_por = context.actor.nombre
 
         _registrar_actividad(
-            data,
+            context,
             "Anulación compra",
             (
                 f"Anulado lote {lote_id} de «{nombre}» — motivo: {motivo_limpio}"
                 + (f" — ref: {referencia}" if referencia else "")
             ),
         )
-        persist_data(data)
+        context.uow.commit(data)
     except Exception as exc:
         restaurar_cantidades_restantes(data, snap_lotes)
         (
@@ -254,7 +277,7 @@ def anular_compra(
         )
 
     from app.core.services.alert_service import sincronizar_alertas
-    sincronizar_alertas()
+    sincronizar_alertas(context)
 
     return ResultadoAnulacionCompra(
         True,
