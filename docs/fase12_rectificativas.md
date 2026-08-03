@@ -15,7 +15,7 @@
 | Una rectificativa confirmada por original | Hecho |
 | Confirmada = append-only (no anular) | Hecho |
 | UI Stock → Rectificativas | Hecho |
-| Búsqueda / exportación documental | **F13** |
+| Búsqueda / exportación documental | **Hecho** |
 
 ## Invariantes
 

@@ -65,6 +65,7 @@ Sin implementación de código en esta fase.
 | D56 | ID técnico documento ≠ `referencia_externa` del proveedor | Prohibido usar proveedor+fecha como ID |
 | D57 | **Fase 11** — factura conciliación = metadatos (sin stock); directa = `entrada_factura` | P04 cerrado: sin movimiento neutro |
 | D58 | **Fase 12** — rectificativa total; original → `RECTIFICADO`; sin edición silenciosa | Confirmada append-only |
+| D59 | **Fase 13** — consulta/exportación documental solo lectura | CSV; sin OCR ni mutación |
 
 ## Decisiones pendientes (no bloquean F3)
 
@@ -93,4 +94,4 @@ Sin implementación de código en esta fase.
 
 ## Próximo paso de implementación
 
-**Fase 13** — búsqueda y exportación documental, tras revisión de F12.
+Bloque documental **F9–F13 cerrado**. Siguiente bloque a acordar (retención P07, API, roles, etc.).

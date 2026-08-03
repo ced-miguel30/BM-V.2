@@ -20,9 +20,9 @@ Futuro: dominio documentado en [modelo_dominio_objetivo.md](modelo_dominio_objet
 | `Documento` / `LineaDocumento` (albarán) | Recepción → lotes + `entrada_albaran` | **Fase 10** |
 | Factura + conciliación | Metadatos vs albarán; directa → `entrada_factura` | **Fase 11** |
 | Rectificativa | Corrige confirmado → `RECTIFICADO` + reverso stock | **Fase 12** |
+| Búsqueda / exportación documental | Filtros + CSV `exports/documentos/` | **Fase 13** |
 | `marca_proveedor` (lote) | Snapshot textual histórico | Conservado; no se reescribe |
-| *(no aún)* | Búsqueda / exportación documental | **Fase 13** |
 
 ## Próximo paso
 
-**Fase 13** — búsqueda y exportación documental.
+Bloque documental **F9–F13 cerrado**. Pendiente de definir siguiente bloque de dominio (p. ej. retención legal P07, API, roles F16).

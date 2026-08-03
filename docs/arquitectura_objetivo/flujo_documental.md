@@ -4,8 +4,8 @@
 - Fase 9: archivos digitales (hash, inmutable) — **hecha**.
 - Fase 10: albaranes → entrada — **hecha**.
 - Fase 11: facturas + conciliación — **hecha**.
-- Fase 12: rectificativas — **hecha** (original → `rectificado`; sin edición silenciosa).
-- Fase 13: búsqueda-exportación.
+- Fase 12: rectificativas — **hecha**.
+- Fase 13: búsqueda-exportación — **hecha** (CSV + filtros; sin OCR).
 
 ## Separación de conceptos
 

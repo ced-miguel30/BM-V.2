@@ -1518,12 +1518,145 @@ def _render_tab_rectificativas() -> None:
         )
 
 
+def _render_tab_documentos() -> None:
+    """Fase 13 — búsqueda y exportación documental (solo lectura)."""
+    from app.core.models import EstadoDocumento, TipoDocumento
+    from app.core.services import documento_consulta_service as docq
+    from app.core.services import proveedor_service as prv
+
+    repo = get_repository()
+    data = repo.data
+    st.markdown("#### Búsqueda y exportación documental")
+    st.caption(
+        "Consulta albaranes, facturas y rectificativas. "
+        "Exportación CSV a `exports/documentos/`. Sin OCR ni cambios de estado."
+    )
+
+    tipos = {
+        "Todos": None,
+        "Albarán": TipoDocumento.ALBARAN.value,
+        "Factura": TipoDocumento.FACTURA.value,
+        "Rectificativa": TipoDocumento.RECTIFICATIVA.value,
+    }
+    estados = {
+        "Todos": None,
+        "Borrador": EstadoDocumento.BORRADOR.value,
+        "Confirmado": EstadoDocumento.CONFIRMADO.value,
+        "Anulado": EstadoDocumento.ANULADO.value,
+        "Rectificado": EstadoDocumento.RECTIFICADO.value,
+    }
+    proveedores = prv.listar_proveedores(solo_activos=False)
+    mapa_prov = {"Todos": None}
+    mapa_prov.update({f"{p.nombre_fiscal} ({p.id})": p.id for p in proveedores})
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        texto = st.text_input("Buscar (id, ref, proveedor, producto…)", key="docq_texto")
+        tipo_lbl = st.selectbox("Tipo", list(tipos.keys()), key="docq_tipo")
+    with c2:
+        estado_lbl = st.selectbox("Estado", list(estados.keys()), key="docq_estado")
+        prov_lbl = st.selectbox("Proveedor", list(mapa_prov.keys()), key="docq_prov")
+    with c3:
+        usar_desde = st.checkbox("Filtrar desde", key="docq_chk_desde")
+        fecha_desde = st.date_input("Desde", key="docq_desde")
+        usar_hasta = st.checkbox("Filtrar hasta", key="docq_chk_hasta")
+        fecha_hasta = st.date_input("Hasta", key="docq_hasta")
+
+    filtro = docq.FiltroDocumentos(
+        texto=texto or None,
+        tipo=tipos[tipo_lbl],
+        estado=estados[estado_lbl],
+        proveedor_id=mapa_prov[prov_lbl],
+        fecha_desde=fecha_desde if usar_desde else None,
+        fecha_hasta=fecha_hasta if usar_hasta else None,
+    )
+    docs = docq.buscar_documentos(filtro, data=data)
+    st.markdown(f"**{len(docs)}** documento(s)")
+    if not docs:
+        empty_state("Sin coincidencias.", icon="🔍")
+    else:
+        st.dataframe(
+            pd.DataFrame([docq.resumen_documento(d) for d in docs]),
+            use_container_width=True,
+            hide_index=True,
+        )
+        detalle_id = st.selectbox(
+            "Detalle de líneas",
+            [d.id for d in docs],
+            key="docq_detalle",
+        )
+        elegido = next((d for d in docs if d.id == detalle_id), None)
+        if elegido and elegido.lineas:
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Línea": ln.id,
+                            "Producto": ln.producto_nombre_snapshot or ln.producto_id,
+                            "Cantidad": ln.cantidad,
+                            "Precio": ln.precio_total,
+                            "Lote": ln.lote_id or "—",
+                            "Origen": (
+                                f"{ln.documento_origen_id}/{ln.linea_origen_id}"
+                                if ln.linea_origen_id
+                                else "—"
+                            ),
+                        }
+                        for ln in elegido.lineas
+                    ]
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
+
+    section_divider()
+    st.markdown("##### Exportar CSV (filtro actual)")
+    if st.button("Generar exportación", type="primary", key="docq_export"):
+        r = docq.exportar_documentos_csv(filtro)
+        if r.ok and r.contenido:
+            st.success(r.mensaje + (f" · `{r.ruta}`" if r.ruta else ""))
+            st.download_button(
+                "Descargar CSV",
+                data=r.contenido,
+                file_name=r.nombre_archivo or "documentos.csv",
+                mime="text/csv",
+                key="docq_dl",
+            )
+        else:
+            st.error(r.mensaje)
+
+    section_divider()
+    st.markdown("##### Archivos documentales")
+    arch_texto = st.text_input("Buscar archivo", key="docq_arch_texto")
+    archivos = docq.buscar_archivos(texto=arch_texto or None, data=data)
+    if not archivos:
+        st.caption("Sin archivos activos que coincidan.")
+    else:
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "ID": a.id,
+                        "Nombre": a.nombre_original,
+                        "SHA-256": (a.sha256 or "")[:12] + "…",
+                        "Documento": a.documento_id or "—",
+                        "Bytes": a.tamanio_bytes,
+                    }
+                    for a in archivos
+                ]
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+
 _SUBTABS = {
     "Productos": _render_tab_productos,
     "Compras": _render_tab_compras,
     "Albaranes": _render_tab_albaranes,
     "Facturas": _render_tab_facturas,
     "Rectificativas": _render_tab_rectificativas,
+    "Documentos": _render_tab_documentos,
     "Inventario": _render_tab_inventario,
     "Traslados": _render_tab_traslados,
 }
@@ -1532,7 +1665,7 @@ _SUBTABS = {
 def render() -> None:
     page_header(
         "Stock",
-        "Inventario, documentos de compra y alertas",
+        "Inventario, documentos de compra, búsqueda y alertas",
     )
 
     selected = render_sub_tabs(list(_SUBTABS.keys()), key="stock_subtab")
