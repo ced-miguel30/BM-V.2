@@ -1007,6 +1007,7 @@ def total_entradas_por_lote(data: AppData, lote_id: str) -> float:
         float(m.cantidad)
         for m in buscar_por_lote(data, lote_id)
         if _enum_value(m.direccion) == DireccionMovimiento.ENTRADA.value
+        and _enum_value(m.tipo) != TipoMovimiento.TRASLADO.value
     )
 
 
@@ -1015,6 +1016,7 @@ def total_salidas_por_lote(data: AppData, lote_id: str) -> float:
         float(m.cantidad)
         for m in buscar_por_lote(data, lote_id)
         if _enum_value(m.direccion) == DireccionMovimiento.SALIDA.value
+        and _enum_value(m.tipo) != TipoMovimiento.TRASLADO.value
     )
 
 

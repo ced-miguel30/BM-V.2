@@ -735,10 +735,113 @@ def _render_tab_inventario() -> None:
     _render_alertas_stock()
 
 
+def _render_tab_traslados() -> None:
+    from app.core.services import traslado_service as tr
+    from app.core.services.ubicacion_stock_service import saldo_en_ubicacion
+
+    repo = get_repository()
+    data = repo.data
+    st.markdown("#### Traslados entre ubicaciones")
+    st.caption(
+        "Mueve cantidad de un lote entre ubicaciones sin cambiar el stock total "
+        "del hotel ni el FIFO global."
+    )
+
+    lotes = [
+        l for l in data.lotes
+        if not getattr(l, "anulado", False) and float(l.cantidad_restante) > 0
+    ]
+    ubis = [u for u in data.ubicaciones if getattr(u, "activo", True)]
+    if not lotes or len(ubis) < 2:
+        empty_state(
+            "Se necesitan lotes con stock y al menos 2 ubicaciones activas.",
+            icon="📦",
+        )
+    else:
+        mapa_lotes = {
+            f"{l.id} · {next((p.nombre for p in data.productos if p.id == l.producto_id), l.producto_id)} "
+            f"(restante {l.cantidad_restante:g})": l
+            for l in lotes
+        }
+        mapa_ubi = {f"{u.nombre} ({u.id})": u.id for u in ubis}
+        etiqueta_lote = st.selectbox("Lote", list(mapa_lotes.keys()), key="tr_lote")
+        lote = mapa_lotes[etiqueta_lote]
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            origen_lbl = st.selectbox("Origen", list(mapa_ubi.keys()), key="tr_origen")
+        with c2:
+            dest_lbl = st.selectbox("Destino", list(mapa_ubi.keys()), key="tr_destino")
+        with c3:
+            qty = st.number_input("Cantidad", min_value=0.0, step=0.1, key="tr_qty")
+        origen_id = mapa_ubi[origen_lbl]
+        dest_id = mapa_ubi[dest_lbl]
+        disp = saldo_en_ubicacion(data, lote.id, origen_id)
+        st.caption(f"Disponible en origen: {disp:g}")
+        forzar = st.checkbox(
+            "Confirmar destino aunque no esté en ubicaciones permitidas del producto",
+            key="tr_forzar_destino",
+        )
+        preview = tr.previsualizar_traslado(
+            data,
+            lote_id=lote.id,
+            ubicacion_origen_id=origen_id,
+            ubicacion_destino_id=dest_id,
+            cantidad=qty,
+            permitir_destino_no_catalogado=forzar,
+        )
+        if preview.ok:
+            st.info(
+                f"Preview OK — hotel stock invariante {preview.stock_hotel_antes:g}. "
+                f"{preview.mensaje}"
+            )
+            if preview.advertencia_destino:
+                st.warning(preview.advertencia_destino)
+        else:
+            st.warning(preview.mensaje)
+
+        if st.button("Confirmar traslado", type="primary", key="tr_confirm"):
+            res = tr.confirmar_traslado(
+                lote_id=lote.id,
+                ubicacion_origen_id=origen_id,
+                ubicacion_destino_id=dest_id,
+                cantidad=qty,
+                permitir_destino_no_catalogado=forzar,
+            )
+            if res.ok:
+                st.success(res.mensaje)
+                st.rerun()
+            else:
+                st.error(res.mensaje)
+
+    section_divider()
+    st.markdown("#### Historial de traslados")
+    hist = tr.listar_traslados(data)
+    if not hist:
+        st.caption("Sin traslados registrados.")
+    else:
+        for m in reversed(hist[-30:]):
+            st.write(
+                f"`{m.origen_id}` · lote `{m.lote_id}` · "
+                f"{m.cantidad:g} · {m.ubicacion_origen_id} → {m.ubicacion_destino_id} "
+                f"· {m.fecha}"
+            )
+            if st.button(
+                f"Anular {m.origen_id}",
+                key=f"tr_anular_{m.id}",
+            ):
+                an = tr.anular_traslado(traslado_id=m.origen_id)
+                if an.ok:
+                    st.success(an.mensaje)
+                    st.rerun()
+                else:
+                    st.error(an.mensaje)
+
+
 _SUBTABS = {
     "Productos": _render_tab_productos,
     "Compras": _render_tab_compras,
     "Inventario": _render_tab_inventario,
+    "Traslados": _render_tab_traslados,
 }
 
 

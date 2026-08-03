@@ -165,7 +165,7 @@ class DireccionMovimiento(str, Enum):
 
 
 class TipoMovimiento(str, Enum):
-    """Tipos iniciales del ledger espejo (7A). Sin traslados/préstamos aún."""
+    """Tipos del ledger (7A espejo + 7B traslados)."""
 
     ENTRADA_COMPRA = "entrada_compra"
     CONSUMO = "consumo"
@@ -175,6 +175,7 @@ class TipoMovimiento(str, Enum):
     REVERSION_CONSUMO = "reversion_consumo"
     REVERSION_MERMA = "reversion_merma"
     REVERSION_ENTRADA = "reversion_entrada"
+    TRASLADO = "traslado"
 
 
 DIRECCION_POR_TIPO_MOVIMIENTO: dict[TipoMovimiento, DireccionMovimiento] = {
@@ -186,6 +187,8 @@ DIRECCION_POR_TIPO_MOVIMIENTO: dict[TipoMovimiento, DireccionMovimiento] = {
     TipoMovimiento.REVERSION_CONSUMO: DireccionMovimiento.ENTRADA,
     TipoMovimiento.REVERSION_MERMA: DireccionMovimiento.ENTRADA,
     TipoMovimiento.REVERSION_ENTRADA: DireccionMovimiento.SALIDA,
+    # Traslado: neto 0 en lote; dirección convencional entrada (cantidad_firmada=0).
+    TipoMovimiento.TRASLADO: DireccionMovimiento.ENTRADA,
 }
 
 TIPO_MOVIMIENTO_VALORES: frozenset[str] = frozenset(t.value for t in TipoMovimiento)
