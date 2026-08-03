@@ -41,7 +41,6 @@ from app.core.services.excel_bloques import RegistroExportable
 from app.core.services.exportacion_semanal_service import ConfiguracionExportacionModulo
 from app.core.services.inventory_batch_service import (
     PlanDescuentoStock,
-    aplicar_descuento_atomico,
     calcular_coste_linea,
     descontar_lotes,
     planificar_descuento,
@@ -407,7 +406,11 @@ def registrar_desayuno(
     n_desayunos = len(data.desayunos)
     n_actividades = len(data.actividades)
     try:
-        resultado_desc = aplicar_descuento_atomico(data, demandas)
+        from app.core.application.inventory_ops import (
+            aplicar_descuento_atomico as aplicar_descuento_ctx,
+        )
+
+        resultado_desc = aplicar_descuento_ctx(context, demandas)
         costes_agregados = resultado_desc.costes
         lineas = [
             LineaDesayuno(pid, demandas[pid], costes_agregados.get(pid, 0.0), extras[pid])

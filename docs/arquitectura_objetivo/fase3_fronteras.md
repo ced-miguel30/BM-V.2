@@ -52,10 +52,17 @@ Lectura de productos vía `listar_productos` / `obtener_producto` / `mapa_produc
 - Cestas siguen en `st.session_state`.
 - UI sin cambios.
 
-## Siguiente subfase (4F)
+## Fase 4F — FIFO (hecha)
 
-FIFO / inventory_batch → contexto (STOP tras 4F).
+- `inventory_batch_service` sigue puro sobre `AppData` (orden FIFO intacto).
+- Nuevo `application/inventory_ops.py`: wrappers con AppContext.
+- Desayuno / registro de servicio aplican descuento vía `inventory_ops`.
+- UI sin cambios.
+
+## Siguiente subfase (4G)
+
+Anulaciones → contexto (STOP tras 4G).
 
 ## Streamlit
 
-Humo opcional: Desayuno o Comida (registrar). Validación UI clave: **Fase 5**.
+Humo opcional: un registro que descuente stock. Validación UI clave: **Fase 5**.

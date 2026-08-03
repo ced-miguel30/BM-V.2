@@ -2,7 +2,7 @@
 
 APP_NAME = "Breakfast Management"
 APP_SUBTITLE = "Gestión de desayuno"
-APP_VERSION = "Fase 4E · registro AppContext"
+APP_VERSION = "Fase 4F · FIFO AppContext"
 
 
 HOTEL_NAME = "Hotel Boutique"

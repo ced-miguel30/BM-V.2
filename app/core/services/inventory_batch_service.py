@@ -5,6 +5,8 @@ los lotes se consumen en orden `(fecha_compra, id)` ascendente
 (el más antiguo primero). No alterar este orden.
 
 Fase 9: planificación sin mutar + aplicación atómica (todo o nada).
+Fase 4F: API pura sobre `AppData`; acceso vía AppContext en
+`app.core.application.inventory_ops` (sin cambiar este algoritmo).
 """
 
 from __future__ import annotations
