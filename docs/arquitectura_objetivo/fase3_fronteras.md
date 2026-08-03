@@ -65,10 +65,16 @@ Lectura de productos vía `listar_productos` / `obtener_producto` / `mapa_produc
 - Si la UI pasa `AppData`, el commit sigue llamando `persist_data` sobre ese objeto.
 - UI sin cambios.
 
-## Siguiente subfase (4H)
+## Fase 4H — exportación (hecha) — **Fase 4 completa**
 
-Exportación → contexto (STOP tras 4H) — última de Fase 4.
+- `exportacion_semanal_service` vía AppContext (reloj, actor, UoW, `next_id`).
+- Campos estructurados de actividad de exportación conservados.
+- UI sin cambios.
 
-## Streamlit
+### Resumen Fase 4 (A→H)
 
-Humo opcional: anular un registro/merma/compra. Validación UI clave: **Fase 5**.
+Catálogos → alertas → ajustes → merma → registro → FIFO → anulaciones → export.
+
+## Siguiente: Fase 5
+
+Navegación / 3 modos (espacios de trabajo). **Momento clave de validación UI en Streamlit.**

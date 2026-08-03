@@ -13,6 +13,8 @@ título de documento y una función que traduce sus propios registros a
 - No propagar excepciones: cualquier fallo se devuelve como
   `ResultadoExportacion(ok=False, ...)` para no romper el arranque de la app
   ni la página que llama a esto desde un botón.
+
+Fase 4H: actividad / reloj vía AppContext (UoW parcheable).
 """
 
 from __future__ import annotations
@@ -26,7 +28,10 @@ from typing import Callable
 
 from openpyxl import Workbook
 
-from app.core.models import Actividad
+from app.core.application.clock import Clock, SystemClock
+from app.core.application.context import AppContext
+from app.core.application.id_generator import next_id
+from app.core.models import Actividad, AppData
 from app.core.services.excel_bloques import (
     RegistroExportable,
     escribir_hoja_dia,
@@ -61,6 +66,39 @@ class ResultadoExportacion:
     ruta: Path | None = None
     nombre_archivo: str | None = None
     filas_exportadas: int = 0
+
+
+class _CompatSessionUow:
+    def get_data(self) -> AppData:
+        return get_data()
+
+    def commit(self, data: AppData | None = None) -> AppData:
+        return persist_data(data if data is not None else get_data())
+
+
+def _try_ctx(ctx: AppContext | None = None) -> AppContext | None:
+    if ctx is not None:
+        return ctx
+    try:
+        from app.core.application.actor import actor_desde_appdata
+
+        uow = _CompatSessionUow()
+        app = uow.get_data()
+        return AppContext(
+            uow=uow,
+            actor=actor_desde_appdata(app),
+            clock=SystemClock(),
+        )
+    except Exception:
+        return None
+
+
+def _clock(ctx: AppContext | None = None, clock: Clock | None = None) -> Clock:
+    if clock is not None:
+        return clock
+    if ctx is not None:
+        return ctx.clock
+    return SystemClock()
 
 
 def limite_semana(fecha_ref: date) -> tuple[date, date]:
@@ -163,14 +201,20 @@ def _nombre_archivo_base(titulo_documento: str, fecha_exportacion: date, inicio:
     return f"{titulo_slug}_{fecha_exportacion.isoformat()}_{inicio.isoformat()}_a_{hasta.isoformat()}.xlsx"
 
 
-def _nombre_archivo_seguro(carpeta: Path, base: str) -> str:
+def _nombre_archivo_seguro(
+    carpeta: Path,
+    base: str,
+    *,
+    clock: Clock | None = None,
+) -> str:
     """Si `base` ya existe en `carpeta`, añade un sufijo `_HHMMSS` único
     (y un contador adicional en el improbable caso de colisión en el mismo
     segundo), para nunca sobrescribir una exportación anterior."""
     if not (carpeta / base).exists():
         return base
     raiz = base[:-5] if base.endswith(".xlsx") else base
-    sufijo = datetime.now().strftime("%H%M%S")
+    clk = clock or SystemClock()
+    sufijo = clk.now().strftime("%H%M%S")
     candidato = f"{raiz}_{sufijo}.xlsx"
     contador = 1
     while (carpeta / candidato).exists():
@@ -194,21 +238,18 @@ def _registrar_actividad_exportacion(
     automatica: bool,
     nombre_archivo: str,
     resultado_ok: bool,
+    *,
+    ctx: AppContext | None = None,
 ) -> None:
     """Registra UNA actividad de exportación tras completarse (correcta o
     con error). No se llama nunca antes de tener el resultado final, así que
     exportar el propio Registro de actividad no puede generar un bucle."""
-    try:
-        data = get_data()
-    except Exception:
+    context = _try_ctx(ctx)
+    if context is None:
         return  # fuera de una sesión Streamlit (p. ej. en pruebas) no hay nada que registrar
 
-    usuario = "Sistema"
-    if not automatica:
-        for u in data.usuarios:
-            if u.id == data.usuario_actual_id:
-                usuario = u.nombre
-                break
+    data = context.data()
+    usuario = "Sistema" if automatica else context.actor.nombre
 
     tipo_txt = "Automática" if automatica else "Manual"
     resultado_txt = "Correcto" if resultado_ok else "Error"
@@ -217,22 +258,19 @@ def _registrar_actividad_exportacion(
         f"archivo {nombre_archivo} — resultado {resultado_txt.lower()}"
     )
 
-    numeros = [
-        int(a.id[len("act"):])
-        for a in data.actividades
-        if a.id.startswith("act") and a.id[len("act"):].isdigit()
-    ]
-    nuevo_id = f"act{(max(numeros, default=0) + 1):02d}"
-
     data.actividades.insert(0, Actividad(
-        nuevo_id, datetime.now(), usuario, "Exportación", detalle,
+        next_id("act", [a.id for a in data.actividades]),
+        context.clock.now(),
+        usuario,
+        "Exportación",
+        detalle,
         modulo=modulo,
         resultado=resultado_txt,
         tipo_exportacion=tipo_txt,
         periodo_afectado=periodo_txt,
         archivo_generado=nombre_archivo,
     ))
-    persist_data(data)
+    context.uow.commit(data)
 
 
 def exportar_periodo(
@@ -244,15 +282,20 @@ def exportar_periodo(
     fecha_exportacion: date | None = None,
     carpeta_exports: Path | None = None,
     archivo_meta: Path | None = None,
+    ctx: AppContext | None = None,
+    clock: Clock | None = None,
 ) -> ResultadoExportacion:
     """Genera y guarda el Excel de un módulo para el periodo
     [inicio 00:00, hasta]. Nunca lanza excepciones hacia afuera."""
     periodo_txt = f"{inicio.isoformat()} a {hasta.date().isoformat()}"
+    clk = _clock(ctx, clock)
 
     try:
         registros = config.obtener_registros(inicio, hasta)
     except Exception as exc:
-        _registrar_actividad_exportacion(config.tipo, periodo_txt, automatica, "—", False)
+        _registrar_actividad_exportacion(
+            config.tipo, periodo_txt, automatica, "—", False, ctx=ctx,
+        )
         return ResultadoExportacion(False, f"No se pudieron obtener los registros: {exc}")
 
     try:
@@ -266,7 +309,7 @@ def exportar_periodo(
             hoja_info,
             titulo_documento=config.titulo_documento,
             periodo_txt=periodo_txt,
-            fecha_exportacion_txt=datetime.now().strftime("%d/%m/%Y %H:%M"),
+            fecha_exportacion_txt=clk.now().strftime("%d/%m/%Y %H:%M"),
             tipo_exportacion="Automática" if automatica else "Manual",
             total_registros=len(registros),
         )
@@ -278,16 +321,23 @@ def exportar_periodo(
             escribir_hoja_dia(hoja, fecha_dia, por_dia[fecha_dia], nombre_hoja)
 
         base = _nombre_archivo_base(
-            config.titulo_documento, fecha_exportacion or date.today(), inicio, hasta.date(),
+            config.titulo_documento,
+            fecha_exportacion or clk.today(),
+            inicio,
+            hasta.date(),
         )
-        nombre_final = _nombre_archivo_seguro(carpeta, base)
+        nombre_final = _nombre_archivo_seguro(carpeta, base, clock=clk)
         ruta = carpeta / nombre_final
         libro.save(ruta)
     except Exception as exc:
-        _registrar_actividad_exportacion(config.tipo, periodo_txt, automatica, "—", False)
+        _registrar_actividad_exportacion(
+            config.tipo, periodo_txt, automatica, "—", False, ctx=ctx,
+        )
         return ResultadoExportacion(False, f"Error al generar el archivo: {exc}")
 
-    _registrar_actividad_exportacion(config.tipo, periodo_txt, automatica, nombre_final, True)
+    _registrar_actividad_exportacion(
+        config.tipo, periodo_txt, automatica, nombre_final, True, ctx=ctx,
+    )
     return ResultadoExportacion(
         True,
         f"Exportado correctamente: {nombre_final}",
@@ -303,6 +353,7 @@ def exportar_semana_actual(
     *,
     carpeta_exports: Path | None = None,
     archivo_meta: Path | None = None,
+    ctx: AppContext | None = None,
 ) -> ResultadoExportacion:
     """Exportación manual: desde el lunes 00:00 de la semana actual hasta
     `ahora`. Nunca marca ninguna semana como cerrada — una semana incompleta
@@ -313,6 +364,7 @@ def exportar_semana_actual(
         config, inicio, hasta, automatica=False,
         fecha_exportacion=ahora.date(),
         carpeta_exports=carpeta_exports, archivo_meta=archivo_meta,
+        ctx=ctx,
     )
 
 
@@ -323,6 +375,7 @@ def procesar_pendientes(
     *,
     carpeta_exports: Path | None = None,
     archivo_meta: Path | None = None,
+    ctx: AppContext | None = None,
 ) -> list[ResultadoExportacion]:
     """Exporta automáticamente cada semana completa pendiente de `config` y
     la marca como exportada. Idempotente: llamar varias veces (p. ej. varios
@@ -339,6 +392,7 @@ def procesar_pendientes(
             config, lunes, hasta, automatica=True,
             fecha_exportacion=ahora.date(),
             carpeta_exports=carpeta_exports, archivo_meta=archivo_meta,
+            ctx=ctx,
         )
         if resultado.ok:
             _marcar_semana_exportada(
