@@ -61,10 +61,12 @@ class ResumenDiagnostico:
     # Fase 7A.1 — ledger espejo (solo lectura; no fuente de verdad).
     num_movimientos: int = 0
     incidencias_movimientos: list[str] = field(default_factory=list)
+    num_movimientos_merma: int = 0
+    num_movimientos_reversion_merma: int = 0
     nota_ledger: str = (
-        "Ledger parcial: reconciliación no aplicable como fuente de verdad. "
-        "La ausencia de movimientos históricos no es error en 7A.1. "
-        "Solo operaciones nuevas desde 7A.2+ generarán ledger."
+        "Ledger en modo espejo; stock calculado desde lotes. "
+        "7A.3: dual-write en merma y anulación de merma. "
+        "Consumos aún fuera (7A.4). Sin backfill histórico."
     )
 
 
@@ -315,14 +317,20 @@ def generar_diagnostico(data: AppData) -> ResumenDiagnostico:
     from app.core.services.diagnostico_invariantes import evaluar_invariantes_json
     from app.core.services.catalogo_service import incidencias_catalogo as _inc_catalogo
     from app.core.services.movimiento_service import (
+        contar_movimientos_por_tipo,
         incidencias_movimientos as _inc_movimientos,
         listar_movimientos,
     )
+    from app.core.models.enums import TipoMovimiento
 
     inv = evaluar_invariantes_json(data)
     cat_inc = _inc_catalogo(data)
     mov_inc = _inc_movimientos(data)
     num_mov = len(listar_movimientos(data))
+    num_merma_mov = contar_movimientos_por_tipo(data, TipoMovimiento.MERMA)
+    num_rev_merma = contar_movimientos_por_tipo(
+        data, TipoMovimiento.REVERSION_MERMA
+    )
 
     return ResumenDiagnostico(
         num_productos=len(data.productos),
@@ -362,4 +370,6 @@ def generar_diagnostico(data: AppData) -> ResumenDiagnostico:
         incidencias_catalogo=cat_inc,
         num_movimientos=num_mov,
         incidencias_movimientos=mov_inc,
+        num_movimientos_merma=num_merma_mov,
+        num_movimientos_reversion_merma=num_rev_merma,
     )

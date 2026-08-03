@@ -21,7 +21,9 @@ Futuro: dominio documentado en [modelo_dominio_objetivo.md](modelo_dominio_objet
 | `Ubicacion` | Maestro ubicaciones 6B | Completado (sin stock por ubicación) |
 | `TipoArticulo` | consumible / reutilizable | **6C**; otros tipos = esbozo P03 |
 | `MovimientoInventario` + `AppData.movimientos` | Ledger espejo | **7A.1 hecha** — no fuente de verdad |
-| *(no existe aún dual-write)* | Escritura espejo desde ops | **7A.2–7A.4** |
+| Dual-write lote + ajustes | Espejo operativo parcial | **7A.2 hecha** |
+| Dual-write merma + anulación | Espejo operativo parcial | **7A.3 hecha** |
+| *(no existe aún dual-write consumo)* | Escritura espejo restante | **7A.4** |
 | *(no existe)* | Stock cuantitativo por ubicación | P02 → tras 7A |
 | *(no existe)* | Herramienta/préstamo, textil, activo | P03 futuro |
 | *(no existe)* | Proveedor, Impuesto | **F8** |
@@ -43,10 +45,10 @@ No derivar el tipo desde `es_bebida`, categoría, depto ni ubicación.
 | Departamento | Ámbito de **uso** operativo |
 | Ubicación | Lugar donde puede **existir** inventario |
 | Tipo de artículo | Naturaleza consumible vs reutilizable (taxonomía fija) |
-| Stock hotel | Σ `cantidad_restante` de lotes (**fuente de verdad**; sin cambio en 7A.1) |
-| Ledger | Libro append-only espejo; reconciliación solo informativa en 7A.1 |
+| Stock hotel | Σ `cantidad_restante` de lotes (**fuente de verdad**; sin cambio en 7A) |
+| Ledger | Espejo append-only; 7A.2 escribe en entrada de lote y ajustes |
 
 ## Próximo paso
 
-**Fase 7A.2** — dual-write espejo para creación de lote/entrada y ajustes (±).  
+**Fase 7A.4** — dual-write espejo para consumos y anulaciones de registro (`consumos_lote`).  
 No activar ledger como fuente de verdad.

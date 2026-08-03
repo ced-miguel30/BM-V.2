@@ -111,10 +111,20 @@ Catálogos → alertas → ajustes → merma → registro → FIFO → anulacion
 ## Fase 7A.1 — ledger modelo (hecha)
 
 - `MovimientoInventario` + `AppData.movimientos`; persistencia aditiva.
-- Servicio espejo (validar / idempotencia / crear API interna). Sin dual-write.
+- Servicio espejo (validar / idempotencia / crear API interna).
 - Fuente de verdad: `LoteStock.cantidad_restante`. Sin backfill.
-- Siguiente: **7A.2** dual-write entrada/ajustes (tras aprobación).
 
-## Siguiente: Fase 7A.2
+## Fase 7A.2 — dual-write entrada/ajustes (hecha)
 
-Dual-write espejo para creación de lote/entrada y ajustes (±).
+- `registrar_lote` → `entrada_compra`.
+- `aplicar_ajuste` → `ajuste_entrada` / `ajuste_salida` según delta.
+
+## Fase 7A.3 — dual-write merma (hecha)
+
+- `registrar_merma` → `merma` por línea (`origen_linea_id=lnNN`).
+- `anular_merma` → `reversion_merma`; histórico sin original → `anulacion_merma_historica`.
+- Siguiente: **7A.4** consumos (tras aprobación).
+
+## Siguiente: Fase 7A.4
+
+Dual-write espejo para consumos y anulaciones de registros (`consumos_lote`).

@@ -313,7 +313,34 @@ def registrar_lote(
         proveedor,
         alerta_dias,
     )
+    if not hasattr(data, "movimientos") or data.movimientos is None:
+        data.movimientos = []
+    n_lotes = len(data.lotes)
+    n_mov = len(data.movimientos)
     data.lotes.append(lote)
+
+    from app.core.application.context import build_app_context
+    from app.core.application.unit_of_work import InMemoryUnitOfWork
+    from app.core.services import movimiento_service as mov_svc
+
+    ctx_mov = build_app_context(uow=InMemoryUnitOfWork(data))
+    espejo = mov_svc.espejo_entrada_lote(
+        producto_id=producto_id,
+        lote_id=lote.id,
+        cantidad=cantidad,
+        fecha=fecha_compra or date.today(),
+        precio_total=round(precio_total, 2),
+        ctx=ctx_mov,
+        commit=False,
+    )
+    if not espejo.ok and not espejo.duplicado:
+        del data.lotes[n_lotes:]
+        del data.movimientos[n_mov:]
+        return ResultadoOperacion(
+            False,
+            f"No se pudo registrar el espejo de ledger: {espejo.mensaje}",
+        )
+
     _registrar_actividad(
         data,
         "Registrar lote",

@@ -7,7 +7,7 @@ Creación: API interna explícita (tests / preparación). Dual-write = 7A.2+.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, time
 from typing import Any
 
@@ -359,6 +359,250 @@ def crear_movimiento(
     )
 
 
+# --- Dual-write 7A.2 (espejo; no muta cantidad_restante por sí mismo) ---
+
+ORIGEN_TIPO_LOTE = "lote"
+ORIGEN_TIPO_AJUSTE = "ajuste"
+ORIGEN_TIPO_MERMA = "merma"
+ORIGEN_TIPO_ANULACION_MERMA = "anulacion_merma"
+ORIGEN_TIPO_ANULACION_MERMA_HISTORICA = "anulacion_merma_historica"
+
+
+def origen_linea_id_merma(indice: int) -> str:
+    """Identificador estable de línea sin campo ``id`` en ``LineaMerma``.
+
+    Índice 0-based en ``RegistroMerma.lineas``. Las líneas no se reordenan
+    tras persistir (modelo append-only). No se añade ID nuevo al modelo.
+    """
+    return f"ln{int(indice):02d}"
+
+
+def espejo_entrada_lote(
+    *,
+    producto_id: str,
+    lote_id: str,
+    cantidad: float,
+    fecha: date,
+    precio_total: float | None = None,
+    hora: time | None = None,
+    usuario_id: str | None = None,
+    ctx: AppContext | None = None,
+    commit: bool = False,
+) -> ResultadoMovimiento:
+    """Escribe ``entrada_compra`` al registrar un lote. No altera stock."""
+    coste_total = round(float(precio_total), 2) if precio_total is not None else None
+    coste_unitario = None
+    if coste_total is not None and float(cantidad) > 0:
+        coste_unitario = round(coste_total / float(cantidad), 6)
+    return crear_movimiento(
+        producto_id=producto_id,
+        lote_id=lote_id,
+        tipo=TipoMovimiento.ENTRADA_COMPRA,
+        direccion=DireccionMovimiento.ENTRADA,
+        cantidad=cantidad,
+        fecha=fecha,
+        hora=hora,
+        origen_tipo=ORIGEN_TIPO_LOTE,
+        origen_id=lote_id,
+        origen_linea_id=None,
+        usuario_id=usuario_id,
+        coste_unitario_snapshot=coste_unitario,
+        coste_total_snapshot=coste_total,
+        ctx=ctx,
+        commit=commit,
+    )
+
+
+def espejo_ajuste_linea(
+    *,
+    producto_id: str,
+    lote_id: str,
+    delta: float,
+    fecha: date,
+    ajuste_id: str,
+    origen_linea_id: str | None = None,
+    hora: time | None = None,
+    usuario_id: str | None = None,
+    ctx: AppContext | None = None,
+    commit: bool = False,
+) -> ResultadoMovimiento:
+    """Escribe ``ajuste_entrada`` o ``ajuste_salida`` según el signo del delta."""
+    try:
+        d = float(delta)
+    except (TypeError, ValueError):
+        return ResultadoMovimiento(ok=False, mensaje="delta de ajuste no numérico")
+    if abs(d) < 1e-9:
+        return ResultadoMovimiento(ok=False, mensaje="delta de ajuste nulo")
+    if d > 0:
+        tipo = TipoMovimiento.AJUSTE_ENTRADA
+        direccion = DireccionMovimiento.ENTRADA
+    else:
+        tipo = TipoMovimiento.AJUSTE_SALIDA
+        direccion = DireccionMovimiento.SALIDA
+    linea = origen_linea_id if origen_linea_id is not None else lote_id
+    return crear_movimiento(
+        producto_id=producto_id,
+        lote_id=lote_id,
+        tipo=tipo,
+        direccion=direccion,
+        cantidad=abs(d),
+        fecha=fecha,
+        hora=hora,
+        origen_tipo=ORIGEN_TIPO_AJUSTE,
+        origen_id=ajuste_id,
+        origen_linea_id=linea,
+        usuario_id=usuario_id,
+        ctx=ctx,
+        commit=commit,
+    )
+
+
+def espejo_merma_linea(
+    *,
+    producto_id: str,
+    lote_id: str,
+    cantidad: float,
+    fecha: date,
+    merma_id: str,
+    indice_linea: int,
+    coste_total: float | None = None,
+    hora: time | None = None,
+    usuario_id: str | None = None,
+    ctx: AppContext | None = None,
+    commit: bool = False,
+) -> ResultadoMovimiento:
+    """Escribe ``merma`` (salida) por línea de registro. No altera stock."""
+    coste_unitario = None
+    coste_tot = None
+    if coste_total is not None:
+        coste_tot = round(float(coste_total), 2)
+        if float(cantidad) > 0:
+            coste_unitario = round(coste_tot / float(cantidad), 6)
+    return crear_movimiento(
+        producto_id=producto_id,
+        lote_id=lote_id,
+        tipo=TipoMovimiento.MERMA,
+        direccion=DireccionMovimiento.SALIDA,
+        cantidad=cantidad,
+        fecha=fecha,
+        hora=hora,
+        origen_tipo=ORIGEN_TIPO_MERMA,
+        origen_id=merma_id,
+        origen_linea_id=origen_linea_id_merma(indice_linea),
+        usuario_id=usuario_id,
+        coste_unitario_snapshot=coste_unitario,
+        coste_total_snapshot=coste_tot,
+        ctx=ctx,
+        commit=commit,
+    )
+
+
+def buscar_movimiento_merma_linea(
+    data: AppData,
+    merma_id: str,
+    indice_linea: int,
+) -> MovimientoInventario | None:
+    linea = origen_linea_id_merma(indice_linea)
+    for m in buscar_por_origen(data, ORIGEN_TIPO_MERMA, merma_id, linea):
+        if _enum_value(m.tipo) == TipoMovimiento.MERMA.value:
+            return m
+    return None
+
+
+def movimientos_reverso_de(
+    data: AppData, movimiento_id: str
+) -> list[MovimientoInventario]:
+    return [
+        m
+        for m in listar_movimientos(data)
+        if m.movimiento_revertido_id == movimiento_id
+        and _enum_value(m.tipo) == TipoMovimiento.REVERSION_MERMA.value
+    ]
+
+
+def espejo_reversion_merma_linea(
+    *,
+    producto_id: str,
+    lote_id: str,
+    cantidad: float,
+    fecha: date,
+    merma_id: str,
+    indice_linea: int,
+    movimiento_original: MovimientoInventario | None,
+    coste_total: float | None = None,
+    hora: time | None = None,
+    usuario_id: str | None = None,
+    ctx: AppContext | None = None,
+    commit: bool = False,
+) -> ResultadoMovimiento:
+    """Escribe ``reversion_merma`` (entrada). No altera stock.
+
+    Si no hay movimiento original (merma histórica pre-ledger):
+    ``movimiento_revertido_id=None`` y origen ``anulacion_merma_historica``.
+    """
+    if movimiento_original is not None:
+        if _enum_value(movimiento_original.tipo) != TipoMovimiento.MERMA.value:
+            return ResultadoMovimiento(
+                ok=False,
+                mensaje="El movimiento a revertir no es de tipo merma",
+            )
+        if movimiento_original.producto_id != producto_id:
+            return ResultadoMovimiento(
+                ok=False, mensaje="Producto distinto del movimiento original"
+            )
+        if movimiento_original.lote_id != lote_id:
+            return ResultadoMovimiento(
+                ok=False, mensaje="Lote distinto del movimiento original"
+            )
+        if abs(float(movimiento_original.cantidad) - float(cantidad)) > 1e-9:
+            return ResultadoMovimiento(
+                ok=False, mensaje="Cantidad distinta del movimiento original"
+            )
+        c = _ctx(ctx)
+        ya = movimientos_reverso_de(c.uow.get_data(), movimiento_original.id)
+        if ya:
+            return ResultadoMovimiento(
+                ok=False,
+                mensaje=f"Movimiento {movimiento_original.id} ya tiene reverso",
+                movimiento=ya[0],
+                duplicado=True,
+            )
+        origen_tipo = ORIGEN_TIPO_ANULACION_MERMA
+        revertido_id = movimiento_original.id
+    else:
+        origen_tipo = ORIGEN_TIPO_ANULACION_MERMA_HISTORICA
+        revertido_id = None
+
+    coste_unitario = None
+    coste_tot = None
+    if coste_total is not None:
+        coste_tot = round(float(coste_total), 2)
+        if float(cantidad) > 0:
+            coste_unitario = round(coste_tot / float(cantidad), 6)
+    elif movimiento_original is not None:
+        coste_tot = movimiento_original.coste_total_snapshot
+        coste_unitario = movimiento_original.coste_unitario_snapshot
+
+    return crear_movimiento(
+        producto_id=producto_id,
+        lote_id=lote_id,
+        tipo=TipoMovimiento.REVERSION_MERMA,
+        direccion=DireccionMovimiento.ENTRADA,
+        cantidad=cantidad,
+        fecha=fecha,
+        hora=hora,
+        origen_tipo=origen_tipo,
+        origen_id=merma_id,
+        origen_linea_id=origen_linea_id_merma(indice_linea),
+        movimiento_revertido_id=revertido_id,
+        usuario_id=usuario_id,
+        coste_unitario_snapshot=coste_unitario,
+        coste_total_snapshot=coste_tot,
+        ctx=ctx,
+        commit=commit,
+    )
+
+
 # --- Consultas de reconciliación (solo lectura; no corrigen stock) ---
 
 
@@ -511,33 +755,332 @@ def incidencias_movimientos(data: AppData) -> list[str]:
                     f"{m.coste_total_snapshot:g})"
                 )
 
+    incidencias.extend(_incidencias_merma_ledger(data))
+
     if movimientos:
         incidencias.append(
-            f"Informativo: {len(movimientos)} movimiento(s) presentes en ledger "
-            "antes de la activación operativa completa (7A.2+). "
+            f"Informativo: ledger en modo espejo ({len(movimientos)} movimiento(s)). "
+            "Stock operativo desde lotes. "
             + NOTA_SIN_BACKFILL
         )
 
     return incidencias
 
 
+@dataclass
+class CoberturaMermaLedger:
+    merma_id: str
+    lineas: int
+    movimientos_merma: int
+    movimientos_reversion: int
+    cobertura: str  # completa | parcial_historica | inconsistente | sin_lineas_lote
+    detalle: list[str] = field(default_factory=list)
+
+
+def cobertura_merma_informativa(data: AppData) -> list[CoberturaMermaLedger]:
+    """Informe de cobertura ledger↔merma. No modifica datos."""
+    out: list[CoberturaMermaLedger] = []
+    for reg in getattr(data, "mermas", []) or []:
+        lineas_con_lote = [
+            (i, ln)
+            for i, ln in enumerate(reg.lineas)
+            if ln.lote_id and float(ln.cantidad) > 0
+        ]
+        n_merma = 0
+        n_rev = 0
+        detalle: list[str] = []
+        faltan = 0
+        for i, ln in lineas_con_lote:
+            mov = buscar_movimiento_merma_linea(data, reg.id, i)
+            if mov is None:
+                faltan += 1
+                detalle.append(f"línea {origen_linea_id_merma(i)} sin movimiento merma")
+            else:
+                n_merma += 1
+                if abs(float(mov.cantidad) - float(ln.cantidad)) > 1e-9:
+                    detalle.append(
+                        f"línea {origen_linea_id_merma(i)} cantidad distinta"
+                    )
+            revs = buscar_por_origen(
+                data,
+                ORIGEN_TIPO_ANULACION_MERMA,
+                reg.id,
+                origen_linea_id_merma(i),
+            ) + buscar_por_origen(
+                data,
+                ORIGEN_TIPO_ANULACION_MERMA_HISTORICA,
+                reg.id,
+                origen_linea_id_merma(i),
+            )
+            revs = [
+                r
+                for r in revs
+                if _enum_value(r.tipo) == TipoMovimiento.REVERSION_MERMA.value
+            ]
+            n_rev += len(revs)
+
+        if not lineas_con_lote:
+            cob = "sin_lineas_lote"
+        elif faltan == 0 and not any("cantidad distinta" in d for d in detalle):
+            cob = "completa"
+        elif faltan == len(lineas_con_lote):
+            cob = "parcial_historica"
+            detalle.append(
+                "cobertura parcial histórica: sin movimientos espejo originales"
+            )
+        else:
+            cob = "inconsistente"
+
+        if getattr(reg, "anulado", False) and lineas_con_lote:
+            if n_rev < len(lineas_con_lote) and cob != "parcial_historica":
+                # Anulación con cobertura ledger parcial de salidas
+                if n_merma > 0 and n_rev < n_merma:
+                    detalle.append("anulación sin reverso completo")
+                    cob = "inconsistente"
+            elif n_rev == 0 and cob == "parcial_historica":
+                detalle.append(
+                    "anulación histórica: reversión sin movimiento espejo original "
+                    "por cobertura histórica parcial"
+                )
+
+        out.append(
+            CoberturaMermaLedger(
+                merma_id=reg.id,
+                lineas=len(lineas_con_lote),
+                movimientos_merma=n_merma,
+                movimientos_reversion=n_rev,
+                cobertura=cob,
+                detalle=detalle,
+            )
+        )
+    return out
+
+
+def _incidencias_merma_ledger(data: AppData) -> list[str]:
+    """Incidencias de dual-write merma / reversion (7A.3). Solo lectura."""
+    incidencias: list[str] = []
+    mermas_map = {m.id: m for m in getattr(data, "mermas", []) or []}
+    movs_merma = [
+        m
+        for m in listar_movimientos(data)
+        if _enum_value(m.tipo) == TipoMovimiento.MERMA.value
+    ]
+    movs_rev = [
+        m
+        for m in listar_movimientos(data)
+        if _enum_value(m.tipo) == TipoMovimiento.REVERSION_MERMA.value
+    ]
+
+    # Índice: (merma_id, linea_id) -> list[mov merma]
+    por_linea: dict[tuple[str, str], list] = {}
+    for m in movs_merma:
+        if m.origen_tipo != ORIGEN_TIPO_MERMA:
+            incidencias.append(
+                f"Movimiento {m.id}: merma con origen_tipo inesperado "
+                f"{m.origen_tipo!r}"
+            )
+        key = (m.origen_id, m.origen_linea_id or "")
+        por_linea.setdefault(key, []).append(m)
+        reg = mermas_map.get(m.origen_id)
+        if reg is None:
+            incidencias.append(
+                f"Movimiento {m.id}: merma de origen inexistente {m.origen_id}"
+            )
+            continue
+        # Resolver línea por origen_linea_id
+        idx = None
+        if (m.origen_linea_id or "").startswith("ln"):
+            try:
+                idx = int((m.origen_linea_id or "")[2:])
+            except ValueError:
+                idx = None
+        if idx is None or idx < 0 or idx >= len(reg.lineas):
+            incidencias.append(
+                f"Movimiento {m.id}: línea de merma no localizada "
+                f"({m.origen_linea_id})"
+            )
+            continue
+        ln = reg.lineas[idx]
+        if ln.producto_id != m.producto_id:
+            incidencias.append(
+                f"Movimiento {m.id}: producto distinto de la línea de merma"
+            )
+        if (ln.lote_id or "") != m.lote_id:
+            incidencias.append(
+                f"Movimiento {m.id}: lote distinto de la línea de merma"
+            )
+        if abs(float(ln.cantidad) - float(m.cantidad)) > 1e-9:
+            incidencias.append(
+                f"Movimiento {m.id}: cantidad distinta de la línea de merma "
+                f"({m.cantidad:g} ≠ {ln.cantidad:g})"
+            )
+        if (
+            m.coste_total_snapshot is not None
+            and abs(float(m.coste_total_snapshot) - float(ln.coste)) > 1e-6
+        ):
+            incidencias.append(
+                f"Movimiento {m.id}: coste incoherente con la línea de merma"
+            )
+
+    for key, lista in por_linea.items():
+        if len(lista) > 1:
+            incidencias.append(
+                f"Doble movimiento merma para {key[0]} / {key[1]}: "
+                + ", ".join(x.id for x in lista)
+            )
+
+    # Líneas de merma sin movimiento / cobertura
+    for reg in mermas_map.values():
+        lineas_lote = [
+            (i, ln)
+            for i, ln in enumerate(reg.lineas)
+            if ln.lote_id and float(ln.cantidad) > 0
+        ]
+        con_mov = 0
+        for i, ln in lineas_lote:
+            mov = buscar_movimiento_merma_linea(data, reg.id, i)
+            if mov is None:
+                if any(
+                    buscar_movimiento_merma_linea(data, reg.id, j) is not None
+                    for j, _ in lineas_lote
+                ):
+                    incidencias.append(
+                        f"Merma {reg.id} línea {origen_linea_id_merma(i)}: "
+                        "sin movimiento espejo (inconsistencia)"
+                    )
+                else:
+                    incidencias.append(
+                        f"Informativo: cobertura parcial histórica — merma "
+                        f"{reg.id} línea {origen_linea_id_merma(i)} sin movimiento "
+                        "espejo"
+                    )
+            else:
+                con_mov += 1
+
+        if getattr(reg, "anulado", False):
+            for i, ln in lineas_lote:
+                revs = [
+                    r
+                    for r in (
+                        buscar_por_origen(
+                            data,
+                            ORIGEN_TIPO_ANULACION_MERMA,
+                            reg.id,
+                            origen_linea_id_merma(i),
+                        )
+                        + buscar_por_origen(
+                            data,
+                            ORIGEN_TIPO_ANULACION_MERMA_HISTORICA,
+                            reg.id,
+                            origen_linea_id_merma(i),
+                        )
+                    )
+                    if _enum_value(r.tipo) == TipoMovimiento.REVERSION_MERMA.value
+                ]
+                orig = buscar_movimiento_merma_linea(data, reg.id, i)
+                if not revs:
+                    if orig is not None:
+                        incidencias.append(
+                            f"Merma {reg.id} anulada línea "
+                            f"{origen_linea_id_merma(i)}: sin reversion_merma"
+                        )
+                    else:
+                        incidencias.append(
+                            f"Informativo: reversión histórica sin movimiento "
+                            f"espejo original — merma {reg.id} línea "
+                            f"{origen_linea_id_merma(i)} (cobertura parcial)"
+                        )
+                elif len(revs) > 1:
+                    incidencias.append(
+                        f"Doble reverso merma {reg.id} línea "
+                        f"{origen_linea_id_merma(i)}: "
+                        + ", ".join(r.id for r in revs)
+                    )
+                else:
+                    rev = revs[0]
+                    if abs(float(rev.cantidad) - float(ln.cantidad)) > 1e-9:
+                        incidencias.append(
+                            f"Reverso {rev.id}: cantidad distinta de la línea"
+                        )
+                    if orig is not None:
+                        if rev.movimiento_revertido_id != orig.id:
+                            incidencias.append(
+                                f"Reverso {rev.id}: no apunta al movimiento "
+                                f"original {orig.id}"
+                            )
+                    elif rev.movimiento_revertido_id:
+                        incidencias.append(
+                            f"Reverso {rev.id}: apunta a movimiento no "
+                            "relacionado (histórico sin original)"
+                        )
+                    if (
+                        rev.origen_tipo
+                        == ORIGEN_TIPO_ANULACION_MERMA_HISTORICA
+                    ):
+                        incidencias.append(
+                            f"Informativo: reversión sin movimiento espejo "
+                            f"original por cobertura histórica parcial "
+                            f"({rev.id})"
+                        )
+
+    # Original revertido más de una vez
+    rev_por_orig: dict[str, list[str]] = {}
+    for r in movs_rev:
+        if r.movimiento_revertido_id:
+            rev_por_orig.setdefault(r.movimiento_revertido_id, []).append(r.id)
+    for orig_id, ids in rev_por_orig.items():
+        if len(ids) > 1:
+            incidencias.append(
+                f"Movimiento original {orig_id} revertido más de una vez: "
+                + ", ".join(ids)
+            )
+        orig = buscar_por_id(data, orig_id)
+        if orig is not None and _enum_value(orig.tipo) != TipoMovimiento.MERMA.value:
+            incidencias.append(
+                f"Reverso apunta a movimiento no relacionado (no es merma): "
+                f"{orig_id}"
+            )
+
+    return incidencias
+
+
+def contar_movimientos_por_tipo(data: AppData, tipo: TipoMovimiento | str) -> int:
+    t = _enum_value(tipo)
+    return sum(1 for m in listar_movimientos(data) if _enum_value(m.tipo) == t)
+
+
 # API pública del servicio: sin edición ni borrado.
 __all__ = [
+    "CoberturaMermaLedger",
     "ComparacionLoteLedger",
     "NOTA_LEDGER_PARCIAL",
     "NOTA_SIN_BACKFILL",
+    "ORIGEN_TIPO_AJUSTE",
+    "ORIGEN_TIPO_ANULACION_MERMA",
+    "ORIGEN_TIPO_ANULACION_MERMA_HISTORICA",
+    "ORIGEN_TIPO_LOTE",
+    "ORIGEN_TIPO_MERMA",
     "ResultadoMovimiento",
+    "buscar_movimiento_merma_linea",
     "buscar_por_id",
     "buscar_por_lote",
     "buscar_por_origen",
     "buscar_por_producto",
+    "cobertura_merma_informativa",
     "comparar_ledger_vs_lote",
     "comprobar_idempotencia",
     "construir_idempotency_key",
+    "contar_movimientos_por_tipo",
     "crear_movimiento",
     "direccion_esperada",
+    "espejo_ajuste_linea",
+    "espejo_entrada_lote",
+    "espejo_merma_linea",
+    "espejo_reversion_merma_linea",
     "incidencias_movimientos",
     "listar_movimientos",
+    "movimientos_reverso_de",
+    "origen_linea_id_merma",
     "reconciliacion_informativa",
     "saldo_teorico_ledger_por_lote",
     "total_entradas_por_lote",

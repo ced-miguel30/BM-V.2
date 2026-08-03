@@ -3,29 +3,31 @@
 Documento vivo. Implementación de código: **Fase 7A** (subfases).  
 Documentos (albarán/factura) **no** se implementan sin dual-write estable.
 
-## Estado actual (7A.1)
+## Estado actual (7A.3)
 
 | Aspecto | Estado |
 |---------|--------|
-| Modelo `MovimientoInventario` | **Hecho** |
-| Persistencia aditiva en JSON | **Hecho** |
-| Servicio básico + validación + idempotencia | **Hecho** |
-| Diagnóstico no destructivo | **Hecho** |
-| Reconciliación informativa | **Hecho** (no corrige stock) |
-| Dual-write desde operaciones | **Pendiente 7A.2–7A.4** |
+| Modelo + persistencia | **7A.1** |
+| Dual-write lote + ajustes | **7A.2** |
+| Dual-write merma + anulación merma | **7A.3 hecha** |
+| Dual-write consumo / anulación registro | **Pendiente 7A.4** |
 | Ledger como fuente de verdad | **No** |
 
-**Fuente de verdad operativa del stock:** `LoteStock.cantidad_restante`.  
-**FIFO:** sin cambios.  
-**Versión UI:** `BM-V.2 · Ledger en preparación`.
+**Fuente de verdad:** `LoteStock.cantidad_restante`.  
+**Versión UI:** `BM-V.2 · Ledger espejo 7A.3`.
 
-Mensaje de reconciliación en 7A.1:
+### Identidad de línea de merma (sin campo `id` en `LineaMerma`)
 
-```text
-Ledger parcial: reconciliación no aplicable como fuente de verdad.
-```
+`origen_linea_id = ln{índice:02d}` (índice 0-based en `RegistroMerma.lineas`).  
+Las líneas no se reordenan tras persistir. No se añadió ID nuevo al modelo.
 
-La ausencia de movimientos históricos **no** es error. Solo las operaciones nuevas conectadas desde **7A.2** en adelante estarán obligadas a generar ledger. **Sin backfill.**
+| Operación | origen_tipo | origen_id | tipo |
+|-----------|-------------|-----------|------|
+| Registrar merma | `merma` | id registro | `merma` (salida) |
+| Anular (con espejo) | `anulacion_merma` | id registro | `reversion_merma` |
+| Anular histórica sin espejo | `anulacion_merma_historica` | id registro | `reversion_merma` (`movimiento_revertido_id=None`) |
+
+Sin backfill. Históricos sin movimiento: cobertura parcial; anulación repone stock y escribe reverso histórico sin inventar la salida.
 
 ## 1. Problema
 
@@ -114,24 +116,23 @@ Mientras no haya dual-write completo, la diferencia histórica es esperable.
 
 ## 7. Subfases futuras (documentadas, no implementadas)
 
-### 7A.2 — Dual-write entradas y ajustes
+### 7A.2 — Dual-write entradas y ajustes (**hecha**)
 
-Escribir movimiento espejo al:
+Escribe movimiento espejo al:
 
-- crear lote / entrada actual;
+- crear lote / entrada actual → `entrada_compra`;
 - ajuste positivo → `ajuste_entrada`;
 - ajuste negativo → `ajuste_salida`.
 
-Tras 7A.2: reconciliación, tests, checklist manual, **STOP**.
+Helpers: `espejo_entrada_lote`, `espejo_ajuste_linea` en `movimiento_service`.  
+Atomicidad: fallo del espejo revierte lote/ajuste. Sin backfill.
 
-### 7A.3 — Dual-write merma
+### 7A.3 — Dual-write merma (**hecha**)
 
-- merma → `merma` (salida);
-- anulación de merma → `reversion_merma` (entrada).
+- merma → `merma` (salida) por línea;
+- anulación → `reversion_merma` (entrada); histórico sin original → `anulacion_merma_historica`.
 
-Tras 7A.3: reconciliación, tests, checklist, **STOP**.
-
-### 7A.4 — Dual-write consumos y anulaciones de registro
+### 7A.4 — Dual-write consumos y anulaciones de registro (siguiente)
 
 - consumos → un `consumo` por fragmento de `consumos_lote`;
 - anulaciones de registros → `reversion_consumo` por fragmento exacto.

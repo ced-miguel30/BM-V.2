@@ -569,6 +569,9 @@ def registrar_merma(
     snap = snapshot_cantidades_restantes(data)
     n_mermas = len(data.mermas)
     n_actividades = len(data.actividades)
+    if not hasattr(data, "movimientos") or data.movimientos is None:
+        data.movimientos = []
+    n_movimientos = len(data.movimientos)
     try:
         for item in cesta:
             coste = _descontar_lote(data, item.lote_id, item.cantidad)
@@ -597,6 +600,44 @@ def registrar_merma(
             hora=context.clock.now().time(),
         )
         data.mermas.append(registro)
+
+        from app.core.services import movimiento_service as mov_svc
+
+        for idx, ln in enumerate(registro.lineas):
+            if not ln.lote_id:
+                raise RuntimeError(
+                    f"Línea {idx} de merma sin lote_id; no se puede espejar."
+                )
+            espejo = mov_svc.espejo_merma_linea(
+                producto_id=ln.producto_id,
+                lote_id=ln.lote_id,
+                cantidad=ln.cantidad,
+                fecha=fecha,
+                merma_id=registro.id,
+                indice_linea=idx,
+                coste_total=ln.coste,
+                hora=registro.hora,
+                usuario_id=context.actor.id or None,
+                ctx=context,
+                commit=False,
+            )
+            if not espejo.ok and not espejo.duplicado:
+                raise RuntimeError(
+                    f"No se pudo registrar el espejo de ledger: {espejo.mensaje}"
+                )
+
+        # Correspondencia uno a uno
+        for idx, ln in enumerate(registro.lineas):
+            mov = mov_svc.buscar_movimiento_merma_linea(data, registro.id, idx)
+            if mov is None:
+                raise RuntimeError(
+                    f"Falta movimiento espejo para línea {idx} de merma {registro.id}."
+                )
+            if abs(float(mov.cantidad) - float(ln.cantidad)) > 1e-9:
+                raise RuntimeError(
+                    f"Cantidad espejo distinta en línea {idx} de merma {registro.id}."
+                )
+
         _registrar_actividad(
             context,
             "Registro merma",
@@ -606,7 +647,9 @@ def registrar_merma(
     except Exception:
         restaurar_cantidades_restantes(data, snap)
         del data.mermas[n_mermas:]
-        del data.actividades[: max(0, len(data.actividades) - n_actividades)]
+        del data.movimientos[n_movimientos:]
+        if len(data.actividades) > n_actividades:
+            del data.actividades[n_actividades:]
         raise
 
     limpiar_cesta_merma()

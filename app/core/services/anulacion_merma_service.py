@@ -250,6 +250,9 @@ def anular_merma(
         registro.anulado_por,
     )
     n_actividades = len(data.actividades)
+    if not hasattr(data, "movimientos") or data.movimientos is None:
+        data.movimientos = []
+    n_movimientos = len(data.movimientos)
     por_lote = _agregar_devoluciones(registro)
     lotes = {l.id: l for l in data.lotes}
 
@@ -267,6 +270,66 @@ def anular_merma(
         registro.motivo_anulacion = motivo_limpio
         registro.referencia_anulacion = (referencia or "").strip()
         registro.anulado_por = context.actor.nombre
+
+        from app.core.services import movimiento_service as mov_svc
+
+        for idx, ln in enumerate(registro.lineas):
+            if not ln.lote_id or ln.cantidad <= 0:
+                continue
+            original = mov_svc.buscar_movimiento_merma_linea(data, registro.id, idx)
+            espejo = mov_svc.espejo_reversion_merma_linea(
+                producto_id=ln.producto_id,
+                lote_id=ln.lote_id,
+                cantidad=ln.cantidad,
+                fecha=registro.fecha_anulacion or ahora.date(),
+                merma_id=registro.id,
+                indice_linea=idx,
+                movimiento_original=original,
+                coste_total=ln.coste,
+                hora=registro.hora_anulacion,
+                usuario_id=context.actor.id or None,
+                ctx=context,
+                commit=False,
+            )
+            if not espejo.ok and not espejo.duplicado:
+                raise RuntimeError(
+                    f"No se pudo registrar el reverso de ledger: {espejo.mensaje}"
+                )
+
+        # Validar un reverso por línea con lote
+        from app.core.models.enums import TipoMovimiento as _TM
+
+        for idx, ln in enumerate(registro.lineas):
+            if not ln.lote_id or ln.cantidad <= 0:
+                continue
+            linea_id = mov_svc.origen_linea_id_merma(idx)
+            revs = [
+                r
+                for r in (
+                    mov_svc.buscar_por_origen(
+                        data,
+                        mov_svc.ORIGEN_TIPO_ANULACION_MERMA,
+                        registro.id,
+                        linea_id,
+                    )
+                    + mov_svc.buscar_por_origen(
+                        data,
+                        mov_svc.ORIGEN_TIPO_ANULACION_MERMA_HISTORICA,
+                        registro.id,
+                        linea_id,
+                    )
+                )
+                if (r.tipo.value if hasattr(r.tipo, "value") else str(r.tipo))
+                == _TM.REVERSION_MERMA.value
+            ]
+            if not revs:
+                raise RuntimeError(
+                    f"Falta reversion_merma para línea {idx} de merma {registro.id}."
+                )
+            if abs(float(revs[0].cantidad) - float(ln.cantidad)) > 1e-9:
+                raise RuntimeError(
+                    f"Cantidad de reverso distinta en línea {idx}."
+                )
 
         _registrar_actividad(
             context,
@@ -287,7 +350,9 @@ def anular_merma(
             registro.referencia_anulacion,
             registro.anulado_por,
         ) = snap_anulado
-        del data.actividades[: max(0, len(data.actividades) - n_actividades)]
+        del data.movimientos[n_movimientos:]
+        if len(data.actividades) > n_actividades:
+            del data.actividades[n_actividades:]
         return ResultadoAnulacionMerma(
             False, f"Anulación fallida; estado restaurado. ({exc})",
         )

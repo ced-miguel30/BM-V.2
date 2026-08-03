@@ -42,7 +42,11 @@ Sin implementación de código en esta fase.
 | D33 | Idempotencia por clave origen+línea+lote+tipo | Duplicados controlados; no solo ID secuencial |
 | D34 | Movimientos confirmados inmutables | Sin edición/borrado; correcciones = reversión |
 | D35 | Sin backfill ni reconstrucción histórica de movimientos | Ausencia histórica ≠ error en 7A.1 |
-| D36 | Reconciliación ledger vs lote solo informativa en 7A.1 | No corrige, no bloquea, no sustituye |
+| D36 | Reconciliación ledger vs lote solo informativa en 7A | No corrige, no bloquea, no sustituye |
+| D37 | **Fase 7A.2** — dual-write `registrar_lote` + `aplicar_ajuste` | Espejo; fallo del ledger aborta la operación |
+| D38 | **Fase 7A.3** — dual-write merma + anulación merma | Un movimiento por línea; históricos sin backfill |
+| D39 | Línea de merma sin `id`: `origen_linea_id = lnNN` | Índice estable en lista append-only |
+| D40 | Anulación histórica sin espejo → `anulacion_merma_historica` | `movimiento_revertido_id=None`; no inventar salida |
 
 ## Decisiones pendientes (no bloquean F3)
 
@@ -70,4 +74,4 @@ Sin implementación de código en esta fase.
 
 ## Próximo paso de implementación
 
-**Fase 7A.2** — dual-write espejo (entrada de lote + ajustes). Sin ejecutar hasta aprobación explícita.
+**Fase 7A.4** — dual-write espejo (consumos + anulaciones de registro). Sin ejecutar hasta aprobación explícita.

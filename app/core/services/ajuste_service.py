@@ -193,6 +193,9 @@ def aplicar_ajuste(
     snap = snapshot_cantidades_restantes(data)
     n_ajustes = len(data.ajustes)
     n_actividades = len(data.actividades)
+    if not hasattr(data, "movimientos") or data.movimientos is None:
+        data.movimientos = []
+    n_movimientos = len(data.movimientos)
     try:
         lote.cantidad_restante = preview.cantidad_despues
         if (
@@ -211,6 +214,26 @@ def aplicar_ajuste(
             hora=context.clock.now().time(),
         )
         data.ajustes.append(registro)
+
+        from app.core.services import movimiento_service as mov_svc
+
+        espejo = mov_svc.espejo_ajuste_linea(
+            producto_id=preview.producto_id,
+            lote_id=preview.lote_id,
+            delta=linea.delta,
+            fecha=fecha,
+            ajuste_id=registro.id,
+            origen_linea_id=preview.lote_id,
+            hora=registro.hora,
+            usuario_id=context.actor.id or None,
+            ctx=context,
+            commit=False,
+        )
+        if not espejo.ok and not espejo.duplicado:
+            raise RuntimeError(
+                f"No se pudo registrar el espejo de ledger: {espejo.mensaje}"
+            )
+
         signo = "+" if linea.delta >= 0 else ""
         _registrar_actividad(
             context,
@@ -225,7 +248,9 @@ def aplicar_ajuste(
     except Exception:
         restaurar_cantidades_restantes(data, snap)
         del data.ajustes[n_ajustes:]
-        del data.actividades[: max(0, len(data.actividades) - n_actividades)]
+        del data.movimientos[n_movimientos:]
+        if len(data.actividades) > n_actividades:
+            del data.actividades[n_actividades:]
         raise
 
     from app.core.services.alert_service import sincronizar_alertas

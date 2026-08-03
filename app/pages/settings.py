@@ -220,13 +220,20 @@ def _render_diagnostico_tecnico() -> None:
             getattr(resumen, "incidencias_catalogo", []),
         )
 
-    st.markdown("##### Ledger de movimientos (Fase 7A.1)")
-    st.metric("Movimientos en ledger", getattr(resumen, "num_movimientos", 0))
+    st.markdown("##### Ledger de movimientos (Fase 7A)")
+    st.caption("Ledger en modo espejo; stock calculado desde lotes.")
+    lm1, lm2, lm3 = st.columns(3)
+    lm1.metric("Movimientos totales", getattr(resumen, "num_movimientos", 0))
+    lm2.metric("Movimientos merma", getattr(resumen, "num_movimientos_merma", 0))
+    lm3.metric(
+        "Reversiones merma",
+        getattr(resumen, "num_movimientos_reversion_merma", 0),
+    )
     st.caption(
         getattr(
             resumen,
             "nota_ledger",
-            "Ledger parcial: reconciliación no aplicable como fuente de verdad.",
+            "Ledger en modo espejo; stock calculado desde lotes.",
         )
     )
     with st.expander("Ledger — incidencias", expanded=False):
