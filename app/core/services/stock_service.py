@@ -281,6 +281,7 @@ def registrar_lote(
     fecha_expiracion: date | None = None,
     marca_proveedor: str | None = None,
     alerta_expiracion_dias: int | None = None,
+    ubicacion_destino_id: str | None = None,
 ) -> ResultadoOperacion:
     if not producto_id:
         return ResultadoOperacion(False, "Seleccione un producto.")
@@ -298,6 +299,17 @@ def registrar_lote(
     producto = repo.get_producto(producto_id)
     if not producto:
         return ResultadoOperacion(False, "El producto seleccionado no existe.")
+
+    if ubicacion_destino_id:
+        from app.core.services.ubicacion_stock_service import validar_ubicacion_catalogo
+
+        err_u = validar_ubicacion_catalogo(data, ubicacion_destino_id)
+        if err_u:
+            return ResultadoOperacion(False, err_u)
+    elif getattr(producto, "ubicacion_ids", None):
+        # Nueva entrada: preferir primera ubicación permitida si hay catálogo.
+        # No inventa ubicaciones históricas en lotes previos.
+        ubicacion_destino_id = producto.ubicacion_ids[0]
 
     proveedor = marca_proveedor.strip() if marca_proveedor else None
     alerta_dias = alerta_expiracion_dias if alerta_expiracion_dias and alerta_expiracion_dias > 0 else None
@@ -330,6 +342,7 @@ def registrar_lote(
         cantidad=cantidad,
         fecha=fecha_compra or date.today(),
         precio_total=round(precio_total, 2),
+        ubicacion_destino_id=ubicacion_destino_id,
         ctx=ctx_mov,
         commit=False,
     )

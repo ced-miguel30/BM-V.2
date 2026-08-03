@@ -216,7 +216,9 @@ def aplicar_ajuste(
         data.ajustes.append(registro)
 
         from app.core.services import movimiento_service as mov_svc
+        from app.core.services.ubicacion_stock_service import ubicacion_preferida_lote
 
+        ubi = ubicacion_preferida_lote(data, preview.lote_id)
         espejo = mov_svc.espejo_ajuste_linea(
             producto_id=preview.producto_id,
             lote_id=preview.lote_id,
@@ -226,6 +228,8 @@ def aplicar_ajuste(
             origen_linea_id=preview.lote_id,
             hora=registro.hora,
             usuario_id=context.actor.id or None,
+            ubicacion_origen_id=ubi if linea.delta < 0 else None,
+            ubicacion_destino_id=ubi if linea.delta > 0 else None,
             ctx=context,
             commit=False,
         )

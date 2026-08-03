@@ -274,6 +274,8 @@ def crear_movimiento(
     idempotency_key: str | None = None,
     coste_unitario_snapshot: float | None = None,
     coste_total_snapshot: float | None = None,
+    ubicacion_origen_id: str | None = None,
+    ubicacion_destino_id: str | None = None,
     ctx: AppContext | None = None,
     commit: bool = True,
 ) -> ResultadoMovimiento:
@@ -348,6 +350,8 @@ def crear_movimiento(
         coste_unitario_snapshot=coste_unitario_snapshot,
         coste_total_snapshot=coste_total_snapshot,
         creado_en=creado,
+        ubicacion_origen_id=ubicacion_origen_id,
+        ubicacion_destino_id=ubicacion_destino_id,
     )
     data.movimientos.append(mov)
     if commit:
@@ -396,6 +400,7 @@ def espejo_entrada_lote(
     precio_total: float | None = None,
     hora: time | None = None,
     usuario_id: str | None = None,
+    ubicacion_destino_id: str | None = None,
     ctx: AppContext | None = None,
     commit: bool = False,
 ) -> ResultadoMovimiento:
@@ -418,6 +423,7 @@ def espejo_entrada_lote(
         usuario_id=usuario_id,
         coste_unitario_snapshot=coste_unitario,
         coste_total_snapshot=coste_total,
+        ubicacion_destino_id=ubicacion_destino_id,
         ctx=ctx,
         commit=commit,
     )
@@ -433,6 +439,8 @@ def espejo_ajuste_linea(
     origen_linea_id: str | None = None,
     hora: time | None = None,
     usuario_id: str | None = None,
+    ubicacion_origen_id: str | None = None,
+    ubicacion_destino_id: str | None = None,
     ctx: AppContext | None = None,
     commit: bool = False,
 ) -> ResultadoMovimiento:
@@ -446,9 +454,11 @@ def espejo_ajuste_linea(
     if d > 0:
         tipo = TipoMovimiento.AJUSTE_ENTRADA
         direccion = DireccionMovimiento.ENTRADA
+        u_orig, u_dest = None, ubicacion_destino_id
     else:
         tipo = TipoMovimiento.AJUSTE_SALIDA
         direccion = DireccionMovimiento.SALIDA
+        u_orig, u_dest = ubicacion_origen_id, None
     linea = origen_linea_id if origen_linea_id is not None else lote_id
     return crear_movimiento(
         producto_id=producto_id,
@@ -462,6 +472,8 @@ def espejo_ajuste_linea(
         origen_id=ajuste_id,
         origen_linea_id=linea,
         usuario_id=usuario_id,
+        ubicacion_origen_id=u_orig,
+        ubicacion_destino_id=u_dest,
         ctx=ctx,
         commit=commit,
     )
@@ -478,6 +490,7 @@ def espejo_merma_linea(
     coste_total: float | None = None,
     hora: time | None = None,
     usuario_id: str | None = None,
+    ubicacion_origen_id: str | None = None,
     ctx: AppContext | None = None,
     commit: bool = False,
 ) -> ResultadoMovimiento:
@@ -502,6 +515,7 @@ def espejo_merma_linea(
         usuario_id=usuario_id,
         coste_unitario_snapshot=coste_unitario,
         coste_total_snapshot=coste_tot,
+        ubicacion_origen_id=ubicacion_origen_id,
         ctx=ctx,
         commit=commit,
     )
@@ -608,6 +622,16 @@ def espejo_reversion_merma_linea(
         usuario_id=usuario_id,
         coste_unitario_snapshot=coste_unitario,
         coste_total_snapshot=coste_tot,
+        ubicacion_origen_id=(
+            getattr(movimiento_original, "ubicacion_destino_id", None)
+            if movimiento_original
+            else None
+        ),
+        ubicacion_destino_id=(
+            getattr(movimiento_original, "ubicacion_origen_id", None)
+            if movimiento_original
+            else None
+        ),
         ctx=ctx,
         commit=commit,
     )
@@ -631,6 +655,7 @@ def espejo_consumo_fragmento(
     coste_total: float | None = None,
     hora: time | None = None,
     usuario_id: str | None = None,
+    ubicacion_origen_id: str | None = None,
     ctx: AppContext | None = None,
     commit: bool = False,
 ) -> ResultadoMovimiento:
@@ -655,6 +680,7 @@ def espejo_consumo_fragmento(
         usuario_id=usuario_id,
         coste_unitario_snapshot=coste_unitario,
         coste_total_snapshot=coste_tot,
+        ubicacion_origen_id=ubicacion_origen_id,
         ctx=ctx,
         commit=commit,
     )
@@ -685,11 +711,15 @@ def escribir_espejos_consumo_registro(
     ctx: AppContext | None = None,
 ) -> None:
     """Crea un movimiento ``consumo`` por fragmento. Lanza si falla."""
+    from app.core.services.ubicacion_stock_service import ubicacion_preferida_lote
+
+    data_ref = _ctx(ctx).uow.get_data()
     creados = 0
     for di, det in enumerate(lineas_detalle or []):
         for fi, frag in enumerate(getattr(det, "consumos_lote", None) or []):
             if float(getattr(frag, "cantidad", 0) or 0) <= 0:
                 continue
+            ubi = ubicacion_preferida_lote(data_ref, frag.lote_id)
             r = espejo_consumo_fragmento(
                 producto_id=frag.producto_id,
                 lote_id=frag.lote_id,
@@ -702,6 +732,7 @@ def escribir_espejos_consumo_registro(
                 coste_total=frag.coste,
                 hora=hora,
                 usuario_id=usuario_id,
+                ubicacion_origen_id=ubi,
                 ctx=ctx,
                 commit=False,
             )
@@ -815,6 +846,16 @@ def espejo_reversion_consumo_fragmento(
         usuario_id=usuario_id,
         coste_unitario_snapshot=coste_unitario,
         coste_total_snapshot=coste_tot,
+        ubicacion_origen_id=(
+            getattr(movimiento_original, "ubicacion_destino_id", None)
+            if movimiento_original
+            else None
+        ),
+        ubicacion_destino_id=(
+            getattr(movimiento_original, "ubicacion_origen_id", None)
+            if movimiento_original
+            else None
+        ),
         ctx=ctx,
         commit=commit,
     )
@@ -943,6 +984,16 @@ def espejo_reversion_entrada_lote(
         origen_linea_id=None,
         movimiento_revertido_id=revertido_id,
         usuario_id=usuario_id,
+        ubicacion_origen_id=(
+            getattr(movimiento_original, "ubicacion_destino_id", None)
+            if movimiento_original
+            else None
+        ),
+        ubicacion_destino_id=(
+            getattr(movimiento_original, "ubicacion_origen_id", None)
+            if movimiento_original
+            else None
+        ),
         ctx=ctx,
         commit=commit,
     )

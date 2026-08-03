@@ -602,12 +602,14 @@ def registrar_merma(
         data.mermas.append(registro)
 
         from app.core.services import movimiento_service as mov_svc
+        from app.core.services.ubicacion_stock_service import ubicacion_preferida_lote
 
         for idx, ln in enumerate(registro.lineas):
             if not ln.lote_id:
                 raise RuntimeError(
                     f"Línea {idx} de merma sin lote_id; no se puede espejar."
                 )
+            ubi = ubicacion_preferida_lote(data, ln.lote_id)
             espejo = mov_svc.espejo_merma_linea(
                 producto_id=ln.producto_id,
                 lote_id=ln.lote_id,
@@ -618,6 +620,7 @@ def registrar_merma(
                 coste_total=ln.coste,
                 hora=registro.hora,
                 usuario_id=context.actor.id or None,
+                ubicacion_origen_id=ubi,
                 ctx=context,
                 commit=False,
             )

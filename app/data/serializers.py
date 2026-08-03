@@ -155,6 +155,8 @@ def _movimiento_to_dict(m: MovimientoInventario) -> dict:
         "coste_unitario_snapshot": m.coste_unitario_snapshot,
         "coste_total_snapshot": m.coste_total_snapshot,
         "creado_en": m.creado_en.isoformat() if m.creado_en else None,
+        "ubicacion_origen_id": getattr(m, "ubicacion_origen_id", None),
+        "ubicacion_destino_id": getattr(m, "ubicacion_destino_id", None),
     }
 
 
@@ -190,6 +192,8 @@ def _movimiento_from_dict(raw: dict) -> MovimientoInventario:
             else None
         ),
         creado_en=_parse_datetime(creado_raw) if creado_raw else None,
+        ubicacion_origen_id=raw.get("ubicacion_origen_id"),
+        ubicacion_destino_id=raw.get("ubicacion_destino_id"),
     )
 
 
