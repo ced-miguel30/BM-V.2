@@ -17,9 +17,10 @@ Futuro: dominio documentado en [modelo_dominio_objetivo.md](modelo_dominio_objet
 | `SesionRecuento` | Recuento físico | 7B.6 → ajustes |
 | Proveedor / Impuesto / RelacionProductoProveedor | Catálogo comercial | **Fase 8** |
 | `ArchivoDocumental` | Original digital + SHA-256 | **Fase 9** |
+| `Documento` / `LineaDocumento` (albarán) | Recepción → lotes + `entrada_albaran` | **Fase 10** |
 | `marca_proveedor` (lote) | Snapshot textual histórico | Conservado; no se reescribe |
-| *(no aún)* | Albarán / factura / conciliación | **F10–F11** |
+| *(no aún)* | Factura / conciliación | **Fase 11** |
 
 ## Próximo paso
 
-**Fase 10** — albaranes → entrada inventario → lotes → movimientos (atómico).
+**Fase 11** — facturas + conciliación con albaranes (sin nuevo incremento de stock).

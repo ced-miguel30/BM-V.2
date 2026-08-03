@@ -914,16 +914,225 @@ def _render_tab_traslados() -> None:
                     st.error(an.mensaje)
 
 
+def _render_tab_albaranes() -> None:
+    """Fase 10 — albaranes → lotes + movimientos (sin facturas)."""
+    from app.core.models import EstadoDocumento
+    from app.core.services import albaran_service as alb
+    from app.core.services import proveedor_service as prv
+
+    repo = get_repository()
+    data = repo.data
+    st.markdown("#### Albaranes de recepción")
+    st.caption(
+        "Confirmar un albarán crea lotes y movimientos `entrada_albaran` de forma atómica. "
+        "Sin facturas ni conciliación (Fase 11). El nº del proveedor es referencia externa, "
+        "no el ID interno."
+    )
+
+    st.markdown("##### Nuevo borrador")
+    proveedores = prv.listar_proveedores(solo_activos=True)
+    mapa_prov = {"— Sin proveedor —": None}
+    mapa_prov.update({f"{p.nombre_fiscal} ({p.id})": p.id for p in proveedores})
+    archivos = [
+        a
+        for a in getattr(data, "archivos_documentales", []) or []
+        if getattr(a, "activo", True) and not getattr(a, "documento_id", None)
+    ]
+    mapa_arch = {
+        f"{a.nombre_original} ({a.id})": a.id for a in archivos
+    }
+    with st.form("form_albaran_borrador", clear_on_submit=True):
+        c1, c2 = st.columns(2)
+        with c1:
+            fecha_doc = st.date_input("Fecha documento", value=date.today())
+            prov_lbl = st.selectbox("Proveedor", list(mapa_prov.keys()))
+            ref_ext = st.text_input("Referencia externa (nº albarán proveedor)")
+        with c2:
+            notas = st.text_input("Notas (opcional)")
+            arch_sel = st.multiselect(
+                "Archivos adjuntos (opcional)",
+                list(mapa_arch.keys()) if mapa_arch else [],
+            )
+        if st.form_submit_button("Crear borrador", type="primary"):
+            r = alb.crear_borrador_albaran(
+                fecha_documento=fecha_doc,
+                proveedor_id=mapa_prov[prov_lbl],
+                referencia_externa=ref_ext or None,
+                notas=notas or None,
+                archivo_ids=[mapa_arch[x] for x in arch_sel],
+            )
+            if r.ok:
+                st.success(r.mensaje)
+                st.rerun()
+            else:
+                st.error(r.mensaje)
+
+    section_divider()
+    docs = alb.listar_albaranes()
+    borradores = [
+        d
+        for d in docs
+        if (d.estado.value if hasattr(d.estado, "value") else d.estado)
+        == EstadoDocumento.BORRADOR.value
+    ]
+    st.markdown("##### Editar borrador / confirmar")
+    if not borradores:
+        st.info("No hay albaranes en borrador.")
+    else:
+        mapa_doc = {
+            f"{d.id} · {d.proveedor_nombre_snapshot or '—'} · "
+            f"ref={d.referencia_externa or '—'} · {len(d.lineas)} línea(s)": d
+            for d in borradores
+        }
+        sel = st.selectbox("Borrador", list(mapa_doc.keys()), key="alb_borrador")
+        doc = mapa_doc[sel]
+        productos = list(data.productos)
+        mapa_prod = {f"{p.nombre} ({p.id})": p for p in productos}
+        ubis = [u for u in data.ubicaciones if getattr(u, "activo", True)]
+        mapa_ubi = {"— Automática / sin ubic. —": None}
+        mapa_ubi.update({f"{u.nombre} ({u.id})": u.id for u in ubis})
+        impuestos = [i for i in data.impuestos if getattr(i, "activo", True)]
+        mapa_imp = {"— Sin impuesto —": None}
+        mapa_imp.update(
+            {f"{i.nombre} ({i.porcentaje} %)": i.id for i in impuestos}
+        )
+
+        with st.form("form_albaran_linea", clear_on_submit=True):
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                prod_lbl = st.selectbox("Producto", list(mapa_prod.keys()) or ["—"])
+                cantidad = st.number_input("Cantidad", min_value=0.0, step=0.1, value=1.0)
+            with c2:
+                precio = st.number_input(
+                    "Precio total", min_value=0.0, step=0.01, format="%.2f"
+                )
+                ubi_lbl = st.selectbox("Ubicación destino", list(mapa_ubi.keys()))
+            with c3:
+                imp_lbl = st.selectbox("Impuesto", list(mapa_imp.keys()))
+                usar_exp = st.checkbox("Fecha expiración")
+                fecha_exp = st.date_input("Expiración", key="alb_exp")
+            if st.form_submit_button("Añadir línea"):
+                if not mapa_prod:
+                    st.error("No hay productos en catálogo.")
+                else:
+                    r = alb.anadir_linea_albaran(
+                        doc.id,
+                        producto_id=mapa_prod[prod_lbl].id,
+                        cantidad=cantidad,
+                        precio_total=precio,
+                        ubicacion_destino_id=mapa_ubi[ubi_lbl],
+                        impuesto_id=mapa_imp[imp_lbl],
+                        fecha_expiracion=fecha_exp if usar_exp else None,
+                    )
+                    if r.ok:
+                        st.success(r.mensaje)
+                        st.rerun()
+                    else:
+                        st.error(r.mensaje)
+
+        if doc.lineas:
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Línea": ln.id,
+                            "Producto": ln.producto_nombre_snapshot or ln.producto_id,
+                            "Cantidad": ln.cantidad,
+                            "Precio": ln.precio_total,
+                            "Ubicación": ln.ubicacion_destino_id or "—",
+                        }
+                        for ln in doc.lineas
+                    ]
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
+            for line in alb.preview_confirmacion(doc):
+                st.caption(line)
+            c_ok, c_del = st.columns(2)
+            with c_ok:
+                if st.button("Confirmar albarán", type="primary", key="alb_confirm"):
+                    r = alb.confirmar_albaran(doc.id)
+                    if r.ok:
+                        sincronizar_alertas()
+                        st.success(r.mensaje)
+                        st.rerun()
+                    else:
+                        st.error(r.mensaje)
+            with c_del:
+                if st.button("Descartar borrador", key="alb_discard"):
+                    r = alb.anular_albaran(doc.id, motivo="Borrador descartado en UI")
+                    if r.ok:
+                        st.success(r.mensaje)
+                        st.rerun()
+                    else:
+                        st.error(r.mensaje)
+
+    section_divider()
+    st.markdown("##### Historial de albaranes")
+    if not docs:
+        empty_state("Todavía no hay albaranes.", icon="📄")
+    else:
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "ID": d.id,
+                        "Estado": (
+                            d.estado.value if hasattr(d.estado, "value") else d.estado
+                        ),
+                        "Fecha": d.fecha_documento,
+                        "Proveedor": d.proveedor_nombre_snapshot or "—",
+                        "Ref. externa": d.referencia_externa or "—",
+                        "Líneas": len(d.lineas),
+                    }
+                    for d in docs
+                ]
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+        confirmados = [
+            d
+            for d in docs
+            if (d.estado.value if hasattr(d.estado, "value") else d.estado)
+            == EstadoDocumento.CONFIRMADO.value
+        ]
+        if confirmados:
+            mapa_c = {
+                f"{d.id} · {d.proveedor_nombre_snapshot or '—'}": d.id
+                for d in confirmados
+            }
+            c_lbl = st.selectbox(
+                "Anular albarán confirmado",
+                list(mapa_c.keys()),
+                key="alb_anular_sel",
+            )
+            motivo = st.text_input("Motivo anulación", key="alb_motivo")
+            if st.button("Anular albarán", key="alb_anular_btn"):
+                r = alb.anular_albaran(mapa_c[c_lbl], motivo=motivo or None)
+                if r.ok:
+                    sincronizar_alertas()
+                    st.success(r.mensaje)
+                    st.rerun()
+                else:
+                    st.error(r.mensaje)
+
+
 _SUBTABS = {
     "Productos": _render_tab_productos,
     "Compras": _render_tab_compras,
+    "Albaranes": _render_tab_albaranes,
     "Inventario": _render_tab_inventario,
     "Traslados": _render_tab_traslados,
 }
 
 
 def render() -> None:
-    page_header("Stock", "Inventario de productos y bebidas, compras por lote y alertas")
+    page_header(
+        "Stock",
+        "Inventario, compras por lote, albaranes de recepción y alertas",
+    )
 
     selected = render_sub_tabs(list(_SUBTABS.keys()), key="stock_subtab")
     _SUBTABS[selected]()

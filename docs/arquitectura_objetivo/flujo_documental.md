@@ -2,7 +2,7 @@
 
 **No implementar facturas aquí.** Código documental:
 - Fase 9: archivos digitales (hash, inmutable) — **hecha**.
-- Fase 10: albaranes → entrada.
+- Fase 10: albaranes → entrada — **hecha**.
 - Fase 11: facturas + conciliación.
 - Fases 12–13: rectificativas / búsqueda-exportación.
 

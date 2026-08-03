@@ -61,6 +61,8 @@ Sin implementación de código en esta fase.
 | D52 | **Fase 8** — `Proveedor`, `Impuesto` (Decimal), `RelacionProductoProveedor` | Sin facturas/albaranes |
 | D53 | Snapshots en vínculo producto–proveedor | Editar maestro no reescribe snapshot ni `marca_proveedor` |
 | D54 | **Fase 9** — `ArchivoDocumental` inmutable + SHA-256 | Sin OCR; soft-desactivar no borra fichero |
+| D55 | **Fase 10** — albarán confirmado → lotes + `entrada_albaran` atómico | Sin facturas; anulación bloqueada si lote parcialmente consumido |
+| D56 | ID técnico documento ≠ `referencia_externa` del proveedor | Prohibido usar proveedor+fecha como ID |
 
 ## Decisiones pendientes (no bloquean F3)
 
@@ -84,9 +86,9 @@ Sin implementación de código en esta fase.
 5. `marca_proveedor` y costes ya guardados no se reescriben al crear Proveedor maestro.  
 6. Referencias de catálogo huérfanas se conservan y se etiquetan «Referencia no encontrada»; no se anulan en silencio.  
 7. `tipo_articulo` desconocido se conserva y se diagnostica; no se convierte en consumible.
-8. `movimientos` / `recuentos` / `proveedores` / `impuestos` / relaciones ausentes → `[]`; tipos desconocidos se conservan.
+8. `movimientos` / `recuentos` / `proveedores` / `impuestos` / relaciones / `documentos` / archivos ausentes → `[]`; tipos desconocidos se conservan.
 9. No asignar ubicaciones ficticias a históricos.
 
 ## Próximo paso de implementación
 
-**Fase 10** — albaranes → entrada inventario (atómico), tras revisión de F9.
+**Fase 11** — facturas + conciliación (sin nuevo stock), tras revisión de F10.

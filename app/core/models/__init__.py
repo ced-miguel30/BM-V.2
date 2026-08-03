@@ -43,6 +43,12 @@ from app.core.models.enums import (
     UnidadProducto,
 )
 from app.core.models.archivo_documental import ArchivoDocumental
+from app.core.models.documento import (
+    Documento,
+    EstadoDocumento,
+    LineaDocumento,
+    TipoDocumento,
+)
 from app.core.models.lote import LoteStock
 from app.core.models.merma import LineaMerma, RegistroMerma, ResponsableMerma
 from app.core.models.movimiento import MovimientoInventario
@@ -73,8 +79,10 @@ __all__ = [
     "DIRECCION_MOVIMIENTO_VALORES",
     "DIRECCION_POR_TIPO_MOVIMIENTO",
     "DireccionMovimiento",
+    "Documento",
     "ESTADO_ALERTA_LABEL",
     "EstadoAlerta",
+    "EstadoDocumento",
     "EstadoRecuento",
     "ExtraRecetaDesayuno",
     "ExtraRecetaServicio",
@@ -83,6 +91,7 @@ __all__ = [
     "LineaAjuste",
     "LineaDesayuno",
     "LineaDetalleOrigen",
+    "LineaDocumento",
     "LineaMerma",
     "LineaRecuento",
     "LineaServicio",
@@ -120,6 +129,7 @@ __all__ = [
     "TURNO_MERMA_VALORES",
     "TipoAlerta",
     "TipoArticulo",
+    "TipoDocumento",
     "TipoMovimiento",
     "TipoServicio",
     "TurnoMerma",

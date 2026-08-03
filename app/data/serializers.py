@@ -18,6 +18,8 @@ from app.core.models import (
     ConfiguracionHotel,
     Departamento,
     DireccionMovimiento,
+    Documento,
+    EstadoDocumento,
     EstadoRecuento,
     ExtraRecetaDesayuno,
     ExtraRecetaServicio,
@@ -26,6 +28,7 @@ from app.core.models import (
     LineaAjuste,
     LineaDesayuno,
     LineaDetalleOrigen,
+    LineaDocumento,
     LineaMerma,
     LineaRecuento,
     LineaServicio,
@@ -51,6 +54,7 @@ from app.core.models import (
     Subcategoria,
     TipoAlerta,
     TipoArticulo,
+    TipoDocumento,
     TipoMovimiento,
     Ubicacion,
     UnidadProducto,
@@ -419,6 +423,136 @@ def _archivo_documental_from_dict(raw: dict) -> ArchivoDocumental:
     )
 
 
+def _parse_tipo_documento(raw) -> TipoDocumento | str:
+    if isinstance(raw, TipoDocumento):
+        return raw
+    s = "" if raw is None else str(raw)
+    try:
+        return TipoDocumento(s)
+    except ValueError:
+        return s
+
+
+def _parse_estado_documento(raw) -> EstadoDocumento | str:
+    if isinstance(raw, EstadoDocumento):
+        return raw
+    s = "" if raw is None else str(raw)
+    try:
+        return EstadoDocumento(s)
+    except ValueError:
+        return s or EstadoDocumento.BORRADOR.value
+
+
+def _documento_to_dict(d: Documento) -> dict:
+    return {
+        "id": d.id,
+        "tipo": d.tipo.value if hasattr(d.tipo, "value") else d.tipo,
+        "estado": d.estado.value if hasattr(d.estado, "value") else d.estado,
+        "fecha_documento": (
+            d.fecha_documento.isoformat() if d.fecha_documento else None
+        ),
+        "proveedor_id": d.proveedor_id,
+        "proveedor_nombre_snapshot": d.proveedor_nombre_snapshot,
+        "nif_cif_snapshot": d.nif_cif_snapshot,
+        "referencia_externa": d.referencia_externa,
+        "archivo_ids": list(d.archivo_ids or []),
+        "registrado_por": d.registrado_por,
+        "hora": d.hora.isoformat() if d.hora else None,
+        "creado_en": d.creado_en.isoformat() if d.creado_en else None,
+        "confirmado_en": (
+            d.confirmado_en.isoformat() if d.confirmado_en else None
+        ),
+        "anulado_en": d.anulado_en.isoformat() if d.anulado_en else None,
+        "motivo_anulacion": d.motivo_anulacion,
+        "notas": d.notas,
+        "lineas": [
+            {
+                "id": ln.id,
+                "producto_id": ln.producto_id,
+                "cantidad": ln.cantidad,
+                "precio_total": ln.precio_total,
+                "impuesto_id": ln.impuesto_id,
+                "impuesto_porcentaje_snapshot": (
+                    format(ln.impuesto_porcentaje_snapshot, "f")
+                    if ln.impuesto_porcentaje_snapshot is not None
+                    else None
+                ),
+                "ubicacion_destino_id": ln.ubicacion_destino_id,
+                "lote_id": ln.lote_id,
+                "producto_nombre_snapshot": ln.producto_nombre_snapshot,
+                "unidad_snapshot": ln.unidad_snapshot,
+                "fecha_expiracion": (
+                    ln.fecha_expiracion.isoformat() if ln.fecha_expiracion else None
+                ),
+                "movimiento_id": ln.movimiento_id,
+            }
+            for ln in d.lineas
+        ],
+    }
+
+
+def _documento_from_dict(raw: dict) -> Documento:
+    from decimal import Decimal, InvalidOperation
+
+    fecha_raw = raw.get("fecha_documento")
+    fecha = _parse_date(fecha_raw) if fecha_raw else date.today()
+    if fecha is None:
+        fecha = date.today()
+    lineas: list[LineaDocumento] = []
+    for ln in raw.get("lineas", []) or []:
+        pct = ln.get("impuesto_porcentaje_snapshot")
+        pct_d = None
+        if pct is not None and pct != "":
+            try:
+                pct_d = Decimal(str(pct))
+            except (InvalidOperation, ValueError):
+                pct_d = None
+        fe = ln.get("fecha_expiracion")
+        lineas.append(
+            LineaDocumento(
+                id=ln.get("id", ""),
+                producto_id=ln.get("producto_id", "") or "",
+                cantidad=float(ln.get("cantidad", 0) or 0),
+                precio_total=float(ln.get("precio_total", 0) or 0),
+                impuesto_id=ln.get("impuesto_id"),
+                impuesto_porcentaje_snapshot=pct_d,
+                ubicacion_destino_id=ln.get("ubicacion_destino_id"),
+                lote_id=ln.get("lote_id"),
+                producto_nombre_snapshot=ln.get("producto_nombre_snapshot"),
+                unidad_snapshot=ln.get("unidad_snapshot"),
+                fecha_expiracion=_parse_date(fe) if fe else None,
+                movimiento_id=ln.get("movimiento_id"),
+            )
+        )
+    return Documento(
+        id=raw.get("id", ""),
+        tipo=_parse_tipo_documento(raw.get("tipo")),
+        estado=_parse_estado_documento(raw.get("estado")),
+        fecha_documento=fecha,
+        proveedor_id=raw.get("proveedor_id"),
+        proveedor_nombre_snapshot=raw.get("proveedor_nombre_snapshot"),
+        nif_cif_snapshot=raw.get("nif_cif_snapshot"),
+        referencia_externa=raw.get("referencia_externa"),
+        lineas=lineas,
+        archivo_ids=list(raw.get("archivo_ids", []) or []),
+        registrado_por=raw.get("registrado_por", "") or "",
+        hora=_parse_time(raw.get("hora")),
+        creado_en=(
+            _parse_datetime(raw["creado_en"]) if raw.get("creado_en") else None
+        ),
+        confirmado_en=(
+            _parse_datetime(raw["confirmado_en"])
+            if raw.get("confirmado_en")
+            else None
+        ),
+        anulado_en=(
+            _parse_datetime(raw["anulado_en"]) if raw.get("anulado_en") else None
+        ),
+        motivo_anulacion=raw.get("motivo_anulacion"),
+        notas=raw.get("notas"),
+    )
+
+
 class _Encoder(json.JSONEncoder):
     def default(self, obj: Any) -> Any:
         if isinstance(obj, (date, datetime)):
@@ -778,6 +912,10 @@ def appdata_to_dict(data: AppData) -> dict:
             _archivo_documental_to_dict(a)
             for a in getattr(data, "archivos_documentales", []) or []
         ],
+        "documentos": [
+            _documento_to_dict(d)
+            for d in getattr(data, "documentos", []) or []
+        ],
         "alertas": [
             {
                 "id": a.id, "tipo": a.tipo.value, "titulo": a.titulo, "mensaje": a.mensaje,
@@ -1086,6 +1224,10 @@ def dict_to_appdata(payload: dict) -> AppData:
         archivos_documentales=[
             _archivo_documental_from_dict(a)
             for a in payload.get("archivos_documentales", [])
+        ],
+        documentos=[
+            _documento_from_dict(d)
+            for d in payload.get("documentos", [])
         ],
         alertas=[
             AlertaOperativa(

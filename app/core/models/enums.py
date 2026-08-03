@@ -165,9 +165,10 @@ class DireccionMovimiento(str, Enum):
 
 
 class TipoMovimiento(str, Enum):
-    """Tipos del ledger (7A espejo + 7B traslados)."""
+    """Tipos del ledger (7A espejo + 7B traslados + 7/10 documentos)."""
 
     ENTRADA_COMPRA = "entrada_compra"
+    ENTRADA_ALBARAN = "entrada_albaran"
     CONSUMO = "consumo"
     MERMA = "merma"
     AJUSTE_ENTRADA = "ajuste_entrada"
@@ -180,6 +181,7 @@ class TipoMovimiento(str, Enum):
 
 DIRECCION_POR_TIPO_MOVIMIENTO: dict[TipoMovimiento, DireccionMovimiento] = {
     TipoMovimiento.ENTRADA_COMPRA: DireccionMovimiento.ENTRADA,
+    TipoMovimiento.ENTRADA_ALBARAN: DireccionMovimiento.ENTRADA,
     TipoMovimiento.CONSUMO: DireccionMovimiento.SALIDA,
     TipoMovimiento.MERMA: DireccionMovimiento.SALIDA,
     TipoMovimiento.AJUSTE_ENTRADA: DireccionMovimiento.ENTRADA,

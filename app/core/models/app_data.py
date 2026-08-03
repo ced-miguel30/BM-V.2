@@ -9,6 +9,7 @@ from app.core.models.archivo_documental import ArchivoDocumental
 from app.core.models.catalogo import Categoria, Departamento, Subcategoria, Ubicacion
 from app.core.models.configuracion import ConfiguracionHotel
 from app.core.models.desayuno import RegistroDesayuno
+from app.core.models.documento import Documento
 from app.core.models.lote import LoteStock
 from app.core.models.merma import RegistroMerma, ResponsableMerma
 from app.core.models.movimiento import MovimientoInventario
@@ -34,23 +35,19 @@ class AppData:
     actividades: list[Actividad] = field(default_factory=list)
     usuarios: list[Usuario] = field(default_factory=list)
     responsables_merma: list[ResponsableMerma] = field(default_factory=list)
-    # Fase 6A — catálogos estructurados (vacío si JSON antiguo).
     departamentos: list[Departamento] = field(default_factory=list)
     categorias: list[Categoria] = field(default_factory=list)
     subcategorias: list[Subcategoria] = field(default_factory=list)
-    # Fase 6B — ubicaciones físicas/lógicas (sin stock por ubicación).
     ubicaciones: list[Ubicacion] = field(default_factory=list)
-    # Fase 7A — ledger espejo (no fuente de verdad del stock).
     movimientos: list[MovimientoInventario] = field(default_factory=list)
-    # Fase 7B.6 — recuentos por ubicación.
     recuentos: list[SesionRecuento] = field(default_factory=list)
-    # Fase 8 — proveedores / impuestos / relación comercial (sin facturas).
     proveedores: list[Proveedor] = field(default_factory=list)
     impuestos: list[Impuesto] = field(default_factory=list)
     relaciones_producto_proveedor: list[RelacionProductoProveedor] = field(
         default_factory=list
     )
-    # Fase 9 — archivos documentales (original inmutable; sin OCR).
     archivos_documentales: list[ArchivoDocumental] = field(default_factory=list)
+    # Fase 10 — albaranes (facturas = F11).
+    documentos: list[Documento] = field(default_factory=list)
     configuracion: ConfiguracionHotel | None = None
     usuario_actual_id: str = ""

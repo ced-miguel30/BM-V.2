@@ -940,9 +940,13 @@ def espejo_reversion_entrada_lote(
         )
     c = _ctx(ctx)
     if movimiento_original is not None:
-        if _enum_value(movimiento_original.tipo) != TipoMovimiento.ENTRADA_COMPRA.value:
+        tipo_orig = _enum_value(movimiento_original.tipo)
+        if tipo_orig not in (
+            TipoMovimiento.ENTRADA_COMPRA.value,
+            TipoMovimiento.ENTRADA_ALBARAN.value,
+        ):
             return ResultadoMovimiento(
-                ok=False, mensaje="El movimiento a revertir no es entrada_compra"
+                ok=False, mensaje="El movimiento a revertir no es una entrada"
             )
         if movimiento_original.producto_id != producto_id:
             return ResultadoMovimiento(
