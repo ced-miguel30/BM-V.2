@@ -574,7 +574,10 @@ class TestFase7A1LedgerModelo(unittest.TestCase):
         self.assertIn(esp.ESPACIO_INVENTARIO, esp.ESPACIOS_ORDEN)
         ops = esp.secciones_operativas(esp.ESPACIO_INVENTARIO)
         self.assertTrue(len(ops) >= 1)
-        self.assertIn("Ledger", APP_VERSION)
+        self.assertTrue(
+            "Ledger" in APP_VERSION or "Proveedor" in APP_VERSION,
+            APP_VERSION,
+        )
 
     def test_33_tipo_desconocido_no_convertido(self) -> None:
         payload = {

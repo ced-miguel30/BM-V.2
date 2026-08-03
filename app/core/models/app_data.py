@@ -12,6 +12,7 @@ from app.core.models.lote import LoteStock
 from app.core.models.merma import RegistroMerma, ResponsableMerma
 from app.core.models.movimiento import MovimientoInventario
 from app.core.models.producto import Producto
+from app.core.models.proveedor import Impuesto, Proveedor, RelacionProductoProveedor
 from app.core.models.receta import Receta
 from app.core.models.recuento import SesionRecuento
 from app.core.models.registro_servicio import RegistroServicio
@@ -42,5 +43,11 @@ class AppData:
     movimientos: list[MovimientoInventario] = field(default_factory=list)
     # Fase 7B.6 — recuentos por ubicación.
     recuentos: list[SesionRecuento] = field(default_factory=list)
+    # Fase 8 — proveedores / impuestos / relación comercial (sin facturas).
+    proveedores: list[Proveedor] = field(default_factory=list)
+    impuestos: list[Impuesto] = field(default_factory=list)
+    relaciones_producto_proveedor: list[RelacionProductoProveedor] = field(
+        default_factory=list
+    )
     configuracion: ConfiguracionHotel | None = None
     usuario_actual_id: str = ""

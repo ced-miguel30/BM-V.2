@@ -1,6 +1,7 @@
 # Flujo documental (diseño — Fase 2)
 
-**No implementar aquí.** Código: Fases 8–13. Depende del [ledger](ledger_movimientos.md).
+**No implementar facturas aquí.** Código documental (albarán/factura): Fases 9–13.
+Fase 8 implementa maestros: Proveedor, Impuesto, RelacionProductoProveedor.
 
 ## Separación de conceptos
 

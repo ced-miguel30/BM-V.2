@@ -15,8 +15,10 @@ Futuro: dominio documentado en [modelo_dominio_objetivo.md](modelo_dominio_objet
 | Saldos por ubicación (derivados) | Stock por ubicación | 7B.3 — sin materializar en Producto |
 | `traslado` | Traslado entre ubicaciones | 7B.4 |
 | `SesionRecuento` | Recuento físico | 7B.6 → ajustes |
-| *(no existe)* | Proveedor, Impuesto, documentos | **F8+** |
+| Proveedor / Impuesto / RelacionProductoProveedor | Catálogo comercial | **Fase 8** |
+| `marca_proveedor` (lote) | Snapshot textual histórico | Conservado; no se reescribe |
+| *(no aún)* | Albarán / factura / conciliación | **F9+** |
 
 ## Próximo paso
 
-**Fase 8** — proveedores / documentos (fuera de 7B). No avanzar sin revisión.
+**Fase 9+** — flujo documental (albarán → entrada → factura). No iniciar sin revisión de F8.

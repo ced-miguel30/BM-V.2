@@ -997,10 +997,238 @@ def _render_crud_ubicacion(cat) -> None:
                     st.error(resultado.mensaje)
 
 
+def _render_proveedores_impuestos() -> None:
+    """Fase 8 — maestros de proveedor, impuesto y vínculo producto–proveedor."""
+    from app.core.services import proveedor_service as prv
+    from app.core.services.data_service import get_repository
+
+    st.markdown("#### Proveedores e impuestos")
+    st.caption(
+        "Catálogo comercial (Fase 8). Sin facturas ni albaranes. "
+        "El texto «marca_proveedor» de lotes históricos no se reescribe. "
+        "Los snapshots del vínculo producto–proveedor quedan congelados al crear el vínculo."
+    )
+    apartado = st.radio(
+        "Apartado comercial",
+        ["Proveedores", "Impuestos", "Vínculos producto–proveedor"],
+        horizontal=True,
+        key="settings_prv_apartado",
+        label_visibility="collapsed",
+    )
+    if apartado == "Proveedores":
+        _render_crud_proveedores(prv)
+    elif apartado == "Impuestos":
+        _render_crud_impuestos(prv)
+    else:
+        _render_crud_vinculos(prv, get_repository())
+
+
+def _render_crud_proveedores(prv) -> None:
+    st.markdown("##### Proveedores")
+    todos = prv.listar_proveedores(solo_activos=False)
+    if todos:
+        st.dataframe(
+            {
+                "Fiscal": [p.nombre_fiscal for p in todos],
+                "Comercial": [p.nombre_comercial or "—" for p in todos],
+                "NIF/CIF": [p.nif_cif or "—" for p in todos],
+                "Estado": ["Activo" if p.activo else "Inactivo" for p in todos],
+            },
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        empty_state("Todavía no hay proveedores.", icon="🏢")
+
+    section_divider()
+    st.markdown("##### Añadir proveedor")
+    with st.form("form_crear_proveedor", clear_on_submit=True):
+        nombre = st.text_input("Nombre fiscal *")
+        comercial = st.text_input("Nombre comercial")
+        nif = st.text_input("NIF/CIF")
+        contacto = st.text_input("Contacto")
+        if st.form_submit_button("Crear proveedor", type="primary"):
+            r = prv.crear_proveedor(
+                nombre,
+                nombre_comercial=comercial or None,
+                nif_cif=nif or None,
+                contacto=contacto or None,
+            )
+            if r.ok:
+                st.success(r.mensaje)
+                st.rerun()
+            else:
+                st.error(r.mensaje)
+
+    if not todos:
+        return
+    section_divider()
+    st.markdown("##### Editar / activar")
+    opts = {
+        f"{p.nombre_fiscal} ({'activo' if p.activo else 'inactivo'})": p.id
+        for p in todos
+    }
+    sel = st.selectbox("Proveedor", list(opts.keys()), key="settings_prv_sel")
+    pid = opts[sel]
+    prov = next(p for p in todos if p.id == pid)
+    nuevo = st.text_input("Nombre fiscal", value=prov.nombre_fiscal, key="settings_prv_nom")
+    if st.button("Guardar cambios", key="settings_prv_save"):
+        r = prv.editar_proveedor(pid, nombre_fiscal=nuevo)
+        if r.ok:
+            st.success(r.mensaje)
+            st.rerun()
+        else:
+            st.error(r.mensaje)
+    c1, c2 = st.columns(2)
+    with c1:
+        if prov.activo and st.button("Desactivar", key="settings_prv_off"):
+            r = prv.desactivar_proveedor(pid)
+            st.success(r.mensaje) if r.ok else st.error(r.mensaje)
+            if r.ok:
+                st.rerun()
+    with c2:
+        if not prov.activo and st.button("Reactivar", key="settings_prv_on"):
+            r = prv.reactivar_proveedor(pid)
+            st.success(r.mensaje) if r.ok else st.error(r.mensaje)
+            if r.ok:
+                st.rerun()
+
+
+def _render_crud_impuestos(prv) -> None:
+    st.markdown("##### Impuestos")
+    todos = prv.listar_impuestos(solo_activos=False)
+    if todos:
+        st.dataframe(
+            {
+                "Nombre": [i.nombre for i in todos],
+                "%": [str(i.porcentaje) for i in todos],
+                "Desde": [i.vigencia_desde or "—" for i in todos],
+                "Hasta": [i.vigencia_hasta or "—" for i in todos],
+                "Estado": ["Activo" if i.activo else "Inactivo" for i in todos],
+            },
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        empty_state("Todavía no hay impuestos.", icon="%")
+
+    section_divider()
+    with st.form("form_crear_impuesto", clear_on_submit=True):
+        nombre = st.text_input("Nombre *", placeholder="IVA general")
+        pct = st.text_input("Porcentaje *", placeholder="21")
+        if st.form_submit_button("Crear impuesto", type="primary"):
+            r = prv.crear_impuesto(nombre, pct)
+            if r.ok:
+                st.success(r.mensaje)
+                st.rerun()
+            else:
+                st.error(r.mensaje)
+
+    if not todos:
+        return
+    section_divider()
+    opts = {f"{i.nombre} ({i.porcentaje}%)": i.id for i in todos}
+    sel = st.selectbox("Impuesto", list(opts.keys()), key="settings_imp_sel")
+    iid = opts[sel]
+    imp = next(i for i in todos if i.id == iid)
+    c1, c2 = st.columns(2)
+    with c1:
+        if imp.activo and st.button("Desactivar impuesto", key="settings_imp_off"):
+            r = prv.desactivar_impuesto(iid)
+            if r.ok:
+                st.success(r.mensaje)
+                st.rerun()
+            else:
+                st.error(r.mensaje)
+    with c2:
+        if not imp.activo and st.button("Reactivar impuesto", key="settings_imp_on"):
+            r = prv.reactivar_impuesto(iid)
+            if r.ok:
+                st.success(r.mensaje)
+                st.rerun()
+            else:
+                st.error(r.mensaje)
+
+
+def _render_crud_vinculos(prv, repo) -> None:
+    st.markdown("##### Vínculos producto – proveedor")
+    data = repo.data
+    rels = prv.listar_relaciones(solo_activas=False)
+    if rels:
+        st.dataframe(
+            {
+                "Producto": [
+                    next((p.nombre for p in data.productos if p.id == r.producto_id), r.producto_id)
+                    for r in rels
+                ],
+                "Proveedor (snapshot)": [
+                    r.proveedor_nombre_snapshot or r.proveedor_id for r in rels
+                ],
+                "Código": [r.codigo_proveedor or "—" for r in rels],
+                "Preferente": ["Sí" if r.preferente else "No" for r in rels],
+                "Estado": ["Activo" if r.activo else "Inactivo" for r in rels],
+            },
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        empty_state("Sin vínculos todavía.", icon="🔗")
+
+    section_divider()
+    prods = {p.nombre: p.id for p in data.productos}
+    provs = {
+        (p.nombre_comercial or p.nombre_fiscal): p.id
+        for p in prv.listar_proveedores(solo_activos=True)
+    }
+    if not prods or not provs:
+        st.warning("Se necesitan productos y proveedores activos para vincular.")
+        return
+    with st.form("form_vincular_pp", clear_on_submit=True):
+        pl = st.selectbox("Producto", list(prods.keys()))
+        vl = st.selectbox("Proveedor", list(provs.keys()))
+        codigo = st.text_input("Código proveedor")
+        pref = st.checkbox("Preferente")
+        if st.form_submit_button("Vincular", type="primary"):
+            r = prv.vincular_producto_proveedor(
+                prods[pl],
+                provs[vl],
+                codigo_proveedor=codigo or None,
+                preferente=pref,
+            )
+            if r.ok:
+                st.success(r.mensaje)
+                st.rerun()
+            else:
+                st.error(r.mensaje)
+
+    activas = [r for r in rels if r.activo]
+    if activas:
+        section_divider()
+        opts = {
+            f"{r.id} · {r.proveedor_nombre_snapshot}": r.id for r in activas
+        }
+        sel = st.selectbox("Vínculo activo", list(opts.keys()), key="settings_ppv_sel")
+        rid = opts[sel]
+        c1, c2 = st.columns(2)
+        with c1:
+            if st.button("Marcar preferente", key="settings_ppv_pref"):
+                r = prv.marcar_preferente(rid)
+                st.success(r.mensaje) if r.ok else st.error(r.mensaje)
+                if r.ok:
+                    st.rerun()
+        with c2:
+            if st.button("Desactivar vínculo", key="settings_ppv_off"):
+                r = prv.desactivar_relacion(rid)
+                st.success(r.mensaje) if r.ok else st.error(r.mensaje)
+                if r.ok:
+                    st.rerun()
+
+
 _SUBTABS = {
     "Usuarios": _render_usuarios,
     "Configuración": _render_configuracion,
     "Catálogos de inventario": _render_catalogos_inventario,
+    "Proveedores e impuestos": _render_proveedores_impuestos,
     "Responsables merma": _render_responsables_merma,
     "Actividad": _render_actividad,
     "Exportación": _render_exportacion,

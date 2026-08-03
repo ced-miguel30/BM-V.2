@@ -20,6 +20,7 @@ from app.core.models import (
     EstadoRecuento,
     ExtraRecetaDesayuno,
     ExtraRecetaServicio,
+    Impuesto,
     IngredienteReceta,
     LineaAjuste,
     LineaDesayuno,
@@ -34,6 +35,7 @@ from app.core.models import (
     OmisionRecetaDesayuno,
     OmisionRecetaServicio,
     Producto,
+    Proveedor,
     Receta,
     RegistroAjuste,
     RegistroDesayuno,
@@ -41,6 +43,7 @@ from app.core.models import (
     RegistroRecetaDesayuno,
     RegistroRecetaServicio,
     RegistroServicio,
+    RelacionProductoProveedor,
     ResponsableMerma,
     RolUsuario,
     SesionRecuento,
@@ -283,12 +286,118 @@ def _recuento_from_dict(raw: dict) -> SesionRecuento:
     )
 
 
+def _proveedor_to_dict(p: Proveedor) -> dict:
+    return {
+        "id": p.id,
+        "nombre_fiscal": p.nombre_fiscal,
+        "nombre_comercial": p.nombre_comercial,
+        "nif_cif": p.nif_cif,
+        "direccion": p.direccion,
+        "contacto": p.contacto,
+        "telefono": p.telefono,
+        "email": p.email,
+        "condiciones_pago": p.condiciones_pago,
+        "activo": bool(p.activo),
+    }
+
+
+def _proveedor_from_dict(raw: dict) -> Proveedor:
+    return Proveedor(
+        id=raw.get("id", ""),
+        nombre_fiscal=raw.get("nombre_fiscal", "") or "",
+        nombre_comercial=raw.get("nombre_comercial"),
+        nif_cif=raw.get("nif_cif"),
+        direccion=raw.get("direccion"),
+        contacto=raw.get("contacto"),
+        telefono=raw.get("telefono"),
+        email=raw.get("email"),
+        condiciones_pago=raw.get("condiciones_pago"),
+        activo=bool(raw.get("activo", True)),
+    )
+
+
+def _impuesto_to_dict(i: Impuesto) -> dict:
+    from decimal import Decimal
+
+    pct = i.porcentaje
+    if isinstance(pct, Decimal):
+        pct_s = format(pct, "f")
+    else:
+        pct_s = str(pct)
+    return {
+        "id": i.id,
+        "nombre": i.nombre,
+        "porcentaje": pct_s,
+        "vigencia_desde": (
+            i.vigencia_desde.isoformat() if i.vigencia_desde else None
+        ),
+        "vigencia_hasta": (
+            i.vigencia_hasta.isoformat() if i.vigencia_hasta else None
+        ),
+        "activo": bool(i.activo),
+        "descripcion": i.descripcion,
+    }
+
+
+def _impuesto_from_dict(raw: dict) -> Impuesto:
+    from decimal import Decimal, InvalidOperation
+
+    try:
+        pct = Decimal(str(raw.get("porcentaje", "0")))
+    except (InvalidOperation, ValueError, TypeError):
+        pct = Decimal("0")
+    vd = raw.get("vigencia_desde")
+    vh = raw.get("vigencia_hasta")
+    return Impuesto(
+        id=raw.get("id", ""),
+        nombre=raw.get("nombre", "") or "",
+        porcentaje=pct,
+        vigencia_desde=_parse_date(vd) if vd else None,
+        vigencia_hasta=_parse_date(vh) if vh else None,
+        activo=bool(raw.get("activo", True)),
+        descripcion=raw.get("descripcion"),
+    )
+
+
+def _relacion_pp_to_dict(r: RelacionProductoProveedor) -> dict:
+    return {
+        "id": r.id,
+        "producto_id": r.producto_id,
+        "proveedor_id": r.proveedor_id,
+        "codigo_proveedor": r.codigo_proveedor,
+        "preferente": bool(r.preferente),
+        "proveedor_nombre_snapshot": r.proveedor_nombre_snapshot,
+        "nif_cif_snapshot": r.nif_cif_snapshot,
+        "activo": bool(r.activo),
+    }
+
+
+def _relacion_pp_from_dict(raw: dict) -> RelacionProductoProveedor:
+    return RelacionProductoProveedor(
+        id=raw.get("id", ""),
+        producto_id=raw.get("producto_id", "") or "",
+        proveedor_id=raw.get("proveedor_id", "") or "",
+        codigo_proveedor=raw.get("codigo_proveedor"),
+        preferente=bool(raw.get("preferente", False)),
+        proveedor_nombre_snapshot=raw.get("proveedor_nombre_snapshot"),
+        nif_cif_snapshot=raw.get("nif_cif_snapshot"),
+        activo=bool(raw.get("activo", True)),
+    )
+
+
 class _Encoder(json.JSONEncoder):
     def default(self, obj: Any) -> Any:
         if isinstance(obj, (date, datetime)):
             return obj.isoformat()
         if isinstance(obj, Enum):
             return obj.value
+        try:
+            from decimal import Decimal
+
+            if isinstance(obj, Decimal):
+                return format(obj, "f")
+        except Exception:  # noqa: BLE001
+            pass
         return super().default(obj)
 
 
@@ -619,6 +728,18 @@ def appdata_to_dict(data: AppData) -> dict:
             _recuento_to_dict(r)
             for r in getattr(data, "recuentos", []) or []
         ],
+        "proveedores": [
+            _proveedor_to_dict(p)
+            for p in getattr(data, "proveedores", []) or []
+        ],
+        "impuestos": [
+            _impuesto_to_dict(i)
+            for i in getattr(data, "impuestos", []) or []
+        ],
+        "relaciones_producto_proveedor": [
+            _relacion_pp_to_dict(r)
+            for r in getattr(data, "relaciones_producto_proveedor", []) or []
+        ],
         "alertas": [
             {
                 "id": a.id, "tipo": a.tipo.value, "titulo": a.titulo, "mensaje": a.mensaje,
@@ -911,6 +1032,18 @@ def dict_to_appdata(payload: dict) -> AppData:
         recuentos=[
             _recuento_from_dict(r)
             for r in payload.get("recuentos", [])
+        ],
+        proveedores=[
+            _proveedor_from_dict(p)
+            for p in payload.get("proveedores", [])
+        ],
+        impuestos=[
+            _impuesto_from_dict(i)
+            for i in payload.get("impuestos", [])
+        ],
+        relaciones_producto_proveedor=[
+            _relacion_pp_from_dict(r)
+            for r in payload.get("relaciones_producto_proveedor", [])
         ],
         alertas=[
             AlertaOperativa(

@@ -46,6 +46,7 @@ from app.core.models.lote import LoteStock
 from app.core.models.merma import LineaMerma, RegistroMerma, ResponsableMerma
 from app.core.models.movimiento import MovimientoInventario
 from app.core.models.producto import Producto
+from app.core.models.proveedor import Impuesto, Proveedor, RelacionProductoProveedor
 from app.core.models.receta import IngredienteReceta, Receta
 from app.core.models.recuento import EstadoRecuento, LineaRecuento, SesionRecuento
 from app.core.models.registro_servicio import (
@@ -75,6 +76,7 @@ __all__ = [
     "EstadoRecuento",
     "ExtraRecetaDesayuno",
     "ExtraRecetaServicio",
+    "Impuesto",
     "IngredienteReceta",
     "LineaAjuste",
     "LineaDesayuno",
@@ -93,6 +95,7 @@ __all__ = [
     "OrigenConsumo",
     "OrigenServicioMerma",
     "Producto",
+    "Proveedor",
     "Receta",
     "RegistroAjuste",
     "RegistroDesayuno",
@@ -100,6 +103,7 @@ __all__ = [
     "RegistroRecetaDesayuno",
     "RegistroRecetaServicio",
     "RegistroServicio",
+    "RelacionProductoProveedor",
     "ResponsableMerma",
     "RolUsuario",
     "SERVICIO_DISPONIBLE_LABEL",

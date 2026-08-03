@@ -23,8 +23,9 @@ Fuente de verdad en memoria: `AppData` (`app/core/models/app_data.py`), serializ
 | `usuarios` | `Usuario` | Operadores |
 | `responsables_merma` | `ResponsableMerma` | Catálogo merma |
 | `configuracion` | `ConfiguracionHotel` | Establecimiento / moneda / logo / **ledger_*** (7B) |
-| `movimientos` | `MovimientoInventario` | Ledger append-only (7A/7B) |
-| `recuentos` | `SesionRecuento` | Recuentos por ubicación (7B.6) |
+| `proveedores` | `Proveedor` | Maestro comercial (Fase 8) |
+| `impuestos` | `Impuesto` | % Decimal versionado (Fase 8) |
+| `relaciones_producto_proveedor` | `RelacionProductoProveedor` | Vínculo + snapshots (Fase 8) |
 | meta | `usuario_actual_id` | Sesión lógica |
 
 ---

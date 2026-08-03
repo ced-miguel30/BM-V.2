@@ -58,6 +58,8 @@ Sin implementación de código en esta fase.
 | D49 | Traslado neto 0 en lote; anulación = traslado reverso | FIFO global intacto |
 | D50 | Recuento → ajuste_entrada/salida + espejo | No sobrescribir saldo directo |
 | D51 | En modo `ledger`, autoridad = movimientos | Restante = espejo de compatibilidad |
+| D52 | **Fase 8** — `Proveedor`, `Impuesto` (Decimal), `RelacionProductoProveedor` | Sin facturas/albaranes |
+| D53 | Snapshots en vínculo producto–proveedor | Editar maestro no reescribe snapshot ni `marca_proveedor` |
 
 ## Decisiones pendientes (no bloquean F3)
 
@@ -67,7 +69,7 @@ Sin implementación de código en esta fase.
 | P02 | ~~¿Stock por ubicación materializado vs ledger?~~ | **Cerrado en D47** — derivado del ledger |
 | P03 | Política exacta de préstamo/textil/activo | **Esbozo:** herramienta/préstamo; textil circulante; activo individual — **no implementados** |
 | P04 | ¿Movimiento `conciliacion` neutro en factura o solo metadatos? | F11 |
-| P05 | Migración de costes `float` → `Decimal` en consumo | Fuera de docs; spike posterior |
+| P05 | Migración de costes `float` → `Decimal` en consumo | Impuesto ya usa Decimal (F8); consumo pendiente |
 | P06 | Multi-almacén vs multi-ubicación simple; jerarquía/tipos de ubicación | Lista plana en 7B |
 | P07 | Retención y borrado legal de archivos documentales | F9/F17 |
 | P08 | ~~¿Cuándo el ledger pasa a fuente de verdad?~~ | **Cerrado en D46/D51** — modo configurable; default shadow |
@@ -81,9 +83,9 @@ Sin implementación de código en esta fase.
 5. `marca_proveedor` y costes ya guardados no se reescriben al crear Proveedor maestro.  
 6. Referencias de catálogo huérfanas se conservan y se etiquetan «Referencia no encontrada»; no se anulan en silencio.  
 7. `tipo_articulo` desconocido se conserva y se diagnostica; no se convierte en consumible.
-8. `movimientos` / `recuentos` ausentes → `[]`; tipos/direcciones desconocidos se conservan como string y se diagnostican.
+8. `movimientos` / `recuentos` / `proveedores` / `impuestos` / relaciones ausentes → `[]`; tipos desconocidos se conservan.
 9. No asignar ubicaciones ficticias a históricos.
 
 ## Próximo paso de implementación
 
-**Fase 8** — proveedores y documentos (tras revisión de 7B).
+**Fase 9+** — documentos (albarán / factura / conciliación), tras revisión de F8.

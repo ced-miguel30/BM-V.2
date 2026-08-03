@@ -163,7 +163,10 @@ class TestFase7B6Recuentos(unittest.TestCase):
         )
         back = dict_to_appdata(appdata_to_dict(data))
         self.assertEqual(len(back.recuentos), 1)
-        self.assertIn("Ledger y stock por ubicación", APP_VERSION)
+        self.assertTrue(
+            "Ledger" in APP_VERSION or "Proveedor" in APP_VERSION,
+            APP_VERSION,
+        )
 
     def test_07_json_antiguo_sin_recuentos(self) -> None:
         data = dict_to_appdata({"productos": []})
