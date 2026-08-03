@@ -2,7 +2,7 @@ from app.core.models.actividad import Actividad
 from app.core.models.ajuste import LineaAjuste, RegistroAjuste
 from app.core.models.alerta import AlertaOperativa
 from app.core.models.app_data import AppData
-from app.core.models.catalogo import Categoria, Departamento, Subcategoria
+from app.core.models.catalogo import Categoria, Departamento, Subcategoria, Ubicacion
 from app.core.models.configuracion import ConfiguracionHotel
 
 from app.core.models.desayuno import (
@@ -95,5 +95,6 @@ __all__ = [
     "TipoServicio",
     "TurnoMerma",
     "UnidadProducto",
+    "Ubicacion",
     "Usuario",
 ]

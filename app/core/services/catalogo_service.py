@@ -10,7 +10,7 @@ from dataclasses import dataclass
 
 from app.core.application.context import AppContext
 from app.core.application.id_generator import next_id
-from app.core.models import AppData, Categoria, Departamento, Subcategoria
+from app.core.models import AppData, Categoria, Departamento, Subcategoria, Ubicacion
 from app.core.storage.session_store import get_data, persist_data
 
 ETIQUETA_REF_NO_ENCONTRADA = "Referencia no encontrada"
@@ -82,6 +82,13 @@ def etiqueta_subcategoria(data: AppData, subcategoria_id: str | None) -> str:
         return "No configurado"
     sub = next((s for s in data.subcategorias if s.id == subcategoria_id), None)
     return sub.nombre if sub else ETIQUETA_REF_NO_ENCONTRADA
+
+
+def etiqueta_ubicacion(data: AppData, ubicacion_id: str | None) -> str:
+    if not ubicacion_id:
+        return "No configurado"
+    ubi = next((u for u in data.ubicaciones if u.id == ubicacion_id), None)
+    return ubi.nombre if ubi else ETIQUETA_REF_NO_ENCONTRADA
 
 
 # --- Listados ---
@@ -184,6 +191,34 @@ def opciones_departamento_asignacion(
     return sorted([*activas, *extras], key=lambda d: d.nombre.lower())
 
 
+def listar_ubicaciones(
+    *,
+    solo_activos: bool = False,
+    ctx: AppContext | None = None,
+) -> list[Ubicacion]:
+    data = _ctx(ctx).data()
+    items = list(data.ubicaciones)
+    if solo_activos:
+        items = [u for u in items if u.activo]
+    return sorted(items, key=lambda u: u.nombre.lower())
+
+
+def opciones_ubicacion_asignacion(
+    data: AppData,
+    *,
+    conservar_ids: list[str] | None = None,
+) -> list[Ubicacion]:
+    """Activas + inactivas ya asignadas (para conservar en edición)."""
+    conservar = set(conservar_ids or [])
+    activas = [u for u in data.ubicaciones if u.activo]
+    ids_activos = {u.id for u in activas}
+    extras = [
+        u for u in data.ubicaciones
+        if u.id in conservar and u.id not in ids_activos
+    ]
+    return sorted([*activas, *extras], key=lambda u: u.nombre.lower())
+
+
 # --- Validación de producto (centralizada) ---
 
 def validar_referencias_producto(
@@ -192,12 +227,15 @@ def validar_referencias_producto(
     categoria_id: str | None,
     subcategoria_id: str | None,
     departamento_ids: list[str] | None,
+    ubicacion_ids: list[str] | None = None,
     categoria_id_anterior: str | None = None,
     subcategoria_id_anterior: str | None = None,
     departamento_ids_anteriores: list[str] | None = None,
+    ubicacion_ids_anteriores: list[str] | None = None,
 ) -> ResultadoOperacion:
     """Valida FKs de catálogo. Permite conservar referencias inactivas ya asignadas."""
     ant_deps = list(departamento_ids_anteriores or [])
+    ant_ubis = list(ubicacion_ids_anteriores or [])
 
     if categoria_id:
         cat = next((c for c in data.categorias if c.id == categoria_id), None)
@@ -249,10 +287,33 @@ def validar_referencias_producto(
                 False,
                 f"El departamento «{dep.nombre}» está inactivo y no puede asignarse de nuevo.",
             )
+
+    ubis = list(ubicacion_ids or [])
+    if len(ubis) != len(set(ubis)):
+        return ResultadoOperacion(False, "Hay ubicaciones duplicadas en la selección.")
+    for ubi_id in ubis:
+        ubi = next((u for u in data.ubicaciones if u.id == ubi_id), None)
+        if ubi is None:
+            return ResultadoOperacion(
+                False, f"La ubicación «{ubi_id}» no existe.",
+            )
+        if not ubi.activo and ubi_id not in ant_ubis:
+            return ResultadoOperacion(
+                False,
+                f"La ubicación «{ubi.nombre}» está inactiva y no puede asignarse de nuevo.",
+            )
     return ResultadoOperacion(True, "OK")
 
 
 def normalizar_departamento_ids(ids: list[str] | None) -> list[str]:
+    return _normalizar_lista_ids(ids)
+
+
+def normalizar_ubicacion_ids(ids: list[str] | None) -> list[str]:
+    return _normalizar_lista_ids(ids)
+
+
+def _normalizar_lista_ids(ids: list[str] | None) -> list[str]:
     if not ids:
         return []
     vistos: set[str] = set()
@@ -595,14 +656,115 @@ def reactivar_subcategoria(
     return ResultadoOperacion(True, f"Subcategoría «{actual.nombre}» reactivada.")
 
 
+# --- CRUD Ubicaciones (Fase 6B) ---
+
+def crear_ubicacion(
+    nombre: str,
+    *,
+    ctx: AppContext | None = None,
+) -> ResultadoOperacion:
+    texto = _nombre_presentacion(nombre)
+    if not texto:
+        return ResultadoOperacion(False, "Indique un nombre de ubicación.")
+    context = _ctx(ctx)
+    data = context.data()
+    clave = normalizar_nombre_catalogo(texto)
+    if any(normalizar_nombre_catalogo(u.nombre) == clave for u in data.ubicaciones):
+        return ResultadoOperacion(False, "Ya existe una ubicación con ese nombre.")
+    nuevo = Ubicacion(
+        next_id("ubi", [u.id for u in data.ubicaciones]),
+        texto,
+        True,
+    )
+    data.ubicaciones.append(nuevo)
+    _registrar_actividad(context, "Catálogo ubicación", f"Alta: {texto}")
+    context.uow.commit(data)
+    return ResultadoOperacion(True, f"Ubicación «{texto}» creada.")
+
+
+def renombrar_ubicacion(
+    ubicacion_id: str,
+    nombre: str,
+    *,
+    ctx: AppContext | None = None,
+) -> ResultadoOperacion:
+    texto = _nombre_presentacion(nombre)
+    if not texto:
+        return ResultadoOperacion(False, "Indique un nombre de ubicación.")
+    context = _ctx(ctx)
+    data = context.data()
+    actual = next((u for u in data.ubicaciones if u.id == ubicacion_id), None)
+    if not actual:
+        return ResultadoOperacion(False, "Ubicación no encontrada.")
+    clave = normalizar_nombre_catalogo(texto)
+    if any(
+        u.id != ubicacion_id and normalizar_nombre_catalogo(u.nombre) == clave
+        for u in data.ubicaciones
+    ):
+        return ResultadoOperacion(False, "Ya existe una ubicación con ese nombre.")
+    anterior = actual.nombre
+    actual.nombre = texto
+    _registrar_actividad(
+        context, "Catálogo ubicación", f"Renombrado: {anterior} → {texto}",
+    )
+    context.uow.commit(data)
+    return ResultadoOperacion(True, f"Ubicación actualizada a «{texto}».")
+
+
+def desactivar_ubicacion(
+    ubicacion_id: str,
+    *,
+    ctx: AppContext | None = None,
+) -> ResultadoOperacion:
+    context = _ctx(ctx)
+    data = context.data()
+    actual = next((u for u in data.ubicaciones if u.id == ubicacion_id), None)
+    if not actual:
+        return ResultadoOperacion(False, "Ubicación no encontrada.")
+    if not actual.activo:
+        return ResultadoOperacion(False, "La ubicación ya está inactiva.")
+    actual.activo = False
+    _registrar_actividad(context, "Catálogo ubicación", f"Desactivada: {actual.nombre}")
+    context.uow.commit(data)
+    return ResultadoOperacion(True, f"Ubicación «{actual.nombre}» desactivada.")
+
+
+def reactivar_ubicacion(
+    ubicacion_id: str,
+    *,
+    ctx: AppContext | None = None,
+) -> ResultadoOperacion:
+    context = _ctx(ctx)
+    data = context.data()
+    actual = next((u for u in data.ubicaciones if u.id == ubicacion_id), None)
+    if not actual:
+        return ResultadoOperacion(False, "Ubicación no encontrada.")
+    if actual.activo:
+        return ResultadoOperacion(False, "La ubicación ya está activa.")
+    clave = normalizar_nombre_catalogo(actual.nombre)
+    if any(
+        u.id != ubicacion_id and u.activo and normalizar_nombre_catalogo(u.nombre) == clave
+        for u in data.ubicaciones
+    ):
+        return ResultadoOperacion(
+            False,
+            "No se puede reactivar: ya hay una ubicación activa con ese nombre.",
+        )
+    actual.activo = True
+    _registrar_actividad(context, "Catálogo ubicación", f"Reactivada: {actual.nombre}")
+    context.uow.commit(data)
+    return ResultadoOperacion(True, f"Ubicación «{actual.nombre}» reactivada.")
+
+
 # --- Diagnóstico (solo lectura) ---
 
 def incidencias_catalogo(data: AppData) -> list[str]:
-    """Incidencias de catálogo 6A; no corrige nada."""
+    """Incidencias de catálogo 6A/6B; no corrige nada."""
     out: list[str] = []
     cat_ids = {c.id for c in data.categorias}
     dep_ids = {d.id for d in data.departamentos}
     sub_ids = {s.id for s in data.subcategorias}
+    ubi_ids = {u.id for u in getattr(data, "ubicaciones", []) or []}
 
     out.extend(
         f"Departamento id duplicado: {i}"
@@ -616,12 +778,20 @@ def incidencias_catalogo(data: AppData) -> list[str]:
         f"Subcategoría id duplicado: {i}"
         for i in _dupes([s.id for s in data.subcategorias])
     )
+    out.extend(
+        f"Ubicación id duplicado: {i}"
+        for i in _dupes([u.id for u in getattr(data, "ubicaciones", []) or []])
+    )
 
     out.extend(_nombres_dup_global(
         [(d.id, d.nombre) for d in data.departamentos], "Departamento",
     ))
     out.extend(_nombres_dup_global(
         [(c.id, c.nombre) for c in data.categorias], "Categoría",
+    ))
+    out.extend(_nombres_dup_global(
+        [(u.id, u.nombre) for u in getattr(data, "ubicaciones", []) or []],
+        "Ubicación",
     ))
     # Subcategorías: unicidad por categoría
     por_cat: dict[str, list[tuple[str, str]]] = {}
@@ -674,6 +844,16 @@ def incidencias_catalogo(data: AppData) -> list[str]:
         if len(p.departamento_ids) != len(set(p.departamento_ids)):
             out.append(
                 f"Producto {p.id} ({p.nombre}) → departamentos duplicados en lista"
+            )
+        ubi_prod = list(getattr(p, "ubicacion_ids", []) or [])
+        for uid in ubi_prod:
+            if uid not in ubi_ids:
+                out.append(
+                    f"Producto {p.id} ({p.nombre}) → ubicación inexistente {uid}"
+                )
+        if len(ubi_prod) != len(set(ubi_prod)):
+            out.append(
+                f"Producto {p.id} ({p.nombre}) → ubicaciones duplicadas en lista"
             )
 
     return out

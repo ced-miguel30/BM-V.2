@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from app.core.models.actividad import Actividad
 from app.core.models.ajuste import RegistroAjuste
 from app.core.models.alerta import AlertaOperativa
-from app.core.models.catalogo import Categoria, Departamento, Subcategoria
+from app.core.models.catalogo import Categoria, Departamento, Subcategoria, Ubicacion
 from app.core.models.configuracion import ConfiguracionHotel
 from app.core.models.desayuno import RegistroDesayuno
 from app.core.models.lote import LoteStock
@@ -34,5 +34,7 @@ class AppData:
     departamentos: list[Departamento] = field(default_factory=list)
     categorias: list[Categoria] = field(default_factory=list)
     subcategorias: list[Subcategoria] = field(default_factory=list)
+    # Fase 6B — ubicaciones físicas/lógicas (sin stock por ubicación).
+    ubicaciones: list[Ubicacion] = field(default_factory=list)
     configuracion: ConfiguracionHotel | None = None
     usuario_actual_id: str = ""

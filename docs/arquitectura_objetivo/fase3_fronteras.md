@@ -94,8 +94,14 @@ Catálogos → alertas → ajustes → merma → registro → FIFO → anulacion
 - `categoria_inventario` conservada; sin backfill.
 - Servicio: `catalogo_service.py` vía AppContext.
 - UI: Configuración → Catálogos de inventario; Stock alta/edición.
-- Siguiente: **6B** ubicaciones (tras aprobación).
 
-## Siguiente: Fase 6B+
+## Fase 6B — ubicaciones (hecha)
 
-Ubicaciones (6B) → tipos de artículo (6C) → ledger (F7), tras validación.
+- Modelo: `Ubicacion`; Producto: `ubicacion_ids` (sin cantidades).
+- Stock hotel = Σ `cantidad_restante` (sin cambio).
+- P02 (stock por ubicación) aplazada a F7.
+- Siguiente: **6C** tipos de artículo (tras aprobación).
+
+## Siguiente: Fase 6C+
+
+Tipos de artículo (6C) → ledger (F7), tras validación.

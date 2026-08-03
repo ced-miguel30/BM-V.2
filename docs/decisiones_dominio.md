@@ -28,19 +28,21 @@ Sin implementación de código en esta fase.
 | D19 | Ledger conceptual en F2; código en F7 antes de depender de documentos | |
 | D20 | Conservar stacks desayuno + registros_servicio por ahora | Unificación no es F2/F3 |
 | D21 | **Fase 6A completada** — `Departamento`, `Categoria`, `Subcategoria` | Soft-delete; sin backfill de `categoria_inventario` |
-| D22 | `departamento_ids` = ámbitos de uso; **no** ubicación ni stock | Ubicaciones = F6B |
+| D22 | `departamento_ids` = ámbitos de uso; **no** ubicación ni stock | Distinto de `ubicacion_ids` |
 | D23 | `categoria_inventario` convive con `categoria_id` | Sin conversión automática de strings a filas |
+| D24 | **Fase 6B completada** — `Ubicacion` + `producto.ubicacion_ids` | Catálogo + vínculo; **sin** stock por ubicación |
+| D25 | P02 (stock por ubicación materializado vs ledger) **aplazada a F7** | 6B no materializa cantidades |
 
 ## Decisiones pendientes (no bloquean F3)
 
 | ID | Pregunta | Notas |
 |----|----------|-------|
 | P01 | ¿Cuándo unificar `RegistroDesayuno` en `RegistroServicio`? | Tras desacople; alto riesgo |
-| P02 | ¿Stock por ubicación como tabla materializada o solo ledger? | Decidir en F6B/F7 |
+| P02 | ¿Stock por ubicación como tabla materializada o solo ledger? | **Aplazada a F7** (6B solo maestro) |
 | P03 | Política exacta de préstamo/textil/activo | Solo esbozo en F6C |
 | P04 | ¿Movimiento `conciliacion` neutro en factura o solo metadatos? | F11 |
 | P05 | Migración de costes `float` → `Decimal` en consumo | Fuera de docs; spike posterior |
-| P06 | Multi-almacén vs multi-ubicación simple | Asumir ubicaciones simples hasta P02 |
+| P06 | Multi-almacén vs multi-ubicación simple; jerarquía/tipos de ubicación | Asumir lista plana hasta F7 |
 | P07 | Retención y borrado legal de archivos documentales | F9/F17 |
 
 ## Compatibilidad histórica — reglas permanentes
@@ -54,4 +56,4 @@ Sin implementación de código en esta fase.
 
 ## Próximo paso de implementación
 
-**Fase 6B** — ubicaciones + relación producto-ubicación (tras aprobación explícita de 6A).
+**Fase 6C** — tipos de artículo + reglas iniciales consumible/reutilizable (tras aprobación explícita de 6B).

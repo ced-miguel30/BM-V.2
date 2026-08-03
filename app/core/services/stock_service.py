@@ -100,6 +100,7 @@ def crear_producto(
     categoria_id: str | None = None,
     subcategoria_id: str | None = None,
     departamento_ids: list[str] | None = None,
+    ubicacion_ids: list[str] | None = None,
 ) -> ResultadoOperacion:
     nombre = nombre.strip()
     if not nombre:
@@ -119,15 +120,18 @@ def crear_producto(
 
     from app.core.services.catalogo_service import (
         normalizar_departamento_ids,
+        normalizar_ubicacion_ids,
         validar_referencias_producto,
     )
 
     deps = normalizar_departamento_ids(departamento_ids)
+    ubis = normalizar_ubicacion_ids(ubicacion_ids)
     validacion = validar_referencias_producto(
         data,
         categoria_id=categoria_id or None,
         subcategoria_id=subcategoria_id or None,
         departamento_ids=deps,
+        ubicacion_ids=ubis,
     )
     if not validacion.ok:
         return ResultadoOperacion(False, validacion.mensaje)
@@ -147,6 +151,7 @@ def crear_producto(
         categoria_id=categoria_id or None,
         subcategoria_id=subcategoria_id or None,
         departamento_ids=deps,
+        ubicacion_ids=ubis,
     )
     data.productos.append(producto)
     accion = "Crear bebida" if es_bebida else "Crear producto"
@@ -166,6 +171,7 @@ def crear_bebida(
     categoria_id: str | None = None,
     subcategoria_id: str | None = None,
     departamento_ids: list[str] | None = None,
+    ubicacion_ids: list[str] | None = None,
 ) -> ResultadoOperacion:
     """Alias para crear un producto marcado como bebida."""
     return crear_producto(
@@ -178,6 +184,7 @@ def crear_bebida(
         categoria_id=categoria_id,
         subcategoria_id=subcategoria_id,
         departamento_ids=departamento_ids,
+        ubicacion_ids=ubicacion_ids,
     )
 
 
@@ -189,8 +196,9 @@ def editar_producto_catalogo(
     categoria_id: str | None = None,
     subcategoria_id: str | None = None,
     departamento_ids: list[str] | None = None,
+    ubicacion_ids: list[str] | None = None,
 ) -> ResultadoOperacion:
-    """Actualiza campos de catálogo (servicios / categoría inventario / FKs 6A)."""
+    """Actualiza campos de catálogo (servicios / categoría / FKs 6A–6B)."""
     data = get_data()
     producto = next((p for p in data.productos if p.id == producto_id), None)
     if not producto:
@@ -198,18 +206,22 @@ def editar_producto_catalogo(
 
     from app.core.services.catalogo_service import (
         normalizar_departamento_ids,
+        normalizar_ubicacion_ids,
         validar_referencias_producto,
     )
 
     deps = normalizar_departamento_ids(departamento_ids)
+    ubis = normalizar_ubicacion_ids(ubicacion_ids)
     validacion = validar_referencias_producto(
         data,
         categoria_id=categoria_id or None,
         subcategoria_id=subcategoria_id or None,
         departamento_ids=deps,
+        ubicacion_ids=ubis,
         categoria_id_anterior=producto.categoria_id,
         subcategoria_id_anterior=producto.subcategoria_id,
         departamento_ids_anteriores=list(producto.departamento_ids),
+        ubicacion_ids_anteriores=list(getattr(producto, "ubicacion_ids", []) or []),
     )
     if not validacion.ok:
         return ResultadoOperacion(False, validacion.mensaje)
@@ -219,10 +231,11 @@ def editar_producto_catalogo(
     producto.categoria_id = categoria_id or None
     producto.subcategoria_id = subcategoria_id or None
     producto.departamento_ids = deps
+    producto.ubicacion_ids = ubis
     _registrar_actividad(
         data,
         "Editar catálogo producto",
-        f"«{producto.nombre}»: servicios/categoría/departamentos actualizados",
+        f"«{producto.nombre}»: servicios/categoría/departamentos/ubicaciones actualizados",
     )
     persist_data(data)
     return ResultadoOperacion(True, f"Producto «{producto.nombre}» actualizado.")

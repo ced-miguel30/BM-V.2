@@ -352,6 +352,17 @@ def _render_catalogo_solo(*, es_bebida: bool) -> None:
             key=f"crear_deps_{key_prefix}",
             help="Ámbitos donde el producto puede usarse. No es ubicación ni stock.",
         )
+        ubis = cat.opciones_ubicacion_asignacion(repo.data)
+        ubi_sel = st.multiselect(
+            "Ubicaciones permitidas",
+            options=[u.id for u in ubis],
+            format_func=lambda i: next(u.nombre for u in ubis if u.id == i),
+            key=f"crear_ubis_{key_prefix}",
+        )
+        st.caption(
+            "Lugares donde este producto puede almacenarse. "
+            "No representa la cantidad disponible en cada ubicación."
+        )
 
         with st.form(f"form_crear_{key_prefix}", clear_on_submit=True):
             col1, col2 = st.columns(2)
@@ -392,6 +403,7 @@ def _render_catalogo_solo(*, es_bebida: bool) -> None:
                     categoria_id=cat_id,
                     subcategoria_id=sub_id,
                     departamento_ids=dep_sel,
+                    ubicacion_ids=ubi_sel,
                 )
                 if resultado.ok:
                     sincronizar_alertas()
@@ -419,11 +431,16 @@ def _render_catalogo_solo(*, es_bebida: bool) -> None:
                     cat.etiqueta_departamento(repo.data, d)
                     for d in producto.departamento_ids
                 ) or "No configurado"
+                et_ubis = ", ".join(
+                    cat.etiqueta_ubicacion(repo.data, u)
+                    for u in getattr(producto, "ubicacion_ids", []) or []
+                ) or "No configurado"
                 st.caption(
                     f"Actual — histórica: "
                     f"**{producto.categoria_inventario or 'No configurado'}** · "
                     f"estructurada: **{et_cat}** / **{et_sub}** · "
                     f"deptos: **{et_deps}** · "
+                    f"ubicaciones: **{et_ubis}** · "
                     f"servicios: **{_etiqueta_servicios(producto.servicios_disponibles)}**"
                 )
                 cats_e = cat.opciones_categoria_asignacion(
@@ -483,6 +500,34 @@ def _render_catalogo_solo(*, es_bebida: bool) -> None:
                     ),
                     key=f"cfg_deps_{key_prefix}_{producto.id}",
                 )
+                ubis_e = cat.opciones_ubicacion_asignacion(
+                    repo.data,
+                    conservar_ids=list(getattr(producto, "ubicacion_ids", []) or []),
+                )
+                ubi_map_e = {u.id: u for u in ubis_e}
+
+                def _fmt_ubi(i: str) -> str:
+                    u = ubi_map_e.get(i)
+                    if u is None:
+                        return "Referencia no encontrada"
+                    if not u.activo:
+                        return f"{u.nombre} (inactivo)"
+                    return u.nombre
+
+                ubi_sel_e = st.multiselect(
+                    "Ubicaciones permitidas",
+                    options=[u.id for u in ubis_e],
+                    default=[
+                        u for u in (getattr(producto, "ubicacion_ids", []) or [])
+                        if any(x.id == u for x in ubis_e)
+                    ],
+                    format_func=_fmt_ubi,
+                    key=f"cfg_ubis_{key_prefix}_{producto.id}",
+                )
+                st.caption(
+                    "Lugares donde este producto puede almacenarse. "
+                    "No representa la cantidad disponible en cada ubicación."
+                )
                 cat_edit = st.text_input(
                     "Categoría histórica / libre",
                     value=producto.categoria_inventario or "",
@@ -508,6 +553,7 @@ def _render_catalogo_solo(*, es_bebida: bool) -> None:
                         categoria_id=cat_id_e,
                         subcategoria_id=sub_id_e,
                         departamento_ids=dep_sel_e,
+                        ubicacion_ids=ubi_sel_e,
                     )
                     if resultado.ok:
                         st.success(resultado.mensaje)

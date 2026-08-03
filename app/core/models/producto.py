@@ -24,3 +24,6 @@ class Producto:
     # Departamentos donde el producto puede utilizarse.
     # No representa ubicación física, cantidad, propiedad ni stock por departamento.
     departamento_ids: list[str] = field(default_factory=list)
+    # Fase 6B — ubicaciones permitidas/habituales donde puede almacenarse.
+    # No representa cantidades ni la ubicación real de cada lote.
+    ubicacion_ids: list[str] = field(default_factory=list)

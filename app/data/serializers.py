@@ -41,6 +41,7 @@ from app.core.models import (
     RolUsuario,
     Subcategoria,
     TipoAlerta,
+    Ubicacion,
     UnidadProducto,
     Usuario,
 )
@@ -135,6 +136,7 @@ def appdata_to_dict(data: AppData) -> dict:
                 "categoria_id": p.categoria_id,
                 "subcategoria_id": p.subcategoria_id,
                 "departamento_ids": list(p.departamento_ids),
+                "ubicacion_ids": list(getattr(p, "ubicacion_ids", []) or []),
             }
             for p in data.productos
         ],
@@ -365,6 +367,10 @@ def appdata_to_dict(data: AppData) -> dict:
             }
             for s in data.subcategorias
         ],
+        "ubicaciones": [
+            {"id": u.id, "nombre": u.nombre, "activo": u.activo}
+            for u in getattr(data, "ubicaciones", []) or []
+        ],
         "alertas": [
             {
                 "id": a.id, "tipo": a.tipo.value, "titulo": a.titulo, "mensaje": a.mensaje,
@@ -420,6 +426,10 @@ def dict_to_appdata(payload: dict) -> AppData:
                 departamento_ids=[
                     d for d in p.get("departamento_ids", []) or []
                     if isinstance(d, str) and d
+                ],
+                ubicacion_ids=[
+                    u for u in p.get("ubicacion_ids", []) or []
+                    if isinstance(u, str) and u
                 ],
             )
             for p in payload.get("productos", [])
@@ -641,6 +651,12 @@ def dict_to_appdata(payload: dict) -> AppData:
                 s.get("activo", True),
             )
             for s in payload.get("subcategorias", [])
+        ],
+        ubicaciones=[
+            Ubicacion(
+                u["id"], u["nombre"], u.get("activo", True),
+            )
+            for u in payload.get("ubicaciones", [])
         ],
         alertas=[
             AlertaOperativa(

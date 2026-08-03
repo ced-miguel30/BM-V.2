@@ -1,7 +1,7 @@
-"""Catálogos de inventario (Fase 6A).
+"""Catálogos de inventario (Fases 6A–6B).
 
-Departamentos, categorías y subcategorías estructurados.
-No representan ubicación física ni stock por departamento.
+Departamentos, categorías, subcategorías y ubicaciones estructurados.
+Las ubicaciones no materializan stock ni sustituyen departamentos.
 """
 
 from __future__ import annotations
@@ -34,4 +34,17 @@ class Subcategoria:
     id: str
     nombre: str
     categoria_id: str
+    activo: bool = True
+
+
+@dataclass
+class Ubicacion:
+    """Lugar identificable donde puede existir físicamente inventario.
+
+    No representa cantidad, ubicación actual de un lote, departamento ni stock
+    materializado por ubicación.
+    """
+
+    id: str
+    nombre: str
     activo: bool = True

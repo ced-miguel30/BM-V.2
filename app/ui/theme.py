@@ -2,7 +2,7 @@
 
 APP_NAME = "Breakfast Management"
 APP_SUBTITLE = "Gestión de desayuno"
-APP_VERSION = "BM-V.2 · Catálogos de inventario"
+APP_VERSION = "BM-V.2 · Ubicaciones"
 
 
 HOTEL_NAME = "Hotel Boutique"

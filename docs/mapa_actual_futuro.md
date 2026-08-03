@@ -11,6 +11,7 @@ Futuro: dominio documentado en [modelo_dominio_objetivo.md](modelo_dominio_objet
 | `categoria_inventario` | Texto histórico / libre | **Conservar tal cual**; no sustituye `categoria_id` |
 | `categoria_id` / `subcategoria_id` | Categoría / Subcategoría | **Fase 6A hecha** — opcional; sin backfill |
 | `departamento_ids` | Departamentos de uso | **Fase 6A hecha** — N:M; **no** es ubicación ni stock |
+| `ubicacion_ids` | Ubicaciones permitidas/habituales | **Fase 6B hecha** — N:M; **sin** cantidades ni stock por ubicación |
 | `servicios_disponibles` | Servicios disponibles | Conservar semántica vacío ≠ todos |
 | `es_bebida` | Atributo / tipo o flag | Conservar; no sustituir por adivinanza |
 | `LoteStock` | Lote | Ampliar enlace a documento/entrada; soft-anulación ya existe |
@@ -29,8 +30,9 @@ Futuro: dominio documentado en [modelo_dominio_objetivo.md](modelo_dominio_objet
 | `ConfiguracionHotel` | Config establecimiento | Mantener |
 | `alertas_descartadas` | Preferencias / firmas | Mantener o migrar a estado alerta |
 | `Departamento`, `Categoria`, `Subcategoria` | Catálogos estructurados | **Fase 6A completada** |
-| *(no existe)* | Ubicación, stock por ubicación | **F6B (siguiente)** |
-| *(no existe)* | Tipo de artículo | F6C |
+| `Ubicacion` | Maestro de ubicaciones | **Fase 6B completada** (catálogo + vínculo producto) |
+| *(no existe)* | Stock cuantitativo por ubicación | **Aplazado (P02 → F7)** |
+| *(no existe)* | Tipo de artículo | **F6C (siguiente)** |
 | *(no existe)* | Proveedor, Impuesto, producto–proveedor | **F8 (única)** |
 | *(no existe)* | Movimiento (ledger) | Diseño F2; código F7 |
 | *(no existe)* | Documento, Archivo, Albarán, Factura, Rectificativa | F9–F12 |
@@ -39,14 +41,17 @@ Futuro: dominio documentado en [modelo_dominio_objetivo.md](modelo_dominio_objet
 | Stock = Σ `cantidad_restante` | Stock reconciliable con ledger | Dual-write F7 → fuente de verdad tras reconciliar |
 | JSON + Streamlit session | PostgreSQL + API + auth | F3–F4, F14, F15, F16 |
 
-## Dimensiones 6A (resumen)
+## Dimensiones 6A / 6B (resumen)
 
 | Concepto | Significado |
 |----------|-------------|
-| Departamento | Ámbito operativo de uso del producto (p. ej. Cocina, Bar). **No** ubicación física ni cantidad de stock. |
-| Categoría | Clasificación estructurada del producto. |
-| Subcategoría | Hija de una categoría; unicidad de nombre dentro de su categoría. |
-| `categoria_inventario` | Campo texto histórico; convive; sin conversión automática a filas de catálogo. |
+| Departamento | Ámbito operativo de **uso** del producto. **No** lugar físico ni cantidad. |
+| Ubicación | Lugar identificable donde puede **existir** inventario (Economato, Cámara…). |
+| `ubicacion_ids` | Ubicaciones permitidas/habituales del producto. **No** cantidad, **no** ubicación actual del lote. |
+| Categoría / Subcategoría | Clasificación estructurada; independiente de `categoria_inventario`. |
+| Stock hotel | Sigue siendo Σ `cantidad_restante` de lotes. |
+
+Pendiente futuro: jerarquía de ubicaciones y tipos (cámara / almacén / bar, etc.).
 
 ## Flujos críticos: hoy vs mañana
 
@@ -56,7 +61,7 @@ Futuro: dominio documentado en [modelo_dominio_objetivo.md](modelo_dominio_objet
 | Consumo | FIFO + `consumos_lote` | Igual + movimiento `consumo` |
 | Anulación registro | Soft + reposición traza | Soft + movimiento `reverso` |
 | Factura | No existe | Conciliación sin re-entrada de stock |
-| Multi-ubicación | No existe | Traslados + stock por ubicación (F6B+) |
+| Multi-ubicación | Maestro + vínculo producto (6B); sin cantidades | Traslados + stock por ubicación (F7+) |
 
 ## Persistencia
 
@@ -69,4 +74,4 @@ Ver también: [preparacion_persistencia_sqlite.md](preparacion_persistencia_sqli
 
 ## Próximo paso
 
-**Fase 6B** — ubicaciones + relación producto-ubicación (tras aprobación de 6A).
+**Fase 6C** — tipos de artículo + reglas iniciales consumible/reutilizable (tras aprobación de 6B).

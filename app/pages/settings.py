@@ -636,21 +636,21 @@ def _render_responsables_merma() -> None:
 
 
 def _render_catalogos_inventario() -> None:
-    """Fase 6A — departamentos, categorías y subcategorías."""
+    """Fases 6A–6B — departamentos, categorías, subcategorías y ubicaciones."""
     from app.core.services import catalogo_service as cat
 
     st.markdown("#### Catálogos de inventario")
     st.caption(
-        "Departamentos: ámbitos donde el producto puede usarse "
-        "(no son ubicaciones físicas ni stock). "
+        "Departamentos: ámbitos de uso del producto (no son ubicaciones ni stock). "
+        "Ubicaciones: lugares físicos/lógicos donde puede almacenarse "
+        "(sin cantidades ni stock por ubicación). "
         "Categorías y subcategorías: clasificación estructurada. "
-        "No sustituyen la categoría histórica / libre del producto. "
         "Sin borrado físico: active o desactive."
     )
 
     apartado = st.radio(
         "Apartado",
-        ["Departamentos", "Categorías", "Subcategorías"],
+        ["Departamentos", "Categorías", "Subcategorías", "Ubicaciones"],
         horizontal=True,
         key="settings_catalogo_apartado",
         label_visibility="collapsed",
@@ -660,8 +660,10 @@ def _render_catalogos_inventario() -> None:
         _render_crud_departamento(cat)
     elif apartado == "Categorías":
         _render_crud_categoria(cat)
-    else:
+    elif apartado == "Subcategorías":
         _render_crud_subcategoria(cat)
+    else:
+        _render_crud_ubicacion(cat)
 
 
 def _render_crud_departamento(cat) -> None:
@@ -862,6 +864,74 @@ def _render_crud_subcategoria(cat) -> None:
         else:
             if st.button("Reactivar", use_container_width=True, key="settings_react_sub"):
                 resultado = cat.reactivar_subcategoria(sub_id)
+                if resultado.ok:
+                    st.success(resultado.mensaje)
+                    st.rerun()
+                else:
+                    st.error(resultado.mensaje)
+
+
+def _render_crud_ubicacion(cat) -> None:
+    st.markdown("##### Ubicaciones")
+    st.caption(
+        "Lugares donde puede existir inventario. "
+        "No representan cantidad ni la ubicación actual de cada lote."
+    )
+    todos = cat.listar_ubicaciones(solo_activos=False)
+    if todos:
+        st.dataframe(
+            {
+                "Nombre": [u.nombre for u in todos],
+                "Estado": ["Activo" if u.activo else "Inactivo" for u in todos],
+            },
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        empty_state("Todavía no hay ubicaciones. Cree la primera abajo.", icon="📁")
+
+    section_divider()
+    st.markdown("##### Añadir ubicación")
+    with st.form("form_crear_ubicacion", clear_on_submit=True):
+        nombre = st.text_input("Nombre", key="settings_ubi_nombre")
+        if st.form_submit_button("Crear ubicación", type="primary"):
+            resultado = cat.crear_ubicacion(nombre)
+            if resultado.ok:
+                st.success(resultado.mensaje)
+                st.rerun()
+            else:
+                st.error(resultado.mensaje)
+
+    if not todos:
+        return
+    section_divider()
+    st.markdown("##### Editar ubicación")
+    opciones = {f"{u.nombre} ({'activo' if u.activo else 'inactivo'})": u.id for u in todos}
+    sel = st.selectbox("Ubicación", list(opciones.keys()), key="settings_ubi_sel")
+    ubi_id = opciones[sel]
+    actual = next(u for u in todos if u.id == ubi_id)
+    with st.form("form_edit_ubicacion"):
+        nuevo = st.text_input("Nombre", value=actual.nombre, key="settings_edit_ubi_nombre")
+        if st.form_submit_button("Guardar nombre", use_container_width=True):
+            resultado = cat.renombrar_ubicacion(ubi_id, nuevo)
+            if resultado.ok:
+                st.success(resultado.mensaje)
+                st.rerun()
+            else:
+                st.error(resultado.mensaje)
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if actual.activo:
+            if st.button("Desactivar", use_container_width=True, key="settings_desact_ubi"):
+                resultado = cat.desactivar_ubicacion(ubi_id)
+                if resultado.ok:
+                    st.success(resultado.mensaje)
+                    st.rerun()
+                else:
+                    st.error(resultado.mensaje)
+        else:
+            if st.button("Reactivar", use_container_width=True, key="settings_react_ubi"):
+                resultado = cat.reactivar_ubicacion(ubi_id)
                 if resultado.ok:
                     st.success(resultado.mensaje)
                     st.rerun()
