@@ -12,8 +12,10 @@ from app.core.models import (
     Actividad,
     AlertaOperativa,
     AppData,
+    Categoria,
     CategoriaReceta,
     ConfiguracionHotel,
+    Departamento,
     ExtraRecetaDesayuno,
     ExtraRecetaServicio,
     IngredienteReceta,
@@ -37,6 +39,7 @@ from app.core.models import (
     RegistroServicio,
     ResponsableMerma,
     RolUsuario,
+    Subcategoria,
     TipoAlerta,
     UnidadProducto,
     Usuario,
@@ -129,6 +132,9 @@ def appdata_to_dict(data: AppData) -> dict:
                 "es_bebida": p.es_bebida,
                 "servicios_disponibles": list(p.servicios_disponibles),
                 "categoria_inventario": p.categoria_inventario,
+                "categoria_id": p.categoria_id,
+                "subcategoria_id": p.subcategoria_id,
+                "departamento_ids": list(p.departamento_ids),
             }
             for p in data.productos
         ],
@@ -342,6 +348,23 @@ def appdata_to_dict(data: AppData) -> dict:
             {"id": r.id, "nombre": r.nombre, "activo": r.activo}
             for r in data.responsables_merma
         ],
+        "departamentos": [
+            {"id": d.id, "nombre": d.nombre, "activo": d.activo}
+            for d in data.departamentos
+        ],
+        "categorias": [
+            {"id": c.id, "nombre": c.nombre, "activo": c.activo}
+            for c in data.categorias
+        ],
+        "subcategorias": [
+            {
+                "id": s.id,
+                "nombre": s.nombre,
+                "categoria_id": s.categoria_id,
+                "activo": s.activo,
+            }
+            for s in data.subcategorias
+        ],
         "alertas": [
             {
                 "id": a.id, "tipo": a.tipo.value, "titulo": a.titulo, "mensaje": a.mensaje,
@@ -392,6 +415,12 @@ def dict_to_appdata(payload: dict) -> AppData:
                     if isinstance(s, str)
                 ],
                 p.get("categoria_inventario"),
+                categoria_id=p.get("categoria_id"),
+                subcategoria_id=p.get("subcategoria_id"),
+                departamento_ids=[
+                    d for d in p.get("departamento_ids", []) or []
+                    if isinstance(d, str) and d
+                ],
             )
             for p in payload.get("productos", [])
         ],
@@ -591,6 +620,27 @@ def dict_to_appdata(payload: dict) -> AppData:
                 r["id"], r["nombre"], r.get("activo", True),
             )
             for r in payload.get("responsables_merma", [])
+        ],
+        departamentos=[
+            Departamento(
+                d["id"], d["nombre"], d.get("activo", True),
+            )
+            for d in payload.get("departamentos", [])
+        ],
+        categorias=[
+            Categoria(
+                c["id"], c["nombre"], c.get("activo", True),
+            )
+            for c in payload.get("categorias", [])
+        ],
+        subcategorias=[
+            Subcategoria(
+                s["id"],
+                s["nombre"],
+                s["categoria_id"],
+                s.get("activo", True),
+            )
+            for s in payload.get("subcategorias", [])
         ],
         alertas=[
             AlertaOperativa(

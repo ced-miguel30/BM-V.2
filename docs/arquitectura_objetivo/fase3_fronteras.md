@@ -87,6 +87,15 @@ Catálogos → alertas → ajustes → merma → registro → FIFO → anulacion
 - Detalle: `docs/arquitectura_objetivo/espacios_trabajo.md`.
 - Tests: `tests/test_fase5_espacios.py`.
 
-## Siguiente: Fase 6+
+## Fase 6A — catálogos de inventario (hecha)
 
-Continuar el plan maestro tras validación UI de los tres espacios.
+- Modelos: `Departamento`, `Categoria`, `Subcategoria` en `catalogo.py`.
+- Producto: `categoria_id`, `subcategoria_id`, `departamento_ids` (aditivos).
+- `categoria_inventario` conservada; sin backfill.
+- Servicio: `catalogo_service.py` vía AppContext.
+- UI: Configuración → Catálogos de inventario; Stock alta/edición.
+- Siguiente: **6B** ubicaciones (tras aprobación).
+
+## Siguiente: Fase 6B+
+
+Ubicaciones (6B) → tipos de artículo (6C) → ledger (F7), tras validación.

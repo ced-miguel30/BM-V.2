@@ -309,6 +309,8 @@ def _render_historial_compras(repo, *, es_bebida: bool, key_prefix: str) -> None
 
 def _render_catalogo_solo(*, es_bebida: bool) -> None:
     """Alta y configuración de catálogo (sin compras ni inventario)."""
+    from app.core.services import catalogo_service as cat
+
     repo = get_repository()
     key_prefix = "bebida" if es_bebida else "producto"
     etiqueta = "bebida" if es_bebida else "producto"
@@ -316,12 +318,41 @@ def _render_catalogo_solo(*, es_bebida: bool) -> None:
     mapa_fn = mapa_bebidas if es_bebida else lambda d: mapa_productos(d, es_bebida=False)
 
     st.caption(
-        "Categoría de inventario organiza el catálogo. "
+        "La categoría estructurada y los departamentos organizan el inventario. "
+        "La categoría histórica / libre se conserva por compatibilidad. "
         "Servicios disponibles definen en qué registros puede usarse (vacío ≠ todos)."
     )
 
     with st.expander(f"Crear {etiqueta}", expanded=True):
         st.markdown(f"##### Nueva {etiqueta}")
+        cats = cat.opciones_categoria_asignacion(repo.data)
+        cat_labels = {"— Sin categoría —": None}
+        cat_labels.update({c.nombre: c.id for c in cats})
+        cat_sel = st.selectbox(
+            "Categoría estructurada (opcional)",
+            list(cat_labels.keys()),
+            key=f"crear_cat_id_{key_prefix}",
+        )
+        cat_id = cat_labels[cat_sel]
+        subs = cat.opciones_subcategoria_asignacion(repo.data, cat_id)
+        sub_labels = {"— Sin subcategoría —": None}
+        sub_labels.update({s.nombre: s.id for s in subs})
+        sub_sel = st.selectbox(
+            "Subcategoría (opcional)",
+            list(sub_labels.keys()),
+            key=f"crear_sub_id_{key_prefix}",
+            disabled=cat_id is None,
+        )
+        sub_id = sub_labels[sub_sel] if cat_id else None
+        deps = cat.opciones_departamento_asignacion(repo.data)
+        dep_sel = st.multiselect(
+            "Departamentos (opcional)",
+            options=[d.id for d in deps],
+            format_func=lambda i: next(d.nombre for d in deps if d.id == i),
+            key=f"crear_deps_{key_prefix}",
+            help="Ámbitos donde el producto puede usarse. No es ubicación ni stock.",
+        )
+
         with st.form(f"form_crear_{key_prefix}", clear_on_submit=True):
             col1, col2 = st.columns(2)
             with col1:
@@ -341,10 +372,13 @@ def _render_catalogo_solo(*, es_bebida: bool) -> None:
                 )
                 stock_min = normalizar_cantidad(stock_min, unidad)
                 categoria_inv = st.text_input(
-                    "Categoría de inventario (opcional)",
+                    "Categoría histórica / libre",
                     placeholder="Ej: Verduras, Lácteos…",
                     key=f"crear_cat_inv_{key_prefix}",
-                    help="Organiza el catálogo. No filtra registros por sí sola.",
+                )
+                st.caption(
+                    "Campo anterior conservado por compatibilidad. "
+                    "No sustituye la categoría estructurada."
                 )
                 servicios = _selector_servicios_disponibles(f"crear_servicios_{key_prefix}")
             enviado = st.form_submit_button(f"Crear {etiqueta}", type="primary")
@@ -355,6 +389,9 @@ def _render_catalogo_solo(*, es_bebida: bool) -> None:
                     stock_min if stock_min > 0 else None,
                     servicios_disponibles=servicios,
                     categoria_inventario=categoria_inv,
+                    categoria_id=cat_id,
+                    subcategoria_id=sub_id,
+                    departamento_ids=dep_sel,
                 )
                 if resultado.ok:
                     sincronizar_alertas()
@@ -376,16 +413,84 @@ def _render_catalogo_solo(*, es_bebida: bool) -> None:
             )
             producto = repo.get_producto(catalogo_map[sel_nombre])
             if producto:
+                et_cat = cat.etiqueta_categoria(repo.data, producto.categoria_id)
+                et_sub = cat.etiqueta_subcategoria(repo.data, producto.subcategoria_id)
+                et_deps = ", ".join(
+                    cat.etiqueta_departamento(repo.data, d)
+                    for d in producto.departamento_ids
+                ) or "No configurado"
                 st.caption(
-                    f"Actual — categoría: "
+                    f"Actual — histórica: "
                     f"**{producto.categoria_inventario or 'No configurado'}** · "
+                    f"estructurada: **{et_cat}** / **{et_sub}** · "
+                    f"deptos: **{et_deps}** · "
                     f"servicios: **{_etiqueta_servicios(producto.servicios_disponibles)}**"
                 )
+                cats_e = cat.opciones_categoria_asignacion(
+                    repo.data, conservar_id=producto.categoria_id,
+                )
+                cat_labels_e = {"— Sin categoría —": None}
+                cat_labels_e.update({c.nombre: c.id for c in cats_e})
+                # Índice por id actual
+                cat_keys = list(cat_labels_e.keys())
+                cat_default = 0
+                for i, k in enumerate(cat_keys):
+                    if cat_labels_e[k] == producto.categoria_id:
+                        cat_default = i
+                        break
+                cat_sel_e = st.selectbox(
+                    "Categoría estructurada (opcional)",
+                    cat_keys,
+                    index=cat_default,
+                    key=f"cfg_cat_id_{key_prefix}_{producto.id}",
+                )
+                cat_id_e = cat_labels_e[cat_sel_e]
+                subs_e = cat.opciones_subcategoria_asignacion(
+                    repo.data,
+                    cat_id_e,
+                    conservar_id=producto.subcategoria_id
+                    if (producto.categoria_id == cat_id_e) else None,
+                )
+                sub_labels_e = {"— Sin subcategoría —": None}
+                sub_labels_e.update({s.nombre: s.id for s in subs_e})
+                sub_keys = list(sub_labels_e.keys())
+                sub_default = 0
+                for i, k in enumerate(sub_keys):
+                    if sub_labels_e[k] == producto.subcategoria_id and cat_id_e == producto.categoria_id:
+                        sub_default = i
+                        break
+                sub_sel_e = st.selectbox(
+                    "Subcategoría (opcional)",
+                    sub_keys,
+                    index=min(sub_default, len(sub_keys) - 1),
+                    key=f"cfg_sub_id_{key_prefix}_{producto.id}",
+                    disabled=cat_id_e is None,
+                )
+                sub_id_e = sub_labels_e[sub_sel_e] if cat_id_e else None
+                deps_e = cat.opciones_departamento_asignacion(
+                    repo.data, conservar_ids=list(producto.departamento_ids),
+                )
+                dep_sel_e = st.multiselect(
+                    "Departamentos (opcional)",
+                    options=[d.id for d in deps_e],
+                    default=[
+                        d for d in producto.departamento_ids
+                        if any(x.id == d for x in deps_e)
+                    ],
+                    format_func=lambda i: next(
+                        (d.nombre for d in deps_e if d.id == i),
+                        "Referencia no encontrada",
+                    ),
+                    key=f"cfg_deps_{key_prefix}_{producto.id}",
+                )
                 cat_edit = st.text_input(
-                    "Categoría de inventario",
+                    "Categoría histórica / libre",
                     value=producto.categoria_inventario or "",
                     key=f"cfg_cat_{key_prefix}_{producto.id}",
-                    help="Organiza el catálogo. No filtra registros por sí sola.",
+                )
+                st.caption(
+                    "Campo anterior conservado por compatibilidad. "
+                    "No sustituye la categoría estructurada."
                 )
                 serv_edit = _selector_servicios_disponibles(
                     f"cfg_serv_{key_prefix}_{producto.id}",
@@ -400,6 +505,9 @@ def _render_catalogo_solo(*, es_bebida: bool) -> None:
                         producto.id,
                         servicios_disponibles=serv_edit,
                         categoria_inventario=cat_edit,
+                        categoria_id=cat_id_e,
+                        subcategoria_id=sub_id_e,
+                        departamento_ids=dep_sel_e,
                     )
                     if resultado.ok:
                         st.success(resultado.mensaje)

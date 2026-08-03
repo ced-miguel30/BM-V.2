@@ -24,9 +24,12 @@ Sin implementación de código en esta fase.
 | D15 | Almacenamiento operativo multiusuario = PostgreSQL | SQLite solo posible como puente local |
 | D16 | No software fiscal de emisión a cliente sin decisión posterior | Factura = documento recibido interno |
 | D17 | F1A/F1B ∥ F2 (docs); F2 no toca código productivo | Cumplido |
-| D18 | Nav 3 modos: integración F5 tras frontera F3; prototipo aislado opcional | |
+| D18 | Nav 3 modos: integración F5 tras frontera F3; prototipo aislado opcional | F5 hecha |
 | D19 | Ledger conceptual en F2; código en F7 antes de depender de documentos | |
 | D20 | Conservar stacks desayuno + registros_servicio por ahora | Unificación no es F2/F3 |
+| D21 | **Fase 6A completada** — `Departamento`, `Categoria`, `Subcategoria` | Soft-delete; sin backfill de `categoria_inventario` |
+| D22 | `departamento_ids` = ámbitos de uso; **no** ubicación ni stock | Ubicaciones = F6B |
+| D23 | `categoria_inventario` convive con `categoria_id` | Sin conversión automática de strings a filas |
 
 ## Decisiones pendientes (no bloquean F3)
 
@@ -46,9 +49,9 @@ Sin implementación de código en esta fase.
 2. Ausencia → UI “No configurado” / “Sin desglose histórico” / bloqueo si la operación lo requiere.  
 3. No reinterpretar `servicios_disponibles=[]` como “todos”.  
 4. IDs legacy preservados en migración.  
-5. `marca_proveedor` y costes ya guardados no se reescriben al crear Proveedor maestro.
+5. `marca_proveedor` y costes ya guardados no se reescriben al crear Proveedor maestro.  
+6. Referencias de catálogo huérfanas se conservan y se etiquetan «Referencia no encontrada»; no se anulan en silencio.
 
 ## Próximo paso de implementación
 
-**Fase 3** — fronteras de aplicación (interfaces, UoW, contexto, actor, reloj, IDs, adaptador JSON), sin cambiar comportamiento visible.  
-Piloto recomendado: lectura de productos.
+**Fase 6B** — ubicaciones + relación producto-ubicación (tras aprobación explícita de 6A).

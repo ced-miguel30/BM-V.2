@@ -11,7 +11,10 @@
       "stock_minimo": null,
       "es_bebida": false,
       "servicios_disponibles": [],
-      "categoria_inventario": null
+      "categoria_inventario": null,
+      "categoria_id": null,
+      "subcategoria_id": null,
+      "departamento_ids": []
     },
     {
       "id": "p2",
@@ -20,7 +23,10 @@
       "stock_minimo": null,
       "es_bebida": false,
       "servicios_disponibles": [],
-      "categoria_inventario": null
+      "categoria_inventario": null,
+      "categoria_id": null,
+      "subcategoria_id": null,
+      "departamento_ids": []
     }
   ],
   "lotes": [
@@ -46,7 +52,7 @@
       "producto_id": "p2",
       "precio_total": 2.0,
       "cantidad": 20.0,
-      "cantidad_restante": 14.0,
+      "cantidad_restante": 13.8,
       "fecha_compra": "2026-07-01",
       "fecha_expiracion": null,
       "marca_proveedor": null,
@@ -63,7 +69,7 @@
       "producto_id": "p1",
       "precio_total": 5.0,
       "cantidad": 5.0,
-      "cantidad_restante": 10.0,
+      "cantidad_restante": 9.99,
       "fecha_compra": null,
       "fecha_expiracion": null,
       "marca_proveedor": null,
@@ -226,6 +232,88 @@
       "motivo_anulacion": "error",
       "referencia_anulacion": "",
       "anulado_por": "Ana"
+    },
+    {
+      "id": "d03",
+      "fecha": "2026-08-03",
+      "hora": "13:12:24.686442",
+      "lineas": [
+        {
+          "producto_id": "p1",
+          "cantidad": 0.01,
+          "coste": 0.01,
+          "es_extra": false
+        },
+        {
+          "producto_id": "p2",
+          "cantidad": 0.2,
+          "coste": 0.02,
+          "es_extra": false
+        }
+      ],
+      "coste_total": 0.03,
+      "registrado_por": "Ana",
+      "num_huespedes": 30,
+      "registros_recetas": [
+        {
+          "receta_id": "r1",
+          "nombre_receta": "Tortilla",
+          "porciones": 1.0,
+          "categoria_receta_snapshot": "desayuno",
+          "porciones_estandar_snapshot": 10.0,
+          "factor_aplicado": 0.1,
+          "extras": [],
+          "omisiones": []
+        }
+      ],
+      "lineas_detalle": [
+        {
+          "origen": "ingrediente_receta",
+          "producto_id": "p1",
+          "cantidad": 0.01,
+          "coste": 0.01,
+          "receta_origen_id": "r1",
+          "registro_origen_id": "d03",
+          "tipo_servicio": "desayuno",
+          "categoria_receta": "desayuno",
+          "es_bebida_snapshot": false,
+          "categoria_receta_snapshot": "desayuno",
+          "consumos_lote": [
+            {
+              "lote_id": "l03",
+              "producto_id": "p1",
+              "cantidad": 0.01,
+              "coste": 0.01
+            }
+          ]
+        },
+        {
+          "origen": "ingrediente_receta",
+          "producto_id": "p2",
+          "cantidad": 0.2,
+          "coste": 0.02,
+          "receta_origen_id": "r1",
+          "registro_origen_id": "d03",
+          "tipo_servicio": "desayuno",
+          "categoria_receta": "desayuno",
+          "es_bebida_snapshot": false,
+          "categoria_receta_snapshot": "desayuno",
+          "consumos_lote": [
+            {
+              "lote_id": "l2",
+              "producto_id": "p2",
+              "cantidad": 0.2,
+              "coste": 0.02
+            }
+          ]
+        }
+      ],
+      "anulado": false,
+      "fecha_anulacion": null,
+      "hora_anulacion": null,
+      "motivo_anulacion": "",
+      "referencia_anulacion": "",
+      "anulado_por": ""
     }
   ],
   "registros_servicio": [],
@@ -340,6 +428,21 @@
       "activo": true
     }
   ],
+  "departamentos": [
+    {
+      "id": "dep01",
+      "nombre": "Restaurante",
+      "activo": true
+    }
+  ],
+  "categorias": [
+    {
+      "id": "cat01",
+      "nombre": "Desayuno",
+      "activo": true
+    }
+  ],
+  "subcategorias": [],
   "alertas": [],
   "alertas_descartadas": [],
   "usuarios": [
@@ -352,6 +455,42 @@
   ],
   "configuracion": null,
   "actividades": [
+    {
+      "id": "act49",
+      "fecha_hora": "2026-08-03T13:12:24.686510",
+      "usuario": "Ana",
+      "accion": "Registro desayuno",
+      "detalle": "Desayuno del 03/08/2026 — 0.03 € — 30 huéspedes — 1 receta(s)",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
+    },
+    {
+      "id": "act48",
+      "fecha_hora": "2026-08-03T13:12:05.967633",
+      "usuario": "Ana",
+      "accion": "Catálogo categoría",
+      "detalle": "Alta: Desayuno",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
+    },
+    {
+      "id": "act47",
+      "fecha_hora": "2026-08-03T13:11:12.962577",
+      "usuario": "Ana",
+      "accion": "Catálogo departamento",
+      "detalle": "Alta: Restaurante",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
+    },
     {
       "id": "act46",
       "fecha_hora": "2026-08-03T12:06:17.584456",

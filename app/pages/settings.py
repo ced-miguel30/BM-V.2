@@ -215,6 +215,10 @@ def _render_diagnostico_tecnico() -> None:
         )
         _render_lista_incidencias("Posibles duplicidades", resumen.posibles_duplicidades)
         _render_lista_incidencias("Otras incidencias", resumen.otras_incidencias)
+        _render_lista_incidencias(
+            "Catálogos de inventario (6A)",
+            getattr(resumen, "incidencias_catalogo", []),
+        )
 
     st.markdown("##### Trazabilidad por lote (Fase 10.5)")
     st.metric(
@@ -631,9 +635,244 @@ def _render_responsables_merma() -> None:
                     st.error(resultado.mensaje)
 
 
+def _render_catalogos_inventario() -> None:
+    """Fase 6A — departamentos, categorías y subcategorías."""
+    from app.core.services import catalogo_service as cat
+
+    st.markdown("#### Catálogos de inventario")
+    st.caption(
+        "Departamentos: ámbitos donde el producto puede usarse "
+        "(no son ubicaciones físicas ni stock). "
+        "Categorías y subcategorías: clasificación estructurada. "
+        "No sustituyen la categoría histórica / libre del producto. "
+        "Sin borrado físico: active o desactive."
+    )
+
+    apartado = st.radio(
+        "Apartado",
+        ["Departamentos", "Categorías", "Subcategorías"],
+        horizontal=True,
+        key="settings_catalogo_apartado",
+        label_visibility="collapsed",
+    )
+
+    if apartado == "Departamentos":
+        _render_crud_departamento(cat)
+    elif apartado == "Categorías":
+        _render_crud_categoria(cat)
+    else:
+        _render_crud_subcategoria(cat)
+
+
+def _render_crud_departamento(cat) -> None:
+    st.markdown("##### Departamentos")
+    todos = cat.listar_departamentos(solo_activos=False)
+    if todos:
+        st.dataframe(
+            {
+                "Nombre": [d.nombre for d in todos],
+                "Estado": ["Activo" if d.activo else "Inactivo" for d in todos],
+            },
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        empty_state("Todavía no hay departamentos. Cree el primero abajo.", icon="📁")
+
+    section_divider()
+    st.markdown("##### Añadir departamento")
+    with st.form("form_crear_departamento", clear_on_submit=True):
+        nombre = st.text_input("Nombre", key="settings_dep_nombre")
+        if st.form_submit_button("Crear departamento", type="primary"):
+            resultado = cat.crear_departamento(nombre)
+            if resultado.ok:
+                st.success(resultado.mensaje)
+                st.rerun()
+            else:
+                st.error(resultado.mensaje)
+
+    if not todos:
+        return
+    section_divider()
+    st.markdown("##### Editar departamento")
+    opciones = {f"{d.nombre} ({'activo' if d.activo else 'inactivo'})": d.id for d in todos}
+    sel = st.selectbox("Departamento", list(opciones.keys()), key="settings_dep_sel")
+    dep_id = opciones[sel]
+    actual = next(d for d in todos if d.id == dep_id)
+    with st.form("form_edit_departamento"):
+        nuevo = st.text_input("Nombre", value=actual.nombre, key="settings_edit_dep_nombre")
+        if st.form_submit_button("Guardar nombre", use_container_width=True):
+            resultado = cat.renombrar_departamento(dep_id, nuevo)
+            if resultado.ok:
+                st.success(resultado.mensaje)
+                st.rerun()
+            else:
+                st.error(resultado.mensaje)
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if actual.activo:
+            if st.button("Desactivar", use_container_width=True, key="settings_desact_dep"):
+                resultado = cat.desactivar_departamento(dep_id)
+                if resultado.ok:
+                    st.success(resultado.mensaje)
+                    st.rerun()
+                else:
+                    st.error(resultado.mensaje)
+        else:
+            if st.button("Reactivar", use_container_width=True, key="settings_react_dep"):
+                resultado = cat.reactivar_departamento(dep_id)
+                if resultado.ok:
+                    st.success(resultado.mensaje)
+                    st.rerun()
+                else:
+                    st.error(resultado.mensaje)
+
+
+def _render_crud_categoria(cat) -> None:
+    st.markdown("##### Categorías")
+    todos = cat.listar_categorias(solo_activos=False)
+    if todos:
+        st.dataframe(
+            {
+                "Nombre": [c.nombre for c in todos],
+                "Estado": ["Activo" if c.activo else "Inactivo" for c in todos],
+            },
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        empty_state("Todavía no hay categorías. Cree la primera abajo.", icon="📁")
+
+    section_divider()
+    st.markdown("##### Añadir categoría")
+    with st.form("form_crear_categoria", clear_on_submit=True):
+        nombre = st.text_input("Nombre", key="settings_cat_nombre")
+        if st.form_submit_button("Crear categoría", type="primary"):
+            resultado = cat.crear_categoria(nombre)
+            if resultado.ok:
+                st.success(resultado.mensaje)
+                st.rerun()
+            else:
+                st.error(resultado.mensaje)
+
+    if not todos:
+        return
+    section_divider()
+    st.markdown("##### Editar categoría")
+    opciones = {f"{c.nombre} ({'activo' if c.activo else 'inactivo'})": c.id for c in todos}
+    sel = st.selectbox("Categoría", list(opciones.keys()), key="settings_cat_sel")
+    cat_id = opciones[sel]
+    actual = next(c for c in todos if c.id == cat_id)
+    with st.form("form_edit_categoria"):
+        nuevo = st.text_input("Nombre", value=actual.nombre, key="settings_edit_cat_nombre")
+        if st.form_submit_button("Guardar nombre", use_container_width=True):
+            resultado = cat.renombrar_categoria(cat_id, nuevo)
+            if resultado.ok:
+                st.success(resultado.mensaje)
+                st.rerun()
+            else:
+                st.error(resultado.mensaje)
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if actual.activo:
+            if st.button("Desactivar", use_container_width=True, key="settings_desact_cat"):
+                resultado = cat.desactivar_categoria(cat_id)
+                if resultado.ok:
+                    st.success(resultado.mensaje)
+                    st.rerun()
+                else:
+                    st.error(resultado.mensaje)
+        else:
+            if st.button("Reactivar", use_container_width=True, key="settings_react_cat"):
+                resultado = cat.reactivar_categoria(cat_id)
+                if resultado.ok:
+                    st.success(resultado.mensaje)
+                    st.rerun()
+                else:
+                    st.error(resultado.mensaje)
+
+
+def _render_crud_subcategoria(cat) -> None:
+    st.markdown("##### Subcategorías")
+    categorias = cat.listar_categorias(solo_activos=False)
+    if not categorias:
+        st.warning("Cree primero al menos una categoría.")
+        return
+
+    mapa_cat = {c.id: c.nombre for c in categorias}
+    todos = cat.listar_subcategorias(solo_activos=False)
+    if todos:
+        st.dataframe(
+            {
+                "Nombre": [s.nombre for s in todos],
+                "Categoría": [mapa_cat.get(s.categoria_id, "Referencia no encontrada") for s in todos],
+                "Estado": ["Activo" if s.activo else "Inactivo" for s in todos],
+            },
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        empty_state("Todavía no hay subcategorías.", icon="📁")
+
+    section_divider()
+    st.markdown("##### Añadir subcategoría")
+    cat_opts = {c.nombre: c.id for c in categorias}
+    with st.form("form_crear_subcategoria", clear_on_submit=True):
+        cat_sel = st.selectbox("Categoría padre", list(cat_opts.keys()), key="settings_sub_padre")
+        nombre = st.text_input("Nombre", key="settings_sub_nombre")
+        if st.form_submit_button("Crear subcategoría", type="primary"):
+            resultado = cat.crear_subcategoria(nombre, cat_opts[cat_sel])
+            if resultado.ok:
+                st.success(resultado.mensaje)
+                st.rerun()
+            else:
+                st.error(resultado.mensaje)
+
+    if not todos:
+        return
+    section_divider()
+    st.markdown("##### Editar subcategoría")
+    opciones = {
+        f"{s.nombre} · {mapa_cat.get(s.categoria_id, '?')} "
+        f"({'activo' if s.activo else 'inactivo'})": s.id
+        for s in todos
+    }
+    sel = st.selectbox("Subcategoría", list(opciones.keys()), key="settings_sub_sel")
+    sub_id = opciones[sel]
+    actual = next(s for s in todos if s.id == sub_id)
+    with st.form("form_edit_subcategoria"):
+        nuevo = st.text_input("Nombre", value=actual.nombre, key="settings_edit_sub_nombre")
+        if st.form_submit_button("Guardar nombre", use_container_width=True):
+            resultado = cat.renombrar_subcategoria(sub_id, nuevo)
+            if resultado.ok:
+                st.success(resultado.mensaje)
+                st.rerun()
+            else:
+                st.error(resultado.mensaje)
+    col_a, col_b = st.columns(2)
+    with col_a:
+        if actual.activo:
+            if st.button("Desactivar", use_container_width=True, key="settings_desact_sub"):
+                resultado = cat.desactivar_subcategoria(sub_id)
+                if resultado.ok:
+                    st.success(resultado.mensaje)
+                    st.rerun()
+                else:
+                    st.error(resultado.mensaje)
+        else:
+            if st.button("Reactivar", use_container_width=True, key="settings_react_sub"):
+                resultado = cat.reactivar_subcategoria(sub_id)
+                if resultado.ok:
+                    st.success(resultado.mensaje)
+                    st.rerun()
+                else:
+                    st.error(resultado.mensaje)
+
+
 _SUBTABS = {
     "Usuarios": _render_usuarios,
     "Configuración": _render_configuracion,
+    "Catálogos de inventario": _render_catalogos_inventario,
     "Responsables merma": _render_responsables_merma,
     "Actividad": _render_actividad,
     "Exportación": _render_exportacion,
@@ -646,7 +885,7 @@ def render() -> None:
 
     page_header(
         "Configuración",
-        "Diagnóstico técnico, usuarios, responsables de merma y exportación",
+        "Diagnóstico, usuarios, catálogos de inventario, responsables de merma y exportación",
     )
 
     st.success(
@@ -666,5 +905,12 @@ def render() -> None:
     if st.session_state.get("settings_subtab") not in (None, *opciones):
         del st.session_state["settings_subtab"]
 
-    selected = render_sub_tabs(opciones, key="settings_subtab")
+    st.markdown("#### Sección")
+    # Selectbox: con muchas opciones el radio horizontal ocultaba «Catálogos…».
+    selected = st.selectbox(
+        "Sección de configuración",
+        opciones,
+        key="settings_subtab",
+        label_visibility="collapsed",
+    )
     _SUBTABS[selected]()

@@ -16,4 +16,11 @@ class Producto:
     # Lista vacía = «No configurado» (no significa «todos»).
     servicios_disponibles: list[str] = field(default_factory=list)
     # Organización de catálogo (ej. Verduras). No filtra registros por sí sola.
+    # Campo histórico/libre conservado por compatibilidad; no sustituye categoria_id.
     categoria_inventario: str | None = None
+    # Fase 6A — catálogo estructurado (opcional, aditivo).
+    categoria_id: str | None = None
+    subcategoria_id: str | None = None
+    # Departamentos donde el producto puede utilizarse.
+    # No representa ubicación física, cantidad, propiedad ni stock por departamento.
+    departamento_ids: list[str] = field(default_factory=list)

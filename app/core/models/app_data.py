@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from app.core.models.actividad import Actividad
 from app.core.models.ajuste import RegistroAjuste
 from app.core.models.alerta import AlertaOperativa
+from app.core.models.catalogo import Categoria, Departamento, Subcategoria
 from app.core.models.configuracion import ConfiguracionHotel
 from app.core.models.desayuno import RegistroDesayuno
 from app.core.models.lote import LoteStock
@@ -29,5 +30,9 @@ class AppData:
     actividades: list[Actividad] = field(default_factory=list)
     usuarios: list[Usuario] = field(default_factory=list)
     responsables_merma: list[ResponsableMerma] = field(default_factory=list)
+    # Fase 6A — catálogos estructurados (vacío si JSON antiguo).
+    departamentos: list[Departamento] = field(default_factory=list)
+    categorias: list[Categoria] = field(default_factory=list)
+    subcategorias: list[Subcategoria] = field(default_factory=list)
     configuracion: ConfiguracionHotel | None = None
     usuario_actual_id: str = ""

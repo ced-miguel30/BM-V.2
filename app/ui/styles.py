@@ -528,7 +528,8 @@ def inject_global_styles() -> None:
 
             .bm-subtabs-nav div[role="radiogroup"] {{
                 gap: 0.35rem;
-                flex-wrap: wrap;
+                flex-wrap: wrap !important;
+                row-gap: 0.5rem;
             }}
 
             .bm-subtabs-nav div[role="radiogroup"] label {{

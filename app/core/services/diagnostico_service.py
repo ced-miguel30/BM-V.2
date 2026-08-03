@@ -56,6 +56,8 @@ class ResumenDiagnostico:
     num_mermas_activas_sin_lote: int = 0
     incidencias_invariantes: list[str] = field(default_factory=list)
     notas_invariantes: list[str] = field(default_factory=list)
+    # Fase 6A — catálogos estructurados (solo lectura).
+    incidencias_catalogo: list[str] = field(default_factory=list)
 
 
 def _ids_duplicados(ids: list[str], etiqueta: str) -> list[str]:
@@ -303,8 +305,10 @@ def generar_diagnostico(data: AppData) -> ResumenDiagnostico:
     num_lineas_ajuste = sum(len(a.lineas) for a in ajustes)
 
     from app.core.services.diagnostico_invariantes import evaluar_invariantes_json
+    from app.core.services.catalogo_service import incidencias_catalogo as _inc_catalogo
 
     inv = evaluar_invariantes_json(data)
+    cat_inc = _inc_catalogo(data)
 
     return ResumenDiagnostico(
         num_productos=len(data.productos),
@@ -341,4 +345,5 @@ def generar_diagnostico(data: AppData) -> ResumenDiagnostico:
         num_mermas_activas_sin_lote=inv.num_mermas_activas_sin_lote,
         incidencias_invariantes=list(inv.incidencias_invariantes),
         notas_invariantes=list(inv.notas),
+        incidencias_catalogo=cat_inc,
     )
