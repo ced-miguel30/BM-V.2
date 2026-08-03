@@ -118,8 +118,16 @@ def guardar_configuracion(nombre: str, moneda_key: str) -> ResultadoOperacion:
     _, simbolo = MONEDAS[moneda_key]
     data = get_data()
     logo = data.configuracion.logo_path if data.configuracion else None
+    from app.core.services.ledger_config import preservable_ledger_fields
 
-    data.configuracion = ConfiguracionHotel(nombre, moneda_key, simbolo, logo)
+    ledger_fields = preservable_ledger_fields(data.configuracion)
+    data.configuracion = ConfiguracionHotel(
+        nombre,
+        moneda_key,
+        simbolo,
+        logo,
+        **ledger_fields,
+    )
     _registrar_actividad(data, "Guardar configuración", f"Establecimiento: «{nombre}», moneda {moneda_key}")
     persist_data(data)
     return ResultadoOperacion(True, "Configuración guardada correctamente.")

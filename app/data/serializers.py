@@ -66,6 +66,52 @@ def _parse_tipo_articulo(raw: Any) -> TipoArticulo | str | None:
         return raw
 
 
+def _configuracion_to_dict(cfg: ConfiguracionHotel) -> dict:
+    return {
+        "nombre_establecimiento": cfg.nombre_establecimiento,
+        "moneda": cfg.moneda,
+        "simbolo_moneda": cfg.simbolo_moneda,
+        "logo_path": cfg.logo_path,
+        "ledger_schema_version": int(
+            getattr(cfg, "ledger_schema_version", 7) or 7
+        ),
+        "ledger_activation_iso": getattr(cfg, "ledger_activation_iso", None),
+        "ledger_balance_mode": str(
+            getattr(cfg, "ledger_balance_mode", "shadow") or "shadow"
+        ),
+        "ledger_qty_tolerance": float(
+            getattr(cfg, "ledger_qty_tolerance", 1e-4) or 1e-4
+        ),
+    }
+
+
+def _configuracion_from_dict(raw: dict | None) -> ConfiguracionHotel | None:
+    """JSON antiguo (solo 4 campos) y campos 7B aditivos."""
+    if not raw:
+        return None
+    mode = str(raw.get("ledger_balance_mode") or "shadow").strip().lower()
+    if mode not in ("legacy", "shadow", "ledger"):
+        mode = "shadow"
+    try:
+        schema = int(raw.get("ledger_schema_version", 7))
+    except (TypeError, ValueError):
+        schema = 7
+    try:
+        tol = float(raw.get("ledger_qty_tolerance", 1e-4))
+    except (TypeError, ValueError):
+        tol = 1e-4
+    return ConfiguracionHotel(
+        nombre_establecimiento=raw.get("nombre_establecimiento", "Hotel Boutique"),
+        moneda=raw.get("moneda", "EUR"),
+        simbolo_moneda=raw.get("simbolo_moneda", "€"),
+        logo_path=raw.get("logo_path"),
+        ledger_schema_version=schema,
+        ledger_activation_iso=raw.get("ledger_activation_iso"),
+        ledger_balance_mode=mode,
+        ledger_qty_tolerance=tol,
+    )
+
+
 def _parse_tipo_movimiento(raw: Any) -> TipoMovimiento | str:
     """Conocido → enum. Desconocido → str (no convertir silenciosamente)."""
     if isinstance(raw, TipoMovimiento):
@@ -493,12 +539,9 @@ def appdata_to_dict(data: AppData) -> dict:
             {"id": u.id, "nombre": u.nombre, "rol": u.rol.value, "activo": u.activo}
             for u in data.usuarios
         ],
-        "configuracion": {
-            "nombre_establecimiento": data.configuracion.nombre_establecimiento,
-            "moneda": data.configuracion.moneda,
-            "simbolo_moneda": data.configuracion.simbolo_moneda,
-            "logo_path": data.configuracion.logo_path,
-        } if data.configuracion else None,
+        "configuracion": _configuracion_to_dict(data.configuracion)
+        if data.configuracion
+        else None,
         "actividades": [
             {
                 "id": a.id, "fecha_hora": a.fecha_hora.isoformat(),
@@ -786,7 +829,7 @@ def dict_to_appdata(payload: dict) -> AppData:
             Usuario(u["id"], u["nombre"], RolUsuario(u["rol"]), u.get("activo", True))
             for u in payload.get("usuarios", [])
         ],
-        configuracion=ConfiguracionHotel(**config) if config else None,
+        configuracion=_configuracion_from_dict(config),
         actividades=[
             Actividad(
                 a["id"], _parse_datetime(a["fecha_hora"]), a["usuario"], a["accion"], a["detalle"],
