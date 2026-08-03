@@ -46,10 +46,16 @@ Lectura de productos vía `listar_productos` / `obtener_producto` / `mapa_produc
 - Cesta sigue en `st.session_state` (borde UI).
 - UI sin cambios.
 
-## Siguiente subfase (4E)
+## Fase 4E — registro servicio / desayuno (hecha)
 
-Registro de servicio / desayuno → contexto (STOP tras 4E).
+- `desayuno_service` y `servicio_registro_service` vía AppContext (CompatUoW parcheable).
+- Cestas siguen en `st.session_state`.
+- UI sin cambios.
+
+## Siguiente subfase (4F)
+
+FIFO / inventory_batch → contexto (STOP tras 4F).
 
 ## Streamlit
 
-Humo opcional: Merma (alta + registro). Validación UI clave: **Fase 5**.
+Humo opcional: Desayuno o Comida (registrar). Validación UI clave: **Fase 5**.

@@ -49,6 +49,8 @@ from app.core.services.text_search import coincide_busqueda
 from app.core.services.receta_service import factor_desde_registro_receta
 from app.core.services.unidad_service import resolver_presentacion
 from app.core.storage.session_store import get_data, persist_data
+from app.core.application.context import AppContext
+from app.core.application.id_generator import next_id
 
 TITULOS = {
     "comida": "Registro de Comida",
@@ -77,33 +79,34 @@ class ResultadoOperacion:
     detalle_stock: list[str] | None = None
 
 
-def _next_id(prefix: str, ids: list[str]) -> str:
-    numeros = []
-    for item_id in ids:
-        sufijo = item_id[len(prefix):]
-        if item_id.startswith(prefix) and sufijo.isdigit():
-            numeros.append(int(sufijo))
-    return f"{prefix}{(max(numeros, default=0) + 1):02d}"
+class _CompatSessionUow:
+    """UoW sobre get_data/persist_data del módulo (parcheable en tests)."""
+
+    def get_data(self) -> AppData:
+        return get_data()
+
+    def commit(self, data: AppData | None = None) -> AppData:
+        return persist_data(data if data is not None else get_data())
 
 
-def _nombre_usuario(data: AppData) -> str:
-    for u in data.usuarios:
-        if u.id == data.usuario_actual_id:
-            return u.nombre
-    return data.usuarios[0].nombre if data.usuarios else "Usuario"
+def _ctx(ctx: AppContext | None = None) -> AppContext:
+    if ctx is not None:
+        return ctx
+    from app.core.application.actor import actor_desde_appdata
+    from app.core.application.clock import SystemClock
 
-
-def _registrar_actividad(data: AppData, accion: str, detalle: str) -> None:
-    from app.core.models import Actividad
-
-    actividad = Actividad(
-        _next_id("act", [a.id for a in data.actividades]),
-        datetime.now(),
-        _nombre_usuario(data),
-        accion,
-        detalle,
+    uow = _CompatSessionUow()
+    return AppContext(
+        uow=uow,
+        actor=actor_desde_appdata(uow.get_data()),
+        clock=SystemClock(),
     )
-    data.actividades.insert(0, actividad)
+
+
+def _registrar_actividad(ctx: AppContext, accion: str, detalle: str) -> None:
+    from app.core.application.auditoria import registrar_actividad
+
+    registrar_actividad(ctx, accion, detalle, commit=False)
 
 
 class ServicioRegistro:
@@ -150,9 +153,15 @@ class ServicioRegistro:
     def cesta_vacia(self) -> bool:
         return self._cesta.cesta_vacia()
 
-    def anadir_a_cesta(self, producto_id: str, cantidad: float) -> ResultadoOperacion:
+    def anadir_a_cesta(
+        self,
+        producto_id: str,
+        cantidad: float,
+        *,
+        ctx: AppContext | None = None,
+    ) -> ResultadoOperacion:
         if self.solo_bebidas_sueltas:
-            data = get_data()
+            data = _ctx(ctx).data()
             producto = DataRepository(data).get_producto(producto_id)
             if producto and not producto.es_bebida:
                 return ResultadoOperacion(
@@ -222,8 +231,8 @@ class ServicioRegistro:
         r = self._cesta.modificar_cantidad_suelto(linea_id, cantidad)
         return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
 
-    def coste_total_cesta(self) -> float:
-        data = get_data()
+    def coste_total_cesta(self, *, ctx: AppContext | None = None) -> float:
+        data = _ctx(ctx).data()
         total = sum(
             calcular_coste_linea(data, l.producto_id, max(l.cantidad, 0))
             for l in self.get_cesta()
@@ -233,8 +242,8 @@ class ServicioRegistro:
                 total += calcular_coste_linea(data, ing.producto_id, max(ing.cantidad, 0))
         return round(total, 2)
 
-    def productos_catalogo(self, buscar: str = "") -> list[dict]:
-        data = get_data()
+    def productos_catalogo(self, buscar: str = "", *, ctx: AppContext | None = None) -> list[dict]:
+        data = _ctx(ctx).data()
         resultado = []
         termino = buscar.strip()
         for producto in sorted(data.productos, key=lambda p: p.nombre):
@@ -328,10 +337,10 @@ class ServicioRegistro:
             unidades[pid] = producto.unidad.value if producto else ""
         return planificar_descuento(data, demandas, nombres=nombres, unidades=unidades)
 
-    def previsualizar_stock(self) -> PlanDescuentoStock:
+    def previsualizar_stock(self, *, ctx: AppContext | None = None) -> PlanDescuentoStock:
         if self.cesta_vacia():
             return PlanDescuentoStock()
-        return self._plan_stock(get_data(), self._aplanar_cesta())
+        return self._plan_stock(_ctx(ctx).data(), self._aplanar_cesta())
 
     def registrar(
         self,
@@ -339,6 +348,7 @@ class ServicioRegistro:
         num_huespedes: int = 0,
         *,
         ignorar_stock: bool = False,
+        ctx: AppContext | None = None,
     ) -> ResultadoOperacion:
         """Registra con descuento atómico. `ignorar_stock` deshabilitado (Fase 9)."""
         _ = ignorar_stock
@@ -348,10 +358,11 @@ class ServicioRegistro:
                 False,
                 "La cesta está vacía. Añada productos o recetas antes de registrar.",
             )
-        if fecha > date.today():
+        context = _ctx(ctx)
+        if fecha > context.clock.today():
             return ResultadoOperacion(False, f"No puede registrar {self.etiqueta.lower()} en fechas futuras.")
 
-        data = get_data()
+        data = context.data()
         fusionado = self._aplanar_cesta()
         grupos = list(self.get_cesta_recetas())
         cesta_suelta = list(self.get_cesta())
@@ -368,7 +379,7 @@ class ServicioRegistro:
 
         existentes = [r.id for r in data.registros_servicio if r.tipo_servicio == self.tipo_servicio]
         existentes += [r.id for r in data.registros_servicio]
-        registro_id = _next_id(self._id_prefix, existentes)
+        registro_id = next_id(self._id_prefix, existentes)
 
         demandas = {pid: cant for pid, (cant, _) in fusionado.items() if cant > 0}
         extras = {pid: es_extra for pid, (cant, es_extra) in fusionado.items() if cant > 0}
@@ -406,24 +417,24 @@ class ServicioRegistro:
                 fecha,
                 lineas,
                 coste_total,
-                _nombre_usuario(data),
+                context.actor.nombre,
                 num_huespedes,
                 registros_recetas,
-                datetime.now().time(),
+                context.clock.now().time(),
                 lineas_detalle,
             )
             data.registros_servicio.append(registro)
 
             detalle_recetas = f" — {len(registros_recetas)} receta(s)" if registros_recetas else ""
             _registrar_actividad(
-                data,
+                context,
                 f"Registro {self.etiqueta.lower()}",
                 (
                     f"{self.etiqueta} del {fecha.strftime('%d/%m/%Y')} — "
                     f"{coste_total:.2f} €{detalle_recetas}"
                 ),
             )
-            persist_data(data)
+            context.uow.commit(data)
         except Exception:
             restaurar_cantidades_restantes(data, snap)
             del data.registros_servicio[n_regs:]
@@ -433,30 +444,36 @@ class ServicioRegistro:
         self.limpiar_cesta()
 
         from app.core.services.alert_service import sincronizar_alertas
-        sincronizar_alertas()
+        sincronizar_alertas(context)
 
         return ResultadoOperacion(
             True,
             f"{self.etiqueta} registrada — {coste_total:.2f} € ({len(lineas)} producto(s)).",
         )
 
-    def historial_ordenado(self) -> list[RegistroServicio]:
-        data = get_data()
+    def historial_ordenado(self, *, ctx: AppContext | None = None) -> list[RegistroServicio]:
+        data = _ctx(ctx).data()
         return sorted(
             [r for r in data.registros_servicio if r.tipo_servicio == self.tipo_servicio],
             key=lambda r: (r.fecha, r.hora or time.min),
             reverse=True,
         )
 
-    def fecha_mas_antigua(self) -> date | None:
+    def fecha_mas_antigua(self, *, ctx: AppContext | None = None) -> date | None:
         fechas = [
-            r.fecha for r in get_data().registros_servicio
+            r.fecha for r in _ctx(ctx).data().registros_servicio
             if r.tipo_servicio == self.tipo_servicio
         ]
         return min(fechas) if fechas else None
 
-    def registros_exportables(self, inicio: date, hasta: datetime) -> list[RegistroExportable]:
-        data = get_data()
+    def registros_exportables(
+        self,
+        inicio: date,
+        hasta: datetime,
+        *,
+        ctx: AppContext | None = None,
+    ) -> list[RegistroExportable]:
+        data = _ctx(ctx).data()
         repo = DataRepository(data)
         fin = hasta.date()
         columnas = ["Tipo", "Producto / Receta", "Detalle", "Cantidad", "Unidad", "Coste", "Origen"]

@@ -54,6 +54,8 @@ from app.core.services.text_search import coincide_busqueda
 from app.core.services.receta_service import factor_desde_registro_receta
 from app.core.services.unidad_service import resolver_presentacion
 from app.core.storage.session_store import get_data, persist_data
+from app.core.application.context import AppContext
+from app.core.application.id_generator import next_id
 
 # Reexportaciones públicas (compatibilidad con imports existentes).
 __all__ = [
@@ -93,33 +95,34 @@ class ResultadoOperacion:
     detalle_stock: list[str] | None = None
 
 
-def _next_id(prefix: str, ids: list[str]) -> str:
-    numeros = []
-    for item_id in ids:
-        sufijo = item_id[len(prefix):]
-        if item_id.startswith(prefix) and sufijo.isdigit():
-            numeros.append(int(sufijo))
-    return f"{prefix}{(max(numeros, default=0) + 1):02d}"
+class _CompatSessionUow:
+    """UoW sobre get_data/persist_data del módulo (parcheable en tests)."""
+
+    def get_data(self) -> AppData:
+        return get_data()
+
+    def commit(self, data: AppData | None = None) -> AppData:
+        return persist_data(data if data is not None else get_data())
 
 
-def _nombre_usuario(data: AppData) -> str:
-    for u in data.usuarios:
-        if u.id == data.usuario_actual_id:
-            return u.nombre
-    return data.usuarios[0].nombre if data.usuarios else "Usuario"
+def _ctx(ctx: AppContext | None = None) -> AppContext:
+    if ctx is not None:
+        return ctx
+    from app.core.application.actor import actor_desde_appdata
+    from app.core.application.clock import SystemClock
 
-
-def _registrar_actividad(data: AppData, accion: str, detalle: str) -> None:
-    from app.core.models import Actividad
-
-    actividad = Actividad(
-        _next_id("act", [a.id for a in data.actividades]),
-        datetime.now(),
-        _nombre_usuario(data),
-        accion,
-        detalle,
+    uow = _CompatSessionUow()
+    return AppContext(
+        uow=uow,
+        actor=actor_desde_appdata(uow.get_data()),
+        clock=SystemClock(),
     )
-    data.actividades.insert(0, actividad)
+
+
+def _registrar_actividad(ctx: AppContext, accion: str, detalle: str) -> None:
+    from app.core.application.auditoria import registrar_actividad
+
+    registrar_actividad(ctx, accion, detalle, commit=False)
 
 
 def _descontar_fifo(data: AppData, producto_id: str, cantidad: float, *, permitir_negativo: bool = False) -> float:
@@ -153,8 +156,13 @@ def cesta_vacia() -> bool:
     return _cesta.cesta_vacia()
 
 
-def productos_catalogo(buscar: str = "", *, servicio: str | None = None) -> list[dict]:
-    data = get_data()
+def productos_catalogo(
+    buscar: str = "",
+    *,
+    servicio: str | None = None,
+    ctx: AppContext | None = None,
+) -> list[dict]:
+    data = _ctx(ctx).data()
     resultado = []
     termino = buscar.strip()
     for producto in sorted(data.productos, key=lambda p: p.nombre):
@@ -175,8 +183,15 @@ def productos_catalogo(buscar: str = "", *, servicio: str | None = None) -> list
     return resultado
 
 
-def productos_disponibles(buscar: str = "", *, servicio: str | None = None) -> list[dict]:
-    return [p for p in productos_catalogo(buscar, servicio=servicio) if p["stock"] > 0]
+def productos_disponibles(
+    buscar: str = "",
+    *,
+    servicio: str | None = None,
+    ctx: AppContext | None = None,
+) -> list[dict]:
+    return [
+        p for p in productos_catalogo(buscar, servicio=servicio, ctx=ctx) if p["stock"] > 0
+    ]
 
 
 def anadir_mod_pendiente_receta(producto_id: str, cantidad: float) -> ResultadoOperacion:
@@ -257,8 +272,8 @@ def modificar_cantidad_suelto(linea_id: str, cantidad: float) -> ResultadoOperac
     return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
 
 
-def coste_total_cesta() -> float:
-    data = get_data()
+def coste_total_cesta(*, ctx: AppContext | None = None) -> float:
+    data = _ctx(ctx).data()
     total = sum(
         calcular_coste_linea(data, l.producto_id, max(l.cantidad, 0))
         for l in get_cesta()
@@ -336,11 +351,11 @@ def _plan_stock_fusionado(
     return planificar_descuento(data, demandas, nombres=nombres, unidades=unidades)
 
 
-def previsualizar_stock_registro() -> PlanDescuentoStock:
+def previsualizar_stock_registro(*, ctx: AppContext | None = None) -> PlanDescuentoStock:
     """Preview actual/salida/resultante de la cesta (sin mutar)."""
     if cesta_vacia():
         return PlanDescuentoStock()
-    return _plan_stock_fusionado(get_data(), _aplanar_cesta())
+    return _plan_stock_fusionado(_ctx(ctx).data(), _aplanar_cesta())
 
 
 def registrar_desayuno(
@@ -348,6 +363,7 @@ def registrar_desayuno(
     num_huespedes: int,
     *,
     ignorar_stock: bool = False,
+    ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
     """Registra el desayuno con descuento atómico.
 
@@ -361,13 +377,14 @@ def registrar_desayuno(
             "La cesta está vacía. Añada productos o recetas antes de registrar.",
         )
 
-    if fecha > date.today():
+    context = _ctx(ctx)
+    if fecha > context.clock.today():
         return ResultadoOperacion(False, "No puede registrar desayunos en fechas futuras.")
 
     if num_huespedes < 1:
         return ResultadoOperacion(False, "Indique al menos 1 huésped.")
 
-    data = get_data()
+    data = context.data()
 
     fusionado = _aplanar_cesta()
     grupos = list(get_cesta_recetas())
@@ -382,7 +399,7 @@ def registrar_desayuno(
             detalle_stock=plan.deficits,
         )
 
-    registro_id = _next_id("d", [d.id for d in data.desayunos])
+    registro_id = next_id("d", [d.id for d in data.desayunos])
     demandas = {pid: cant for pid, (cant, _) in fusionado.items() if cant > 0}
     extras = {pid: es_extra for pid, (cant, es_extra) in fusionado.items() if cant > 0}
 
@@ -418,10 +435,10 @@ def registrar_desayuno(
             fecha,
             lineas,
             coste_total,
-            _nombre_usuario(data),
+            context.actor.nombre,
             num_huespedes,
             registros_recetas,
-            datetime.now().time(),
+            context.clock.now().time(),
             lineas_detalle,
         )
         data.desayunos.append(registro)
@@ -431,11 +448,11 @@ def registrar_desayuno(
             detalle_recetas = f" — {len(registros_recetas)} receta(s)"
 
         _registrar_actividad(
-            data,
+            context,
             "Registro desayuno",
             f"Desayuno del {fecha.strftime('%d/%m/%Y')} — {coste_total:.2f} € — {num_huespedes} huéspedes{detalle_recetas}",
         )
-        persist_data(data)
+        context.uow.commit(data)
     except Exception:
         restaurar_cantidades_restantes(data, snap)
         del data.desayunos[n_desayunos:]
@@ -445,7 +462,7 @@ def registrar_desayuno(
     limpiar_cesta()
 
     from app.core.services.alert_service import sincronizar_alertas
-    sincronizar_alertas()
+    sincronizar_alertas(context)
 
     return ResultadoOperacion(
         True,
@@ -453,13 +470,18 @@ def registrar_desayuno(
     )
 
 
-def fecha_mas_antigua() -> date | None:
-    fechas = [d.fecha for d in get_data().desayunos]
+def fecha_mas_antigua(*, ctx: AppContext | None = None) -> date | None:
+    fechas = [d.fecha for d in _ctx(ctx).data().desayunos]
     return min(fechas) if fechas else None
 
 
-def registros_exportables(inicio: date, hasta: datetime) -> list[RegistroExportable]:
-    data = get_data()
+def registros_exportables(
+    inicio: date,
+    hasta: datetime,
+    *,
+    ctx: AppContext | None = None,
+) -> list[RegistroExportable]:
+    data = _ctx(ctx).data()
     repo = DataRepository(data)
     fin = hasta.date()
     columnas = ["Tipo", "Producto / Receta", "Detalle", "Cantidad", "Unidad", "Coste"]
@@ -626,19 +648,28 @@ class DesayunoRegistroAdapter:
         num_huespedes: int = 0,
         *,
         ignorar_stock: bool = False,
+        ctx: AppContext | None = None,
     ) -> ResultadoOperacion:
-        return registrar_desayuno(fecha, int(num_huespedes), ignorar_stock=ignorar_stock)
+        return registrar_desayuno(
+            fecha, int(num_huespedes), ignorar_stock=ignorar_stock, ctx=ctx,
+        )
 
-    def historial_ordenado(self):
-        data = get_data()
+    def historial_ordenado(self, *, ctx: AppContext | None = None):
+        data = _ctx(ctx).data()
         return sorted(
             data.desayunos,
             key=lambda r: (r.fecha, r.hora or time.min),
             reverse=True,
         )
 
-    def registros_exportables(self, inicio: date, hasta: datetime):
-        return registros_exportables(inicio, hasta)
+    def registros_exportables(
+        self,
+        inicio: date,
+        hasta: datetime,
+        *,
+        ctx: AppContext | None = None,
+    ):
+        return registros_exportables(inicio, hasta, ctx=ctx)
 
     def configuracion_exportacion(self) -> ConfiguracionExportacionModulo:
         return configuracion_exportacion()

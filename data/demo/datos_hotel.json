@@ -283,6 +283,18 @@
   "configuracion": null,
   "actividades": [
     {
+      "id": "act34",
+      "fecha_hora": "2026-08-03T11:46:54.268781",
+      "usuario": "Sistema",
+      "accion": "Exportación",
+      "detalle": "Exportación automática de comida — periodo 2026-07-20 a 2026-07-26 — archivo Registro_de_Comida_2026-08-03_2026-07-20_a_2026-07-26.xlsx — resultado correcto",
+      "modulo": "comida",
+      "resultado": "Correcto",
+      "tipo_exportacion": "Automática",
+      "periodo_afectado": "2026-07-20 a 2026-07-26",
+      "archivo_generado": "Registro_de_Comida_2026-08-03_2026-07-20_a_2026-07-26.xlsx"
+    },
+    {
       "id": "act33",
       "fecha_hora": "2026-08-03T11:15:07.202773",
       "usuario": "Sistema",
