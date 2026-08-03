@@ -1,7 +1,10 @@
 # Flujo documental (diseño — Fase 2)
 
-**No implementar facturas aquí.** Código documental (albarán/factura): Fases 9–13.
-Fase 8 implementa maestros: Proveedor, Impuesto, RelacionProductoProveedor.
+**No implementar facturas aquí.** Código documental:
+- Fase 9: archivos digitales (hash, inmutable) — **hecha**.
+- Fase 10: albaranes → entrada.
+- Fase 11: facturas + conciliación.
+- Fases 12–13: rectificativas / búsqueda-exportación.
 
 ## Separación de conceptos
 

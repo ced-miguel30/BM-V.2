@@ -12,6 +12,7 @@ from app.core.models import (
     Actividad,
     AlertaOperativa,
     AppData,
+    ArchivoDocumental,
     Categoria,
     CategoriaReceta,
     ConfiguracionHotel,
@@ -385,6 +386,39 @@ def _relacion_pp_from_dict(raw: dict) -> RelacionProductoProveedor:
     )
 
 
+def _archivo_documental_to_dict(a: ArchivoDocumental) -> dict:
+    return {
+        "id": a.id,
+        "nombre_original": a.nombre_original,
+        "mime_type": a.mime_type,
+        "tamanio_bytes": int(a.tamanio_bytes),
+        "sha256": a.sha256,
+        "ruta_relativa": a.ruta_relativa,
+        "usuario_id": a.usuario_id,
+        "creado_en": a.creado_en.isoformat() if a.creado_en else None,
+        "documento_id": a.documento_id,
+        "notas": a.notas,
+        "activo": bool(a.activo),
+    }
+
+
+def _archivo_documental_from_dict(raw: dict) -> ArchivoDocumental:
+    creado = raw.get("creado_en")
+    return ArchivoDocumental(
+        id=raw.get("id", ""),
+        nombre_original=raw.get("nombre_original", "") or "",
+        mime_type=raw.get("mime_type", "") or "application/octet-stream",
+        tamanio_bytes=int(raw.get("tamanio_bytes", 0) or 0),
+        sha256=raw.get("sha256", "") or "",
+        ruta_relativa=raw.get("ruta_relativa", "") or "",
+        usuario_id=raw.get("usuario_id"),
+        creado_en=_parse_datetime(creado) if creado else None,
+        documento_id=raw.get("documento_id"),
+        notas=raw.get("notas"),
+        activo=bool(raw.get("activo", True)),
+    )
+
+
 class _Encoder(json.JSONEncoder):
     def default(self, obj: Any) -> Any:
         if isinstance(obj, (date, datetime)):
@@ -740,6 +774,10 @@ def appdata_to_dict(data: AppData) -> dict:
             _relacion_pp_to_dict(r)
             for r in getattr(data, "relaciones_producto_proveedor", []) or []
         ],
+        "archivos_documentales": [
+            _archivo_documental_to_dict(a)
+            for a in getattr(data, "archivos_documentales", []) or []
+        ],
         "alertas": [
             {
                 "id": a.id, "tipo": a.tipo.value, "titulo": a.titulo, "mensaje": a.mensaje,
@@ -1044,6 +1082,10 @@ def dict_to_appdata(payload: dict) -> AppData:
         relaciones_producto_proveedor=[
             _relacion_pp_from_dict(r)
             for r in payload.get("relaciones_producto_proveedor", [])
+        ],
+        archivos_documentales=[
+            _archivo_documental_from_dict(a)
+            for a in payload.get("archivos_documentales", [])
         ],
         alertas=[
             AlertaOperativa(

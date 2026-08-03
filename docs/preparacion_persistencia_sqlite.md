@@ -26,6 +26,7 @@ Fuente de verdad en memoria: `AppData` (`app/core/models/app_data.py`), serializ
 | `proveedores` | `Proveedor` | Maestro comercial (Fase 8) |
 | `impuestos` | `Impuesto` | % Decimal versionado (Fase 8) |
 | `relaciones_producto_proveedor` | `RelacionProductoProveedor` | Vínculo + snapshots (Fase 8) |
+| `archivos_documentales` | `ArchivoDocumental` | Original inmutable + SHA-256 (Fase 9) |
 | meta | `usuario_actual_id` | Sesión lógica |
 
 ---

@@ -42,6 +42,7 @@ from app.core.models.enums import (
     TurnoMerma,
     UnidadProducto,
 )
+from app.core.models.archivo_documental import ArchivoDocumental
 from app.core.models.lote import LoteStock
 from app.core.models.merma import LineaMerma, RegistroMerma, ResponsableMerma
 from app.core.models.movimiento import MovimientoInventario
@@ -63,6 +64,7 @@ __all__ = [
     "Actividad",
     "AlertaOperativa",
     "AppData",
+    "ArchivoDocumental",
     "CATEGORIA_RECETA_LABEL",
     "Categoria",
     "CategoriaReceta",

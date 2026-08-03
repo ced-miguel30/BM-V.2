@@ -60,6 +60,7 @@ Sin implementación de código en esta fase.
 | D51 | En modo `ledger`, autoridad = movimientos | Restante = espejo de compatibilidad |
 | D52 | **Fase 8** — `Proveedor`, `Impuesto` (Decimal), `RelacionProductoProveedor` | Sin facturas/albaranes |
 | D53 | Snapshots en vínculo producto–proveedor | Editar maestro no reescribe snapshot ni `marca_proveedor` |
+| D54 | **Fase 9** — `ArchivoDocumental` inmutable + SHA-256 | Sin OCR; soft-desactivar no borra fichero |
 
 ## Decisiones pendientes (no bloquean F3)
 
@@ -88,4 +89,4 @@ Sin implementación de código en esta fase.
 
 ## Próximo paso de implementación
 
-**Fase 9+** — documentos (albarán / factura / conciliación), tras revisión de F8.
+**Fase 10** — albaranes → entrada inventario (atómico), tras revisión de F9.

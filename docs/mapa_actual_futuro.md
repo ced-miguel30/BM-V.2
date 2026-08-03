@@ -16,9 +16,10 @@ Futuro: dominio documentado en [modelo_dominio_objetivo.md](modelo_dominio_objet
 | `traslado` | Traslado entre ubicaciones | 7B.4 |
 | `SesionRecuento` | Recuento físico | 7B.6 → ajustes |
 | Proveedor / Impuesto / RelacionProductoProveedor | Catálogo comercial | **Fase 8** |
+| `ArchivoDocumental` | Original digital + SHA-256 | **Fase 9** |
 | `marca_proveedor` (lote) | Snapshot textual histórico | Conservado; no se reescribe |
-| *(no aún)* | Albarán / factura / conciliación | **F9+** |
+| *(no aún)* | Albarán / factura / conciliación | **F10–F11** |
 
 ## Próximo paso
 
-**Fase 9+** — flujo documental (albarán → entrada → factura). No iniciar sin revisión de F8.
+**Fase 10** — albaranes → entrada inventario → lotes → movimientos (atómico).

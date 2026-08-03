@@ -1224,11 +1224,104 @@ def _render_crud_vinculos(prv, repo) -> None:
                     st.rerun()
 
 
+def _render_archivos_documentales() -> None:
+    """Fase 9 — originales inmutables con SHA-256 (sin OCR)."""
+    from app.core.services import archivo_documental_service as ads
+
+    st.markdown("#### Archivos documentales")
+    st.caption(
+        "Almacena el original en disco una sola vez, con SHA-256. "
+        "No hay OCR ni confirmación automática. "
+        "Desactivar no borra el fichero. El enlace a albarán/factura llega en F10+."
+    )
+
+    subidos = ads.listar_archivos(solo_activos=False)
+    if subidos:
+        st.dataframe(
+            {
+                "ID": [a.id for a in subidos],
+                "Nombre": [a.nombre_original for a in subidos],
+                "MIME": [a.mime_type for a in subidos],
+                "Bytes": [a.tamanio_bytes for a in subidos],
+                "SHA-256": [a.sha256[:16] + "…" for a in subidos],
+                "Documento": [a.documento_id or "—" for a in subidos],
+                "Estado": ["Activo" if a.activo else "Inactivo" for a in subidos],
+            },
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        empty_state("Todavía no hay archivos documentales.", icon="📄")
+
+    section_divider()
+    st.markdown("##### Subir original")
+    fichero = st.file_uploader(
+        "Archivo",
+        type=None,
+        key="settings_adoc_upload",
+    )
+    notas = st.text_input("Notas (opcional)", key="settings_adoc_notas")
+    if st.button("Registrar archivo", type="primary", key="settings_adoc_reg"):
+        if fichero is None:
+            st.error("Seleccione un archivo.")
+        else:
+            bruto = fichero.getvalue()
+            r = ads.registrar_archivo(
+                bruto,
+                fichero.name or "archivo.bin",
+                mime_type=getattr(fichero, "type", None),
+                notas=notas or None,
+            )
+            if r.ok:
+                st.success(r.mensaje)
+                st.rerun()
+            else:
+                st.error(r.mensaje)
+
+    activos = [a for a in subidos if a.activo]
+    if activos:
+        section_divider()
+        st.markdown("##### Verificar / desactivar")
+        opts = {f"{a.id} · {a.nombre_original}": a.id for a in activos}
+        sel = st.selectbox("Archivo", list(opts.keys()), key="settings_adoc_sel")
+        aid = opts[sel]
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            if st.button("Verificar integridad", key="settings_adoc_ver"):
+                v = ads.verificar_integridad(aid)
+                if v.ok:
+                    st.success(v.mensaje)
+                else:
+                    st.error(v.mensaje)
+        with c2:
+            bruto, err = ads.leer_bytes(aid)
+            if bruto is not None:
+                arch = next(a for a in activos if a.id == aid)
+                st.download_button(
+                    "Descargar original",
+                    data=bruto,
+                    file_name=arch.nombre_original,
+                    mime=arch.mime_type,
+                    key="settings_adoc_dl",
+                )
+            elif err:
+                st.caption(err)
+        with c3:
+            if st.button("Desactivar", key="settings_adoc_off"):
+                d = ads.desactivar_archivo(aid)
+                if d.ok:
+                    st.success(d.mensaje)
+                    st.rerun()
+                else:
+                    st.error(d.mensaje)
+
+
 _SUBTABS = {
     "Usuarios": _render_usuarios,
     "Configuración": _render_configuracion,
     "Catálogos de inventario": _render_catalogos_inventario,
     "Proveedores e impuestos": _render_proveedores_impuestos,
+    "Archivos documentales": _render_archivos_documentales,
     "Responsables merma": _render_responsables_merma,
     "Actividad": _render_actividad,
     "Exportación": _render_exportacion,

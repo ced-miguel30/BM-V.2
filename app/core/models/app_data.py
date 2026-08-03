@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from app.core.models.actividad import Actividad
 from app.core.models.ajuste import RegistroAjuste
 from app.core.models.alerta import AlertaOperativa
+from app.core.models.archivo_documental import ArchivoDocumental
 from app.core.models.catalogo import Categoria, Departamento, Subcategoria, Ubicacion
 from app.core.models.configuracion import ConfiguracionHotel
 from app.core.models.desayuno import RegistroDesayuno
@@ -49,5 +50,7 @@ class AppData:
     relaciones_producto_proveedor: list[RelacionProductoProveedor] = field(
         default_factory=list
     )
+    # Fase 9 — archivos documentales (original inmutable; sin OCR).
+    archivos_documentales: list[ArchivoDocumental] = field(default_factory=list)
     configuracion: ConfiguracionHotel | None = None
     usuario_actual_id: str = ""
