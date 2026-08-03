@@ -271,7 +271,6 @@ class TestFase7A2DualWrite(unittest.TestCase):
 
     def test_12_version_7a2(self) -> None:
         self.assertIn("Ledger", APP_VERSION)
-        self.assertIn("7A.", APP_VERSION)
 
     def test_13_ajuste_fallo_espejo_revierte_stock(self) -> None:
         data = _data_base()

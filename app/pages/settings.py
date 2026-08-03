@@ -224,10 +224,17 @@ def _render_diagnostico_tecnico() -> None:
     st.caption("Ledger en modo espejo; stock calculado desde lotes.")
     lm1, lm2, lm3 = st.columns(3)
     lm1.metric("Movimientos totales", getattr(resumen, "num_movimientos", 0))
-    lm2.metric("Movimientos merma", getattr(resumen, "num_movimientos_merma", 0))
-    lm3.metric(
-        "Reversiones merma",
-        getattr(resumen, "num_movimientos_reversion_merma", 0),
+    lm2.metric("Consumos", getattr(resumen, "num_movimientos_consumo", 0))
+    lm3.metric("Mermas", getattr(resumen, "num_movimientos_merma", 0))
+    lr1, lr2, lr3 = st.columns(3)
+    lr1.metric(
+        "Rev. consumo", getattr(resumen, "num_movimientos_reversion_consumo", 0)
+    )
+    lr2.metric(
+        "Rev. merma", getattr(resumen, "num_movimientos_reversion_merma", 0)
+    )
+    lr3.metric(
+        "Rev. entrada", getattr(resumen, "num_movimientos_reversion_entrada", 0)
     )
     st.caption(
         getattr(

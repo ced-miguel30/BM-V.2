@@ -474,7 +474,7 @@ class TestFase7A3DualWriteMerma(unittest.TestCase):
     def test_35_espacios_f5(self) -> None:
         self.assertEqual(esp.ESPACIO_DEFAULT, esp.ESPACIO_GESTOR)
         self.assertIn(esp.ESPACIO_REGISTRO, esp.ESPACIOS_ORDEN)
-        self.assertIn("7A.3", APP_VERSION)
+        self.assertIn("Ledger", APP_VERSION)
 
     def test_36_json_antiguo(self) -> None:
         payload = {

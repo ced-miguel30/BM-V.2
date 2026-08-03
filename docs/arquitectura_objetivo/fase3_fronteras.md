@@ -122,9 +122,16 @@ Catálogos → alertas → ajustes → merma → registro → FIFO → anulacion
 ## Fase 7A.3 — dual-write merma (hecha)
 
 - `registrar_merma` → `merma` por línea (`origen_linea_id=lnNN`).
-- `anular_merma` → `reversion_merma`; histórico sin original → `anulacion_merma_historica`.
-- Siguiente: **7A.4** consumos (tras aprobación).
+- `anular_merma` → `reversion_merma`; histórico → `anulacion_merma_historica`.
 
-## Siguiente: Fase 7A.4
+## Fase 7A.4 / 7A completa (hecha)
 
-Dual-write espejo para consumos y anulaciones de registros (`consumos_lote`).
+- Consumos desayuno/servicio → `consumo` por fragmento `consumos_lote`.
+- Anulación registro → `reversion_consumo`.
+- Anulación compra → `reversion_entrada`.
+- Versión: `BM-V.2 · Ledger espejo completo`.
+- Stock sigue en `cantidad_restante`.
+
+## Siguiente: Fase 7B (no iniciar sin aprobación)
+
+Ledger como posible fuente de verdad / stock por ubicación / traslados.

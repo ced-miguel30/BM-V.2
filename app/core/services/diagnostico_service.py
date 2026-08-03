@@ -63,10 +63,13 @@ class ResumenDiagnostico:
     incidencias_movimientos: list[str] = field(default_factory=list)
     num_movimientos_merma: int = 0
     num_movimientos_reversion_merma: int = 0
+    num_movimientos_consumo: int = 0
+    num_movimientos_reversion_consumo: int = 0
+    num_movimientos_reversion_entrada: int = 0
     nota_ledger: str = (
         "Ledger en modo espejo; stock calculado desde lotes. "
-        "7A.3: dual-write en merma y anulación de merma. "
-        "Consumos aún fuera (7A.4). Sin backfill histórico."
+        "Fase 7A completa: entradas, ajustes, mermas, consumos y anulaciones. "
+        "Sin backfill histórico. Ledger no es fuente de verdad."
     )
 
 
@@ -331,6 +334,13 @@ def generar_diagnostico(data: AppData) -> ResumenDiagnostico:
     num_rev_merma = contar_movimientos_por_tipo(
         data, TipoMovimiento.REVERSION_MERMA
     )
+    num_cons = contar_movimientos_por_tipo(data, TipoMovimiento.CONSUMO)
+    num_rev_cons = contar_movimientos_por_tipo(
+        data, TipoMovimiento.REVERSION_CONSUMO
+    )
+    num_rev_ent = contar_movimientos_por_tipo(
+        data, TipoMovimiento.REVERSION_ENTRADA
+    )
 
     return ResumenDiagnostico(
         num_productos=len(data.productos),
@@ -372,4 +382,7 @@ def generar_diagnostico(data: AppData) -> ResumenDiagnostico:
         incidencias_movimientos=mov_inc,
         num_movimientos_merma=num_merma_mov,
         num_movimientos_reversion_merma=num_rev_merma,
+        num_movimientos_consumo=num_cons,
+        num_movimientos_reversion_consumo=num_rev_cons,
+        num_movimientos_reversion_entrada=num_rev_ent,
     )

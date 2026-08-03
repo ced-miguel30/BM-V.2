@@ -47,6 +47,10 @@ Sin implementación de código en esta fase.
 | D38 | **Fase 7A.3** — dual-write merma + anulación merma | Un movimiento por línea; históricos sin backfill |
 | D39 | Línea de merma sin `id`: `origen_linea_id = lnNN` | Índice estable en lista append-only |
 | D40 | Anulación histórica sin espejo → `anulacion_merma_historica` | `movimiento_revertido_id=None`; no inventar salida |
+| D41 | **Fase 7A.4 / 7A completa** — dual-write consumos + anulaciones registro/compra | Un movimiento por fragmento `consumos_lote` |
+| D42 | `origen_linea_id` consumo = `detNN:fragNN` | Índices estables append-only |
+| D43 | Anulación compra → `reversion_entrada` por restante anulado | Puede diferir de cantidad de entrada si hubo consumo (compra intacta exige restante=compra) |
+| D44 | Fase 7A cerrada en modo espejo | Stock sigue en lotes; 7B pendiente de aprobación |
 
 ## Decisiones pendientes (no bloquean F3)
 
@@ -74,4 +78,4 @@ Sin implementación de código en esta fase.
 
 ## Próximo paso de implementación
 
-**Fase 7A.4** — dual-write espejo (consumos + anulaciones de registro). Sin ejecutar hasta aprobación explícita.
+**Fase 7B** — solo tras aprobación explícita (ledger como posible fuente de verdad / ubicación). 7A cerrada en modo espejo.

@@ -366,6 +366,16 @@ ORIGEN_TIPO_AJUSTE = "ajuste"
 ORIGEN_TIPO_MERMA = "merma"
 ORIGEN_TIPO_ANULACION_MERMA = "anulacion_merma"
 ORIGEN_TIPO_ANULACION_MERMA_HISTORICA = "anulacion_merma_historica"
+ORIGEN_TIPO_DESAYUNO = "desayuno"
+ORIGEN_TIPO_REGISTRO_SERVICIO = "registro_servicio"
+ORIGEN_TIPO_ANULACION_REGISTRO = "anulacion_registro"
+ORIGEN_TIPO_ANULACION_REGISTRO_HISTORICA = "anulacion_registro_historica"
+ORIGEN_TIPO_ANULACION_COMPRA = "anulacion_compra"
+ORIGEN_TIPO_ANULACION_COMPRA_HISTORICA = "anulacion_compra_historica"
+
+ORIGENES_CONSUMO_REGISTRO = frozenset(
+    {ORIGEN_TIPO_DESAYUNO, ORIGEN_TIPO_REGISTRO_SERVICIO}
+)
 
 
 def origen_linea_id_merma(indice: int) -> str:
@@ -603,6 +613,341 @@ def espejo_reversion_merma_linea(
     )
 
 
+def origen_linea_id_consumo(det_idx: int, frag_idx: int) -> str:
+    """Índices estables en ``lineas_detalle`` / ``consumos_lote`` (append-only)."""
+    return f"det{int(det_idx):02d}:frag{int(frag_idx):02d}"
+
+
+def espejo_consumo_fragmento(
+    *,
+    producto_id: str,
+    lote_id: str,
+    cantidad: float,
+    fecha: date,
+    origen_tipo: str,
+    registro_id: str,
+    det_idx: int,
+    frag_idx: int,
+    coste_total: float | None = None,
+    hora: time | None = None,
+    usuario_id: str | None = None,
+    ctx: AppContext | None = None,
+    commit: bool = False,
+) -> ResultadoMovimiento:
+    """Escribe ``consumo`` (salida) por fragmento de ``consumos_lote``."""
+    coste_unitario = None
+    coste_tot = None
+    if coste_total is not None:
+        coste_tot = round(float(coste_total), 2)
+        if float(cantidad) > 0:
+            coste_unitario = round(coste_tot / float(cantidad), 6)
+    return crear_movimiento(
+        producto_id=producto_id,
+        lote_id=lote_id,
+        tipo=TipoMovimiento.CONSUMO,
+        direccion=DireccionMovimiento.SALIDA,
+        cantidad=cantidad,
+        fecha=fecha,
+        hora=hora,
+        origen_tipo=origen_tipo,
+        origen_id=registro_id,
+        origen_linea_id=origen_linea_id_consumo(det_idx, frag_idx),
+        usuario_id=usuario_id,
+        coste_unitario_snapshot=coste_unitario,
+        coste_total_snapshot=coste_tot,
+        ctx=ctx,
+        commit=commit,
+    )
+
+
+def buscar_movimiento_consumo_fragmento(
+    data: AppData,
+    registro_id: str,
+    det_idx: int,
+    frag_idx: int,
+) -> MovimientoInventario | None:
+    linea = origen_linea_id_consumo(det_idx, frag_idx)
+    for origen in ORIGENES_CONSUMO_REGISTRO:
+        for m in buscar_por_origen(data, origen, registro_id, linea):
+            if _enum_value(m.tipo) == TipoMovimiento.CONSUMO.value:
+                return m
+    return None
+
+
+def escribir_espejos_consumo_registro(
+    *,
+    origen_tipo: str,
+    registro_id: str,
+    lineas_detalle: list[Any],
+    fecha: date,
+    hora: time | None = None,
+    usuario_id: str | None = None,
+    ctx: AppContext | None = None,
+) -> None:
+    """Crea un movimiento ``consumo`` por fragmento. Lanza si falla."""
+    creados = 0
+    for di, det in enumerate(lineas_detalle or []):
+        for fi, frag in enumerate(getattr(det, "consumos_lote", None) or []):
+            if float(getattr(frag, "cantidad", 0) or 0) <= 0:
+                continue
+            r = espejo_consumo_fragmento(
+                producto_id=frag.producto_id,
+                lote_id=frag.lote_id,
+                cantidad=frag.cantidad,
+                fecha=fecha,
+                origen_tipo=origen_tipo,
+                registro_id=registro_id,
+                det_idx=di,
+                frag_idx=fi,
+                coste_total=frag.coste,
+                hora=hora,
+                usuario_id=usuario_id,
+                ctx=ctx,
+                commit=False,
+            )
+            if not r.ok and not r.duplicado:
+                raise RuntimeError(
+                    f"No se pudo registrar espejo de consumo: {r.mensaje}"
+                )
+            creados += 1
+            mov = buscar_movimiento_consumo_fragmento(
+                _ctx(ctx).uow.get_data(), registro_id, di, fi
+            )
+            if mov is None:
+                raise RuntimeError(
+                    f"Falta movimiento consumo det{di:02d}:frag{fi:02d}."
+                )
+            if abs(float(mov.cantidad) - float(frag.cantidad)) > 1e-9:
+                raise RuntimeError(
+                    f"Cantidad espejo distinta en det{di:02d}:frag{fi:02d}."
+                )
+    if creados == 0 and any(
+        float(getattr(det, "cantidad", 0) or 0) > 0 for det in (lineas_detalle or [])
+    ):
+        # Registro con detalle pero sin fragmentos: no cubrir aquí (histórico).
+        pass
+
+
+def movimientos_reverso_consumo_de(
+    data: AppData, movimiento_id: str
+) -> list[MovimientoInventario]:
+    return [
+        m
+        for m in listar_movimientos(data)
+        if m.movimiento_revertido_id == movimiento_id
+        and _enum_value(m.tipo) == TipoMovimiento.REVERSION_CONSUMO.value
+    ]
+
+
+def espejo_reversion_consumo_fragmento(
+    *,
+    producto_id: str,
+    lote_id: str,
+    cantidad: float,
+    fecha: date,
+    registro_id: str,
+    det_idx: int,
+    frag_idx: int,
+    movimiento_original: MovimientoInventario | None,
+    coste_total: float | None = None,
+    hora: time | None = None,
+    usuario_id: str | None = None,
+    ctx: AppContext | None = None,
+    commit: bool = False,
+) -> ResultadoMovimiento:
+    """Escribe ``reversion_consumo``. Histórico → sin original + origen histórica."""
+    c = _ctx(ctx)
+    if movimiento_original is not None:
+        if _enum_value(movimiento_original.tipo) != TipoMovimiento.CONSUMO.value:
+            return ResultadoMovimiento(
+                ok=False, mensaje="El movimiento a revertir no es consumo"
+            )
+        if movimiento_original.producto_id != producto_id:
+            return ResultadoMovimiento(
+                ok=False, mensaje="Producto distinto del movimiento original"
+            )
+        if movimiento_original.lote_id != lote_id:
+            return ResultadoMovimiento(
+                ok=False, mensaje="Lote distinto del movimiento original"
+            )
+        if abs(float(movimiento_original.cantidad) - float(cantidad)) > 1e-9:
+            return ResultadoMovimiento(
+                ok=False, mensaje="Cantidad distinta del movimiento original"
+            )
+        ya = movimientos_reverso_consumo_de(
+            c.uow.get_data(), movimiento_original.id
+        )
+        if ya:
+            return ResultadoMovimiento(
+                ok=False,
+                mensaje=f"Movimiento {movimiento_original.id} ya tiene reverso",
+                movimiento=ya[0],
+                duplicado=True,
+            )
+        origen_tipo = ORIGEN_TIPO_ANULACION_REGISTRO
+        revertido_id = movimiento_original.id
+    else:
+        origen_tipo = ORIGEN_TIPO_ANULACION_REGISTRO_HISTORICA
+        revertido_id = None
+
+    coste_unitario = None
+    coste_tot = None
+    if coste_total is not None:
+        coste_tot = round(float(coste_total), 2)
+        if float(cantidad) > 0:
+            coste_unitario = round(coste_tot / float(cantidad), 6)
+    elif movimiento_original is not None:
+        coste_tot = movimiento_original.coste_total_snapshot
+        coste_unitario = movimiento_original.coste_unitario_snapshot
+
+    return crear_movimiento(
+        producto_id=producto_id,
+        lote_id=lote_id,
+        tipo=TipoMovimiento.REVERSION_CONSUMO,
+        direccion=DireccionMovimiento.ENTRADA,
+        cantidad=cantidad,
+        fecha=fecha,
+        hora=hora,
+        origen_tipo=origen_tipo,
+        origen_id=registro_id,
+        origen_linea_id=origen_linea_id_consumo(det_idx, frag_idx),
+        movimiento_revertido_id=revertido_id,
+        usuario_id=usuario_id,
+        coste_unitario_snapshot=coste_unitario,
+        coste_total_snapshot=coste_tot,
+        ctx=ctx,
+        commit=commit,
+    )
+
+
+def escribir_espejos_reversion_consumo_registro(
+    *,
+    registro_id: str,
+    lineas_detalle: list[Any],
+    fecha: date,
+    hora: time | None = None,
+    usuario_id: str | None = None,
+    ctx: AppContext | None = None,
+) -> None:
+    """Un ``reversion_consumo`` por fragmento de ``consumos_lote``. Lanza si falla."""
+    data = _ctx(ctx).uow.get_data()
+    for di, det in enumerate(lineas_detalle or []):
+        for fi, frag in enumerate(getattr(det, "consumos_lote", None) or []):
+            if float(getattr(frag, "cantidad", 0) or 0) <= 0:
+                continue
+            original = buscar_movimiento_consumo_fragmento(
+                data, registro_id, di, fi
+            )
+            r = espejo_reversion_consumo_fragmento(
+                producto_id=frag.producto_id,
+                lote_id=frag.lote_id,
+                cantidad=frag.cantidad,
+                fecha=fecha,
+                registro_id=registro_id,
+                det_idx=di,
+                frag_idx=fi,
+                movimiento_original=original,
+                coste_total=frag.coste,
+                hora=hora,
+                usuario_id=usuario_id,
+                ctx=ctx,
+                commit=False,
+            )
+            if not r.ok and not r.duplicado:
+                raise RuntimeError(
+                    f"No se pudo registrar reverso de consumo: {r.mensaje}"
+                )
+
+
+def buscar_movimiento_entrada_lote(
+    data: AppData, lote_id: str
+) -> MovimientoInventario | None:
+    for m in buscar_por_origen(data, ORIGEN_TIPO_LOTE, lote_id, None):
+        if _enum_value(m.tipo) == TipoMovimiento.ENTRADA_COMPRA.value:
+            return m
+    # También buscar sin filtrar linea
+    for m in listar_movimientos(data):
+        if (
+            m.origen_tipo == ORIGEN_TIPO_LOTE
+            and m.origen_id == lote_id
+            and _enum_value(m.tipo) == TipoMovimiento.ENTRADA_COMPRA.value
+        ):
+            return m
+    return None
+
+
+def espejo_reversion_entrada_lote(
+    *,
+    producto_id: str,
+    lote_id: str,
+    cantidad: float,
+    fecha: date,
+    movimiento_original: MovimientoInventario | None,
+    hora: time | None = None,
+    usuario_id: str | None = None,
+    ctx: AppContext | None = None,
+    commit: bool = False,
+) -> ResultadoMovimiento:
+    """Escribe ``reversion_entrada`` (salida) al anular compra/lote.
+
+    La cantidad es el restante que se pone a 0 (no necesariamente la entrada
+    completa si ya hubo consumos).
+    """
+    if float(cantidad) <= 0:
+        return ResultadoMovimiento(
+            ok=True, mensaje="Sin restante que revertir en ledger"
+        )
+    c = _ctx(ctx)
+    if movimiento_original is not None:
+        if _enum_value(movimiento_original.tipo) != TipoMovimiento.ENTRADA_COMPRA.value:
+            return ResultadoMovimiento(
+                ok=False, mensaje="El movimiento a revertir no es entrada_compra"
+            )
+        if movimiento_original.producto_id != producto_id:
+            return ResultadoMovimiento(
+                ok=False, mensaje="Producto distinto del movimiento original"
+            )
+        if movimiento_original.lote_id != lote_id:
+            return ResultadoMovimiento(
+                ok=False, mensaje="Lote distinto del movimiento original"
+            )
+        ya = [
+            m
+            for m in listar_movimientos(c.uow.get_data())
+            if m.movimiento_revertido_id == movimiento_original.id
+            and _enum_value(m.tipo) == TipoMovimiento.REVERSION_ENTRADA.value
+        ]
+        if ya:
+            return ResultadoMovimiento(
+                ok=False,
+                mensaje=f"Entrada {movimiento_original.id} ya tiene reverso",
+                movimiento=ya[0],
+                duplicado=True,
+            )
+        origen_tipo = ORIGEN_TIPO_ANULACION_COMPRA
+        revertido_id = movimiento_original.id
+    else:
+        origen_tipo = ORIGEN_TIPO_ANULACION_COMPRA_HISTORICA
+        revertido_id = None
+
+    return crear_movimiento(
+        producto_id=producto_id,
+        lote_id=lote_id,
+        tipo=TipoMovimiento.REVERSION_ENTRADA,
+        direccion=DireccionMovimiento.SALIDA,
+        cantidad=cantidad,
+        fecha=fecha,
+        hora=hora,
+        origen_tipo=origen_tipo,
+        origen_id=lote_id,
+        origen_linea_id=None,
+        movimiento_revertido_id=revertido_id,
+        usuario_id=usuario_id,
+        ctx=ctx,
+        commit=commit,
+    )
+
+
 # --- Consultas de reconciliación (solo lectura; no corrigen stock) ---
 
 
@@ -756,6 +1101,7 @@ def incidencias_movimientos(data: AppData) -> list[str]:
                 )
 
     incidencias.extend(_incidencias_merma_ledger(data))
+    incidencias.extend(_incidencias_consumo_ledger(data))
 
     if movimientos:
         incidencias.append(
@@ -1044,6 +1390,194 @@ def _incidencias_merma_ledger(data: AppData) -> list[str]:
     return incidencias
 
 
+def _incidencias_consumo_ledger(data: AppData) -> list[str]:
+    """Incidencias dual-write consumo / reversion_consumo / reversion_entrada."""
+    incidencias: list[str] = []
+    registros: list[tuple[str, Any]] = []
+    for d in getattr(data, "desayunos", []) or []:
+        registros.append((d.id, d))
+    for r in getattr(data, "registros_servicio", []) or []:
+        registros.append((r.id, r))
+
+    movs_cons = [
+        m
+        for m in listar_movimientos(data)
+        if _enum_value(m.tipo) == TipoMovimiento.CONSUMO.value
+    ]
+    por_frag: dict[tuple[str, str], list] = {}
+    for m in movs_cons:
+        key = (m.origen_id, m.origen_linea_id or "")
+        por_frag.setdefault(key, []).append(m)
+        # Origen registro
+        if not any(rid == m.origen_id for rid, _ in registros):
+            incidencias.append(
+                f"Movimiento {m.id}: registro de consumo inexistente {m.origen_id}"
+            )
+
+    for key, lista in por_frag.items():
+        if len(lista) > 1:
+            incidencias.append(
+                f"Doble movimiento consumo para {key[0]} / {key[1]}"
+            )
+
+    for rid, reg in registros:
+        detalle = list(getattr(reg, "lineas_detalle", None) or [])
+        frags = 0
+        con_mov = 0
+        for di, det in enumerate(detalle):
+            for fi, frag in enumerate(getattr(det, "consumos_lote", None) or []):
+                if float(frag.cantidad) <= 0:
+                    continue
+                frags += 1
+                mov = buscar_movimiento_consumo_fragmento(data, rid, di, fi)
+                if mov is None:
+                    continue
+                con_mov += 1
+                if mov.producto_id != frag.producto_id:
+                    incidencias.append(
+                        f"Movimiento {mov.id}: producto distinto del fragmento"
+                    )
+                if mov.lote_id != frag.lote_id:
+                    incidencias.append(
+                        f"Movimiento {mov.id}: lote distinto del fragmento"
+                    )
+                if abs(float(mov.cantidad) - float(frag.cantidad)) > 1e-9:
+                    incidencias.append(
+                        f"Movimiento {mov.id}: cantidad distinta del fragmento"
+                    )
+                if (
+                    mov.coste_total_snapshot is not None
+                    and abs(float(mov.coste_total_snapshot) - float(frag.coste)) > 1e-6
+                ):
+                    incidencias.append(
+                        f"Movimiento {mov.id}: coste incoherente con fragmento"
+                    )
+
+        if frags > 0 and con_mov == 0:
+            incidencias.append(
+                f"Informativo: cobertura parcial histórica — registro {rid} "
+                "sin movimientos consumo espejo"
+            )
+        elif frags > 0 and con_mov < frags:
+            incidencias.append(
+                f"Registro {rid}: fragmentos sin movimiento espejo "
+                f"({con_mov}/{frags}) — inconsistencia"
+            )
+
+        if getattr(reg, "anulado", False) and frags > 0:
+            n_rev = sum(
+                1
+                for m in listar_movimientos(data)
+                if m.origen_id == rid
+                and _enum_value(m.tipo) == TipoMovimiento.REVERSION_CONSUMO.value
+            )
+            if n_rev == 0 and con_mov == 0:
+                incidencias.append(
+                    f"Informativo: reversión histórica sin movimiento espejo "
+                    f"original — registro {rid} (cobertura parcial)"
+                )
+            elif n_rev < frags and con_mov > 0:
+                incidencias.append(
+                    f"Registro {rid} anulado: reversion_consumo incompleta "
+                    f"({n_rev}/{frags})"
+                )
+
+    # Reversos consumo duplicados por original
+    rev_por_orig: dict[str, list[str]] = {}
+    for m in listar_movimientos(data):
+        if (
+            _enum_value(m.tipo) == TipoMovimiento.REVERSION_CONSUMO.value
+            and m.movimiento_revertido_id
+        ):
+            rev_por_orig.setdefault(m.movimiento_revertido_id, []).append(m.id)
+    for oid, ids in rev_por_orig.items():
+        if len(ids) > 1:
+            incidencias.append(
+                f"Consumo original {oid} revertido más de una vez: "
+                + ", ".join(ids)
+            )
+
+    # Compras anuladas sin reversion_entrada
+    for lote in getattr(data, "lotes", []) or []:
+        if not getattr(lote, "anulado", False):
+            continue
+        revs = [
+            m
+            for m in listar_movimientos(data)
+            if m.origen_id == lote.id
+            and _enum_value(m.tipo) == TipoMovimiento.REVERSION_ENTRADA.value
+        ]
+        entrada = buscar_movimiento_entrada_lote(data, lote.id)
+        if not revs and entrada is not None:
+            incidencias.append(
+                f"Compra/lote {lote.id} anulado: sin reversion_entrada"
+            )
+        elif not revs and entrada is None:
+            incidencias.append(
+                f"Informativo: anulación de compra histórica sin entrada espejo "
+                f"— lote {lote.id}"
+            )
+        elif len(revs) > 1:
+            incidencias.append(
+                f"Doble reversion_entrada para lote {lote.id}"
+            )
+
+    return incidencias
+
+
+@dataclass
+class ResumenTiposLedger:
+    entradas: float
+    consumos: float
+    mermas: float
+    ajustes_entrada: float
+    ajustes_salida: float
+    reversos_entrada: float
+    reversos_consumo: float
+    reversos_merma: float
+    saldo_teorico: float
+    nota: str = NOTA_LEDGER_PARCIAL
+
+
+def resumen_tipos_ledger(data: AppData) -> ResumenTiposLedger:
+    """Totales firmados por familia de tipo. Solo lectura."""
+    acc = {
+        TipoMovimiento.ENTRADA_COMPRA.value: 0.0,
+        TipoMovimiento.CONSUMO.value: 0.0,
+        TipoMovimiento.MERMA.value: 0.0,
+        TipoMovimiento.AJUSTE_ENTRADA.value: 0.0,
+        TipoMovimiento.AJUSTE_SALIDA.value: 0.0,
+        TipoMovimiento.REVERSION_ENTRADA.value: 0.0,
+        TipoMovimiento.REVERSION_CONSUMO.value: 0.0,
+        TipoMovimiento.REVERSION_MERMA.value: 0.0,
+    }
+    for m in listar_movimientos(data):
+        t = _enum_value(m.tipo)
+        if t in acc:
+            acc[t] += float(m.cantidad)
+    teorico = (
+        acc[TipoMovimiento.ENTRADA_COMPRA.value]
+        + acc[TipoMovimiento.AJUSTE_ENTRADA.value]
+        + acc[TipoMovimiento.REVERSION_CONSUMO.value]
+        + acc[TipoMovimiento.REVERSION_MERMA.value]
+        - acc[TipoMovimiento.CONSUMO.value]
+        - acc[TipoMovimiento.MERMA.value]
+        - acc[TipoMovimiento.AJUSTE_SALIDA.value]
+        - acc[TipoMovimiento.REVERSION_ENTRADA.value]
+    )
+    return ResumenTiposLedger(
+        entradas=acc[TipoMovimiento.ENTRADA_COMPRA.value],
+        consumos=acc[TipoMovimiento.CONSUMO.value],
+        mermas=acc[TipoMovimiento.MERMA.value],
+        ajustes_entrada=acc[TipoMovimiento.AJUSTE_ENTRADA.value],
+        ajustes_salida=acc[TipoMovimiento.AJUSTE_SALIDA.value],
+        reversos_entrada=acc[TipoMovimiento.REVERSION_ENTRADA.value],
+        reversos_consumo=acc[TipoMovimiento.REVERSION_CONSUMO.value],
+        reversos_merma=acc[TipoMovimiento.REVERSION_MERMA.value],
+        saldo_teorico=teorico,
+    )
+
+
 def contar_movimientos_por_tipo(data: AppData, tipo: TipoMovimiento | str) -> int:
     t = _enum_value(tipo)
     return sum(1 for m in listar_movimientos(data) if _enum_value(m.tipo) == t)
@@ -1055,12 +1589,22 @@ __all__ = [
     "ComparacionLoteLedger",
     "NOTA_LEDGER_PARCIAL",
     "NOTA_SIN_BACKFILL",
+    "ORIGENES_CONSUMO_REGISTRO",
     "ORIGEN_TIPO_AJUSTE",
+    "ORIGEN_TIPO_ANULACION_COMPRA",
+    "ORIGEN_TIPO_ANULACION_COMPRA_HISTORICA",
     "ORIGEN_TIPO_ANULACION_MERMA",
     "ORIGEN_TIPO_ANULACION_MERMA_HISTORICA",
+    "ORIGEN_TIPO_ANULACION_REGISTRO",
+    "ORIGEN_TIPO_ANULACION_REGISTRO_HISTORICA",
+    "ORIGEN_TIPO_DESAYUNO",
     "ORIGEN_TIPO_LOTE",
     "ORIGEN_TIPO_MERMA",
+    "ORIGEN_TIPO_REGISTRO_SERVICIO",
     "ResultadoMovimiento",
+    "ResumenTiposLedger",
+    "buscar_movimiento_consumo_fragmento",
+    "buscar_movimiento_entrada_lote",
     "buscar_movimiento_merma_linea",
     "buscar_por_id",
     "buscar_por_lote",
@@ -1073,15 +1617,23 @@ __all__ = [
     "contar_movimientos_por_tipo",
     "crear_movimiento",
     "direccion_esperada",
+    "escribir_espejos_consumo_registro",
+    "escribir_espejos_reversion_consumo_registro",
     "espejo_ajuste_linea",
+    "espejo_consumo_fragmento",
     "espejo_entrada_lote",
     "espejo_merma_linea",
+    "espejo_reversion_consumo_fragmento",
+    "espejo_reversion_entrada_lote",
     "espejo_reversion_merma_linea",
     "incidencias_movimientos",
     "listar_movimientos",
+    "movimientos_reverso_consumo_de",
     "movimientos_reverso_de",
+    "origen_linea_id_consumo",
     "origen_linea_id_merma",
     "reconciliacion_informativa",
+    "resumen_tipos_ledger",
     "saldo_teorico_ledger_por_lote",
     "total_entradas_por_lote",
     "total_salidas_por_lote",

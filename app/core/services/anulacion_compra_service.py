@@ -237,9 +237,13 @@ def anular_compra(
         lote.cantidad_restante,
     )
     n_actividades = len(data.actividades)
+    if not hasattr(data, "movimientos") or data.movimientos is None:
+        data.movimientos = []
+    n_movimientos = len(data.movimientos)
     repo = DataRepository(data)
     producto = repo.get_producto(lote.producto_id)
     nombre = producto.nombre if producto else lote.producto_id
+    restante_antes = float(lote.cantidad_restante)
 
     try:
         lote.cantidad_restante = 0.0
@@ -250,6 +254,25 @@ def anular_compra(
         lote.motivo_anulacion = motivo_limpio
         lote.referencia_anulacion = (referencia or "").strip()
         lote.anulado_por = context.actor.nombre
+
+        from app.core.services import movimiento_service as mov_svc
+
+        original = mov_svc.buscar_movimiento_entrada_lote(data, lote_id)
+        espejo = mov_svc.espejo_reversion_entrada_lote(
+            producto_id=lote.producto_id,
+            lote_id=lote_id,
+            cantidad=restante_antes,
+            fecha=lote.fecha_anulacion or ahora.date(),
+            movimiento_original=original,
+            hora=lote.hora_anulacion,
+            usuario_id=context.actor.id or None,
+            ctx=context,
+            commit=False,
+        )
+        if not espejo.ok and not espejo.duplicado:
+            raise RuntimeError(
+                f"No se pudo registrar reverso de entrada: {espejo.mensaje}"
+            )
 
         _registrar_actividad(
             context,
@@ -271,7 +294,9 @@ def anular_compra(
             lote.anulado_por,
             lote.cantidad_restante,
         ) = snap_campos
-        del data.actividades[: max(0, len(data.actividades) - n_actividades)]
+        del data.movimientos[n_movimientos:]
+        if len(data.actividades) > n_actividades:
+            del data.actividades[n_actividades:]
         return ResultadoAnulacionCompra(
             False, f"Anulación fallida; estado restaurado. ({exc})",
         )

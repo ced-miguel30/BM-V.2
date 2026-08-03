@@ -405,6 +405,9 @@ def registrar_desayuno(
     snap = snapshot_cantidades_restantes(data)
     n_desayunos = len(data.desayunos)
     n_actividades = len(data.actividades)
+    if not hasattr(data, "movimientos") or data.movimientos is None:
+        data.movimientos = []
+    n_movimientos = len(data.movimientos)
     try:
         from app.core.application.inventory_ops import (
             aplicar_descuento_atomico as aplicar_descuento_ctx,
@@ -446,6 +449,18 @@ def registrar_desayuno(
         )
         data.desayunos.append(registro)
 
+        from app.core.services import movimiento_service as mov_svc
+
+        mov_svc.escribir_espejos_consumo_registro(
+            origen_tipo=mov_svc.ORIGEN_TIPO_DESAYUNO,
+            registro_id=registro_id,
+            lineas_detalle=lineas_detalle,
+            fecha=fecha,
+            hora=registro.hora,
+            usuario_id=context.actor.id or None,
+            ctx=context,
+        )
+
         detalle_recetas = ""
         if registros_recetas:
             detalle_recetas = f" — {len(registros_recetas)} receta(s)"
@@ -459,7 +474,9 @@ def registrar_desayuno(
     except Exception:
         restaurar_cantidades_restantes(data, snap)
         del data.desayunos[n_desayunos:]
-        del data.actividades[: max(0, len(data.actividades) - n_actividades)]
+        del data.movimientos[n_movimientos:]
+        if len(data.actividades) > n_actividades:
+            del data.actividades[n_actividades:]
         raise
 
     limpiar_cesta()

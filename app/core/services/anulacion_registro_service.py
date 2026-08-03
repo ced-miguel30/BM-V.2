@@ -315,6 +315,9 @@ def anular_registro(
         registro.anulado_por,
     )
     n_actividades = len(data.actividades)
+    if not hasattr(data, "movimientos") or data.movimientos is None:
+        data.movimientos = []
+    n_movimientos = len(data.movimientos)
     por_lote = _aggregar_devoluciones(registro)
     lotes = {l.id: l for l in data.lotes}
 
@@ -332,6 +335,17 @@ def anular_registro(
         registro.motivo_anulacion = motivo_limpio
         registro.referencia_anulacion = (referencia or "").strip()
         registro.anulado_por = context.actor.nombre
+
+        from app.core.services import movimiento_service as mov_svc
+
+        mov_svc.escribir_espejos_reversion_consumo_registro(
+            registro_id=registro_id,
+            lineas_detalle=list(getattr(registro, "lineas_detalle", None) or []),
+            fecha=registro.fecha_anulacion or ahora.date(),
+            hora=registro.hora_anulacion,
+            usuario_id=context.actor.id or None,
+            ctx=context,
+        )
 
         etiqueta = (
             "Desayuno"
@@ -357,7 +371,9 @@ def anular_registro(
             registro.referencia_anulacion,
             registro.anulado_por,
         ) = snap_anulado
-        del data.actividades[: max(0, len(data.actividades) - n_actividades)]
+        del data.movimientos[n_movimientos:]
+        if len(data.actividades) > n_actividades:
+            del data.actividades[n_actividades:]
         return ResultadoAnulacion(False, f"Anulación fallida; estado restaurado. ({exc})")
 
     from app.core.services.alert_service import sincronizar_alertas
