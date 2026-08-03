@@ -112,16 +112,19 @@ def render_sidebar() -> str:
             unsafe_allow_html=True,
         )
 
-        def _al_cambiar_seccion_operativa() -> None:
-            st.session_state[key_nav] = st.session_state[key_op]
-
-        st.radio(
-            label="Sección",
-            options=operativas,
-            label_visibility="collapsed",
-            key=key_op,
-            on_change=_al_cambiar_seccion_operativa,
-        )
+        # Botones (no radio): con una sola opción (Registro) el radio no dispara
+        # on_change si el valor no cambia, y no se podía salir de Configuración.
+        for sec in operativas:
+            activa = st.session_state.get(key_nav) == sec
+            if st.button(
+                sec,
+                key=f"nav_op_btn_{sec}",
+                type="primary" if activa else "secondary",
+                use_container_width=True,
+            ):
+                st.session_state[key_nav] = sec
+                st.session_state[key_op] = sec
+                st.rerun()
 
         st.markdown(
             '<p class="bm-sidebar-section-label">Global</p>',
@@ -136,9 +139,6 @@ def render_sidebar() -> str:
         ):
             st.session_state[key_nav] = esp.SECCION_CONFIGURACION
             st.rerun()
-
-        if st.session_state.get(key_nav) != esp.SECCION_CONFIGURACION:
-            st.session_state[key_nav] = st.session_state[key_op]
 
         _render_sidebar_diagnostico()
 

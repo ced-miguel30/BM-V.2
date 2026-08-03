@@ -98,6 +98,48 @@ def inject_global_styles() -> None:
                 color: {WHITE} !important;
             }}
 
+            /* Controles con fondo claro: forzar texto oscuro (evita blanco sobre blanco). */
+            [data-testid="stSidebar"] .stSelectbox [data-baseweb="select"] > div {{
+                background-color: {WHITE} !important;
+                border-color: rgba(201, 162, 39, 0.55) !important;
+            }}
+
+            [data-testid="stSidebar"] .stSelectbox [data-baseweb="select"] *,
+            [data-testid="stSidebar"] .stSelectbox span,
+            [data-testid="stSidebar"] .stSelectbox input,
+            [data-testid="stSidebar"] .stSelectbox svg {{
+                color: {DARK_TEXT} !important;
+                fill: {DARK_TEXT} !important;
+            }}
+
+            /* Menú desplegable (portal fuera del sidebar). */
+            div[data-baseweb="popover"] li,
+            div[data-baseweb="popover"] li *,
+            ul[role="listbox"] li,
+            ul[role="listbox"] li * {{
+                color: {DARK_TEXT} !important;
+            }}
+
+            [data-testid="stSidebar"] .stButton > button {{
+                background: rgba(255, 255, 255, 0.1) !important;
+                color: {WHITE} !important;
+                border: 1px solid rgba(201, 162, 39, 0.45) !important;
+                font-weight: 500;
+            }}
+
+            [data-testid="stSidebar"] .stButton > button:hover {{
+                background: rgba(201, 162, 39, 0.22) !important;
+                border-color: {GOLD} !important;
+                color: {WHITE} !important;
+            }}
+
+            [data-testid="stSidebar"] .stButton > button[kind="primary"] {{
+                background: rgba(201, 162, 39, 0.28) !important;
+                border: 1px solid {GOLD} !important;
+                border-left: 3px solid {GOLD} !important;
+                color: {WHITE} !important;
+            }}
+
             [data-testid="stSidebar"] .stRadio label {{
                 color: rgba(255, 255, 255, 0.85) !important;
                 font-weight: 500;
