@@ -232,6 +232,37 @@ def _render_diagnostico_tecnico() -> None:
             getattr(resumen, "incidencias_trazabilidad_lote", []),
         )
 
+    st.markdown("##### Invariantes JSON / anulaciones (Fase 1B)")
+    st.caption(
+        "Solo lectura. Módulo `diagnostico_invariantes` (separado de los tests 1A). "
+        "Detalle en docs/invariantes_json_fase1b.md."
+    )
+    i1, i2, i3 = st.columns(3)
+    i1.metric("Registros anulados", getattr(resumen, "num_registros_anulados", 0))
+    i2.metric("Mermas anuladas", getattr(resumen, "num_mermas_anuladas", 0))
+    i3.metric("Compras anuladas", getattr(resumen, "num_compras_anuladas", 0))
+    j1, j2, j3 = st.columns(3)
+    j1.metric(
+        "Activos con trazabilidad",
+        getattr(resumen, "num_registros_activos_con_traza", 0),
+    )
+    j2.metric(
+        "Activos sin trazabilidad",
+        getattr(resumen, "num_registros_activos_sin_traza", 0),
+        help="Históricos o incompletos: anulación automática bloqueada.",
+    )
+    j3.metric(
+        "Mermas activas sin lote",
+        getattr(resumen, "num_mermas_activas_sin_lote", 0),
+    )
+    with st.expander("Invariantes — detalle", expanded=False):
+        for nota in getattr(resumen, "notas_invariantes", []) or []:
+            st.caption(f"· {nota}")
+        _render_lista_incidencias(
+            "Incidencias de invariantes",
+            getattr(resumen, "incidencias_invariantes", []),
+        )
+
     st.markdown("##### Formato por unidad (comprobación)")
     try:
         from app.core.services.unidad_service import ejemplos_formato_unidades

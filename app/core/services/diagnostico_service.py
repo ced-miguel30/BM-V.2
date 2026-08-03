@@ -47,6 +47,15 @@ class ResumenDiagnostico:
         "se etiqueta como «Sin trazabilidad histórica por lote» (no corrupción). "
         "El alta nueva exige consumos_lote completo antes de persistir."
     )
+    # Fase 1B — invariantes JSON / anulaciones (módulo separado).
+    num_registros_anulados: int = 0
+    num_mermas_anuladas: int = 0
+    num_compras_anuladas: int = 0
+    num_registros_activos_con_traza: int = 0
+    num_registros_activos_sin_traza: int = 0
+    num_mermas_activas_sin_lote: int = 0
+    incidencias_invariantes: list[str] = field(default_factory=list)
+    notas_invariantes: list[str] = field(default_factory=list)
 
 
 def _ids_duplicados(ids: list[str], etiqueta: str) -> list[str]:
@@ -293,6 +302,10 @@ def generar_diagnostico(data: AppData) -> ResumenDiagnostico:
     ajustes = getattr(data, "ajustes", []) or []
     num_lineas_ajuste = sum(len(a.lineas) for a in ajustes)
 
+    from app.core.services.diagnostico_invariantes import evaluar_invariantes_json
+
+    inv = evaluar_invariantes_json(data)
+
     return ResumenDiagnostico(
         num_productos=len(data.productos),
         num_recetas=len(data.recetas),
@@ -320,4 +333,12 @@ def generar_diagnostico(data: AppData) -> ResumenDiagnostico:
         num_lineas_con_trazabilidad_lote=num_con_traza,
         sin_trazabilidad_historica_lote=sin_traza_hist,
         incidencias_trazabilidad_lote=incid_traza,
+        num_registros_anulados=inv.num_registros_anulados,
+        num_mermas_anuladas=inv.num_mermas_anuladas,
+        num_compras_anuladas=inv.num_compras_anuladas,
+        num_registros_activos_con_traza=inv.num_registros_activos_con_traza,
+        num_registros_activos_sin_traza=inv.num_registros_activos_sin_traza,
+        num_mermas_activas_sin_lote=inv.num_mermas_activas_sin_lote,
+        incidencias_invariantes=list(inv.incidencias_invariantes),
+        notas_invariantes=list(inv.notas),
     )
