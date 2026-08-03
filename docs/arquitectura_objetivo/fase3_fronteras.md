@@ -75,6 +75,18 @@ Lectura de productos vía `listar_productos` / `obtener_producto` / `mapa_produc
 
 Catálogos → alertas → ajustes → merma → registro → FIFO → anulaciones → export.
 
-## Siguiente: Fase 5
+## Fase 5 — espacios de trabajo (hecha)
 
-Navegación / 3 modos (espacios de trabajo). **Momento clave de validación UI en Streamlit.**
+- Lógica pura: `app/core/application/espacios.py` (sin Streamlit).
+- UI: selector «Espacio de trabajo» en `render_sidebar()`; filtra secciones operativas.
+- **Configuración es global y provisionalmente visible** (no es un cuarto espacio).
+- Persistencia del espacio solo en `st.session_state` (`bm_espacio_trabajo`); no AppData/JSON.
+- El selector **no concede permisos**; seguridad real en **Fase 16**.
+- F5 **no oculta** precios ni información económica dentro de las páginas.
+- La **terminal de restaurante** no se implementa en esta fase.
+- Detalle: `docs/arquitectura_objetivo/espacios_trabajo.md`.
+- Tests: `tests/test_fase5_espacios.py`.
+
+## Siguiente: Fase 6+
+
+Continuar el plan maestro tras validación UI de los tres espacios.

@@ -62,29 +62,95 @@ def _render_sidebar_diagnostico() -> None:
 
 
 def render_sidebar() -> str:
-    """Renderiza la barra lateral y devuelve la sección seleccionada."""
-    opciones = list(NAV_SECTIONS.keys())
-    # Deep-link: aplicar destino pendiente ANTES de instanciar el radio.
+    """Renderiza la barra lateral y devuelve la clave interna de sección.
+
+    Fase 5: selector «Espacio de trabajo» filtra la navegación operativa.
+    Configuración es global (siempre visible). No toca AppData/JSON.
+
+    Orden: resolver deep-link / coherencia → fijar session_state → widgets
+    → como máximo un ``st.rerun()`` (botón Configuración).
+    """
+    from app.core.application import espacios as esp
+
+    key_esp = esp.SESSION_KEY_ESPACIO
+    key_op = "nav_section_op"
+    key_nav = "nav_section"
+
+    # 1–5. Deep-link y coherencia ANTES de instanciar widgets.
     pending = st.session_state.pop("nav_section_pending", None)
-    if pending in opciones:
-        st.session_state["nav_section"] = pending
-    # Si el menú cambió (p. ej. se añadió Registros), limpia un valor obsoleto
-    # para que Streamlit no oculte opciones nuevas o falle el radio.
-    if st.session_state.get("nav_section") not in (None, *opciones):
-        del st.session_state["nav_section"]
+    estado = esp.resolver_navegacion(
+        espacio_actual=st.session_state.get(key_esp),
+        seccion_actual=st.session_state.get(key_nav),
+        seccion_pendiente=pending,
+    )
+    st.session_state[key_esp] = estado.espacio
+    st.session_state[key_nav] = estado.seccion
+
+    operativas = list(esp.secciones_operativas(estado.espacio))
+    if estado.seccion in operativas:
+        st.session_state[key_op] = estado.seccion
+    elif st.session_state.get(key_op) not in operativas:
+        st.session_state[key_op] = operativas[0]
 
     with st.sidebar:
         _render_sidebar_alertas()
-        st.markdown('<p class="bm-sidebar-section-label">Navegación</p>', unsafe_allow_html=True)
-        section = st.radio(
-            label="Sección",
-            options=opciones,
-            label_visibility="collapsed",
-            key="nav_section",
+
+        st.markdown(
+            '<p class="bm-sidebar-section-label">Espacio de trabajo</p>',
+            unsafe_allow_html=True,
         )
+        st.selectbox(
+            "Espacio de trabajo",
+            options=list(esp.ESPACIOS_ORDEN),
+            format_func=lambda e: esp.ETIQUETAS_ESPACIO[e],
+            key=key_esp,
+            label_visibility="collapsed",
+        )
+
+        st.markdown(
+            '<p class="bm-sidebar-section-label">Navegación</p>',
+            unsafe_allow_html=True,
+        )
+
+        def _al_cambiar_seccion_operativa() -> None:
+            st.session_state[key_nav] = st.session_state[key_op]
+
+        st.radio(
+            label="Sección",
+            options=operativas,
+            label_visibility="collapsed",
+            key=key_op,
+            on_change=_al_cambiar_seccion_operativa,
+        )
+
+        st.markdown(
+            '<p class="bm-sidebar-section-label">Global</p>',
+            unsafe_allow_html=True,
+        )
+        config_activa = st.session_state.get(key_nav) == esp.SECCION_CONFIGURACION
+        if st.button(
+            "Configuración",
+            key="nav_btn_configuracion",
+            type="primary" if config_activa else "secondary",
+            use_container_width=True,
+        ):
+            st.session_state[key_nav] = esp.SECCION_CONFIGURACION
+            st.rerun()
+
+        if st.session_state.get(key_nav) != esp.SECCION_CONFIGURACION:
+            st.session_state[key_nav] = st.session_state[key_op]
+
         _render_sidebar_diagnostico()
 
-    return NAV_SECTIONS[section]
+    seccion_label = st.session_state.get(
+        key_nav, esp.primera_seccion_operativa(estado.espacio),
+    )
+    if seccion_label not in NAV_SECTIONS:
+        seccion_label = esp.primera_seccion_operativa(
+            esp.normalizar_espacio(st.session_state.get(key_esp)),
+        )
+        st.session_state[key_nav] = seccion_label
+    return NAV_SECTIONS[seccion_label]
 
 
 def page_header(title: str, subtitle: str) -> None:

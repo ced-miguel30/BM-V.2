@@ -1,65 +1,66 @@
-# Espacios de trabajo (diseño — Fase 2)
+# Espacios de trabajo (Fase 5 — implementado)
 
-**No implementado.** La integración real es **Fase 5** (tras frontera de aplicación estable).  
-Prototipo aislado opcional: no cablear a `main`/sidebar productiva en esta fase.
+**Estado:** implementado en navegación Streamlit.  
+**Alcance F5:** solo filtra la navegación visible. No cambia JSON, AppData, modelos, servicios de dominio, FIFO ni serializers.
 
 ## Selector
 
-Nombre preferente: **Espacio de trabajo**.
+Nombre: **Espacio de trabajo** (`st.session_state["bm_espacio_trabajo"]`).
 
-Opciones:
+Opciones (ids estables en `app/core/application/espacios.py`):
 
-| Opción | Rol |
-|--------|-----|
-| Registro | Operación diaria rápida |
-| Gestor | Dashboard, análisis, alertas, informes, auditoría |
-| Inventario | Catálogos, compras, documentos, stock, movimientos |
-| Configuración | Usuarios, hotel, diagnósticos (según permisos) |
-| Cerrar sesión | Cuando exista autenticación real (Fase 16) |
+| Id | Etiqueta | Secciones operativas |
+|----|----------|----------------------|
+| `registro` | Registro | Registros |
+| `gestor` | Gestor (**predeterminado**) | Dashboard, Análisis |
+| `inventario` | Inventario | Stock, Recetas |
 
-El selector cambia la **navegación visible**, no la base de datos.
+## Configuración (global, no es un cuarto espacio)
 
-## Contenido previsto por modo
+- **Configuración es global y provisionalmente visible** en esta fase.
+- Aparece en el bloque «Global» del sidebar, separada de la navegación operativa.
+- Si el usuario está en Configuración y cambia el espacio: **permanece en Configuración**; el nuevo espacio queda seleccionado para cuando abandone Configuración.
+- Un deep-link a Configuración **conserva el espacio actual**.
+
+## Matriz de navegación (F5)
+
+| Espacio | Secciones |
+|---------|-----------|
+| Registro | Registros |
+| Gestor | Dashboard, Análisis |
+| Inventario | Stock, Recetas |
+| Global | Configuración |
+
+## Persistencia
+
+- Solo `st.session_state` (clave `bm_espacio_trabajo`).
+- **No** se guarda en AppData, JSON, ni vía `persist_data` / serializers.
+
+## Seguridad y límites explícitos
+
+- El selector **no concede permisos**.
+- La seguridad real (login, roles, ocultación) se implementará en la **Fase 16**.
+- F5 **no oculta** todavía precios ni información económica dentro de las páginas.
+- La **terminal de restaurante** no se implementa en esta fase.
+
+## Deep-links
+
+Sigue usándose `nav_section_pending` (etiquetas de menú). La lógica pura en `espacios.py` resuelve espacio + sección **antes** de instanciar widgets; como máximo un `st.rerun()` (p. ej. botón Configuración).
+
+## Contenido previsto a futuro (no F5)
 
 ### Registro
 
-- Desayuno, comida, cena, bebidas
-- Consumos directos / salidas
-- Mermas
-- Consumos de otros departamentos (futuro)
-- Orientado a velocidad; sin pantallas de compra/factura
+- Desayuno, comida, cena, bebidas, mermas; orientación a velocidad.
 
 ### Gestor
 
-- Dashboard operativo
-- Costes, consumos, mermas, comparativas
-- Costes por servicio / departamento (cuando exista depto)
-- Alertas, predicciones, informes, exportaciones, auditoría
+- Dashboard, costes, alertas, informes, auditoría.
 
 ### Inventario
 
-- Productos, categorías, subcategorías, departamentos
-- Ubicaciones, tipos de artículo
-- Proveedores, impuestos (Fase 8+)
-- Compras / albaranes / facturas / archivos
-- Lotes, stock, recetas, ajustes, mermas, movimientos, traslados, recuentos
+- Catálogos, compras/documentos, lotes, stock, recetas, movimientos.
 
-## Matriz provisional de visibilidad
+## Terminal de restaurante (futuro, fuera de F5)
 
-Hasta Fase 16, la matriz es **orientativa** (no seguridad):
-
-| Capacidad | Registro | Gestor | Inventario | Config |
-|-----------|----------|--------|------------|--------|
-| Registrar consumo/merma | Sí | Lectura/enlace | Lectura | — |
-| Ver costes/precios | No (terminal) / limitado | Sí | Sí | — |
-| Compras / documentos | No | Resumen | Sí | — |
-| Crear producto | No | No | Sí* | — |
-| Usuarios / impuestos | No | No | Parcial* | Sí* |
-
-\* Solo Dirección/Administración cuando existan permisos reales.
-
-## Terminal de restaurante (futuro)
-
-- Modo Registro fijado y restringido
-- Mismo backend y catálogo
-- Sin precios, compras ni configuración sensible
+- Modo Registro fijado y restringido; mismo backend; sin precios ni configuración sensible.
