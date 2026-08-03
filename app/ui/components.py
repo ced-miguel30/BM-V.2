@@ -55,6 +55,14 @@ def _render_sidebar_diagnostico() -> None:
             st.caption(f"Registros: {r.num_registros}")
             st.caption(f"Mermas: {r.num_mermas}")
             st.caption(f"Ajustes: {r.num_ajustes}")
+            st.caption(f"Movimientos ledger: {getattr(r, 'num_movimientos', 0)}")
+            st.caption(
+                getattr(
+                    r,
+                    "nota_ledger",
+                    "Ledger parcial: no es fuente de verdad del stock.",
+                )
+            )
             st.caption("Detalle completo en Configuración.")
         except Exception as exc:  # noqa: BLE001
             st.error("No se pudo cargar el diagnóstico.")

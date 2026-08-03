@@ -20,10 +20,11 @@ Futuro: dominio documentado en [modelo_dominio_objetivo.md](modelo_dominio_objet
 | `Departamento`, `Categoria`, `Subcategoria` | Catálogos 6A | Completados |
 | `Ubicacion` | Maestro ubicaciones 6B | Completado (sin stock por ubicación) |
 | `TipoArticulo` | consumible / reutilizable | **6C**; otros tipos = esbozo P03 |
-| *(no existe)* | Stock cuantitativo por ubicación | P02 → F7 |
+| `MovimientoInventario` + `AppData.movimientos` | Ledger espejo | **7A.1 hecha** — no fuente de verdad |
+| *(no existe aún dual-write)* | Escritura espejo desde ops | **7A.2–7A.4** |
+| *(no existe)* | Stock cuantitativo por ubicación | P02 → tras 7A |
 | *(no existe)* | Herramienta/préstamo, textil, activo | P03 futuro |
 | *(no existe)* | Proveedor, Impuesto | **F8** |
-| *(no existe)* | Movimiento (ledger) | **F7 (siguiente)** |
 
 ## Tipos de artículo (6C)
 
@@ -35,15 +36,17 @@ Futuro: dominio documentado en [modelo_dominio_objetivo.md](modelo_dominio_objet
 Históricos sin campo → `tipo_articulo=None` («Sin clasificar»). Sin conversión automática a consumible.  
 No derivar el tipo desde `es_bebida`, categoría, depto ni ubicación.
 
-## Dimensiones 6A / 6B / 6C
+## Dimensiones 6A / 6B / 6C / 7A
 
 | Concepto | Significado |
 |----------|-------------|
 | Departamento | Ámbito de **uso** operativo |
 | Ubicación | Lugar donde puede **existir** inventario |
 | Tipo de artículo | Naturaleza consumible vs reutilizable (taxonomía fija) |
-| Stock hotel | Σ `cantidad_restante` de lotes (sin cambio en 6C) |
+| Stock hotel | Σ `cantidad_restante` de lotes (**fuente de verdad**; sin cambio en 7A.1) |
+| Ledger | Libro append-only espejo; reconciliación solo informativa en 7A.1 |
 
 ## Próximo paso
 
-**Fase 7** — ledger de movimientos (tras aprobación de 6C).
+**Fase 7A.2** — dual-write espejo para creación de lote/entrada y ajustes (±).  
+No activar ledger como fuente de verdad.

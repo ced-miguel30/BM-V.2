@@ -157,6 +157,41 @@ TIPO_ARTICULO_AYUDA: dict[TipoArticulo, str] = {
 TIPO_ARTICULO_VALORES: frozenset[str] = frozenset(t.value for t in TipoArticulo)
 
 
+class DireccionMovimiento(str, Enum):
+    """Sentido del movimiento de inventario (Fase 7A). Cantidad siempre > 0."""
+
+    ENTRADA = "entrada"
+    SALIDA = "salida"
+
+
+class TipoMovimiento(str, Enum):
+    """Tipos iniciales del ledger espejo (7A). Sin traslados/préstamos aún."""
+
+    ENTRADA_COMPRA = "entrada_compra"
+    CONSUMO = "consumo"
+    MERMA = "merma"
+    AJUSTE_ENTRADA = "ajuste_entrada"
+    AJUSTE_SALIDA = "ajuste_salida"
+    REVERSION_CONSUMO = "reversion_consumo"
+    REVERSION_MERMA = "reversion_merma"
+    REVERSION_ENTRADA = "reversion_entrada"
+
+
+DIRECCION_POR_TIPO_MOVIMIENTO: dict[TipoMovimiento, DireccionMovimiento] = {
+    TipoMovimiento.ENTRADA_COMPRA: DireccionMovimiento.ENTRADA,
+    TipoMovimiento.CONSUMO: DireccionMovimiento.SALIDA,
+    TipoMovimiento.MERMA: DireccionMovimiento.SALIDA,
+    TipoMovimiento.AJUSTE_ENTRADA: DireccionMovimiento.ENTRADA,
+    TipoMovimiento.AJUSTE_SALIDA: DireccionMovimiento.SALIDA,
+    TipoMovimiento.REVERSION_CONSUMO: DireccionMovimiento.ENTRADA,
+    TipoMovimiento.REVERSION_MERMA: DireccionMovimiento.ENTRADA,
+    TipoMovimiento.REVERSION_ENTRADA: DireccionMovimiento.SALIDA,
+}
+
+TIPO_MOVIMIENTO_VALORES: frozenset[str] = frozenset(t.value for t in TipoMovimiento)
+DIRECCION_MOVIMIENTO_VALORES: frozenset[str] = frozenset(d.value for d in DireccionMovimiento)
+
+
 # Servicios en los que un producto/receta puede aparecer en registros.
 # Distinto de categoria_inventario y de CategoriaReceta.
 SERVICIO_DISPONIBLE_LABEL: dict[TipoServicio, str] = {

@@ -15,6 +15,9 @@ from app.core.models.desayuno import (
 from app.core.models.enums import (
     CATEGORIA_RECETA_LABEL,
     CategoriaReceta,
+    DIRECCION_MOVIMIENTO_VALORES,
+    DIRECCION_POR_TIPO_MOVIMIENTO,
+    DireccionMovimiento,
     ESTADO_ALERTA_LABEL,
     EstadoAlerta,
     MotivoAjuste,
@@ -29,16 +32,19 @@ from app.core.models.enums import (
     TIPO_ARTICULO_AYUDA,
     TIPO_ARTICULO_LABEL,
     TIPO_ARTICULO_VALORES,
+    TIPO_MOVIMIENTO_VALORES,
     TURNO_MERMA_LABEL,
     TURNO_MERMA_VALORES,
     TipoAlerta,
     TipoArticulo,
+    TipoMovimiento,
     TipoServicio,
     TurnoMerma,
     UnidadProducto,
 )
 from app.core.models.lote import LoteStock
 from app.core.models.merma import LineaMerma, RegistroMerma, ResponsableMerma
+from app.core.models.movimiento import MovimientoInventario
 from app.core.models.producto import Producto
 from app.core.models.receta import IngredienteReceta, Receta
 from app.core.models.registro_servicio import (
@@ -60,7 +66,9 @@ __all__ = [
     "CategoriaReceta",
     "ConfiguracionHotel",
     "Departamento",
-
+    "DIRECCION_MOVIMIENTO_VALORES",
+    "DIRECCION_POR_TIPO_MOVIMIENTO",
+    "DireccionMovimiento",
     "ESTADO_ALERTA_LABEL",
     "EstadoAlerta",
     "ExtraRecetaDesayuno",
@@ -74,6 +82,7 @@ __all__ = [
     "LoteStock",
     "MotivoAjuste",
     "MotivoMerma",
+    "MovimientoInventario",
     "OmisionRecetaDesayuno",
     "OmisionRecetaServicio",
     "ORIGEN_SERVICIO_MERMA_LABEL",
@@ -96,10 +105,12 @@ __all__ = [
     "TIPO_ARTICULO_AYUDA",
     "TIPO_ARTICULO_LABEL",
     "TIPO_ARTICULO_VALORES",
+    "TIPO_MOVIMIENTO_VALORES",
     "TURNO_MERMA_LABEL",
     "TURNO_MERMA_VALORES",
     "TipoAlerta",
     "TipoArticulo",
+    "TipoMovimiento",
     "TipoServicio",
     "TurnoMerma",
     "Ubicacion",

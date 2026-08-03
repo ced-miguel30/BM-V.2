@@ -58,6 +58,14 @@ class ResumenDiagnostico:
     notas_invariantes: list[str] = field(default_factory=list)
     # Fase 6A — catálogos estructurados (solo lectura).
     incidencias_catalogo: list[str] = field(default_factory=list)
+    # Fase 7A.1 — ledger espejo (solo lectura; no fuente de verdad).
+    num_movimientos: int = 0
+    incidencias_movimientos: list[str] = field(default_factory=list)
+    nota_ledger: str = (
+        "Ledger parcial: reconciliación no aplicable como fuente de verdad. "
+        "La ausencia de movimientos históricos no es error en 7A.1. "
+        "Solo operaciones nuevas desde 7A.2+ generarán ledger."
+    )
 
 
 def _ids_duplicados(ids: list[str], etiqueta: str) -> list[str]:
@@ -306,9 +314,15 @@ def generar_diagnostico(data: AppData) -> ResumenDiagnostico:
 
     from app.core.services.diagnostico_invariantes import evaluar_invariantes_json
     from app.core.services.catalogo_service import incidencias_catalogo as _inc_catalogo
+    from app.core.services.movimiento_service import (
+        incidencias_movimientos as _inc_movimientos,
+        listar_movimientos,
+    )
 
     inv = evaluar_invariantes_json(data)
     cat_inc = _inc_catalogo(data)
+    mov_inc = _inc_movimientos(data)
+    num_mov = len(listar_movimientos(data))
 
     return ResumenDiagnostico(
         num_productos=len(data.productos),
@@ -346,4 +360,6 @@ def generar_diagnostico(data: AppData) -> ResumenDiagnostico:
         incidencias_invariantes=list(inv.incidencias_invariantes),
         notas_invariantes=list(inv.notas),
         incidencias_catalogo=cat_inc,
+        num_movimientos=num_mov,
+        incidencias_movimientos=mov_inc,
     )

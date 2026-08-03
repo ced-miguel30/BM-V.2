@@ -107,8 +107,14 @@ Catálogos → alertas → ajustes → merma → registro → FIFO → anulacion
 - Producto: `tipo_articulo` aditivo; históricos → `None` («Sin clasificar»).
 - Alta nueva: tipo obligatorio. Sin backfill. `es_bebida` independiente.
 - Cambiar tipo no altera FIFO/stock/lotes.
-- Siguiente: **Fase 7** ledger (tras aprobación).
 
-## Siguiente: Fase 7
+## Fase 7A.1 — ledger modelo (hecha)
 
-Ledger de movimientos (diseño F2 → implementación).
+- `MovimientoInventario` + `AppData.movimientos`; persistencia aditiva.
+- Servicio espejo (validar / idempotencia / crear API interna). Sin dual-write.
+- Fuente de verdad: `LoteStock.cantidad_restante`. Sin backfill.
+- Siguiente: **7A.2** dual-write entrada/ajustes (tras aprobación).
+
+## Siguiente: Fase 7A.2
+
+Dual-write espejo para creación de lote/entrada y ajustes (±).

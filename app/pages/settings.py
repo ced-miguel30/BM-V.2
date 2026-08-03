@@ -220,6 +220,21 @@ def _render_diagnostico_tecnico() -> None:
             getattr(resumen, "incidencias_catalogo", []),
         )
 
+    st.markdown("##### Ledger de movimientos (Fase 7A.1)")
+    st.metric("Movimientos en ledger", getattr(resumen, "num_movimientos", 0))
+    st.caption(
+        getattr(
+            resumen,
+            "nota_ledger",
+            "Ledger parcial: reconciliación no aplicable como fuente de verdad.",
+        )
+    )
+    with st.expander("Ledger — incidencias", expanded=False):
+        _render_lista_incidencias(
+            "Incidencias de movimientos",
+            getattr(resumen, "incidencias_movimientos", []),
+        )
+
     st.markdown("##### Trazabilidad por lote (Fase 10.5)")
     st.metric(
         "Líneas con trazabilidad por lote",

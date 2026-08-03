@@ -16,6 +16,7 @@ from app.core.models import (
     CategoriaReceta,
     ConfiguracionHotel,
     Departamento,
+    DireccionMovimiento,
     ExtraRecetaDesayuno,
     ExtraRecetaServicio,
     IngredienteReceta,
@@ -27,6 +28,7 @@ from app.core.models import (
     LoteStock,
     MotivoAjuste,
     MotivoMerma,
+    MovimientoInventario,
     OmisionRecetaDesayuno,
     OmisionRecetaServicio,
     Producto,
@@ -42,6 +44,7 @@ from app.core.models import (
     Subcategoria,
     TipoAlerta,
     TipoArticulo,
+    TipoMovimiento,
     Ubicacion,
     UnidadProducto,
     Usuario,
@@ -61,6 +64,87 @@ def _parse_tipo_articulo(raw: Any) -> TipoArticulo | str | None:
         return TipoArticulo(raw)
     except ValueError:
         return raw
+
+
+def _parse_tipo_movimiento(raw: Any) -> TipoMovimiento | str:
+    """Conocido → enum. Desconocido → str (no convertir silenciosamente)."""
+    if isinstance(raw, TipoMovimiento):
+        return raw
+    s = "" if raw is None else str(raw)
+    try:
+        return TipoMovimiento(s)
+    except ValueError:
+        return s
+
+
+def _parse_direccion_movimiento(raw: Any) -> DireccionMovimiento | str:
+    """Conocido → enum. Desconocido → str (no convertir silenciosamente)."""
+    if isinstance(raw, DireccionMovimiento):
+        return raw
+    s = "" if raw is None else str(raw)
+    try:
+        return DireccionMovimiento(s)
+    except ValueError:
+        return s
+
+
+def _movimiento_to_dict(m: MovimientoInventario) -> dict:
+    return {
+        "id": m.id,
+        "producto_id": m.producto_id,
+        "lote_id": m.lote_id,
+        "tipo": m.tipo.value if hasattr(m.tipo, "value") else m.tipo,
+        "direccion": (
+            m.direccion.value if hasattr(m.direccion, "value") else m.direccion
+        ),
+        "cantidad": m.cantidad,
+        "fecha": m.fecha.isoformat() if m.fecha else None,
+        "hora": m.hora.isoformat() if m.hora else None,
+        "origen_tipo": m.origen_tipo,
+        "origen_id": m.origen_id,
+        "origen_linea_id": m.origen_linea_id,
+        "movimiento_revertido_id": m.movimiento_revertido_id,
+        "usuario_id": m.usuario_id,
+        "idempotency_key": m.idempotency_key,
+        "coste_unitario_snapshot": m.coste_unitario_snapshot,
+        "coste_total_snapshot": m.coste_total_snapshot,
+        "creado_en": m.creado_en.isoformat() if m.creado_en else None,
+    }
+
+
+def _movimiento_from_dict(raw: dict) -> MovimientoInventario:
+    fecha_raw = raw.get("fecha")
+    fecha = _parse_date(fecha_raw) if fecha_raw else date.today()
+    if fecha is None:
+        fecha = date.today()
+    creado_raw = raw.get("creado_en")
+    return MovimientoInventario(
+        id=raw.get("id", ""),
+        producto_id=raw.get("producto_id", ""),
+        lote_id=raw.get("lote_id", ""),
+        tipo=_parse_tipo_movimiento(raw.get("tipo")),
+        direccion=_parse_direccion_movimiento(raw.get("direccion")),
+        cantidad=float(raw.get("cantidad", 0.0)),
+        fecha=fecha,
+        hora=_parse_time(raw.get("hora")),
+        origen_tipo=raw.get("origen_tipo", "") or "",
+        origen_id=raw.get("origen_id", "") or "",
+        origen_linea_id=raw.get("origen_linea_id"),
+        movimiento_revertido_id=raw.get("movimiento_revertido_id"),
+        usuario_id=raw.get("usuario_id"),
+        idempotency_key=raw.get("idempotency_key"),
+        coste_unitario_snapshot=(
+            float(raw["coste_unitario_snapshot"])
+            if raw.get("coste_unitario_snapshot") is not None
+            else None
+        ),
+        coste_total_snapshot=(
+            float(raw["coste_total_snapshot"])
+            if raw.get("coste_total_snapshot") is not None
+            else None
+        ),
+        creado_en=_parse_datetime(creado_raw) if creado_raw else None,
+    )
 
 
 class _Encoder(json.JSONEncoder):
@@ -391,6 +475,10 @@ def appdata_to_dict(data: AppData) -> dict:
             {"id": u.id, "nombre": u.nombre, "activo": u.activo}
             for u in getattr(data, "ubicaciones", []) or []
         ],
+        "movimientos": [
+            _movimiento_to_dict(m)
+            for m in getattr(data, "movimientos", []) or []
+        ],
         "alertas": [
             {
                 "id": a.id, "tipo": a.tipo.value, "titulo": a.titulo, "mensaje": a.mensaje,
@@ -678,6 +766,10 @@ def dict_to_appdata(payload: dict) -> AppData:
                 u["id"], u["nombre"], u.get("activo", True),
             )
             for u in payload.get("ubicaciones", [])
+        ],
+        movimientos=[
+            _movimiento_from_dict(m)
+            for m in payload.get("movimientos", [])
         ],
         alertas=[
             AlertaOperativa(

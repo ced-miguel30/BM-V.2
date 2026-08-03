@@ -36,18 +36,26 @@ Sin implementación de código en esta fase.
 | D27 | `es_bebida` ≠ `tipo_articulo` | Independientes; no migrar uno desde el otro |
 | D28 | Históricos sin tipo → `None` («Sin clasificar») | Excepción temporal: edición de otros campos sin forzar tipo |
 | D29 | Cambiar tipo no altera stock/FIFO/lotes/consumos | Reglas operativas de reutilizable → F7+ |
+| D30 | **Fase 7A.1** — `MovimientoInventario` + `AppData.movimientos` | Ledger espejo; sin dual-write operativo |
+| D31 | Fuente de verdad del stock = `LoteStock.cantidad_restante` | Ledger no calcula stock operativo en 7A |
+| D32 | Cantidad de movimiento siempre > 0; dirección fija por tipo | Sin cantidades negativas |
+| D33 | Idempotencia por clave origen+línea+lote+tipo | Duplicados controlados; no solo ID secuencial |
+| D34 | Movimientos confirmados inmutables | Sin edición/borrado; correcciones = reversión |
+| D35 | Sin backfill ni reconstrucción histórica de movimientos | Ausencia histórica ≠ error en 7A.1 |
+| D36 | Reconciliación ledger vs lote solo informativa en 7A.1 | No corrige, no bloquea, no sustituye |
 
 ## Decisiones pendientes (no bloquean F3)
 
 | ID | Pregunta | Notas |
 |----|----------|-------|
 | P01 | ¿Cuándo unificar `RegistroDesayuno` en `RegistroServicio`? | Tras desacople; alto riesgo |
-| P02 | ¿Stock por ubicación como tabla materializada o solo ledger? | **Aplazada a F7** |
+| P02 | ¿Stock por ubicación como tabla materializada o solo ledger? | Tras dual-write 7A |
 | P03 | Política exacta de préstamo/textil/activo | **Esbozo:** herramienta/préstamo; textil circulante; activo individual — **no implementados** |
 | P04 | ¿Movimiento `conciliacion` neutro en factura o solo metadatos? | F11 |
 | P05 | Migración de costes `float` → `Decimal` en consumo | Fuera de docs; spike posterior |
 | P06 | Multi-almacén vs multi-ubicación simple; jerarquía/tipos de ubicación | Asumir lista plana hasta F7 |
 | P07 | Retención y borrado legal de archivos documentales | F9/F17 |
+| P08 | ¿Cuándo el ledger pasa a fuente de verdad? | Solo tras 7A.2–7A.4 + condiciones en ledger_movimientos.md |
 
 ## Compatibilidad histórica — reglas permanentes
 
@@ -58,7 +66,8 @@ Sin implementación de código en esta fase.
 5. `marca_proveedor` y costes ya guardados no se reescriben al crear Proveedor maestro.  
 6. Referencias de catálogo huérfanas se conservan y se etiquetan «Referencia no encontrada»; no se anulan en silencio.  
 7. `tipo_articulo` desconocido se conserva y se diagnostica; no se convierte en consumible.
+8. `movimientos` ausente → `[]`; tipos/direcciones desconocidos se conservan como string y se diagnostican.
 
 ## Próximo paso de implementación
 
-**Fase 7** — ledger de movimientos (tras aprobación explícita de 6C).
+**Fase 7A.2** — dual-write espejo (entrada de lote + ajustes). Sin ejecutar hasta aprobación explícita.

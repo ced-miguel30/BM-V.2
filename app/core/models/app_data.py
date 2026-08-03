@@ -10,6 +10,7 @@ from app.core.models.configuracion import ConfiguracionHotel
 from app.core.models.desayuno import RegistroDesayuno
 from app.core.models.lote import LoteStock
 from app.core.models.merma import RegistroMerma, ResponsableMerma
+from app.core.models.movimiento import MovimientoInventario
 from app.core.models.producto import Producto
 from app.core.models.receta import Receta
 from app.core.models.registro_servicio import RegistroServicio
@@ -36,5 +37,7 @@ class AppData:
     subcategorias: list[Subcategoria] = field(default_factory=list)
     # Fase 6B — ubicaciones físicas/lógicas (sin stock por ubicación).
     ubicaciones: list[Ubicacion] = field(default_factory=list)
+    # Fase 7A — ledger espejo (no fuente de verdad del stock).
+    movimientos: list[MovimientoInventario] = field(default_factory=list)
     configuracion: ConfiguracionHotel | None = None
     usuario_actual_id: str = ""

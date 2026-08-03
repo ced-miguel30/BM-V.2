@@ -1,179 +1,163 @@
-# Ledger de movimientos — modelo conceptual (Fase 2)
+# Ledger de movimientos — modo espejo (Fase 7A)
 
-**Obligatorio cerrar aquí.** Implementación de código: **Fase 7** (ledger complementario).  
-Documentos (albarán/factura) **no** se implementan sin este diseño.
+Documento vivo. Implementación de código: **Fase 7A** (subfases).  
+Documentos (albarán/factura) **no** se implementan sin dual-write estable.
 
-## 1. Problema actual
+## Estado actual (7A.1)
 
-Hoy el stock vive en `LoteStock.cantidad_restante` y los eventos están implícitos en:
+| Aspecto | Estado |
+|---------|--------|
+| Modelo `MovimientoInventario` | **Hecho** |
+| Persistencia aditiva en JSON | **Hecho** |
+| Servicio básico + validación + idempotencia | **Hecho** |
+| Diagnóstico no destructivo | **Hecho** |
+| Reconciliación informativa | **Hecho** (no corrige stock) |
+| Dual-write desde operaciones | **Pendiente 7A.2–7A.4** |
+| Ledger como fuente de verdad | **No** |
 
-- compras (creación de lote),
-- consumo FIFO + `consumos_lote`,
-- merma (línea con `lote_id`),
-- ajuste (antes/después),
-- soft-anulaciones.
+**Fuente de verdad operativa del stock:** `LoteStock.cantidad_restante`.  
+**FIFO:** sin cambios.  
+**Versión UI:** `BM-V.2 · Ledger en preparación`.
 
-No hay tabla/ledger unificado. El objetivo es un **libro append-only de movimientos** que explique todo cambio de stock, sin borrar historia.
-
-## 2. Principios
-
-1. **Append-only:** no editar ni borrar movimientos confirmados; las correcciones son movimientos de reversión.
-2. **Complementario al inicio:** Fase 7 escribe ledger **además** del `cantidad_restante` actual; no reemplaza el cálculo hasta reconciliar.
-3. **Trazabilidad lote:** todo movimiento que afecte cantidad de un lote referencia `lote_id` (salvo casos explícitos documentados).
-4. **Ubicación:** el stock total del hotel ≠ stock por ubicación; un traslado no cambia el total.
-5. **Origen documental opcional:** un movimiento puede enlazar documento/línea (albarán, factura, etc.) o un registro operativo (consumo, merma, ajuste).
-
-## 3. Entidad Movimiento (concepto)
-
-| Campo | Descripción |
-|-------|-------------|
-| `id` | ID técnico interno (string estable; no “proveedor+fecha”) |
-| `tipo` | Ver catálogo de tipos |
-| `fecha_hora` | Momento efectivo |
-| `producto_id` | Producto maestro |
-| `lote_id` | Lote afectado (nullable solo si el tipo lo permite y está justificado) |
-| `ubicacion_origen_id` | Nullable |
-| `ubicacion_destino_id` | Nullable |
-| `cantidad` | **Siempre positiva**; el sentido lo da `direccion` o el tipo |
-| `direccion` | `entrada` \| `salida` \| `neutra` (traslado interno se modela como par o tipo propio) |
-| `cantidad_firmada` | Derivada: `+cantidad` si entrada, `-cantidad` si salida, `0` si neutra pura |
-| `coste` | Opcional; snapshot monetario del movimiento (política por tipo) |
-| `unidad` | Snapshot de unidad |
-| `motivo` / `comentario` | Texto |
-| `actor_id` | Usuario/terminal |
-| `origen_tipo` | `albaran` \| `factura` \| `registro_consumo` \| `merma` \| `ajuste` \| `traslado` \| `anulacion` \| … |
-| `origen_id` | ID del documento o registro origen |
-| `origen_linea_id` | Línea documental si aplica |
-| `movimiento_reversa_de_id` | Si es reversión, apunta al movimiento original |
-| `estado` | `confirmado` \| `anulado_por_reverso` (el original no se borra) |
-
-### Cantidad firmada vs dirección (decisión)
-
-- Persistir **`cantidad > 0`** + **`direccion`**.
-- Exponer **`cantidad_firmada`** como campo calculado o materializado para agregaciones.
-- Evitar guardar solo un float firmado sin tipo (ambigüedad en traslados).
-
-## 4. Catálogo de tipos de movimiento
-
-| Tipo | Efecto stock total | Efecto por ubicación | Crea lote? | Notas |
-|------|--------------------|----------------------|------------|-------|
-| `compra` / `entrada_albaran` | + | + destino | Sí (o alimenta lote) | Confirmación atómica con albarán |
-| `entrada_factura_directa` | + | + destino | Sí | Solo si no hubo albarán previo |
-| `consumo` | − | − ubicación origen | No | Enlaza `consumos_lote` / FIFO |
-| `merma` | − | − | No | Lote explícito preferente |
-| `ajuste` | ± | ± | No | Delta respecto a reconteo |
-| `traslado` | **0** | − origen, + destino | No | Mismo lote o política de fragmentación por ubicación |
-| `devolucion_proveedor` | − | − | No | Puede cerrar restante de lote |
-| `baja` | − | − | No | |
-| `prestamo` | 0 o − según política | − origen / marca prestado | No | Definir en Fase 6C/7 con tipo artículo |
-| `retorno` | inverso de préstamo | | No | |
-| `anulacion` / `reverso` | Inverso del movimiento enlazado | Inverso | No | No inventar FIFO; usar cantidades del original |
-
-## 5. Qué movimiento crea una entrada de inventario
-
-Flujo preferido:
+Mensaje de reconciliación en 7A.1:
 
 ```text
-Mercancía recibida
-  → Albarán confirmado
-  → Entrada de inventario (cabecera lógica)
-  → Creación/actualización de lotes
-  → Movimientos tipo entrada_albaran (uno por línea/lote)
-  → (después) Factura + conciliación  → NO vuelve a incrementar stock
+Ledger parcial: reconciliación no aplicable como fuente de verdad.
 ```
 
-- **Albarán confirmado** es el evento que **incrementa** inventario.
-- **Factura conciliación con albaranes:** movimientos documentales/contables, **sin** nuevo `entrada` de stock.
-- **Factura directa** (sin albarán): genera entrada + lotes + movimientos en la misma confirmación atómica.
+La ausencia de movimientos históricos **no** es error. Solo las operaciones nuevas conectadas desde **7A.2** en adelante estarán obligadas a generar ledger. **Sin backfill.**
 
-## 6. Relación movimiento ↔ lote
+## 1. Problema
 
-```mermaid
-flowchart LR
-  Prod[Producto]
-  Lote[Lote]
-  Mov[Movimiento]
-  Prod --> Lote
-  Mov --> Prod
-  Mov --> Lote
-```
+Hoy el stock vive en `LoteStock.cantidad_restante` y los eventos están implícitos en compras, consumo FIFO + `consumos_lote`, merma, ajuste y soft-anulaciones. No había libro unificado.
 
-- Un lote nace con (o queda ligado a) movimientos de entrada.
-- Consumos/mermas/ajustes generan movimientos de salida o ajuste referenciando el mismo `lote_id`.
-- `cantidad_restante` del lote debe poder **reconciliarse** como:  
-  `entradas_firmadas + salidas_firmadas + ajustes` (con política clara de qué tipos cuentan).
-- Durante Fase 7: dual-write; alerta si ledger ≠ `cantidad_restante`.
+## 2. Principios (vigentes)
 
-## 7. Traslado
+1. **Append-only:** no editar ni borrar movimientos confirmados; correcciones = movimientos de reversión.
+2. **Espejo / complementario:** el ledger explica; no sustituye `cantidad_restante` hasta decisión futura.
+3. **Cantidad siempre > 0;** el sentido lo da `direccion` (`entrada` | `salida`).
+4. **`cantidad_firmada`** es derivada (+entrada / −salida).
+5. **Trazabilidad por lote:** cada movimiento referencia `lote_id`.
+6. **Idempotencia** por clave estable (origen + línea + lote + tipo).
+7. **Sin backfill** ni reconstrucción histórica automática.
 
-- **No modifica stock total** del hotel.
-- Modela: salida en ubicación A + entrada en ubicación B (dos líneas de movimiento ligadas por `grupo_traslado_id`) **o** un tipo `traslado` con origen y destino y `cantidad_firmada = 0` a nivel hotel.
-- **Decisión de diseño (cerrada para F2):** usar **par de movimientos** (`traslado_salida` / `traslado_entrada`) con el mismo `grupo_id`, para que el stock por ubicación sea suma simple de firmados por ubicación.
-- El lote puede permanecer el mismo ID si la ubicación es atributo de stock-por-ubicación (tabla `stock_ubicacion` o movimientos como única fuente).
-
-## 8. Reversión / anulación de movimiento
-
-| Caso | Comportamiento |
-|------|----------------|
-| Anular consumo con `consumos_lote` | Movimiento(s) `reverso` que reponen exactamente las cantidades por lote (como hoy) |
-| Anular merma | Reverso al `lote_id` histórico |
-| Anular compra/lote intacto | Reverso de entrada + marca lote anulado; restante 0 |
-| Sin trazabilidad | **Bloqueo**; no inventar FIFO inverso |
-| Documento confirmado | No borrar; rectificativa o reverso enlazado |
-
-El movimiento original queda en estado `anulado_por_reverso`; el reverso apunta a `movimiento_reversa_de_id`.
-
-## 9. Vínculo con documentos futuros
-
-| Documento | Al confirmar | Movimientos |
-|-----------|--------------|-------------|
-| Albarán | Entrada + lotes | `entrada_albaran` por línea |
-| Factura + albaranes | Conciliación | Ningún incremento de stock; opcional movimiento `conciliacion` informativo (neutro) |
-| Factura directa | Entrada + lotes | `entrada_factura_directa` |
-| Rectificativa | Según impacto | Reversos / ajustes documentados |
-| Archivo digital | Metadatos | Sin movimiento de stock |
-
-## 10. Cálculo de stock
-
-### Stock total hotel (producto)
-
-Suma de `cantidad_restante` de lotes no anulados (**hoy**), o —cuando el ledger sea fuente de verdad—:
+## 3. Modelo implementado (7A.1)
 
 ```text
-stock_total(producto) = Σ cantidad_firmada(movimientos confirmados del producto)
+MovimientoInventario
+  id, producto_id, lote_id
+  tipo: TipoMovimiento
+  direccion: DireccionMovimiento
+  cantidad > 0
+  fecha, hora?
+  origen_tipo, origen_id, origen_linea_id?
+  movimiento_revertido_id?
+  usuario_id?, idempotency_key?
+  coste_unitario_snapshot?, coste_total_snapshot?
+  creado_en?
 ```
 
-(equivalente por lote y luego suma).
+Prefijo de ID: `mov` vía generador central (`next_id`).
 
-### Stock por ubicación
+### Tipos iniciales
+
+| Tipo | Dirección |
+|------|-----------|
+| `entrada_compra` | entrada |
+| `consumo` | salida |
+| `merma` | salida |
+| `ajuste_entrada` | entrada |
+| `ajuste_salida` | salida |
+| `reversion_consumo` | entrada |
+| `reversion_merma` | entrada |
+| `reversion_entrada` | salida |
+
+**No** incluidos aún: traslado, préstamo, retorno, recuento, baja, rectificación documental.
+
+### Idempotencia
 
 ```text
-stock(producto, ubicacion) = Σ cantidad_firmada de movimientos
-  que afectan esa ubicación (entradas destino − salidas origen)
+{origen_tipo}:{origen_id}:{origen_linea_id}:{lote_id}:{tipo}
 ```
 
-Traslado: −origen +destino; total hotel invariante.
+Ejemplo: `registro_servicio:reg001:detalle003:lot004:consumo`
 
-### Stock por lote
+Duplicado → rechazo controlado / devolución del movimiento existente (`duplicado=True`).
 
-```text
-stock(lote) = Σ cantidad_firmada de movimientos con ese lote_id
-```
+### Inmutabilidad
 
-Debe coincidir con `cantidad_restante` tras reconciliación.
+El servicio **no** expone edición ni eliminación. Solo listar, buscar, validar, crear (API interna).
 
-## 11. Compatibilidad con el núcleo actual
+## 4. Relación con lote y origen
 
-| Hoy | Futuro ledger |
-|-----|----------------|
-| `inventory_batch_service` FIFO | Genera movimientos `consumo` + detalle por lote |
-| `consumos_lote` | Sigue siendo la traza exacta; el ledger la refleja |
-| Soft-anulación | Emite `reverso` |
-| `LoteStock` | Sigue existiendo; no se convierte en factura |
-| Ajuste | Movimiento `ajuste` con delta |
+- Un consumo repartido entre varios lotes → **un movimiento por lote** (cuando se active dual-write).
+- `origen_*` enlaza registro operativo (compra/lote, registro, merma, ajuste, anulación).
+- `movimiento_revertido_id` enlaza el movimiento original en reversiones.
 
-## 12. Fuera de alcance de este documento
+## 5. Compatibilidad histórica
 
-- DDL SQL concreto (Fase 14A)
-- Código Fase 7
-- Reglas fiscales de emisión a cliente (explícitamente no)
+- JSON sin clave `movimientos` → lista vacía.
+- Enums desconocidos se **conservan como string** y generan incidencia; **no** se remapean.
+- No se generan movimientos al cargar.
+- Campos 6A / 6B / 6C y espacios F5 intactos.
+
+## 6. Reconciliación informativa (7A.1)
+
+Consultas de solo lectura:
+
+- total entradas / salidas por lote;
+- saldo teórico ledger = entradas − salidas;
+- comparación con `cantidad_restante`.
+
+**No** corrige lotes, **no** bloquea la app, **no** sustituye el saldo real.  
+Mientras no haya dual-write completo, la diferencia histórica es esperable.
+
+## 7. Subfases futuras (documentadas, no implementadas)
+
+### 7A.2 — Dual-write entradas y ajustes
+
+Escribir movimiento espejo al:
+
+- crear lote / entrada actual;
+- ajuste positivo → `ajuste_entrada`;
+- ajuste negativo → `ajuste_salida`.
+
+Tras 7A.2: reconciliación, tests, checklist manual, **STOP**.
+
+### 7A.3 — Dual-write merma
+
+- merma → `merma` (salida);
+- anulación de merma → `reversion_merma` (entrada).
+
+Tras 7A.3: reconciliación, tests, checklist, **STOP**.
+
+### 7A.4 — Dual-write consumos y anulaciones de registro
+
+- consumos → un `consumo` por fragmento de `consumos_lote`;
+- anulaciones de registros → `reversion_consumo` por fragmento exacto.
+
+Tras 7A.4: reconciliación, tests, checklist, **STOP**.
+
+**7B** (ledger como fuente de verdad / stock por ubicación / traslados): **no diseñar como implementación** hasta cerrar 7A y condiciones explícitas.
+
+## 8. Condiciones antes de plantear ledger como fuente de verdad
+
+1. Dual-write estable en entradas, ajustes, mermas, consumos y anulaciones.
+2. Reconciliación operativa sin divergencias sistemáticas en datos nuevos.
+3. Política clara para histórico pre-ledger (nunca backfill silencioso).
+4. Decisión explícita de producto + periodo de convivencia.
+5. Tests de invariantes stock(lote) = Σ firmados post-activación.
+6. Plan de rollback que **no** recalcule lotes borrando movimientos a mano.
+
+## 9. Fuera de alcance de 7A.1
+
+- escritura espejo desde operaciones;
+- stock por ubicación, traslados, préstamos, retornos, recuentos;
+- documentos / albaranes / facturas / proveedores;
+- cambios en FIFO, lotes, consumo, merma, ajustes, anulaciones;
+- ledger como fuente de verdad;
+- reconstrucción histórica.
+
+## 10. Diseño conceptual ampliado (F2, referencia)
+
+El diseño F2 original (documentos, traslados, stock por ubicación, tipos futuros) permanece como horizonte en las secciones históricas del repositorio; la implementación avanza solo por subfases 7A.x aprobadas.
