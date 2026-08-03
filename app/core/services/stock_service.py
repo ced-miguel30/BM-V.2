@@ -62,13 +62,9 @@ class ResultadoOperacion:
 
 
 def _next_id(prefix: str, ids: list[str]) -> str:
-    numeros = []
-    for item_id in ids:
-        sufijo = item_id[len(prefix):]
-        if item_id.startswith(prefix) and sufijo.isdigit():
-            numeros.append(int(sufijo))
-    return f"{prefix}{(max(numeros, default=0) + 1):02d}"
+    from app.core.application.id_generator import next_id
 
+    return next_id(prefix, ids)
 
 def _nombre_usuario(data: AppData) -> str:
     for u in data.usuarios:
@@ -232,11 +228,18 @@ def registrar_lote(
 
 
 def mapa_productos(data: AppData, *, es_bebida: bool | None = None) -> dict[str, str]:
-    items = data.productos
-    if es_bebida is not None:
-        items = [p for p in items if p.es_bebida == es_bebida]
-    return {p.nombre: p.id for p in items}
+    """Catálogo nombre→id. Fase 4A: lectura vía AppContext / puerto productos."""
+    from app.core.application.context import build_app_context
+    from app.core.application.producto_queries import mapa_productos_nombre_id
+    from app.core.application.unit_of_work import InMemoryUnitOfWork
 
+    ctx = build_app_context(uow=InMemoryUnitOfWork(data))
+    return mapa_productos_nombre_id(
+        ctx,
+        es_bebida=es_bebida,
+        solo_activos=False,
+        ordenar=False,
+    )
 
 def mapa_bebidas(data: AppData) -> dict[str, str]:
     return mapa_productos(data, es_bebida=True)

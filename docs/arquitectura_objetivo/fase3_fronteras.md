@@ -17,11 +17,17 @@
 | Piloto lectura | `producto_queries.py` |
 | Auditoría | `auditoria.registrar_actividad` |
 
-## Piloto
+## Piloto (Fase 3)
 
-Lectura de productos vía `listar_productos` / `obtener_producto` / `mapa_productos_nombre_id`.  
-Equivalente a consultas actuales de catálogo; la UI sigue usando `DataRepository` / `stock_service` hasta Fase 4.
+Lectura de productos vía `listar_productos` / `obtener_producto` / `mapa_productos_nombre_id`.
 
-## Próximo (Fase 4)
+## Fase 4A — catálogos (hecha)
 
-Migrar servicios al contexto por subfases (catálogos → … → anulaciones).
+- `stock_service.mapa_productos` / `mapa_bebidas` delegan en AppContext + puerto (mismo orden/filtro legacy).
+- `DataRepository.get_producto` usa `JsonProductoRepository`.
+- `stock_service._next_id` usa `application.id_generator.next_id`.
+- UI sin cambios.
+
+## Siguiente subfase (4B)
+
+Alertas → adaptar lecturas/escrituras al contexto (STOP tras 4B).

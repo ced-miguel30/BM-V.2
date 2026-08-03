@@ -40,12 +40,20 @@ def mapa_productos_nombre_id(
     *,
     es_bebida: bool | None = None,
     solo_activos: bool = True,
+    ordenar: bool = True,
     repo: ProductoRepositoryPort | None = None,
 ) -> dict[str, str]:
-    """Misma forma que stock_service.mapa_productos: nombre → id."""
-    return {
-        p.nombre: p.id
-        for p in listar_productos(
-            ctx, es_bebida=es_bebida, solo_activos=solo_activos, repo=repo,
-        )
-    }
+    """Forma nombre → id (como stock_service.mapa_productos).
+
+    `ordenar=False` y `solo_activos=False` reproducen el mapa legacy exacto.
+    """
+    port = _repo(ctx, repo)
+    if ordenar:
+        items = port.listar(es_bebida=es_bebida, solo_activos=solo_activos)
+    else:
+        items = list(ctx.uow.get_data().productos)
+        if solo_activos:
+            items = [p for p in items if getattr(p, "activo", True)]
+        if es_bebida is not None:
+            items = [p for p in items if bool(p.es_bebida) is es_bebida]
+    return {p.nombre: p.id for p in items}

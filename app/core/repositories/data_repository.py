@@ -33,7 +33,13 @@ class DataRepository:
         return self._data.usuarios[0] if self._data.usuarios else None
 
     def get_producto(self, producto_id: str) -> Producto | None:
-        return next((p for p in self._data.productos if p.id == producto_id), None)
+        """Fase 4A: lectura vía adaptador JSON / puerto de productos."""
+        from app.core.application.adapters.json_producto_repository import (
+            JsonProductoRepository,
+        )
+        from app.core.application.unit_of_work import InMemoryUnitOfWork
+
+        return JsonProductoRepository(InMemoryUnitOfWork(self._data)).get_by_id(producto_id)
 
     def get_receta(self, receta_id: str) -> Receta | None:
         return next((r for r in self._data.recetas if r.id == receta_id), None)
