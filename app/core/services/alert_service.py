@@ -1,11 +1,18 @@
-"""Servicio de alertas operativas de stock."""
+"""Servicio de alertas operativas de stock.
+
+Fase 4B: lecturas/escrituras vía AppContext (UoW, reloj, actor, auditoría).
+La firma pública se mantiene; `session_store` sigue detrás del UoW JSON.
+"""
+
+from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date
 
+from app.core.application.context import AppContext, build_app_context
+from app.core.application.id_generator import next_id
 from app.core.models import AlertaOperativa, AppData, EstadoAlerta, TipoAlerta
 from app.core.repositories.data_repository import DataRepository
-from app.core.storage.session_store import get_data, persist_data
 
 DIAS_EXPIRACION_DEFECTO = 5
 
@@ -38,33 +45,14 @@ class ResultadoOperacion:
     mensaje: str
 
 
-def _next_id(prefix: str, ids: list[str]) -> str:
-    numeros = []
-    for item_id in ids:
-        sufijo = item_id[len(prefix):]
-        if item_id.startswith(prefix) and sufijo.isdigit():
-            numeros.append(int(sufijo))
-    return f"{prefix}{(max(numeros, default=0) + 1):02d}"
+def _ctx(ctx: AppContext | None = None) -> AppContext:
+    return ctx if ctx is not None else build_app_context()
 
 
-def _nombre_usuario(data: AppData) -> str:
-    for u in data.usuarios:
-        if u.id == data.usuario_actual_id:
-            return u.nombre
-    return data.usuarios[0].nombre if data.usuarios else "Usuario"
+def _registrar_actividad(ctx: AppContext, accion: str, detalle: str) -> None:
+    from app.core.application.auditoria import registrar_actividad
 
-
-def _registrar_actividad(data: AppData, accion: str, detalle: str) -> None:
-    from app.core.models import Actividad
-
-    actividad = Actividad(
-        _next_id("act", [a.id for a in data.actividades]),
-        datetime.now(),
-        _nombre_usuario(data),
-        accion,
-        detalle,
-    )
-    data.actividades.insert(0, actividad)
+    registrar_actividad(ctx, accion, detalle, commit=False)
 
 
 def _estado_alerta(alerta: AlertaOperativa) -> str:
@@ -197,8 +185,13 @@ def _generar_alertas_stock(data: AppData, repo: DataRepository, hoy: date) -> li
     return nuevas
 
 
-def _generar_alerta_desayuno(data: AppData, repo: DataRepository, hoy: date) -> list[AlertaOperativa]:
-    if repo.desayuno_registrado_hoy():
+def _desayuno_registrado(data: AppData, hoy: date) -> bool:
+    """Misma regla que DataRepository.desayuno_registrado_hoy, con fecha inyectable."""
+    return any(d.fecha == hoy for d in data.desayunos)
+
+
+def _generar_alerta_desayuno(data: AppData, hoy: date) -> list[AlertaOperativa]:
+    if _desayuno_registrado(data, hoy):
         return []
     return [AlertaOperativa(
         "a_tmp_desayuno",
@@ -231,16 +224,17 @@ def _limpiar_descartadas_obsoletas(
     ]
 
 
-def sincronizar_alertas() -> AppData:
+def sincronizar_alertas(ctx: AppContext | None = None) -> AppData:
     """Regenera alertas automáticas de stock y desayuno; conserva las manuales."""
-    data = get_data()
+    context = _ctx(ctx)
+    data = context.data()
     repo = DataRepository(data)
-    hoy = date.today()
+    hoy = context.clock.today()
 
     estados_previos = _mapa_estados_previos(data)
     conservadas = _conservar_alertas(data)
     auto_stock_raw = _generar_alertas_stock(data, repo, hoy)
-    auto_desayuno_raw = _generar_alerta_desayuno(data, repo, hoy)
+    auto_desayuno_raw = _generar_alerta_desayuno(data, hoy)
     todas_candidatas = auto_stock_raw + auto_desayuno_raw
 
     _limpiar_descartadas_obsoletas(data, todas_candidatas)
@@ -251,13 +245,15 @@ def sincronizar_alertas() -> AppData:
 
     data.alertas = conservadas + auto_stock + auto_desayuno
     _reasignar_ids(data.alertas)
-    return persist_data(data)
+    return context.uow.commit(data)
 
 
 def crear_alerta_manual(
     titulo: str,
     mensaje: str,
     producto_id: str | None = None,
+    *,
+    ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
     titulo = titulo.strip()
     mensaje = mensaje.strip()
@@ -266,34 +262,41 @@ def crear_alerta_manual(
     if not mensaje:
         return ResultadoOperacion(False, "El mensaje es obligatorio.")
 
-    data = get_data()
+    context = _ctx(ctx)
+    data = context.data()
     if producto_id and not DataRepository(data).get_producto(producto_id):
         return ResultadoOperacion(False, "El producto seleccionado no existe.")
 
     alerta = AlertaOperativa(
-        _next_id("a", [a.id for a in data.alertas]),
+        next_id("a", [a.id for a in data.alertas]),
         TipoAlerta.MANUAL,
         titulo,
         mensaje,
-        date.today(),
+        context.clock.today(),
         producto_id=producto_id,
         estado=EstadoAlerta.PENDIENTE.value,
     )
     data.alertas.append(alerta)
-    _registrar_actividad(data, "Alerta manual", f"«{titulo}» creada")
-    persist_data(data)
+    _registrar_actividad(context, "Alerta manual", f"«{titulo}» creada")
+    context.uow.commit(data)
     return ResultadoOperacion(True, "Alerta manual creada correctamente.")
 
 
-def cambiar_estado_alerta(alerta_id: str, nuevo_estado: str) -> ResultadoOperacion:
+def cambiar_estado_alerta(
+    alerta_id: str,
+    nuevo_estado: str,
+    *,
+    ctx: AppContext | None = None,
+) -> ResultadoOperacion:
     """Cambia el workflow de una alerta. Revisada no oculta la causa persistente."""
     try:
         estado = EstadoAlerta(nuevo_estado)
     except ValueError:
         return ResultadoOperacion(False, "Estado de alerta no válido.")
 
-    data = get_data()
-    usuario = _nombre_usuario(data)
+    context = _ctx(ctx)
+    data = context.data()
+    usuario = context.actor.nombre
     for alerta in data.alertas:
         if alerta.id != alerta_id:
             continue
@@ -318,24 +321,32 @@ def cambiar_estado_alerta(alerta_id: str, nuevo_estado: str) -> ResultadoOperaci
                 alerta.activa = True
 
         _registrar_actividad(
-            data,
+            context,
             "Estado alerta",
             f"{usuario} cambió «{alerta.titulo}» de {anterior} a {estado.value}",
         )
-        persist_data(data)
+        context.uow.commit(data)
         return ResultadoOperacion(True, f"Alerta marcada como {estado.value}.")
 
     return ResultadoOperacion(False, "No se encontró la alerta.")
 
 
-def remover_alerta(alerta_id: str) -> ResultadoOperacion:
+def remover_alerta(
+    alerta_id: str,
+    *,
+    ctx: AppContext | None = None,
+) -> ResultadoOperacion:
     """Compatibilidad: equivale a Ignorada."""
-    return cambiar_estado_alerta(alerta_id, EstadoAlerta.IGNORADA.value)
+    return cambiar_estado_alerta(alerta_id, EstadoAlerta.IGNORADA.value, ctx=ctx)
 
 
-def resolver_alerta(alerta_id: str) -> ResultadoOperacion:
+def resolver_alerta(
+    alerta_id: str,
+    *,
+    ctx: AppContext | None = None,
+) -> ResultadoOperacion:
     """Compatibilidad: equivale a Resuelta."""
-    return cambiar_estado_alerta(alerta_id, EstadoAlerta.RESUELTA.value)
+    return cambiar_estado_alerta(alerta_id, EstadoAlerta.RESUELTA.value, ctx=ctx)
 
 
 def alerta_esta_abierta(alerta: AlertaOperativa) -> bool:

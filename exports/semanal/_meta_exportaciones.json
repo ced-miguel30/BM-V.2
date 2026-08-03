@@ -1,7 +1,7 @@
 {
   "desayuno": {
-    "ultima_semana_exportada": "2026-07-20",
-    "ultimo_archivo": "Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx",
+    "ultima_semana_exportada": "2026-07-27",
+    "ultimo_archivo": "Registro_de_Desayuno_2026-08-03_2026-07-27_a_2026-08-02.xlsx",
     "exportaciones": [
       {
         "semana": "2026-06-29",
@@ -18,12 +18,16 @@
       {
         "semana": "2026-07-20",
         "archivo": "Registro_de_Desayuno_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+      },
+      {
+        "semana": "2026-07-27",
+        "archivo": "Registro_de_Desayuno_2026-08-03_2026-07-27_a_2026-08-02.xlsx"
       }
     ]
   },
   "merma": {
-    "ultima_semana_exportada": "2026-07-20",
-    "ultimo_archivo": "Registro_de_Merma_2026-07-27_2026-07-20_a_2026-07-26.xlsx",
+    "ultima_semana_exportada": "2026-07-27",
+    "ultimo_archivo": "Registro_de_Merma_2026-08-03_2026-07-27_a_2026-08-02.xlsx",
     "exportaciones": [
       {
         "semana": "2026-06-29",
@@ -40,12 +44,16 @@
       {
         "semana": "2026-07-20",
         "archivo": "Registro_de_Merma_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+      },
+      {
+        "semana": "2026-07-27",
+        "archivo": "Registro_de_Merma_2026-08-03_2026-07-27_a_2026-08-02.xlsx"
       }
     ]
   },
   "stock": {
-    "ultima_semana_exportada": "2026-07-20",
-    "ultimo_archivo": "Registro_de_Stock_2026-07-27_2026-07-20_a_2026-07-26.xlsx",
+    "ultima_semana_exportada": "2026-07-27",
+    "ultimo_archivo": "Registro_de_Stock_2026-08-03_2026-07-27_a_2026-08-02.xlsx",
     "exportaciones": [
       {
         "semana": "2026-06-22",
@@ -66,12 +74,16 @@
       {
         "semana": "2026-07-20",
         "archivo": "Registro_de_Stock_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+      },
+      {
+        "semana": "2026-07-27",
+        "archivo": "Registro_de_Stock_2026-08-03_2026-07-27_a_2026-08-02.xlsx"
       }
     ]
   },
   "bebidas": {
-    "ultima_semana_exportada": "2026-07-20",
-    "ultimo_archivo": "Registro_de_Bebidas_2026-07-27_2026-07-20_a_2026-07-26.xlsx",
+    "ultima_semana_exportada": "2026-07-27",
+    "ultimo_archivo": "Registro_de_Bebidas_2026-08-03_2026-07-27_a_2026-08-02.xlsx",
     "exportaciones": [
       {
         "semana": "2026-06-29",
@@ -88,12 +100,16 @@
       {
         "semana": "2026-07-20",
         "archivo": "Registro_de_Bebidas_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+      },
+      {
+        "semana": "2026-07-27",
+        "archivo": "Registro_de_Bebidas_2026-08-03_2026-07-27_a_2026-08-02.xlsx"
       }
     ]
   },
   "consumo": {
-    "ultima_semana_exportada": "2026-07-20",
-    "ultimo_archivo": "Registro_de_Consumo_2026-07-27_2026-07-20_a_2026-07-26.xlsx",
+    "ultima_semana_exportada": "2026-07-27",
+    "ultimo_archivo": "Registro_de_Consumo_2026-08-03_2026-07-27_a_2026-08-02.xlsx",
     "exportaciones": [
       {
         "semana": "2026-06-29",
@@ -110,12 +126,16 @@
       {
         "semana": "2026-07-20",
         "archivo": "Registro_de_Consumo_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+      },
+      {
+        "semana": "2026-07-27",
+        "archivo": "Registro_de_Consumo_2026-08-03_2026-07-27_a_2026-08-02.xlsx"
       }
     ]
   },
   "actividad": {
-    "ultima_semana_exportada": "2026-07-20",
-    "ultimo_archivo": "Registro_de_Actividad_2026-07-27_2026-07-20_a_2026-07-26.xlsx",
+    "ultima_semana_exportada": "2026-07-27",
+    "ultimo_archivo": "Registro_de_Actividad_2026-08-03_2026-07-27_a_2026-08-02.xlsx",
     "exportaciones": [
       {
         "semana": "2026-06-29",
@@ -132,6 +152,10 @@
       {
         "semana": "2026-07-20",
         "archivo": "Registro_de_Actividad_2026-07-27_2026-07-20_a_2026-07-26.xlsx"
+      },
+      {
+        "semana": "2026-07-27",
+        "archivo": "Registro_de_Actividad_2026-08-03_2026-07-27_a_2026-08-02.xlsx"
       }
     ]
   }
