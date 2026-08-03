@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 
-from app.core.models.enums import UnidadProducto
+from app.core.models.enums import TipoArticulo, UnidadProducto
 
 
 @dataclass
@@ -27,3 +27,7 @@ class Producto:
     # Fase 6B — ubicaciones permitidas/habituales donde puede almacenarse.
     # No representa cantidades ni la ubicación real de cada lote.
     ubicacion_ids: list[str] = field(default_factory=list)
+    # Fase 6C — clasificación fija (consumible / reutilizable).
+    # None = histórico sin clasificar (sin backfill). str = valor desconocido conservado.
+    # No equivale a es_bebida. Cambiar el tipo no altera stock/FIFO/lotes.
+    tipo_articulo: TipoArticulo | str | None = None

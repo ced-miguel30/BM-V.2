@@ -363,6 +363,18 @@ def _render_catalogo_solo(*, es_bebida: bool) -> None:
             "Lugares donde este producto puede almacenarse. "
             "No representa la cantidad disponible en cada ubicación."
         )
+        from app.core.models.enums import TIPO_ARTICULO_AYUDA, TIPO_ARTICULO_LABEL, TipoArticulo
+
+        tipo_labels = {TIPO_ARTICULO_LABEL[t]: t.value for t in TipoArticulo}
+        tipo_sel = st.selectbox(
+            "Tipo de artículo",
+            list(tipo_labels.keys()),
+            key=f"crear_tipo_{key_prefix}",
+        )
+        st.caption(
+            f"**Consumible** — {TIPO_ARTICULO_AYUDA[TipoArticulo.CONSUMIBLE]}\n\n"
+            f"**Reutilizable** — {TIPO_ARTICULO_AYUDA[TipoArticulo.REUTILIZABLE]}"
+        )
 
         with st.form(f"form_crear_{key_prefix}", clear_on_submit=True):
             col1, col2 = st.columns(2)
@@ -404,6 +416,7 @@ def _render_catalogo_solo(*, es_bebida: bool) -> None:
                     subcategoria_id=sub_id,
                     departamento_ids=dep_sel,
                     ubicacion_ids=ubi_sel,
+                    tipo_articulo=tipo_labels[tipo_sel],
                 )
                 if resultado.ok:
                     sincronizar_alertas()
@@ -435,12 +448,16 @@ def _render_catalogo_solo(*, es_bebida: bool) -> None:
                     cat.etiqueta_ubicacion(repo.data, u)
                     for u in getattr(producto, "ubicacion_ids", []) or []
                 ) or "No configurado"
+                et_tipo = cat.etiqueta_tipo_articulo(
+                    getattr(producto, "tipo_articulo", None),
+                )
                 st.caption(
                     f"Actual — histórica: "
                     f"**{producto.categoria_inventario or 'No configurado'}** · "
                     f"estructurada: **{et_cat}** / **{et_sub}** · "
                     f"deptos: **{et_deps}** · "
                     f"ubicaciones: **{et_ubis}** · "
+                    f"tipo: **{et_tipo}** · "
                     f"servicios: **{_etiqueta_servicios(producto.servicios_disponibles)}**"
                 )
                 cats_e = cat.opciones_categoria_asignacion(
@@ -528,6 +545,45 @@ def _render_catalogo_solo(*, es_bebida: bool) -> None:
                     "Lugares donde este producto puede almacenarse. "
                     "No representa la cantidad disponible en cada ubicación."
                 )
+                from app.core.models.enums import (
+                    TIPO_ARTICULO_AYUDA,
+                    TIPO_ARTICULO_LABEL,
+                    TipoArticulo,
+                )
+
+                tipo_opts: dict[str, str | None] = {"Sin clasificar": None}
+                tipo_opts.update({TIPO_ARTICULO_LABEL[t]: t.value for t in TipoArticulo})
+                actual_tipo = getattr(producto, "tipo_articulo", None)
+                if actual_tipo is not None and not cat.es_tipo_articulo_conocido(actual_tipo):
+                    tipo_opts[f"Valor desconocido ({actual_tipo})"] = str(actual_tipo)
+                tipo_keys = list(tipo_opts.keys())
+                tipo_default = 0
+                for i, k in enumerate(tipo_keys):
+                    val = tipo_opts[k]
+                    if val is None and actual_tipo is None:
+                        tipo_default = i
+                        break
+                    if val is not None and actual_tipo is not None:
+                        actual_v = (
+                            actual_tipo.value
+                            if hasattr(actual_tipo, "value")
+                            else str(actual_tipo)
+                        )
+                        if val == actual_v:
+                            tipo_default = i
+                            break
+                tipo_sel_e = st.selectbox(
+                    "Tipo de artículo",
+                    tipo_keys,
+                    index=tipo_default,
+                    key=f"cfg_tipo_{key_prefix}_{producto.id}",
+                )
+                st.caption(
+                    f"**Consumible** — {TIPO_ARTICULO_AYUDA[TipoArticulo.CONSUMIBLE]}  \n"
+                    f"**Reutilizable** — {TIPO_ARTICULO_AYUDA[TipoArticulo.REUTILIZABLE]}  \n"
+                    "Los históricos sin clasificar pueden permanecer así temporalmente; "
+                    "no se clasifican automáticamente."
+                )
                 cat_edit = st.text_input(
                     "Categoría histórica / libre",
                     value=producto.categoria_inventario or "",
@@ -554,6 +610,7 @@ def _render_catalogo_solo(*, es_bebida: bool) -> None:
                         subcategoria_id=sub_id_e,
                         departamento_ids=dep_sel_e,
                         ubicacion_ids=ubi_sel_e,
+                        tipo_articulo=tipo_opts[tipo_sel_e],
                     )
                     if resultado.ok:
                         st.success(resultado.mensaje)

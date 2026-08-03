@@ -100,8 +100,15 @@ Catálogos → alertas → ajustes → merma → registro → FIFO → anulacion
 - Modelo: `Ubicacion`; Producto: `ubicacion_ids` (sin cantidades).
 - Stock hotel = Σ `cantidad_restante` (sin cambio).
 - P02 (stock por ubicación) aplazada a F7.
-- Siguiente: **6C** tipos de artículo (tras aprobación).
 
-## Siguiente: Fase 6C+
+## Fase 6C — tipos de artículo (hecha)
 
-Tipos de artículo (6C) → ledger (F7), tras validación.
+- Enum fijo `TipoArticulo`: consumible / reutilizable (sin CRUD).
+- Producto: `tipo_articulo` aditivo; históricos → `None` («Sin clasificar»).
+- Alta nueva: tipo obligatorio. Sin backfill. `es_bebida` independiente.
+- Cambiar tipo no altera FIFO/stock/lotes.
+- Siguiente: **Fase 7** ledger (tras aprobación).
+
+## Siguiente: Fase 7
+
+Ledger de movimientos (diseño F2 → implementación).

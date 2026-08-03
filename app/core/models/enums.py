@@ -131,6 +131,32 @@ class TipoServicio(str, Enum):
     BEBIDAS = "bebidas"
 
 
+class TipoArticulo(str, Enum):
+    """Clasificación fija de producto (Fase 6C). Sin CRUD; taxonomía cerrada."""
+
+    CONSUMIBLE = "consumible"
+    REUTILIZABLE = "reutilizable"
+
+
+TIPO_ARTICULO_LABEL: dict[TipoArticulo, str] = {
+    TipoArticulo.CONSUMIBLE: "Consumible",
+    TipoArticulo.REUTILIZABLE: "Reutilizable",
+}
+
+TIPO_ARTICULO_AYUDA: dict[TipoArticulo, str] = {
+    TipoArticulo.CONSUMIBLE: (
+        "Se utiliza o agota durante la operación, como alimentos, bebidas, "
+        "productos de limpieza o amenities."
+    ),
+    TipoArticulo.REUTILIZABLE: (
+        "Permanece en el hotel y puede usarse varias veces, como vajilla, "
+        "menaje o determinados utensilios."
+    ),
+}
+
+TIPO_ARTICULO_VALORES: frozenset[str] = frozenset(t.value for t in TipoArticulo)
+
+
 # Servicios en los que un producto/receta puede aparecer en registros.
 # Distinto de categoria_inventario y de CategoriaReceta.
 SERVICIO_DISPONIBLE_LABEL: dict[TipoServicio, str] = {

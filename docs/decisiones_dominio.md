@@ -32,14 +32,18 @@ Sin implementación de código en esta fase.
 | D23 | `categoria_inventario` convive con `categoria_id` | Sin conversión automática de strings a filas |
 | D24 | **Fase 6B completada** — `Ubicacion` + `producto.ubicacion_ids` | Catálogo + vínculo; **sin** stock por ubicación |
 | D25 | P02 (stock por ubicación materializado vs ledger) **aplazada a F7** | 6B no materializa cantidades |
+| D26 | **Fase 6C completada** — enum `TipoArticulo` (consumible / reutilizable) | Taxonomía fija; sin CRUD; sin backfill |
+| D27 | `es_bebida` ≠ `tipo_articulo` | Independientes; no migrar uno desde el otro |
+| D28 | Históricos sin tipo → `None` («Sin clasificar») | Excepción temporal: edición de otros campos sin forzar tipo |
+| D29 | Cambiar tipo no altera stock/FIFO/lotes/consumos | Reglas operativas de reutilizable → F7+ |
 
 ## Decisiones pendientes (no bloquean F3)
 
 | ID | Pregunta | Notas |
 |----|----------|-------|
 | P01 | ¿Cuándo unificar `RegistroDesayuno` en `RegistroServicio`? | Tras desacople; alto riesgo |
-| P02 | ¿Stock por ubicación como tabla materializada o solo ledger? | **Aplazada a F7** (6B solo maestro) |
-| P03 | Política exacta de préstamo/textil/activo | Solo esbozo en F6C |
+| P02 | ¿Stock por ubicación como tabla materializada o solo ledger? | **Aplazada a F7** |
+| P03 | Política exacta de préstamo/textil/activo | **Esbozo:** herramienta/préstamo; textil circulante; activo individual — **no implementados** |
 | P04 | ¿Movimiento `conciliacion` neutro en factura o solo metadatos? | F11 |
 | P05 | Migración de costes `float` → `Decimal` en consumo | Fuera de docs; spike posterior |
 | P06 | Multi-almacén vs multi-ubicación simple; jerarquía/tipos de ubicación | Asumir lista plana hasta F7 |
@@ -52,8 +56,9 @@ Sin implementación de código en esta fase.
 3. No reinterpretar `servicios_disponibles=[]` como “todos”.  
 4. IDs legacy preservados en migración.  
 5. `marca_proveedor` y costes ya guardados no se reescriben al crear Proveedor maestro.  
-6. Referencias de catálogo huérfanas se conservan y se etiquetan «Referencia no encontrada»; no se anulan en silencio.
+6. Referencias de catálogo huérfanas se conservan y se etiquetan «Referencia no encontrada»; no se anulan en silencio.  
+7. `tipo_articulo` desconocido se conserva y se diagnostica; no se convierte en consumible.
 
 ## Próximo paso de implementación
 
-**Fase 6C** — tipos de artículo + reglas iniciales consumible/reutilizable (tras aprobación explícita de 6B).
+**Fase 7** — ledger de movimientos (tras aprobación explícita de 6C).

@@ -41,11 +41,26 @@ from app.core.models import (
     RolUsuario,
     Subcategoria,
     TipoAlerta,
+    TipoArticulo,
     Ubicacion,
     UnidadProducto,
     Usuario,
 )
 from app.core.models.registro_servicio import ConsumoLoteDetalle
+
+
+def _parse_tipo_articulo(raw: Any) -> TipoArticulo | str | None:
+    """Ausente → None. Valor conocido → enum. Desconocido → str (conservar)."""
+    if raw is None or raw == "":
+        return None
+    if isinstance(raw, TipoArticulo):
+        return raw
+    if not isinstance(raw, str):
+        return str(raw)
+    try:
+        return TipoArticulo(raw)
+    except ValueError:
+        return raw
 
 
 class _Encoder(json.JSONEncoder):
@@ -137,6 +152,11 @@ def appdata_to_dict(data: AppData) -> dict:
                 "subcategoria_id": p.subcategoria_id,
                 "departamento_ids": list(p.departamento_ids),
                 "ubicacion_ids": list(getattr(p, "ubicacion_ids", []) or []),
+                "tipo_articulo": (
+                    p.tipo_articulo.value
+                    if hasattr(p.tipo_articulo, "value")
+                    else p.tipo_articulo
+                ),
             }
             for p in data.productos
         ],
@@ -431,6 +451,7 @@ def dict_to_appdata(payload: dict) -> AppData:
                     u for u in p.get("ubicacion_ids", []) or []
                     if isinstance(u, str) and u
                 ],
+                tipo_articulo=_parse_tipo_articulo(p.get("tipo_articulo")),
             )
             for p in payload.get("productos", [])
         ],

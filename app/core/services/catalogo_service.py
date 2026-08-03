@@ -11,6 +11,11 @@ from dataclasses import dataclass
 from app.core.application.context import AppContext
 from app.core.application.id_generator import next_id
 from app.core.models import AppData, Categoria, Departamento, Subcategoria, Ubicacion
+from app.core.models.enums import (
+    TIPO_ARTICULO_LABEL,
+    TIPO_ARTICULO_VALORES,
+    TipoArticulo,
+)
 from app.core.storage.session_store import get_data, persist_data
 
 ETIQUETA_REF_NO_ENCONTRADA = "Referencia no encontrada"
@@ -89,6 +94,80 @@ def etiqueta_ubicacion(data: AppData, ubicacion_id: str | None) -> str:
         return "No configurado"
     ubi = next((u for u in data.ubicaciones if u.id == ubicacion_id), None)
     return ubi.nombre if ubi else ETIQUETA_REF_NO_ENCONTRADA
+
+
+# --- Tipo de artículo (Fase 6C) ---
+
+def parse_tipo_articulo(valor: TipoArticulo | str | None) -> TipoArticulo | str | None:
+    if valor is None or valor == "":
+        return None
+    if isinstance(valor, TipoArticulo):
+        return valor
+    try:
+        return TipoArticulo(str(valor))
+    except ValueError:
+        return str(valor)
+
+
+def es_tipo_articulo_conocido(valor: TipoArticulo | str | None) -> bool:
+    if valor is None:
+        return False
+    if isinstance(valor, TipoArticulo):
+        return True
+    return str(valor) in TIPO_ARTICULO_VALORES
+
+
+def etiqueta_tipo_articulo(valor: TipoArticulo | str | None) -> str:
+    if valor is None or valor == "":
+        return "Sin clasificar"
+    if isinstance(valor, TipoArticulo):
+        return TIPO_ARTICULO_LABEL[valor]
+    try:
+        return TIPO_ARTICULO_LABEL[TipoArticulo(str(valor))]
+    except ValueError:
+        return f"Valor desconocido ({valor})"
+
+
+def validar_tipo_articulo(
+    valor: TipoArticulo | str | None,
+    *,
+    obligatorio: bool = False,
+) -> ResultadoOperacion:
+    """Validación central de tipo de artículo.
+
+    - Alta nueva: obligatorio=True → exige enum conocido.
+    - Histórico: obligatorio=False → None permitido temporalmente.
+    """
+    if valor is None or valor == "":
+        if obligatorio:
+            return ResultadoOperacion(False, "Seleccione el tipo de artículo.")
+        return ResultadoOperacion(True, "OK")
+    if isinstance(valor, TipoArticulo):
+        return ResultadoOperacion(True, "OK")
+    try:
+        TipoArticulo(str(valor))
+        return ResultadoOperacion(True, "OK")
+    except ValueError:
+        return ResultadoOperacion(
+            False,
+            f"Tipo de artículo no válido: «{valor}». "
+            "Use Consumible o Reutilizable.",
+        )
+
+
+def normalizar_tipo_articulo_conocido(
+    valor: TipoArticulo | str | None,
+) -> TipoArticulo | None:
+    """Devuelve enum o None; no convierte desconocidos a consumible."""
+    parsed = parse_tipo_articulo(valor)
+    if parsed is None:
+        return None
+    if isinstance(parsed, TipoArticulo):
+        return parsed
+    try:
+        return TipoArticulo(str(parsed))
+    except ValueError:
+        return None
 
 
 # --- Listados ---
@@ -759,7 +838,7 @@ def reactivar_ubicacion(
 # --- Diagnóstico (solo lectura) ---
 
 def incidencias_catalogo(data: AppData) -> list[str]:
-    """Incidencias de catálogo 6A/6B; no corrige nada."""
+    """Incidencias de catálogo 6A/6B/6C; no corrige nada."""
     out: list[str] = []
     cat_ids = {c.id for c in data.categorias}
     dep_ids = {d.id for d in data.departamentos}
@@ -854,6 +933,16 @@ def incidencias_catalogo(data: AppData) -> list[str]:
         if len(ubi_prod) != len(set(ubi_prod)):
             out.append(
                 f"Producto {p.id} ({p.nombre}) → ubicaciones duplicadas en lista"
+            )
+        tipo = getattr(p, "tipo_articulo", None)
+        if tipo is None or tipo == "":
+            out.append(
+                f"Advertencia compatibilidad: producto {p.id} ({p.nombre}) "
+                "sin clasificar (tipo_articulo)"
+            )
+        elif not es_tipo_articulo_conocido(tipo):
+            out.append(
+                f"Producto {p.id} ({p.nombre}) → tipo_articulo desconocido «{tipo}»"
             )
 
     return out

@@ -216,7 +216,7 @@ def _render_diagnostico_tecnico() -> None:
         _render_lista_incidencias("Posibles duplicidades", resumen.posibles_duplicidades)
         _render_lista_incidencias("Otras incidencias", resumen.otras_incidencias)
         _render_lista_incidencias(
-            "Catálogos de inventario (6A)",
+            "Catálogos / tipos de artículo",
             getattr(resumen, "incidencias_catalogo", []),
         )
 
@@ -646,6 +646,14 @@ def _render_catalogos_inventario() -> None:
         "(sin cantidades ni stock por ubicación). "
         "Categorías y subcategorías: clasificación estructurada. "
         "Sin borrado físico: active o desactive."
+    )
+    st.info(
+        "**Tipos de artículo (taxonomía fija, sin CRUD)**  \n"
+        "- **Consumible:** se utiliza o agota en la operación.  \n"
+        "- **Reutilizable:** permanece en el hotel y puede usarse varias veces.  \n"
+        "Tipos adicionales (préstamo, textil, activo) se diseñarán más adelante.  \n"
+        "«Reutilizable» aún **no** activa préstamo, retorno ni stock por ubicación.  \n"
+        "`es_bebida` es independiente del tipo de artículo."
     )
 
     apartado = st.radio(

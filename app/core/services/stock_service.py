@@ -101,6 +101,7 @@ def crear_producto(
     subcategoria_id: str | None = None,
     departamento_ids: list[str] | None = None,
     ubicacion_ids: list[str] | None = None,
+    tipo_articulo: str | None = None,
 ) -> ResultadoOperacion:
     nombre = nombre.strip()
     if not nombre:
@@ -120,9 +121,17 @@ def crear_producto(
 
     from app.core.services.catalogo_service import (
         normalizar_departamento_ids,
+        normalizar_tipo_articulo_conocido,
         normalizar_ubicacion_ids,
         validar_referencias_producto,
+        validar_tipo_articulo,
     )
+
+    # Alta nueva: tipo obligatorio (sin backfill automático).
+    v_tipo = validar_tipo_articulo(tipo_articulo, obligatorio=True)
+    if not v_tipo.ok:
+        return ResultadoOperacion(False, v_tipo.mensaje)
+    tipo_norm = normalizar_tipo_articulo_conocido(tipo_articulo)
 
     deps = normalizar_departamento_ids(departamento_ids)
     ubis = normalizar_ubicacion_ids(ubicacion_ids)
@@ -152,6 +161,7 @@ def crear_producto(
         subcategoria_id=subcategoria_id or None,
         departamento_ids=deps,
         ubicacion_ids=ubis,
+        tipo_articulo=tipo_norm,
     )
     data.productos.append(producto)
     accion = "Crear bebida" if es_bebida else "Crear producto"
@@ -172,6 +182,7 @@ def crear_bebida(
     subcategoria_id: str | None = None,
     departamento_ids: list[str] | None = None,
     ubicacion_ids: list[str] | None = None,
+    tipo_articulo: str | None = None,
 ) -> ResultadoOperacion:
     """Alias para crear un producto marcado como bebida."""
     return crear_producto(
@@ -185,6 +196,7 @@ def crear_bebida(
         subcategoria_id=subcategoria_id,
         departamento_ids=departamento_ids,
         ubicacion_ids=ubicacion_ids,
+        tipo_articulo=tipo_articulo,
     )
 
 
@@ -197,8 +209,13 @@ def editar_producto_catalogo(
     subcategoria_id: str | None = None,
     departamento_ids: list[str] | None = None,
     ubicacion_ids: list[str] | None = None,
+    tipo_articulo: str | None = None,
 ) -> ResultadoOperacion:
-    """Actualiza campos de catálogo (servicios / categoría / FKs 6A–6B)."""
+    """Actualiza campos de catálogo (servicios / categoría / FKs 6A–6C).
+
+    Excepción temporal: un histórico sin clasificar puede seguir con
+    ``tipo_articulo=None`` al editar otros campos (sin clasificación automática).
+    """
     data = get_data()
     producto = next((p for p in data.productos if p.id == producto_id), None)
     if not producto:
@@ -206,9 +223,23 @@ def editar_producto_catalogo(
 
     from app.core.services.catalogo_service import (
         normalizar_departamento_ids,
+        normalizar_tipo_articulo_conocido,
         normalizar_ubicacion_ids,
         validar_referencias_producto,
+        validar_tipo_articulo,
     )
+
+    # Histórico: None permitido; no forzar consumible.
+    v_tipo = validar_tipo_articulo(tipo_articulo, obligatorio=False)
+    if not v_tipo.ok:
+        return ResultadoOperacion(False, v_tipo.mensaje)
+    if tipo_articulo in (None, "", "sin_clasificar"):
+        tipo_norm: object | None = None
+    else:
+        tipo_norm = normalizar_tipo_articulo_conocido(tipo_articulo)
+        if tipo_norm is None and tipo_articulo:
+            # Conservar desconocido ya cargado si se reenvía igual
+            tipo_norm = tipo_articulo
 
     deps = normalizar_departamento_ids(departamento_ids)
     ubis = normalizar_ubicacion_ids(ubicacion_ids)
@@ -232,10 +263,11 @@ def editar_producto_catalogo(
     producto.subcategoria_id = subcategoria_id or None
     producto.departamento_ids = deps
     producto.ubicacion_ids = ubis
+    producto.tipo_articulo = tipo_norm  # type: ignore[assignment]
     _registrar_actividad(
         data,
         "Editar catálogo producto",
-        f"«{producto.nombre}»: servicios/categoría/departamentos/ubicaciones actualizados",
+        f"«{producto.nombre}»: catálogo / tipo de artículo actualizados",
     )
     persist_data(data)
     return ResultadoOperacion(True, f"Producto «{producto.nombre}» actualizado.")

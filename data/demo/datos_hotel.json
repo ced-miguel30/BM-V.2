@@ -15,7 +15,8 @@
       "categoria_id": null,
       "subcategoria_id": null,
       "departamento_ids": [],
-      "ubicacion_ids": []
+      "ubicacion_ids": [],
+      "tipo_articulo": null
     },
     {
       "id": "p2",
@@ -28,7 +29,8 @@
       "categoria_id": null,
       "subcategoria_id": null,
       "departamento_ids": [],
-      "ubicacion_ids": []
+      "ubicacion_ids": [],
+      "tipo_articulo": null
     }
   ],
   "lotes": [
