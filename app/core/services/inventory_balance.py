@@ -25,6 +25,9 @@ def cantidad_disponible_lote(data: AppData, lote: LoteStock) -> float:
     rec = clasificar_cobertura_lote(data, lote)
     if rec.cobertura == EstadoCoberturaLedger.COBERTURA_COMPLETA:
         return max(0.0, float(rec.saldo_teorico))
+    if rec.cobertura == EstadoCoberturaLedger.INCONSISTENCIA_POSTERIOR_ACTIVACION:
+        # Modo ledger: autoridad = ledger; restante puede estar desfasado.
+        return max(0.0, float(rec.saldo_teorico))
     # Histórico / parcial: no mezclar sin regla — mantener legacy.
     return float(lote.cantidad_restante)
 

@@ -19,10 +19,12 @@ from app.core.models import AppData, LoteStock
 
 def lotes_ordenados_consumo(data: AppData, producto_id: str) -> list[LoteStock]:
     """Lotes con stock > 0, del más antiguo al más reciente (FIFO)."""
+    from app.core.services.inventory_balance import cantidad_disponible_lote
+
     lotes = [
         l for l in data.lotes
         if l.producto_id == producto_id
-        and l.cantidad_restante > 0
+        and cantidad_disponible_lote(data, l) > 0
         and not getattr(l, "anulado", False)
     ]
     return sorted(
@@ -45,10 +47,9 @@ def coste_unidad_lote(lote: LoteStock) -> float:
 
 
 def stock_disponible(data: AppData, producto_id: str) -> float:
-    return sum(
-        l.cantidad_restante for l in data.lotes
-        if l.producto_id == producto_id and not getattr(l, "anulado", False)
-    )
+    from app.core.services.inventory_balance import stock_disponible_producto
+
+    return stock_disponible_producto(data, producto_id)
 
 
 def calcular_coste_linea(data: AppData, producto_id: str, cantidad: float) -> float:
@@ -187,13 +188,20 @@ def descontar_lotes(
     coste = 0.0
     movimientos: list[MovimientoDescuentoLote] = []
     ultimo_lote_tocado: LoteStock | None = None
+    from app.core.services.inventory_balance import cantidad_disponible_lote
+
     for lote in lotes_ordenados_consumo(data, producto_id):
         if restante <= 0:
             break
-        tomar = min(restante, lote.cantidad_restante)
+        disponible = cantidad_disponible_lote(data, lote)
+        if disponible <= 0:
+            continue
+        tomar = min(restante, disponible)
         coste_trozo = tomar * coste_unidad_lote(lote)
         coste += coste_trozo
-        lote.cantidad_restante = round(lote.cantidad_restante - tomar, 4)
+        # Espejo de compatibilidad: cantidad_restante sigue actualizándose.
+        # En modo ledger la autoridad es el movimiento; el restante es derivado.
+        lote.cantidad_restante = round(float(lote.cantidad_restante) - tomar, 4)
         restante -= tomar
         ultimo_lote_tocado = lote
         movimientos.append(MovimientoDescuentoLote(
