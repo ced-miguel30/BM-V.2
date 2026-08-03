@@ -13,7 +13,7 @@
 | Anulación con `reversion_entrada` | Hecho (bloquea si lote parcialmente consumido) |
 | Enlace a `ArchivoDocumental` | Hecho |
 | UI Stock → Albaranes | Hecho |
-| Factura / conciliación | **F11** |
+| Factura / conciliación | **Hecho** |
 | OCR | **No** |
 
 ## Invariantes

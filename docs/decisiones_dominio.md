@@ -63,6 +63,8 @@ Sin implementación de código en esta fase.
 | D54 | **Fase 9** — `ArchivoDocumental` inmutable + SHA-256 | Sin OCR; soft-desactivar no borra fichero |
 | D55 | **Fase 10** — albarán confirmado → lotes + `entrada_albaran` atómico | Sin facturas; anulación bloqueada si lote parcialmente consumido |
 | D56 | ID técnico documento ≠ `referencia_externa` del proveedor | Prohibido usar proveedor+fecha como ID |
+| D57 | **Fase 11** — factura conciliación = metadatos (sin stock); directa = `entrada_factura` | P04 cerrado: sin movimiento neutro |
+| D58 | **Fase 12** — rectificativa total; original → `RECTIFICADO`; sin edición silenciosa | Confirmada append-only |
 
 ## Decisiones pendientes (no bloquean F3)
 
@@ -71,7 +73,7 @@ Sin implementación de código en esta fase.
 | P01 | ¿Cuándo unificar `RegistroDesayuno` en `RegistroServicio`? | Tras desacople; alto riesgo |
 | P02 | ~~¿Stock por ubicación materializado vs ledger?~~ | **Cerrado en D47** — derivado del ledger |
 | P03 | Política exacta de préstamo/textil/activo | **Esbozo:** herramienta/préstamo; textil circulante; activo individual — **no implementados** |
-| P04 | ¿Movimiento `conciliacion` neutro en factura o solo metadatos? | F11 |
+| P04 | ~~¿Movimiento `conciliacion` neutro en factura o solo metadatos?~~ | **Cerrado en D57** — solo metadatos |
 | P05 | Migración de costes `float` → `Decimal` en consumo | Impuesto ya usa Decimal (F8); consumo pendiente |
 | P06 | Multi-almacén vs multi-ubicación simple; jerarquía/tipos de ubicación | Lista plana en 7B |
 | P07 | Retención y borrado legal de archivos documentales | F9/F17 |
@@ -91,4 +93,4 @@ Sin implementación de código en esta fase.
 
 ## Próximo paso de implementación
 
-**Fase 11** — facturas + conciliación (sin nuevo stock), tras revisión de F10.
+**Fase 13** — búsqueda y exportación documental, tras revisión de F12.

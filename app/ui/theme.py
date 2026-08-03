@@ -2,7 +2,7 @@
 
 APP_NAME = "Breakfast Management"
 APP_SUBTITLE = "Gestión de desayuno"
-APP_VERSION = "BM-V.2 · Ledger · Proveedores · Archivos · Albaranes"
+APP_VERSION = "BM-V.2 · Ledger · Proveedores · Archivos · Albaranes · Facturas · Rectificativas"
 
 
 HOTEL_NAME = "Hotel Boutique"

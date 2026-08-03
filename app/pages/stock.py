@@ -925,8 +925,8 @@ def _render_tab_albaranes() -> None:
     st.markdown("#### Albaranes de recepción")
     st.caption(
         "Confirmar un albarán crea lotes y movimientos `entrada_albaran` de forma atómica. "
-        "Sin facturas ni conciliación (Fase 11). El nº del proveedor es referencia externa, "
-        "no el ID interno."
+        "La conciliación con factura se hace en la pestaña Facturas (sin nuevo stock). "
+        "El nº del proveedor es referencia externa, no el ID interno."
     )
 
     st.markdown("##### Nuevo borrador")
@@ -1119,10 +1119,411 @@ def _render_tab_albaranes() -> None:
                     st.error(r.mensaje)
 
 
+def _render_tab_facturas() -> None:
+    """Fase 11 — facturas + conciliación (sin incremento de stock en conciliación)."""
+    from app.core.models import EstadoDocumento
+    from app.core.services import albaran_service as alb
+    from app.core.services import factura_service as fac
+    from app.core.services import proveedor_service as prv
+
+    repo = get_repository()
+    data = repo.data
+    st.markdown("#### Facturas de proveedor")
+    st.caption(
+        "Conciliación con líneas de albarán confirmado: solo metadatos (sin stock). "
+        "Líneas sin albarán = factura directa → lote + `entrada_factura`. "
+        "Correcciones posteriores: pestaña Rectificativas."
+    )
+
+    st.markdown("##### Nuevo borrador")
+    proveedores = prv.listar_proveedores(solo_activos=True)
+    mapa_prov = {"— Sin proveedor —": None}
+    mapa_prov.update({f"{p.nombre_fiscal} ({p.id})": p.id for p in proveedores})
+    archivos = [
+        a
+        for a in getattr(data, "archivos_documentales", []) or []
+        if getattr(a, "activo", True) and not getattr(a, "documento_id", None)
+    ]
+    mapa_arch = {f"{a.nombre_original} ({a.id})": a.id for a in archivos}
+    with st.form("form_factura_borrador", clear_on_submit=True):
+        c1, c2 = st.columns(2)
+        with c1:
+            fecha_doc = st.date_input("Fecha factura", value=date.today(), key="fac_fecha")
+            prov_lbl = st.selectbox("Proveedor", list(mapa_prov.keys()), key="fac_prov")
+            ref_ext = st.text_input("Referencia externa (nº factura proveedor)")
+        with c2:
+            notas = st.text_input("Notas (opcional)", key="fac_notas")
+            arch_sel = st.multiselect(
+                "Archivos adjuntos (opcional)",
+                list(mapa_arch.keys()) if mapa_arch else [],
+                key="fac_arch",
+            )
+        if st.form_submit_button("Crear borrador", type="primary"):
+            r = fac.crear_borrador_factura(
+                fecha_documento=fecha_doc,
+                proveedor_id=mapa_prov[prov_lbl],
+                referencia_externa=ref_ext or None,
+                notas=notas or None,
+                archivo_ids=[mapa_arch[x] for x in arch_sel],
+            )
+            if r.ok:
+                st.success(r.mensaje)
+                st.rerun()
+            else:
+                st.error(r.mensaje)
+
+    section_divider()
+    docs = fac.listar_facturas()
+    borradores = [
+        d
+        for d in docs
+        if (d.estado.value if hasattr(d.estado, "value") else d.estado)
+        == EstadoDocumento.BORRADOR.value
+    ]
+    st.markdown("##### Editar borrador / confirmar")
+    if not borradores:
+        st.info("No hay facturas en borrador.")
+    else:
+        mapa_doc = {
+            f"{d.id} · {d.proveedor_nombre_snapshot or '—'} · "
+            f"ref={d.referencia_externa or '—'} · {len(d.lineas)} línea(s)": d
+            for d in borradores
+        }
+        sel = st.selectbox("Borrador", list(mapa_doc.keys()), key="fac_borrador")
+        doc = mapa_doc[sel]
+        productos = list(data.productos)
+        mapa_prod = {f"{p.nombre} ({p.id})": p for p in productos}
+
+        albaranes_ok = [
+            a
+            for a in alb.listar_albaranes(estado=EstadoDocumento.CONFIRMADO.value)
+            if a.lineas
+        ]
+        lineas_alb_opts = {"— Factura directa (sin albarán) —": (None, None)}
+        for a in albaranes_ok:
+            for ln in a.lineas:
+                ya = fac.linea_albaran_ya_conciliada(data, ln.id)
+                if ya is not None:
+                    continue
+                label = (
+                    f"{a.id}/{ln.id} · {ln.producto_nombre_snapshot or ln.producto_id} "
+                    f"× {ln.cantidad:g}"
+                )
+                lineas_alb_opts[label] = (a.id, ln.id)
+
+        impuestos = [i for i in data.impuestos if getattr(i, "activo", True)]
+        mapa_imp = {"— Sin impuesto —": None}
+        mapa_imp.update(
+            {f"{i.nombre} ({i.porcentaje} %)": i.id for i in impuestos}
+        )
+        ubis = [u for u in data.ubicaciones if getattr(u, "activo", True)]
+        mapa_ubi = {"— Automática / sin ubic. —": None}
+        mapa_ubi.update({f"{u.nombre} ({u.id})": u.id for u in ubis})
+
+        with st.form("form_factura_linea", clear_on_submit=True):
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                prod_lbl = st.selectbox(
+                    "Producto", list(mapa_prod.keys()) or ["—"], key="fac_prod"
+                )
+                cantidad = st.number_input(
+                    "Cantidad", min_value=0.0, step=0.1, value=1.0, key="fac_qty"
+                )
+            with c2:
+                precio = st.number_input(
+                    "Precio total",
+                    min_value=0.0,
+                    step=0.01,
+                    format="%.2f",
+                    key="fac_precio",
+                )
+                origen_lbl = st.selectbox(
+                    "Conciliar con albarán",
+                    list(lineas_alb_opts.keys()),
+                    key="fac_origen",
+                )
+            with c3:
+                imp_lbl = st.selectbox("Impuesto", list(mapa_imp.keys()), key="fac_imp")
+                ubi_lbl = st.selectbox(
+                    "Ubicación (solo directa)",
+                    list(mapa_ubi.keys()),
+                    key="fac_ubi",
+                )
+            if st.form_submit_button("Añadir línea"):
+                if not mapa_prod:
+                    st.error("No hay productos en catálogo.")
+                else:
+                    alb_id, ln_id = lineas_alb_opts[origen_lbl]
+                    prod = mapa_prod[prod_lbl]
+                    if alb_id and ln_id:
+                        # Prefijar producto desde la línea de albarán
+                        alb_doc = next(
+                            (x for x in albaranes_ok if x.id == alb_id), None
+                        )
+                        alb_ln = (
+                            next((x for x in alb_doc.lineas if x.id == ln_id), None)
+                            if alb_doc
+                            else None
+                        )
+                        if alb_ln is not None:
+                            prod = next(
+                                (p for p in data.productos if p.id == alb_ln.producto_id),
+                                prod,
+                            )
+                    r = fac.anadir_linea_factura(
+                        doc.id,
+                        producto_id=prod.id,
+                        cantidad=cantidad,
+                        precio_total=precio,
+                        ubicacion_destino_id=mapa_ubi[ubi_lbl] if not ln_id else None,
+                        impuesto_id=mapa_imp[imp_lbl],
+                        documento_origen_id=alb_id,
+                        linea_origen_id=ln_id,
+                    )
+                    if r.ok:
+                        st.success(r.mensaje)
+                        st.rerun()
+                    else:
+                        st.error(r.mensaje)
+
+        if doc.lineas:
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Línea": ln.id,
+                            "Modo": (
+                                "Conciliación" if ln.linea_origen_id else "Directa"
+                            ),
+                            "Producto": ln.producto_nombre_snapshot or ln.producto_id,
+                            "Cantidad": ln.cantidad,
+                            "Precio": ln.precio_total,
+                            "Albarán": (
+                                f"{ln.documento_origen_id}/{ln.linea_origen_id}"
+                                if ln.linea_origen_id
+                                else "—"
+                            ),
+                        }
+                        for ln in doc.lineas
+                    ]
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
+            for line in fac.preview_confirmacion(doc):
+                st.caption(line)
+            c_ok, c_del = st.columns(2)
+            with c_ok:
+                if st.button("Confirmar factura", type="primary", key="fac_confirm"):
+                    r = fac.confirmar_factura(doc.id)
+                    if r.ok:
+                        sincronizar_alertas()
+                        st.success(r.mensaje)
+                        st.rerun()
+                    else:
+                        st.error(r.mensaje)
+            with c_del:
+                if st.button("Descartar borrador", key="fac_discard"):
+                    r = fac.anular_factura(doc.id, motivo="Borrador descartado en UI")
+                    if r.ok:
+                        st.success(r.mensaje)
+                        st.rerun()
+                    else:
+                        st.error(r.mensaje)
+
+    section_divider()
+    st.markdown("##### Historial de facturas")
+    if not docs:
+        empty_state("Todavía no hay facturas.", icon="🧾")
+    else:
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "ID": d.id,
+                        "Estado": (
+                            d.estado.value if hasattr(d.estado, "value") else d.estado
+                        ),
+                        "Fecha": d.fecha_documento,
+                        "Proveedor": d.proveedor_nombre_snapshot or "—",
+                        "Ref. externa": d.referencia_externa or "—",
+                        "Líneas": len(d.lineas),
+                        "Conciliadas": sum(
+                            1 for ln in d.lineas if ln.linea_origen_id
+                        ),
+                    }
+                    for d in docs
+                ]
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+        confirmados = [
+            d
+            for d in docs
+            if (d.estado.value if hasattr(d.estado, "value") else d.estado)
+            == EstadoDocumento.CONFIRMADO.value
+        ]
+        if confirmados:
+            mapa_c = {
+                f"{d.id} · {d.proveedor_nombre_snapshot or '—'}": d.id
+                for d in confirmados
+            }
+            c_lbl = st.selectbox(
+                "Anular factura confirmada",
+                list(mapa_c.keys()),
+                key="fac_anular_sel",
+            )
+            motivo = st.text_input("Motivo anulación", key="fac_motivo")
+            if st.button("Anular factura", key="fac_anular_btn"):
+                r = fac.anular_factura(mapa_c[c_lbl], motivo=motivo or None)
+                if r.ok:
+                    sincronizar_alertas()
+                    st.success(r.mensaje)
+                    st.rerun()
+                else:
+                    st.error(r.mensaje)
+
+
+def _render_tab_rectificativas() -> None:
+    """Fase 12 — rectificativas (sin edición silenciosa del original)."""
+    from app.core.models import EstadoDocumento
+    from app.core.services import albaran_service as alb
+    from app.core.services import factura_service as fac
+    from app.core.services import rectificativa_service as rect
+
+    repo = get_repository()
+    data = repo.data
+    st.markdown("#### Rectificativas")
+    st.caption(
+        "Corrige un albarán o factura confirmado sin editarlo en silencio. "
+        "Al confirmar: reverso de stock (si había lote) y original → `rectificado`. "
+        "Sin búsqueda/exportación (Fase 13)."
+    )
+
+    candidatos = []
+    for d in alb.listar_albaranes(estado=EstadoDocumento.CONFIRMADO.value):
+        if rect.rectificativa_confirmada_de(data, d.id) is None:
+            candidatos.append(d)
+    for d in fac.listar_facturas(estado=EstadoDocumento.CONFIRMADO.value):
+        if rect.rectificativa_confirmada_de(data, d.id) is None:
+            candidatos.append(d)
+
+    st.markdown("##### Nueva rectificativa (borrador)")
+    if not candidatos:
+        st.info("No hay albaranes/facturas confirmados pendientes de rectificar.")
+    else:
+        mapa = {
+            f"{(d.tipo.value if hasattr(d.tipo, 'value') else d.tipo)} "
+            f"{d.id} · {d.proveedor_nombre_snapshot or '—'} · "
+            f"{len(d.lineas)} línea(s)": d.id
+            for d in candidatos
+        }
+        with st.form("form_rect_borrador", clear_on_submit=True):
+            orig_lbl = st.selectbox("Documento a rectificar", list(mapa.keys()))
+            motivo = st.text_input("Motivo (obligatorio)")
+            ref_ext = st.text_input("Referencia externa (opcional)")
+            fecha_doc = st.date_input("Fecha rectificativa", value=date.today())
+            if st.form_submit_button("Crear borrador", type="primary"):
+                r = rect.crear_borrador_rectificativa(
+                    mapa[orig_lbl],
+                    motivo=motivo,
+                    fecha_documento=fecha_doc,
+                    referencia_externa=ref_ext or None,
+                )
+                if r.ok:
+                    st.success(r.mensaje)
+                    st.rerun()
+                else:
+                    st.error(r.mensaje)
+
+    section_divider()
+    docs = rect.listar_rectificativas()
+    borradores = [
+        d
+        for d in docs
+        if (d.estado.value if hasattr(d.estado, "value") else d.estado)
+        == EstadoDocumento.BORRADOR.value
+    ]
+    st.markdown("##### Confirmar borrador")
+    if not borradores:
+        st.info("No hay rectificativas en borrador.")
+    else:
+        mapa_b = {
+            f"{d.id} → {d.documento_rectificado_id} · {d.motivo_rectificacion or '—'}": d
+            for d in borradores
+        }
+        sel = st.selectbox("Borrador", list(mapa_b.keys()), key="rect_borrador")
+        doc = mapa_b[sel]
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "Línea": ln.id,
+                        "Producto": ln.producto_nombre_snapshot or ln.producto_id,
+                        "Cantidad": ln.cantidad,
+                        "Precio": ln.precio_total,
+                        "Origen": f"{ln.documento_origen_id}/{ln.linea_origen_id}",
+                    }
+                    for ln in doc.lineas
+                ]
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+        for line in rect.preview_confirmacion(doc, data):
+            st.caption(line)
+        c_ok, c_del = st.columns(2)
+        with c_ok:
+            if st.button("Confirmar rectificativa", type="primary", key="rect_confirm"):
+                r = rect.confirmar_rectificativa(doc.id)
+                if r.ok:
+                    sincronizar_alertas()
+                    st.success(r.mensaje)
+                    st.rerun()
+                else:
+                    st.error(r.mensaje)
+        with c_del:
+            if st.button("Descartar borrador", key="rect_discard"):
+                r = rect.anular_rectificativa(doc.id, motivo="Borrador descartado en UI")
+                if r.ok:
+                    st.success(r.mensaje)
+                    st.rerun()
+                else:
+                    st.error(r.mensaje)
+
+    section_divider()
+    st.markdown("##### Historial")
+    if not docs:
+        empty_state("Todavía no hay rectificativas.", icon="📝")
+    else:
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "ID": d.id,
+                        "Estado": (
+                            d.estado.value if hasattr(d.estado, "value") else d.estado
+                        ),
+                        "Original": d.documento_rectificado_id or "—",
+                        "Motivo": d.motivo_rectificacion or "—",
+                        "Fecha": d.fecha_documento,
+                        "Ref. externa": d.referencia_externa or "—",
+                    }
+                    for d in docs
+                ]
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+
 _SUBTABS = {
     "Productos": _render_tab_productos,
     "Compras": _render_tab_compras,
     "Albaranes": _render_tab_albaranes,
+    "Facturas": _render_tab_facturas,
+    "Rectificativas": _render_tab_rectificativas,
     "Inventario": _render_tab_inventario,
     "Traslados": _render_tab_traslados,
 }
@@ -1131,7 +1532,7 @@ _SUBTABS = {
 def render() -> None:
     page_header(
         "Stock",
-        "Inventario, compras por lote, albaranes de recepción y alertas",
+        "Inventario, documentos de compra y alertas",
     )
 
     selected = render_sub_tabs(list(_SUBTABS.keys()), key="stock_subtab")

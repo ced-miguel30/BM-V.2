@@ -944,6 +944,7 @@ def espejo_reversion_entrada_lote(
         if tipo_orig not in (
             TipoMovimiento.ENTRADA_COMPRA.value,
             TipoMovimiento.ENTRADA_ALBARAN.value,
+            TipoMovimiento.ENTRADA_FACTURA.value,
         ):
             return ResultadoMovimiento(
                 ok=False, mensaje="El movimiento a revertir no es una entrada"

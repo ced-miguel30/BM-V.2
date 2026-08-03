@@ -1,10 +1,11 @@
 # Flujo documental (diseño — Fase 2)
 
-**No implementar facturas aquí.** Código documental:
+**Código documental:**
 - Fase 9: archivos digitales (hash, inmutable) — **hecha**.
 - Fase 10: albaranes → entrada — **hecha**.
-- Fase 11: facturas + conciliación.
-- Fases 12–13: rectificativas / búsqueda-exportación.
+- Fase 11: facturas + conciliación — **hecha**.
+- Fase 12: rectificativas — **hecha** (original → `rectificado`; sin edición silenciosa).
+- Fase 13: búsqueda-exportación.
 
 ## Separación de conceptos
 

@@ -465,6 +465,11 @@ def _documento_to_dict(d: Documento) -> dict:
         "anulado_en": d.anulado_en.isoformat() if d.anulado_en else None,
         "motivo_anulacion": d.motivo_anulacion,
         "notas": d.notas,
+        "documento_rectificado_id": d.documento_rectificado_id,
+        "motivo_rectificacion": d.motivo_rectificacion,
+        "rectificado_en": (
+            d.rectificado_en.isoformat() if d.rectificado_en else None
+        ),
         "lineas": [
             {
                 "id": ln.id,
@@ -485,6 +490,8 @@ def _documento_to_dict(d: Documento) -> dict:
                     ln.fecha_expiracion.isoformat() if ln.fecha_expiracion else None
                 ),
                 "movimiento_id": ln.movimiento_id,
+                "documento_origen_id": ln.documento_origen_id,
+                "linea_origen_id": ln.linea_origen_id,
             }
             for ln in d.lineas
         ],
@@ -522,6 +529,8 @@ def _documento_from_dict(raw: dict) -> Documento:
                 unidad_snapshot=ln.get("unidad_snapshot"),
                 fecha_expiracion=_parse_date(fe) if fe else None,
                 movimiento_id=ln.get("movimiento_id"),
+                documento_origen_id=ln.get("documento_origen_id"),
+                linea_origen_id=ln.get("linea_origen_id"),
             )
         )
     return Documento(
@@ -550,6 +559,13 @@ def _documento_from_dict(raw: dict) -> Documento:
         ),
         motivo_anulacion=raw.get("motivo_anulacion"),
         notas=raw.get("notas"),
+        documento_rectificado_id=raw.get("documento_rectificado_id"),
+        motivo_rectificacion=raw.get("motivo_rectificacion"),
+        rectificado_en=(
+            _parse_datetime(raw["rectificado_en"])
+            if raw.get("rectificado_en")
+            else None
+        ),
     )
 
 
