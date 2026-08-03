@@ -3,15 +3,18 @@
 Solo muta `lote.cantidad_restante`. No altera compras históricas
 (`precio_total`, `cantidad` original, fechas, proveedor).
 Atomicidad: snapshot → aplicar → persistir; fallo restaura.
+
+Fase 4C: operaciones vía AppContext (UoW, reloj, actor, auditoría).
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date, datetime, time
+from datetime import date, time
 
+from app.core.application.context import AppContext, build_app_context
+from app.core.application.id_generator import next_id
 from app.core.models import (
-    Actividad,
     AppData,
     LineaAjuste,
     LoteStock,
@@ -24,7 +27,6 @@ from app.core.services.inventory_batch_service import (
     restaurar_cantidades_restantes,
     snapshot_cantidades_restantes,
 )
-from app.core.storage.session_store import get_data, persist_data
 
 MOTIVOS_AJUSTE = [m.value for m in MotivoAjuste]
 
@@ -52,40 +54,27 @@ class PreviewLineaAjuste:
     fecha_compra_txt: str
 
 
-def _next_id(prefix: str, ids: list[str]) -> str:
-    numeros = []
-    for item_id in ids:
-        sufijo = item_id[len(prefix):]
-        if item_id.startswith(prefix) and sufijo.isdigit():
-            numeros.append(int(sufijo))
-    return f"{prefix}{(max(numeros, default=0) + 1):02d}"
+def _ctx(ctx: AppContext | None = None) -> AppContext:
+    return ctx if ctx is not None else build_app_context()
 
 
-def _nombre_usuario(data: AppData) -> str:
-    for u in data.usuarios:
-        if u.id == data.usuario_actual_id:
-            return u.nombre
-    return data.usuarios[0].nombre if data.usuarios else "Usuario"
+def _registrar_actividad(ctx: AppContext, accion: str, detalle: str) -> None:
+    from app.core.application.auditoria import registrar_actividad
 
-
-def _registrar_actividad(data: AppData, accion: str, detalle: str) -> None:
-    actividad = Actividad(
-        _next_id("act", [a.id for a in data.actividades]),
-        datetime.now(),
-        _nombre_usuario(data),
-        accion,
-        detalle,
-    )
-    data.actividades.insert(0, actividad)
+    registrar_actividad(ctx, accion, detalle, commit=False)
 
 
 def _get_lote(data: AppData, lote_id: str) -> LoteStock | None:
     return next((l for l in data.lotes if l.id == lote_id), None)
 
 
-def lotes_ajustables(producto_id: str | None = None) -> list[dict]:
+def lotes_ajustables(
+    producto_id: str | None = None,
+    *,
+    ctx: AppContext | None = None,
+) -> list[dict]:
     """Lotes existentes para selector de ajuste (incluye restante 0)."""
-    data = get_data()
+    data = _ctx(ctx).data()
     repo = DataRepository(data)
     out: list[dict] = []
     for lote in sorted(
@@ -120,9 +109,11 @@ def previsualizar_ajuste(
     cantidad_despues: float,
     motivo: str,
     comentario: str | None = None,
+    *,
+    ctx: AppContext | None = None,
 ) -> tuple[PreviewLineaAjuste | None, str | None]:
     """Devuelve preview o (None, error). No muta datos."""
-    data = get_data()
+    data = _ctx(ctx).data()
     repo = DataRepository(data)
     lote = _get_lote(data, lote_id)
     if not lote:
@@ -166,16 +157,21 @@ def aplicar_ajuste(
     cantidad_despues: float,
     motivo: str,
     comentario: str | None = None,
+    *,
+    ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
     """Aplica un ajuste de una línea con atomicidad (todo o nada)."""
-    if fecha > date.today():
+    context = _ctx(ctx)
+    if fecha > context.clock.today():
         return ResultadoOperacion(False, "No puede registrar ajustes en fechas futuras.")
 
-    preview, error = previsualizar_ajuste(lote_id, cantidad_despues, motivo, comentario)
+    preview, error = previsualizar_ajuste(
+        lote_id, cantidad_despues, motivo, comentario, ctx=context,
+    )
     if error or preview is None:
         return ResultadoOperacion(False, error or "No se pudo preparar el ajuste.")
 
-    data = get_data()
+    data = context.data()
     lote = _get_lote(data, lote_id)
     if not lote:
         return ResultadoOperacion(False, "Lote no encontrado.")
@@ -208,16 +204,16 @@ def aplicar_ajuste(
             raise RuntimeError("Intento de alterar datos de compra; abortado.")
 
         registro = RegistroAjuste(
-            _next_id("aj", [a.id for a in data.ajustes]),
+            next_id("aj", [a.id for a in data.ajustes]),
             fecha,
             [linea],
-            _nombre_usuario(data),
-            hora=datetime.now().time(),
+            context.actor.nombre,
+            hora=context.clock.now().time(),
         )
         data.ajustes.append(registro)
         signo = "+" if linea.delta >= 0 else ""
         _registrar_actividad(
-            data,
+            context,
             "Ajuste inventario",
             (
                 f"{preview.nombre} lote {lote_id}: "
@@ -225,7 +221,7 @@ def aplicar_ajuste(
                 f"{preview.unidad} ({signo}{linea.delta:g}) — {preview.motivo}"
             ),
         )
-        persist_data(data)
+        context.uow.commit(data)
     except Exception:
         restaurar_cantidades_restantes(data, snap)
         del data.ajustes[n_ajustes:]
@@ -233,7 +229,7 @@ def aplicar_ajuste(
         raise
 
     from app.core.services.alert_service import sincronizar_alertas
-    sincronizar_alertas()
+    sincronizar_alertas(context)
 
     return ResultadoOperacion(
         True,
@@ -244,8 +240,8 @@ def aplicar_ajuste(
     )
 
 
-def historial_ordenado() -> list[RegistroAjuste]:
-    data = get_data()
+def historial_ordenado(*, ctx: AppContext | None = None) -> list[RegistroAjuste]:
+    data = _ctx(ctx).data()
     return sorted(
         data.ajustes,
         key=lambda a: (a.fecha, a.hora or time.min),

@@ -34,15 +34,16 @@ Lectura de productos vía `listar_productos` / `obtener_producto` / `mapa_produc
 - Firmas públicas iguales; callers de UI no cambian.
 - Fecha de desayuno «hoy» inyectable vía reloj (tests con `FixedClock`).
 
-## Siguiente subfase (4C)
+## Fase 4C — ajustes (hecha)
 
-Ajuste de inventario → contexto (STOP tras 4C).
+- `ajuste_service` vía AppContext: UoW, `clock`, actor, auditoría, `next_id`.
+- `sincronizar_alertas(ctx)` tras aplicar.
+- UI sin cambios (kwargs `ctx` opcionales).
 
-## Streamlit — cuándo comprobar
+## Siguiente subfase (4D)
 
-| Momento | Qué validar |
-|---------|-------------|
-| **Ya (4A/4B)** | Humo opcional: arranca, Dashboard, Stock → Inventario/alertas |
-| **Tras cada 4C–4H** | Smoke del módulo migrado (ajuste, merma, registro, FIFO, anulación, export) |
-| **Fase 5** | Momento clave de UI: navegación 3 modos / espacios |
-| F6+ | Flujos documentales / ledger según plan; no esperar a PG/API |
+Merma → contexto (STOP tras 4D).
+
+## Streamlit
+
+Humo opcional tras 4C: Stock → Inventario → ajuste. Validación UI clave: **Fase 5**.
