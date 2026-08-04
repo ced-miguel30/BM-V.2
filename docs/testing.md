@@ -17,6 +17,9 @@
 python run_tests.py
 ```
 
+Tras A2, `save_json` usa escritura atómica (`app/core/storage/json_atomic.py`).
+Ver [fase_a2_persistencia_atomica.md](fase_a2_persistencia_atomica.md).
+
 `run_tests.py` establece `BM_TEST_ISOLATION=1` e importa el paquete `tests`.
 
 Equivalente:

@@ -1277,9 +1277,11 @@ def dict_to_appdata(payload: dict) -> AppData:
 
 
 def save_json(path: Path, data: dict) -> None:
+    """Persiste un dict como JSON UTF-8 de forma atómica (Fase A2)."""
     _reject_protected_demo_write(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(data, cls=_Encoder, indent=2, ensure_ascii=False), encoding="utf-8")
+    from app.core.storage.json_atomic import atomic_write_json
+
+    atomic_write_json(path, data)
 
 
 def _reject_protected_demo_write(path: Path | str) -> None:
