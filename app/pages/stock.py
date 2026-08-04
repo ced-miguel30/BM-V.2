@@ -1656,9 +1656,17 @@ def _render_tab_documentos() -> None:
         )
 
 
+def _render_tab_registro_135() -> None:
+    """B4 — flujo productivo compra_registro_service (Fase 13.5)."""
+    from app.ui.registro_compras_135 import render_registro_compras_135
+
+    render_registro_compras_135()
+
+
 _SUBTABS = {
     "Productos": _render_tab_productos,
     "Compras": _render_tab_compras,
+    "Registro 13.5": _render_tab_registro_135,
     "Albaranes": _render_tab_albaranes,
     "Facturas": _render_tab_facturas,
     "Rectificativas": _render_tab_rectificativas,
