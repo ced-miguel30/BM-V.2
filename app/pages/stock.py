@@ -379,6 +379,11 @@ def _render_catalogo_solo(*, es_bebida: bool) -> None:
         with st.form(f"form_crear_{key_prefix}", clear_on_submit=True):
             col1, col2 = st.columns(2)
             with col1:
+                codigo = st.text_input(
+                    "Código *",
+                    placeholder="Ej: ZUMO-01",
+                    key=f"crear_codigo_{key_prefix}",
+                )
                 nombre = st.text_input(
                     f"Nombre de la {etiqueta}",
                     placeholder="Ej: Zumo de naranja" if es_bebida else "Ej: Croissant",
@@ -410,6 +415,7 @@ def _render_catalogo_solo(*, es_bebida: bool) -> None:
                     nombre,
                     unidad,
                     stock_min if stock_min > 0 else None,
+                    codigo=codigo,
                     servicios_disponibles=servicios,
                     categoria_inventario=categoria_inv,
                     categoria_id=cat_id,

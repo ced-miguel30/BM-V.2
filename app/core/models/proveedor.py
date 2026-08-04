@@ -25,6 +25,8 @@ class Proveedor:
     email: str | None = None
     condiciones_pago: str | None = None
     activo: bool = True
+    observaciones: str | None = None  # A5
+    codigo: str | None = None  # A9; obligatorio en altas nuevas; legacy None OK
 
 
 @dataclass

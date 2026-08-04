@@ -35,7 +35,7 @@ def _ctx(data: AppData):
 def _seed() -> AppData:
     data = AppData(productos=[Producto("p01", "Aceite", UnidadProducto.L)])
     ctx = _ctx(data)
-    prv.crear_proveedor("Norte SA", nif_cif="B1", ctx=ctx)
+    prv.crear_proveedor("Norte SA", codigo="PRV-N", nif_cif="B1", ctx=ctx)
     r = alb.crear_borrador_albaran(
         proveedor_id=data.proveedores[0].id,
         referencia_externa="ALB-99",

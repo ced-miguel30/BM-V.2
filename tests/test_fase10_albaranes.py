@@ -42,7 +42,7 @@ def _base() -> AppData:
         productos=[Producto("p01", "Aceite", UnidadProducto.L)],
     )
     ctx = _ctx(data)
-    prv.crear_proveedor("Proveedor Sur", nif_cif="B999", ctx=ctx)
+    prv.crear_proveedor("Proveedor Sur", codigo="PRV-S", nif_cif="B999", ctx=ctx)
     return data
 
 

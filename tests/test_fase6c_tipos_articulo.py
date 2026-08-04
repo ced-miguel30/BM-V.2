@@ -120,7 +120,7 @@ class TestFase6CTiposArticulo(unittest.TestCase):
         data = AppData()
         with patch("app.core.services.stock_service.get_data", return_value=data), \
              patch("app.core.services.stock_service.persist_data", side_effect=lambda d: d):
-            r = crear_producto("Nuevo", "Ud", None, tipo_articulo=None)
+            r = crear_producto("Nuevo", "Ud", None, codigo="N-01", tipo_articulo=None)
         self.assertFalse(r.ok)
         self.assertEqual(data.productos, [])
 
@@ -129,7 +129,11 @@ class TestFase6CTiposArticulo(unittest.TestCase):
         with patch("app.core.services.stock_service.get_data", return_value=data), \
              patch("app.core.services.stock_service.persist_data", side_effect=lambda d: d):
             r = crear_producto(
-                "Leche", "L", None, tipo_articulo=TipoArticulo.CONSUMIBLE.value,
+                "Leche",
+                "L",
+                None,
+                codigo="LECHE-01",
+                tipo_articulo=TipoArticulo.CONSUMIBLE.value,
             )
         self.assertTrue(r.ok)
         self.assertEqual(data.productos[0].tipo_articulo, TipoArticulo.CONSUMIBLE)
@@ -139,7 +143,11 @@ class TestFase6CTiposArticulo(unittest.TestCase):
         with patch("app.core.services.stock_service.get_data", return_value=data), \
              patch("app.core.services.stock_service.persist_data", side_effect=lambda d: d):
             r = crear_producto(
-                "Copa", "Ud", None, tipo_articulo=TipoArticulo.REUTILIZABLE.value,
+                "Copa",
+                "Ud",
+                None,
+                codigo="COPA-01",
+                tipo_articulo=TipoArticulo.REUTILIZABLE.value,
             )
         self.assertTrue(r.ok)
         self.assertEqual(data.productos[0].tipo_articulo, TipoArticulo.REUTILIZABLE)

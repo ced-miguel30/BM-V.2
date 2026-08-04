@@ -939,6 +939,7 @@ def _render_crud_ubicacion(cat) -> None:
     if todos:
         st.dataframe(
             {
+                "Código": [getattr(u, "codigo", None) or "—" for u in todos],
                 "Nombre": [u.nombre for u in todos],
                 "Estado": ["Activo" if u.activo else "Inactivo" for u in todos],
             },
@@ -951,9 +952,10 @@ def _render_crud_ubicacion(cat) -> None:
     section_divider()
     st.markdown("##### Añadir ubicación")
     with st.form("form_crear_ubicacion", clear_on_submit=True):
+        codigo = st.text_input("Código *", key="settings_ubi_codigo")
         nombre = st.text_input("Nombre", key="settings_ubi_nombre")
         if st.form_submit_button("Crear ubicación", type="primary"):
-            resultado = cat.crear_ubicacion(nombre)
+            resultado = cat.crear_ubicacion(nombre, codigo=codigo)
             if resultado.ok:
                 st.success(resultado.mensaje)
                 st.rerun()
@@ -1029,6 +1031,7 @@ def _render_crud_proveedores(prv) -> None:
     if todos:
         st.dataframe(
             {
+                "Código": [getattr(p, "codigo", None) or "—" for p in todos],
                 "Fiscal": [p.nombre_fiscal for p in todos],
                 "Comercial": [p.nombre_comercial or "—" for p in todos],
                 "NIF/CIF": [p.nif_cif or "—" for p in todos],
@@ -1043,16 +1046,28 @@ def _render_crud_proveedores(prv) -> None:
     section_divider()
     st.markdown("##### Añadir proveedor")
     with st.form("form_crear_proveedor", clear_on_submit=True):
+        codigo = st.text_input("Código *")
         nombre = st.text_input("Nombre fiscal *")
         comercial = st.text_input("Nombre comercial")
         nif = st.text_input("NIF/CIF")
+        direccion = st.text_input("Dirección")
         contacto = st.text_input("Contacto")
+        telefono = st.text_input("Teléfono")
+        email = st.text_input("Email")
+        condiciones = st.text_input("Condiciones de pago")
+        observaciones = st.text_area("Observaciones")
         if st.form_submit_button("Crear proveedor", type="primary"):
             r = prv.crear_proveedor(
                 nombre,
+                codigo=codigo,
                 nombre_comercial=comercial or None,
                 nif_cif=nif or None,
+                direccion=direccion or None,
                 contacto=contacto or None,
+                telefono=telefono or None,
+                email=email or None,
+                condiciones_pago=condiciones or None,
+                observaciones=observaciones or None,
             )
             if r.ok:
                 st.success(r.mensaje)
@@ -1071,14 +1086,65 @@ def _render_crud_proveedores(prv) -> None:
     sel = st.selectbox("Proveedor", list(opts.keys()), key="settings_prv_sel")
     pid = opts[sel]
     prov = next(p for p in todos if p.id == pid)
-    nuevo = st.text_input("Nombre fiscal", value=prov.nombre_fiscal, key="settings_prv_nom")
-    if st.button("Guardar cambios", key="settings_prv_save"):
-        r = prv.editar_proveedor(pid, nombre_fiscal=nuevo)
-        if r.ok:
-            st.success(r.mensaje)
-            st.rerun()
-        else:
-            st.error(r.mensaje)
+    with st.form("form_edit_proveedor"):
+        nuevo_codigo = st.text_input(
+            "Código",
+            value=getattr(prov, "codigo", None) or "",
+            key="settings_prv_codigo",
+        )
+        nuevo = st.text_input(
+            "Nombre fiscal", value=prov.nombre_fiscal, key="settings_prv_nom"
+        )
+        nuevo_com = st.text_input(
+            "Nombre comercial",
+            value=prov.nombre_comercial or "",
+            key="settings_prv_com",
+        )
+        nuevo_nif = st.text_input(
+            "NIF/CIF", value=prov.nif_cif or "", key="settings_prv_nif"
+        )
+        nuevo_dir = st.text_input(
+            "Dirección", value=prov.direccion or "", key="settings_prv_dir"
+        )
+        nuevo_contacto = st.text_input(
+            "Contacto", value=prov.contacto or "", key="settings_prv_contacto"
+        )
+        nuevo_tel = st.text_input(
+            "Teléfono", value=prov.telefono or "", key="settings_prv_tel"
+        )
+        nuevo_email = st.text_input(
+            "Email", value=prov.email or "", key="settings_prv_email"
+        )
+        nuevo_cond = st.text_input(
+            "Condiciones de pago",
+            value=prov.condiciones_pago or "",
+            key="settings_prv_cond",
+        )
+        nuevo_obs = st.text_area(
+            "Observaciones",
+            value=getattr(prov, "observaciones", None) or "",
+            key="settings_prv_obs",
+        )
+        if st.form_submit_button("Guardar cambios"):
+            kwargs = {
+                "nombre_fiscal": nuevo,
+                "nombre_comercial": nuevo_com or None,
+                "nif_cif": nuevo_nif or None,
+                "direccion": nuevo_dir or None,
+                "contacto": nuevo_contacto or None,
+                "telefono": nuevo_tel or None,
+                "email": nuevo_email or None,
+                "condiciones_pago": nuevo_cond or None,
+                "observaciones": nuevo_obs or None,
+            }
+            if (nuevo_codigo or "").strip():
+                kwargs["codigo"] = nuevo_codigo
+            r = prv.editar_proveedor(pid, **kwargs)
+            if r.ok:
+                st.success(r.mensaje)
+                st.rerun()
+            else:
+                st.error(r.mensaje)
     c1, c2 = st.columns(2)
     with c1:
         if prov.activo and st.button("Desactivar", key="settings_prv_off"):

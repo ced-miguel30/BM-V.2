@@ -44,6 +44,7 @@ class TestFase8Proveedores(unittest.TestCase):
         with patch.object(prv, "_ctx", return_value=ctx):
             r = prv.crear_proveedor(
                 "Distribuciones Norte SA",
+                codigo="NORTE-01",
                 nif_cif="B12345678",
                 nombre_comercial="Norte",
                 ctx=ctx,
@@ -57,10 +58,10 @@ class TestFase8Proveedores(unittest.TestCase):
     def test_03_no_duplicar_nombre_ni_nif(self) -> None:
         data = AppData()
         ctx = _ctx(data)
-        prv.crear_proveedor("Alpha", nif_cif="A1", ctx=ctx)
-        r2 = prv.crear_proveedor("alpha", ctx=ctx)
+        prv.crear_proveedor("Alpha", codigo="A-01", nif_cif="A1", ctx=ctx)
+        r2 = prv.crear_proveedor("alpha", codigo="A-02", ctx=ctx)
         self.assertFalse(r2.ok)
-        r3 = prv.crear_proveedor("Beta", nif_cif="A1", ctx=ctx)
+        r3 = prv.crear_proveedor("Beta", codigo="B-01", nif_cif="A1", ctx=ctx)
         self.assertFalse(r3.ok)
 
     def test_04_impuesto_decimal(self) -> None:
@@ -99,7 +100,11 @@ class TestFase8Proveedores(unittest.TestCase):
         )
         ctx = _ctx(data)
         prv.crear_proveedor(
-            "Fiscal Viejo", nombre_comercial="Comercial X", nif_cif="X1", ctx=ctx
+            "Fiscal Viejo",
+            codigo="FV-01",
+            nombre_comercial="Comercial X",
+            nif_cif="X1",
+            ctx=ctx,
         )
         r = prv.vincular_producto_proveedor(
             "p01", data.proveedores[0].id, codigo_proveedor="SKU-1", preferente=True, ctx=ctx
@@ -117,8 +122,8 @@ class TestFase8Proveedores(unittest.TestCase):
     def test_07_preferente_unico_por_producto(self) -> None:
         data = AppData(productos=[Producto("p01", "Pan", UnidadProducto.UD)])
         ctx = _ctx(data)
-        prv.crear_proveedor("Prov A", ctx=ctx)
-        prv.crear_proveedor("Prov B", ctx=ctx)
+        prv.crear_proveedor("Prov A", codigo="PA", ctx=ctx)
+        prv.crear_proveedor("Prov B", codigo="PB", ctx=ctx)
         a, b = data.proveedores[0].id, data.proveedores[1].id
         prv.vincular_producto_proveedor("p01", a, preferente=True, ctx=ctx)
         prv.vincular_producto_proveedor("p01", b, preferente=True, ctx=ctx)
@@ -129,7 +134,7 @@ class TestFase8Proveedores(unittest.TestCase):
     def test_08_soft_delete(self) -> None:
         data = AppData()
         ctx = _ctx(data)
-        prv.crear_proveedor("Zeta", ctx=ctx)
+        prv.crear_proveedor("Zeta", codigo="Z1", ctx=ctx)
         pid = data.proveedores[0].id
         self.assertTrue(prv.desactivar_proveedor(pid, ctx=ctx).ok)
         self.assertFalse(data.proveedores[0].activo)
@@ -152,7 +157,7 @@ class TestFase8Proveedores(unittest.TestCase):
             ]
         )
         ctx = _ctx(data)
-        prv.crear_proveedor("Nuevo Maestro", ctx=ctx)
+        prv.crear_proveedor("Nuevo Maestro", codigo="NM-01", ctx=ctx)
         marca = data.lotes[0].marca_proveedor
         prv.editar_proveedor(data.proveedores[0].id, nombre_fiscal="Otro Nombre SA", ctx=ctx)
         self.assertEqual(data.lotes[0].marca_proveedor, marca)

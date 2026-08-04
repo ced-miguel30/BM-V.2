@@ -112,6 +112,7 @@ def listar_proveedores(
 def crear_proveedor(
     nombre_fiscal: str,
     *,
+    codigo: str,
     nombre_comercial: str | None = None,
     nif_cif: str | None = None,
     direccion: str | None = None,
@@ -119,8 +120,11 @@ def crear_proveedor(
     telefono: str | None = None,
     email: str | None = None,
     condiciones_pago: str | None = None,
+    observaciones: str | None = None,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.services.money import normalizar_codigo_funcional
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     if not hasattr(data, "proveedores") or data.proveedores is None:
@@ -128,6 +132,14 @@ def crear_proveedor(
     nombre = _presentacion(nombre_fiscal)
     if len(nombre) < 2:
         return ResultadoOperacion(False, "El nombre fiscal debe tener al menos 2 caracteres.")
+    codigo_n = normalizar_codigo_funcional(codigo)
+    if not codigo_n:
+        return ResultadoOperacion(False, "El código es obligatorio en altas nuevas.")
+    if any(
+        normalizar_codigo_funcional(getattr(p, "codigo", None)) == codigo_n
+        for p in data.proveedores
+    ):
+        return ResultadoOperacion(False, f"Ya existe un proveedor con código «{codigo_n}».")
     clave = _norm(nombre)
     if any(_norm(p.nombre_fiscal) == clave for p in data.proveedores):
         return ResultadoOperacion(False, f"Ya existe un proveedor «{nombre}».")
@@ -137,6 +149,7 @@ def crear_proveedor(
     ):
         return ResultadoOperacion(False, f"Ya existe un proveedor con NIF/CIF «{nif}».")
 
+    obs = _presentacion(observaciones) or None
     prov = Proveedor(
         id=next_id("prv", [p.id for p in data.proveedores]),
         nombre_fiscal=nombre,
@@ -148,6 +161,8 @@ def crear_proveedor(
         email=_presentacion(email) or None,
         condiciones_pago=_presentacion(condiciones_pago) or None,
         activo=True,
+        observaciones=obs,
+        codigo=codigo_n,
     )
     data.proveedores.append(prov)
     _registrar_actividad(c, "Crear proveedor", f"Proveedor «{nombre}» ({prov.id})")
@@ -166,6 +181,8 @@ def editar_proveedor(
     telefono: str | None = None,
     email: str | None = None,
     condiciones_pago: str | None = None,
+    observaciones: str | None = None,
+    codigo: str | None = None,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
     c = _ctx(ctx)
@@ -204,6 +221,23 @@ def editar_proveedor(
         prov.email = _presentacion(email) or None
     if condiciones_pago is not None:
         prov.condiciones_pago = _presentacion(condiciones_pago) or None
+    if observaciones is not None:
+        prov.observaciones = _presentacion(observaciones) or None
+    if codigo is not None:
+        from app.core.services.money import normalizar_codigo_funcional
+
+        codigo_n = normalizar_codigo_funcional(codigo)
+        if not codigo_n:
+            return ResultadoOperacion(False, "El código no puede quedar vacío.")
+        if any(
+            p.id != proveedor_id
+            and normalizar_codigo_funcional(getattr(p, "codigo", None)) == codigo_n
+            for p in data.proveedores
+        ):
+            return ResultadoOperacion(
+                False, f"Ya existe un proveedor con código «{codigo_n}»."
+            )
+        prov.codigo = codigo_n
     # No reescribe marca_proveedor ni snapshots de relaciones existentes.
     _registrar_actividad(c, "Editar proveedor", f"Proveedor {proveedor_id} actualizado")
     c.uow.commit(data)

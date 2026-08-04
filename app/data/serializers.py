@@ -17,6 +17,7 @@ from app.core.models import (
     CategoriaReceta,
     ConfiguracionHotel,
     Departamento,
+    DesgloseImpuesto,
     DireccionMovimiento,
     Documento,
     EstadoDocumento,
@@ -292,7 +293,7 @@ def _recuento_from_dict(raw: dict) -> SesionRecuento:
 
 
 def _proveedor_to_dict(p: Proveedor) -> dict:
-    return {
+    out = {
         "id": p.id,
         "nombre_fiscal": p.nombre_fiscal,
         "nombre_comercial": p.nombre_comercial,
@@ -304,6 +305,13 @@ def _proveedor_to_dict(p: Proveedor) -> dict:
         "condiciones_pago": p.condiciones_pago,
         "activo": bool(p.activo),
     }
+    obs = getattr(p, "observaciones", None)
+    if obs is not None:
+        out["observaciones"] = obs
+    codigo = getattr(p, "codigo", None)
+    if codigo is not None:
+        out["codigo"] = codigo
+    return out
 
 
 def _proveedor_from_dict(raw: dict) -> Proveedor:
@@ -318,6 +326,8 @@ def _proveedor_from_dict(raw: dict) -> Proveedor:
         email=raw.get("email"),
         condiciones_pago=raw.get("condiciones_pago"),
         activo=bool(raw.get("activo", True)),
+        observaciones=raw.get("observaciones"),
+        codigo=raw.get("codigo"),
     )
 
 
@@ -443,6 +453,157 @@ def _parse_estado_documento(raw) -> EstadoDocumento | str:
         return s or EstadoDocumento.BORRADOR.value
 
 
+def _decimal_to_json(value) -> str | None:
+    from decimal import Decimal
+
+    if value is None:
+        return None
+    if isinstance(value, Decimal):
+        return format(value, "f")
+    return format(Decimal(str(value)), "f")
+
+
+def _decimal_from_json(raw) -> "Decimal | None":
+    from decimal import Decimal, InvalidOperation
+
+    if raw is None or raw == "":
+        return None
+    try:
+        return Decimal(str(raw))
+    except (InvalidOperation, ValueError, TypeError):
+        return None
+
+
+def _linea_documento_to_dict(ln: LineaDocumento) -> dict:
+    return {
+        "id": ln.id,
+        "producto_id": ln.producto_id,
+        "cantidad": ln.cantidad,
+        "precio_total": ln.precio_total,
+        "impuesto_id": ln.impuesto_id,
+        "impuesto_porcentaje_snapshot": (
+            format(ln.impuesto_porcentaje_snapshot, "f")
+            if ln.impuesto_porcentaje_snapshot is not None
+            else None
+        ),
+        "ubicacion_destino_id": ln.ubicacion_destino_id,
+        "lote_id": ln.lote_id,
+        "producto_nombre_snapshot": ln.producto_nombre_snapshot,
+        "unidad_snapshot": ln.unidad_snapshot,
+        "fecha_expiracion": (
+            ln.fecha_expiracion.isoformat() if ln.fecha_expiracion else None
+        ),
+        "movimiento_id": ln.movimiento_id,
+        "documento_origen_id": ln.documento_origen_id,
+        "linea_origen_id": ln.linea_origen_id,
+        "cantidad_compra": _decimal_to_json(getattr(ln, "cantidad_compra", None)),
+        "unidad_compra": getattr(ln, "unidad_compra", None),
+        "precio_unitario_compra": _decimal_to_json(
+            getattr(ln, "precio_unitario_compra", None)
+        ),
+        "precio_incluye_igic": bool(getattr(ln, "precio_incluye_igic", False)),
+        "factor_conversion": _decimal_to_json(getattr(ln, "factor_conversion", None)),
+        "unidad_inventario": getattr(ln, "unidad_inventario", None),
+        "cantidad_inventario": _decimal_to_json(
+            getattr(ln, "cantidad_inventario", None)
+        ),
+        "descuento_porcentaje": _decimal_to_json(
+            getattr(ln, "descuento_porcentaje", None)
+        ),
+        "descuento_importe": _decimal_to_json(getattr(ln, "descuento_importe", None)),
+        "descuento_cabecera_asignado": _decimal_to_json(
+            getattr(ln, "descuento_cabecera_asignado", None)
+        ),
+        "base_antes_descuento": _decimal_to_json(
+            getattr(ln, "base_antes_descuento", None)
+        ),
+        "base_imponible": _decimal_to_json(getattr(ln, "base_imponible", None)),
+        "cuota_impuesto": _decimal_to_json(getattr(ln, "cuota_impuesto", None)),
+        "total_linea": _decimal_to_json(getattr(ln, "total_linea", None)),
+        "codigo_lote_proveedor": getattr(ln, "codigo_lote_proveedor", None),
+        "coste_inventariable_linea": _decimal_to_json(
+            getattr(ln, "coste_inventariable_linea", None)
+        ),
+        "coste_unitario_inventario": _decimal_to_json(
+            getattr(ln, "coste_unitario_inventario", None)
+        ),
+        "client_line_key": getattr(ln, "client_line_key", None),
+    }
+
+
+def _linea_documento_from_dict(ln: dict) -> LineaDocumento:
+    from decimal import Decimal, InvalidOperation
+
+    pct = ln.get("impuesto_porcentaje_snapshot")
+    pct_d = None
+    if pct is not None and pct != "":
+        try:
+            pct_d = Decimal(str(pct))
+        except (InvalidOperation, ValueError):
+            pct_d = None
+    fe = ln.get("fecha_expiracion")
+    return LineaDocumento(
+        id=ln.get("id", ""),
+        producto_id=ln.get("producto_id", "") or "",
+        cantidad=float(ln.get("cantidad", 0) or 0),
+        precio_total=float(ln.get("precio_total", 0) or 0),
+        impuesto_id=ln.get("impuesto_id"),
+        impuesto_porcentaje_snapshot=pct_d,
+        ubicacion_destino_id=ln.get("ubicacion_destino_id"),
+        lote_id=ln.get("lote_id"),
+        producto_nombre_snapshot=ln.get("producto_nombre_snapshot"),
+        unidad_snapshot=ln.get("unidad_snapshot"),
+        fecha_expiracion=_parse_date(fe) if fe else None,
+        movimiento_id=ln.get("movimiento_id"),
+        documento_origen_id=ln.get("documento_origen_id"),
+        linea_origen_id=ln.get("linea_origen_id"),
+        cantidad_compra=_decimal_from_json(ln.get("cantidad_compra")),
+        unidad_compra=ln.get("unidad_compra"),
+        precio_unitario_compra=_decimal_from_json(ln.get("precio_unitario_compra")),
+        precio_incluye_igic=bool(ln.get("precio_incluye_igic", False)),
+        factor_conversion=_decimal_from_json(ln.get("factor_conversion")),
+        unidad_inventario=ln.get("unidad_inventario"),
+        cantidad_inventario=_decimal_from_json(ln.get("cantidad_inventario")),
+        descuento_porcentaje=_decimal_from_json(ln.get("descuento_porcentaje")),
+        descuento_importe=_decimal_from_json(ln.get("descuento_importe")),
+        descuento_cabecera_asignado=_decimal_from_json(
+            ln.get("descuento_cabecera_asignado")
+        ),
+        base_antes_descuento=_decimal_from_json(ln.get("base_antes_descuento")),
+        base_imponible=_decimal_from_json(ln.get("base_imponible")),
+        cuota_impuesto=_decimal_from_json(ln.get("cuota_impuesto")),
+        total_linea=_decimal_from_json(ln.get("total_linea")),
+        codigo_lote_proveedor=ln.get("codigo_lote_proveedor"),
+        coste_inventariable_linea=_decimal_from_json(
+            ln.get("coste_inventariable_linea")
+        ),
+        coste_unitario_inventario=_decimal_from_json(
+            ln.get("coste_unitario_inventario")
+        ),
+        client_line_key=ln.get("client_line_key"),
+    )
+
+
+def _desglose_to_dict(d: DesgloseImpuesto) -> dict:
+    return {
+        "impuesto_id": d.impuesto_id,
+        "porcentaje": _decimal_to_json(d.porcentaje) or "0",
+        "base": _decimal_to_json(d.base) or "0",
+        "cuota": _decimal_to_json(d.cuota) or "0",
+    }
+
+
+def _desglose_from_dict(raw: dict) -> DesgloseImpuesto:
+    from decimal import Decimal
+
+    return DesgloseImpuesto(
+        impuesto_id=raw.get("impuesto_id"),
+        porcentaje=_decimal_from_json(raw.get("porcentaje")) or Decimal("0"),
+        base=_decimal_from_json(raw.get("base")) or Decimal("0"),
+        cuota=_decimal_from_json(raw.get("cuota")) or Decimal("0"),
+    )
+
+
 def _documento_to_dict(d: Documento) -> dict:
     return {
         "id": d.id,
@@ -470,69 +631,43 @@ def _documento_to_dict(d: Documento) -> dict:
         "rectificado_en": (
             d.rectificado_en.isoformat() if d.rectificado_en else None
         ),
-        "lineas": [
-            {
-                "id": ln.id,
-                "producto_id": ln.producto_id,
-                "cantidad": ln.cantidad,
-                "precio_total": ln.precio_total,
-                "impuesto_id": ln.impuesto_id,
-                "impuesto_porcentaje_snapshot": (
-                    format(ln.impuesto_porcentaje_snapshot, "f")
-                    if ln.impuesto_porcentaje_snapshot is not None
-                    else None
-                ),
-                "ubicacion_destino_id": ln.ubicacion_destino_id,
-                "lote_id": ln.lote_id,
-                "producto_nombre_snapshot": ln.producto_nombre_snapshot,
-                "unidad_snapshot": ln.unidad_snapshot,
-                "fecha_expiracion": (
-                    ln.fecha_expiracion.isoformat() if ln.fecha_expiracion else None
-                ),
-                "movimiento_id": ln.movimiento_id,
-                "documento_origen_id": ln.documento_origen_id,
-                "linea_origen_id": ln.linea_origen_id,
-            }
-            for ln in d.lineas
+        "fecha_recepcion": (
+            d.fecha_recepcion.isoformat()
+            if getattr(d, "fecha_recepcion", None)
+            else None
+        ),
+        "ubicacion_entrada_id": getattr(d, "ubicacion_entrada_id", None),
+        "moneda": getattr(d, "moneda", None),
+        "descuento_cabecera_importe": _decimal_to_json(
+            getattr(d, "descuento_cabecera_importe", None)
+        ),
+        "base_imponible": _decimal_to_json(getattr(d, "base_imponible", None)),
+        "descuento_total": _decimal_to_json(getattr(d, "descuento_total", None)),
+        "impuesto_total": _decimal_to_json(getattr(d, "impuesto_total", None)),
+        "total_documento": _decimal_to_json(getattr(d, "total_documento", None)),
+        "desglose_impuestos": [
+            _desglose_to_dict(x)
+            for x in (getattr(d, "desglose_impuestos", None) or [])
         ],
+        "confirmacion_id": getattr(d, "confirmacion_id", None),
+        "contenido_hash": getattr(d, "contenido_hash", None),
+        "impacto_stock": getattr(d, "impacto_stock", None),
+        "lineas": [_linea_documento_to_dict(ln) for ln in d.lineas],
     }
 
 
 def _documento_from_dict(raw: dict) -> Documento:
-    from decimal import Decimal, InvalidOperation
-
     fecha_raw = raw.get("fecha_documento")
     fecha = _parse_date(fecha_raw) if fecha_raw else date.today()
     if fecha is None:
         fecha = date.today()
-    lineas: list[LineaDocumento] = []
-    for ln in raw.get("lineas", []) or []:
-        pct = ln.get("impuesto_porcentaje_snapshot")
-        pct_d = None
-        if pct is not None and pct != "":
-            try:
-                pct_d = Decimal(str(pct))
-            except (InvalidOperation, ValueError):
-                pct_d = None
-        fe = ln.get("fecha_expiracion")
-        lineas.append(
-            LineaDocumento(
-                id=ln.get("id", ""),
-                producto_id=ln.get("producto_id", "") or "",
-                cantidad=float(ln.get("cantidad", 0) or 0),
-                precio_total=float(ln.get("precio_total", 0) or 0),
-                impuesto_id=ln.get("impuesto_id"),
-                impuesto_porcentaje_snapshot=pct_d,
-                ubicacion_destino_id=ln.get("ubicacion_destino_id"),
-                lote_id=ln.get("lote_id"),
-                producto_nombre_snapshot=ln.get("producto_nombre_snapshot"),
-                unidad_snapshot=ln.get("unidad_snapshot"),
-                fecha_expiracion=_parse_date(fe) if fe else None,
-                movimiento_id=ln.get("movimiento_id"),
-                documento_origen_id=ln.get("documento_origen_id"),
-                linea_origen_id=ln.get("linea_origen_id"),
-            )
-        )
+    lineas = [
+        _linea_documento_from_dict(ln) for ln in (raw.get("lineas", []) or [])
+    ]
+    fr = raw.get("fecha_recepcion")
+    impacto = raw.get("impacto_stock")
+    if impacto is not None:
+        impacto = bool(impacto)
     return Documento(
         id=raw.get("id", ""),
         tipo=_parse_tipo_documento(raw.get("tipo")),
@@ -566,6 +701,25 @@ def _documento_from_dict(raw: dict) -> Documento:
             if raw.get("rectificado_en")
             else None
         ),
+        fecha_recepcion=_parse_date(fr) if fr else None,
+        ubicacion_entrada_id=raw.get("ubicacion_entrada_id"),
+        moneda=raw.get("moneda"),
+        descuento_cabecera_importe=_decimal_from_json(
+            raw.get("descuento_cabecera_importe")
+        ),
+        base_imponible=_decimal_from_json(raw.get("base_imponible")),
+        descuento_total=_decimal_from_json(raw.get("descuento_total")),
+        impuesto_total=_decimal_from_json(raw.get("impuesto_total")),
+        total_documento=_decimal_from_json(
+            raw.get("total_documento", raw.get("total_bruto"))
+        ),
+        desglose_impuestos=[
+            _desglose_from_dict(x)
+            for x in (raw.get("desglose_impuestos", []) or [])
+        ],
+        confirmacion_id=raw.get("confirmacion_id"),
+        contenido_hash=raw.get("contenido_hash"),
+        impacto_stock=impacto,
     )
 
 
@@ -669,6 +823,11 @@ def appdata_to_dict(data: AppData) -> dict:
                     p.tipo_articulo.value
                     if hasattr(p.tipo_articulo, "value")
                     else p.tipo_articulo
+                ),
+                **(
+                    {"codigo": p.codigo}
+                    if getattr(p, "codigo", None) is not None
+                    else {}
                 ),
             }
             for p in data.productos
@@ -901,7 +1060,16 @@ def appdata_to_dict(data: AppData) -> dict:
             for s in data.subcategorias
         ],
         "ubicaciones": [
-            {"id": u.id, "nombre": u.nombre, "activo": u.activo}
+            {
+                "id": u.id,
+                "nombre": u.nombre,
+                "activo": u.activo,
+                **(
+                    {"codigo": u.codigo}
+                    if getattr(u, "codigo", None) is not None
+                    else {}
+                ),
+            }
             for u in getattr(data, "ubicaciones", []) or []
         ],
         "movimientos": [
@@ -990,6 +1158,7 @@ def dict_to_appdata(payload: dict) -> AppData:
                     if isinstance(u, str) and u
                 ],
                 tipo_articulo=_parse_tipo_articulo(p.get("tipo_articulo")),
+                codigo=p.get("codigo"),
             )
             for p in payload.get("productos", [])
         ],
@@ -1213,7 +1382,10 @@ def dict_to_appdata(payload: dict) -> AppData:
         ],
         ubicaciones=[
             Ubicacion(
-                u["id"], u["nombre"], u.get("activo", True),
+                u["id"],
+                u["nombre"],
+                u.get("activo", True),
+                codigo=u.get("codigo"),
             )
             for u in payload.get("ubicaciones", [])
         ],

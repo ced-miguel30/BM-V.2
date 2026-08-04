@@ -740,20 +740,32 @@ def reactivar_subcategoria(
 def crear_ubicacion(
     nombre: str,
     *,
+    codigo: str,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.services.money import normalizar_codigo_funcional
+
     texto = _nombre_presentacion(nombre)
     if not texto:
         return ResultadoOperacion(False, "Indique un nombre de ubicación.")
+    codigo_n = normalizar_codigo_funcional(codigo)
+    if not codigo_n:
+        return ResultadoOperacion(False, "El código es obligatorio en altas nuevas.")
     context = _ctx(ctx)
     data = context.data()
     clave = normalizar_nombre_catalogo(texto)
     if any(normalizar_nombre_catalogo(u.nombre) == clave for u in data.ubicaciones):
         return ResultadoOperacion(False, "Ya existe una ubicación con ese nombre.")
+    if any(
+        normalizar_codigo_funcional(getattr(u, "codigo", None)) == codigo_n
+        for u in data.ubicaciones
+    ):
+        return ResultadoOperacion(False, f"Ya existe una ubicación con código «{codigo_n}».")
     nuevo = Ubicacion(
         next_id("ubi", [u.id for u in data.ubicaciones]),
         texto,
         True,
+        codigo=codigo_n,
     )
     data.ubicaciones.append(nuevo)
     _registrar_actividad(context, "Catálogo ubicación", f"Alta: {texto}")

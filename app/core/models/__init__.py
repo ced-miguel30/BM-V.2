@@ -44,6 +44,7 @@ from app.core.models.enums import (
 )
 from app.core.models.archivo_documental import ArchivoDocumental
 from app.core.models.documento import (
+    DesgloseImpuesto,
     Documento,
     EstadoDocumento,
     LineaDocumento,
@@ -79,6 +80,7 @@ __all__ = [
     "DIRECCION_MOVIMIENTO_VALORES",
     "DIRECCION_POR_TIPO_MOVIMIENTO",
     "DireccionMovimiento",
+    "DesgloseImpuesto",
     "Documento",
     "ESTADO_ALERTA_LABEL",
     "EstadoAlerta",

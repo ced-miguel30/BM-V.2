@@ -31,3 +31,5 @@ class Producto:
     # None = histórico sin clasificar (sin backfill). str = valor desconocido conservado.
     # No equivale a es_bebida. Cambiar el tipo no altera stock/FIFO/lotes.
     tipo_articulo: TipoArticulo | str | None = None
+    # A9 — código funcional; obligatorio en altas nuevas; legacy None admitido.
+    codigo: str | None = None

@@ -109,27 +109,27 @@ class TestFase6BUbicaciones(unittest.TestCase):
     def test_06_creacion_duplicada(self) -> None:
         data = AppData()
         ctx = _ctx(data)
-        self.assertTrue(cat.crear_ubicacion("Bar", ctx=ctx).ok)
-        self.assertFalse(cat.crear_ubicacion("Bar", ctx=ctx).ok)
+        self.assertTrue(cat.crear_ubicacion("Bar", codigo="UBI-BAR", ctx=ctx).ok)
+        self.assertFalse(cat.crear_ubicacion("Bar", codigo="UBI-BAR2", ctx=ctx).ok)
 
     def test_07_duplicado_ignorando_mayusculas(self) -> None:
         data = AppData()
         ctx = _ctx(data)
-        self.assertTrue(cat.crear_ubicacion("Cámara", ctx=ctx).ok)
-        self.assertFalse(cat.crear_ubicacion("  cámara  ", ctx=ctx).ok)
+        self.assertTrue(cat.crear_ubicacion("Cámara", codigo="UBI-CAM", ctx=ctx).ok)
+        self.assertFalse(cat.crear_ubicacion("  cámara  ", codigo="UBI-CAM2", ctx=ctx).ok)
 
     def test_08_renombrado_duplicado(self) -> None:
         data = AppData()
         ctx = _ctx(data)
-        cat.crear_ubicacion("A", ctx=ctx)
-        cat.crear_ubicacion("B", ctx=ctx)
+        cat.crear_ubicacion("A", codigo="UA", ctx=ctx)
+        cat.crear_ubicacion("B", codigo="UB", ctx=ctx)
         a_id = data.ubicaciones[0].id
         self.assertFalse(cat.renombrar_ubicacion(a_id, "B", ctx=ctx).ok)
 
     def test_09_renombrado_conserva_id(self) -> None:
         data = AppData()
         ctx = _ctx(data)
-        cat.crear_ubicacion("Antes", ctx=ctx)
+        cat.crear_ubicacion("Antes", codigo="UANTES", ctx=ctx)
         uid = data.ubicaciones[0].id
         self.assertTrue(cat.renombrar_ubicacion(uid, "Después", ctx=ctx).ok)
         self.assertEqual(data.ubicaciones[0].id, uid)
@@ -138,7 +138,7 @@ class TestFase6BUbicaciones(unittest.TestCase):
     def test_10_desactivar_no_elimina(self) -> None:
         data = AppData()
         ctx = _ctx(data)
-        cat.crear_ubicacion("Taller", ctx=ctx)
+        cat.crear_ubicacion("Taller", codigo="UTALLER", ctx=ctx)
         uid = data.ubicaciones[0].id
         self.assertTrue(cat.desactivar_ubicacion(uid, ctx=ctx).ok)
         self.assertEqual(len(data.ubicaciones), 1)

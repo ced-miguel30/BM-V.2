@@ -94,6 +94,7 @@ def crear_producto(
     unidad: str,
     stock_minimo: float | None,
     *,
+    codigo: str,
     es_bebida: bool = False,
     servicios_disponibles: list[str] | None = None,
     categoria_inventario: str | None = None,
@@ -103,6 +104,8 @@ def crear_producto(
     ubicacion_ids: list[str] | None = None,
     tipo_articulo: str | None = None,
 ) -> ResultadoOperacion:
+    from app.core.services.money import normalizar_codigo_funcional
+
     nombre = nombre.strip()
     if not nombre:
         return ResultadoOperacion(
@@ -113,8 +116,16 @@ def crear_producto(
         return ResultadoOperacion(False, "El nombre debe tener al menos 2 caracteres.")
     if unidad not in UNIDADES:
         return ResultadoOperacion(False, "Seleccione una unidad válida.")
+    codigo_n = normalizar_codigo_funcional(codigo)
+    if not codigo_n:
+        return ResultadoOperacion(False, "El código es obligatorio en altas nuevas.")
 
     data = get_data()
+    if any(
+        normalizar_codigo_funcional(getattr(p, "codigo", None)) == codigo_n
+        for p in data.productos
+    ):
+        return ResultadoOperacion(False, f"Ya existe un producto con código «{codigo_n}».")
     if _nombre_duplicado(data, nombre):
         tipo = "bebida" if es_bebida else "producto"
         return ResultadoOperacion(False, f"Ya existe un {tipo} llamado «{nombre}».")
@@ -162,6 +173,7 @@ def crear_producto(
         departamento_ids=deps,
         ubicacion_ids=ubis,
         tipo_articulo=tipo_norm,
+        codigo=codigo_n,
     )
     data.productos.append(producto)
     accion = "Crear bebida" if es_bebida else "Crear producto"
@@ -176,6 +188,7 @@ def crear_bebida(
     unidad: str,
     stock_minimo: float | None,
     *,
+    codigo: str,
     servicios_disponibles: list[str] | None = None,
     categoria_inventario: str | None = None,
     categoria_id: str | None = None,
@@ -189,6 +202,7 @@ def crear_bebida(
         nombre,
         unidad,
         stock_minimo,
+        codigo=codigo,
         es_bebida=True,
         servicios_disponibles=servicios_disponibles,
         categoria_inventario=categoria_inventario,

@@ -48,3 +48,5 @@ class Ubicacion:
     id: str
     nombre: str
     activo: bool = True
+    # A9 — código funcional; obligatorio en altas nuevas; legacy None admitido.
+    codigo: str | None = None
