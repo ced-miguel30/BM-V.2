@@ -198,7 +198,13 @@
   ],
   "mermas": [],
   "ajustes": [],
-  "responsables_merma": [],
+  "responsables_merma": [
+    {
+      "id": "rm01",
+      "nombre": "Ana",
+      "activo": true
+    }
+  ],
   "departamentos": [],
   "categorias": [],
   "subcategorias": [],
@@ -259,7 +265,7 @@
       "tipo": "desayuno_no_registrado",
       "titulo": "Desayuno de hoy no registrado",
       "mensaje": "Aún no se ha registrado el consumo del desayuno de hoy.",
-      "fecha": "2026-08-03",
+      "fecha": "2026-08-04",
       "activa": true,
       "producto_id": null,
       "estado": "pendiente",
@@ -277,6 +283,18 @@
   ],
   "configuracion": null,
   "actividades": [
+    {
+      "id": "act18",
+      "fecha_hora": "2026-08-04T10:17:41.627478",
+      "usuario": "Ana",
+      "accion": "Responsable merma",
+      "detalle": "Alta: Ana",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
+    },
     {
       "id": "act17",
       "fecha_hora": "2026-08-03T17:15:42.101397",

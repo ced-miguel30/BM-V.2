@@ -253,8 +253,13 @@ class TestIntegracionExportacionConsumo(unittest.TestCase):
         self.data = AppData(productos=_productos(), recetas=_recetas())
         self._patcher = patch("app.core.services.consumo_service.get_data", return_value=self.data)
         self._patcher.start()
+        from tests.demo_isolation import EXPORT_SESSION_MODULES, isolated_persist
+
+        self._export_iso = isolated_persist(*EXPORT_SESSION_MODULES, data=self.data)
+        self._export_iso.__enter__()
 
     def tearDown(self) -> None:
+        self._export_iso.__exit__(None, None, None)
         self._patcher.stop()
         self._tmp.cleanup()
 

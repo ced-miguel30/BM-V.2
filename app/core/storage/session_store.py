@@ -3,7 +3,7 @@
 import streamlit as st
 
 from app.core.models import AppData
-from app.core.storage.demo_files import DEMO_FILE, load_demo_files, save_demo_files
+from app.core.storage.demo_files import get_demo_file, load_demo_files, save_demo_files
 
 SESSION_KEY = "bm_data"
 
@@ -38,4 +38,4 @@ def reload_from_disk() -> AppData:
 
 
 def get_demo_path() -> str:
-    return str(DEMO_FILE)
+    return str(get_demo_file())

@@ -39,6 +39,7 @@ from app.core.models import (
 )
 from app.core.services import desayuno_service, merma_service
 from app.core.services.exportacion_semanal_service import exportar_periodo
+from tests.demo_isolation import EXPORT_SESSION_MODULES, isolated_persist
 
 
 def _productos() -> list[Producto]:
@@ -231,8 +232,11 @@ class TestIntegracionExportacionSemanalCompleta(unittest.TestCase):
         self.data = AppData(productos=_productos())
         self._patcher = patch("app.core.services.desayuno_service.get_data", return_value=self.data)
         self._patcher.start()
+        self._export_iso = isolated_persist(*EXPORT_SESSION_MODULES, data=self.data)
+        self._export_iso.__enter__()
 
     def tearDown(self) -> None:
+        self._export_iso.__exit__(None, None, None)
         self._patcher.stop()
         self._tmp.cleanup()
 

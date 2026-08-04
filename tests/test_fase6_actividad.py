@@ -168,9 +168,20 @@ class TestIntegracionExportacionActividad(unittest.TestCase):
         self.archivo_meta = self.carpeta / "_meta.json"
         self.data = AppData()
         self._patcher = patch("app.core.services.actividad_service.get_data", return_value=self.data)
+        self._p_motor = patch(
+            "app.core.services.exportacion_semanal_service.get_data", return_value=self.data
+        )
+        self._p_persist = patch(
+            "app.core.services.exportacion_semanal_service.persist_data",
+            side_effect=lambda d=None: d if d is not None else self.data,
+        )
         self._patcher.start()
+        self._p_motor.start()
+        self._p_persist.start()
 
     def tearDown(self) -> None:
+        self._p_persist.stop()
+        self._p_motor.stop()
         self._patcher.stop()
         self._tmp.cleanup()
 

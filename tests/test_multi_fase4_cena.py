@@ -34,6 +34,7 @@ from app.core.services import cena_service
 from app.core.services.excel_bloques import nombre_hoja_dia
 from app.core.services.exportacion_semanal_service import exportar_periodo
 from app.core.services.servicio_registro_service import crear_servicio
+from tests.demo_isolation import EXPORT_SESSION_MODULES, isolated_persist
 
 
 def _datos() -> AppData:
@@ -158,14 +159,15 @@ class TestCenaRegistro(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             carpeta = Path(tmp)
-            resultado = exportar_periodo(
-                cena_service.configuracion_exportacion(),
-                date(2026, 7, 20),
-                datetime(2026, 7, 26, 23, 59, 59),
-                automatica=True,
-                carpeta_exports=carpeta,
-                archivo_meta=carpeta / "_meta.json",
-            )
+            with isolated_persist(*EXPORT_SESSION_MODULES, data=self.data):
+                resultado = exportar_periodo(
+                    cena_service.configuracion_exportacion(),
+                    date(2026, 7, 20),
+                    datetime(2026, 7, 26, 23, 59, 59),
+                    automatica=True,
+                    carpeta_exports=carpeta,
+                    archivo_meta=carpeta / "_meta.json",
+                )
             self.assertTrue(resultado.ok, resultado.mensaje)
             self.assertTrue(resultado.nombre_archivo.startswith("Registro_de_Cena_"))
             from openpyxl import load_workbook

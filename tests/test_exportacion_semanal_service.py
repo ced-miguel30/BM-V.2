@@ -24,6 +24,7 @@ if str(ROOT) not in sys.path:
 
 from openpyxl import load_workbook
 
+from app.core.models import AppData
 from app.core.services.exportacion_semanal_service import (
     ConfiguracionExportacionModulo,
     exportar_periodo,
@@ -36,6 +37,20 @@ from app.core.services.exportacion_semanal_service import (
     ultima_semana_exportada,
 )
 from app.core.services.excel_bloques import RegistroExportable
+from tests.demo_isolation import EXPORT_SESSION_MODULES, isolated_persist
+
+
+def _start_export_isolation(testcase: unittest.TestCase, data: AppData | None = None) -> None:
+    cm = isolated_persist(*EXPORT_SESSION_MODULES, data=data or AppData())
+    testcase._export_isolation_cm = cm  # type: ignore[attr-defined]
+    cm.__enter__()
+
+
+def _stop_export_isolation(testcase: unittest.TestCase) -> None:
+    cm = getattr(testcase, "_export_isolation_cm", None)
+    if cm is not None:
+        cm.__exit__(None, None, None)
+        testcase._export_isolation_cm = None  # type: ignore[attr-defined]
 
 
 def _registro(fecha: date, identificador: str, hora: time | None = time(8, 30)) -> RegistroExportable:
@@ -135,8 +150,10 @@ class TestNombreArchivo(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
         self.carpeta = Path(self._tmp.name)
+        _start_export_isolation(self)
 
     def tearDown(self) -> None:
+        _stop_export_isolation(self)
         self._tmp.cleanup()
 
     def test_formato_de_nombre_semanal(self) -> None:
@@ -180,8 +197,10 @@ class TestGeneracionHojas(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.carpeta = Path(self._tmp.name)
         self.archivo_meta = self.carpeta / "_meta.json"
+        _start_export_isolation(self)
 
     def tearDown(self) -> None:
+        _stop_export_isolation(self)
         self._tmp.cleanup()
 
     def test_dias_sin_registros_no_generan_hoja(self) -> None:
@@ -240,8 +259,10 @@ class TestExportacionManualParcial(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.carpeta = Path(self._tmp.name)
         self.archivo_meta = self.carpeta / "_meta.json"
+        _start_export_isolation(self)
 
     def tearDown(self) -> None:
+        _stop_export_isolation(self)
         self._tmp.cleanup()
 
     def test_exportacion_manual_no_espera_fin_de_semana(self) -> None:

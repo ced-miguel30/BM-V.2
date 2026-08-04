@@ -33,6 +33,7 @@ from app.core.models.enums import RolUsuario
 from app.core.services import comida_service
 from app.core.services.exportacion_semanal_service import exportar_periodo
 from app.core.services.excel_bloques import nombre_hoja_dia
+from tests.demo_isolation import EXPORT_SESSION_MODULES, isolated_persist
 
 
 def _datos() -> AppData:
@@ -158,14 +159,15 @@ class TestComidaRegistro(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             carpeta = Path(tmp)
             meta = carpeta / "_meta.json"
-            resultado = exportar_periodo(
-                comida_service.configuracion_exportacion(),
-                date(2026, 7, 20),
-                datetime(2026, 7, 26, 23, 59, 59),
-                automatica=True,
-                carpeta_exports=carpeta,
-                archivo_meta=meta,
-            )
+            with isolated_persist(*EXPORT_SESSION_MODULES, data=self.data):
+                resultado = exportar_periodo(
+                    comida_service.configuracion_exportacion(),
+                    date(2026, 7, 20),
+                    datetime(2026, 7, 26, 23, 59, 59),
+                    automatica=True,
+                    carpeta_exports=carpeta,
+                    archivo_meta=meta,
+                )
             self.assertTrue(resultado.ok, resultado.mensaje)
             self.assertIsNotNone(resultado.ruta)
             from openpyxl import load_workbook

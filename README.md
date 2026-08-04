@@ -40,6 +40,10 @@ exports/            # Archivos exportados
 logs/               # Registros de actividad
 ```
 
-## Actualización
+## Tests
 
-Para actualizar en otro ordenador, copie la carpeta del proyecto y vuelva a ejecutar `pip install -r requirements.txt`.
+Ver [docs/testing.md](docs/testing.md). Comando canónico:
+
+```text
+python run_tests.py
+```

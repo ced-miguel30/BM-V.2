@@ -24,6 +24,7 @@ from app.core.models import AppData, LoteStock, Producto, UnidadProducto
 from app.core.services import stock_service
 from app.core.services.excel_bloques import nombre_hoja_dia
 from app.core.services.exportacion_semanal_service import exportar_periodo
+from tests.demo_isolation import EXPORT_SESSION_MODULES, isolated_persist
 
 
 def _catalogo() -> list[Producto]:
@@ -103,8 +104,11 @@ class TestIntegracionExportacionStockBebidas(unittest.TestCase):
         self.data = AppData(productos=_catalogo(), lotes=_lotes())
         self._patcher = patch("app.core.services.stock_service.get_data", return_value=self.data)
         self._patcher.start()
+        self._export_iso = isolated_persist(*EXPORT_SESSION_MODULES, data=self.data)
+        self._export_iso.__enter__()
 
     def tearDown(self) -> None:
+        self._export_iso.__exit__(None, None, None)
         self._patcher.stop()
         self._tmp.cleanup()
 

@@ -68,6 +68,10 @@ class TestEscaladoRecetaFase8(unittest.TestCase):
         self.data = _datos()
         self._patches = [
             mock.patch("app.core.services.desayuno_service.get_data", return_value=self.data),
+            mock.patch(
+                "app.core.services.desayuno_service.persist_data",
+                side_effect=lambda d=None: d if d is not None else self.data,
+            ),
             mock.patch("app.core.services.cesta_service.get_data", return_value=self.data),
             mock.patch("app.core.services.receta_service.get_data", return_value=self.data),
             mock.patch("streamlit.session_state", {}),

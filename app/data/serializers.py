@@ -1277,8 +1277,27 @@ def dict_to_appdata(payload: dict) -> AppData:
 
 
 def save_json(path: Path, data: dict) -> None:
+    _reject_protected_demo_write(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(data, cls=_Encoder, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def _reject_protected_demo_write(path: Path | str) -> None:
+    """Si BM_TEST_ISOLATION está activo, bloquea escrituras al JSON demo canónico."""
+    import os
+
+    flag = os.environ.get("BM_TEST_ISOLATION", "").strip().lower()
+    if flag not in ("1", "true", "yes"):
+        return
+    try:
+        from app.core.storage.demo_files import DEMO_FILE
+
+        if Path(path).resolve() == DEMO_FILE.resolve():
+            raise RuntimeError(
+                f"BM_TEST_ISOLATION: forbidden write to {DEMO_FILE.resolve()}"
+            )
+    except ImportError:
+        return
 
 
 def load_json(path: Path) -> dict:
