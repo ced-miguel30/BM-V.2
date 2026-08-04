@@ -58,3 +58,7 @@ class RelacionProductoProveedor:
     proveedor_nombre_snapshot: str | None = None
     nif_cif_snapshot: str | None = None
     activo: bool = True
+    # Plan v3 — aditivos comerciales
+    factor_compra: Decimal | None = None
+    impuesto_id_default: str | None = None
+    ultimo_precio_unitario_compra: Decimal | None = None

@@ -29,3 +29,4 @@ class ArchivoDocumental:
     documento_id: str | None = None  # enlace futuro a cabecera documental
     notas: str | None = None
     activo: bool = True  # soft: no borra el fichero
+    storage_key: str | None = None  # A6: identidad lógica ≠ path físico

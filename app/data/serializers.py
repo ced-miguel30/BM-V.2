@@ -78,6 +78,27 @@ def _parse_tipo_articulo(raw: Any) -> TipoArticulo | str | None:
         return raw
 
 
+def _decimal_to_json(value) -> str | None:
+    from decimal import Decimal
+
+    if value is None:
+        return None
+    if isinstance(value, Decimal):
+        return format(value, "f")
+    return format(Decimal(str(value)), "f")
+
+
+def _decimal_from_json(raw):
+    from decimal import Decimal, InvalidOperation
+
+    if raw is None or raw == "":
+        return None
+    try:
+        return Decimal(str(raw))
+    except (InvalidOperation, ValueError, TypeError):
+        return None
+
+
 def _configuracion_to_dict(cfg: ConfiguracionHotel) -> dict:
     return {
         "nombre_establecimiento": cfg.nombre_establecimiento,
@@ -375,7 +396,7 @@ def _impuesto_from_dict(raw: dict) -> Impuesto:
 
 
 def _relacion_pp_to_dict(r: RelacionProductoProveedor) -> dict:
-    return {
+    out = {
         "id": r.id,
         "producto_id": r.producto_id,
         "proveedor_id": r.proveedor_id,
@@ -385,6 +406,15 @@ def _relacion_pp_to_dict(r: RelacionProductoProveedor) -> dict:
         "nif_cif_snapshot": r.nif_cif_snapshot,
         "activo": bool(r.activo),
     }
+    if getattr(r, "factor_compra", None) is not None:
+        out["factor_compra"] = _decimal_to_json(r.factor_compra)
+    if getattr(r, "impuesto_id_default", None) is not None:
+        out["impuesto_id_default"] = r.impuesto_id_default
+    if getattr(r, "ultimo_precio_unitario_compra", None) is not None:
+        out["ultimo_precio_unitario_compra"] = _decimal_to_json(
+            r.ultimo_precio_unitario_compra
+        )
+    return out
 
 
 def _relacion_pp_from_dict(raw: dict) -> RelacionProductoProveedor:
@@ -397,11 +427,16 @@ def _relacion_pp_from_dict(raw: dict) -> RelacionProductoProveedor:
         proveedor_nombre_snapshot=raw.get("proveedor_nombre_snapshot"),
         nif_cif_snapshot=raw.get("nif_cif_snapshot"),
         activo=bool(raw.get("activo", True)),
+        factor_compra=_decimal_from_json(raw.get("factor_compra")),
+        impuesto_id_default=raw.get("impuesto_id_default"),
+        ultimo_precio_unitario_compra=_decimal_from_json(
+            raw.get("ultimo_precio_unitario_compra")
+        ),
     )
 
 
 def _archivo_documental_to_dict(a: ArchivoDocumental) -> dict:
-    return {
+    out = {
         "id": a.id,
         "nombre_original": a.nombre_original,
         "mime_type": a.mime_type,
@@ -414,6 +449,9 @@ def _archivo_documental_to_dict(a: ArchivoDocumental) -> dict:
         "notas": a.notas,
         "activo": bool(a.activo),
     }
+    if getattr(a, "storage_key", None):
+        out["storage_key"] = a.storage_key
+    return out
 
 
 def _archivo_documental_from_dict(raw: dict) -> ArchivoDocumental:
@@ -430,6 +468,7 @@ def _archivo_documental_from_dict(raw: dict) -> ArchivoDocumental:
         documento_id=raw.get("documento_id"),
         notas=raw.get("notas"),
         activo=bool(raw.get("activo", True)),
+        storage_key=raw.get("storage_key"),
     )
 
 
@@ -453,25 +492,61 @@ def _parse_estado_documento(raw) -> EstadoDocumento | str:
         return s or EstadoDocumento.BORRADOR.value
 
 
-def _decimal_to_json(value) -> str | None:
-    from decimal import Decimal
+def _conciliacion_to_dict(c) -> dict:
+    from app.core.models.conciliacion import ConciliacionLineaDocumento
 
-    if value is None:
-        return None
-    if isinstance(value, Decimal):
-        return format(value, "f")
-    return format(Decimal(str(value)), "f")
+    assert isinstance(c, ConciliacionLineaDocumento) or hasattr(c, "id")
+    return {
+        "id": c.id,
+        "linea_factura_id": c.linea_factura_id,
+        "linea_albaran_id": c.linea_albaran_id,
+        "cantidad_conciliada": _decimal_to_json(c.cantidad_conciliada) or "0",
+        "fecha": c.fecha.isoformat() if c.fecha else None,
+        "estado": c.estado.value if hasattr(c.estado, "value") else c.estado,
+        "importe_conciliado": _decimal_to_json(
+            getattr(c, "importe_conciliado", None)
+        ),
+        "creado_en": c.creado_en.isoformat() if getattr(c, "creado_en", None) else None,
+        "anulada_en": (
+            c.anulada_en.isoformat() if getattr(c, "anulada_en", None) else None
+        ),
+        "motivo_anulacion": getattr(c, "motivo_anulacion", None),
+        "usuario_id": getattr(c, "usuario_id", None),
+        "confirmacion_id": getattr(c, "confirmacion_id", None),
+    }
 
 
-def _decimal_from_json(raw) -> "Decimal | None":
-    from decimal import Decimal, InvalidOperation
+def _conciliacion_from_dict(raw: dict):
+    from app.core.models.conciliacion import (
+        ConciliacionLineaDocumento,
+        EstadoConciliacion,
+    )
 
-    if raw is None or raw == "":
-        return None
+    est = raw.get("estado", EstadoConciliacion.ACTIVA.value)
     try:
-        return Decimal(str(raw))
-    except (InvalidOperation, ValueError, TypeError):
-        return None
+        estado = EstadoConciliacion(est)
+    except ValueError:
+        estado = est
+    fe = raw.get("fecha")
+    return ConciliacionLineaDocumento(
+        id=raw.get("id", ""),
+        linea_factura_id=raw.get("linea_factura_id", "") or "",
+        linea_albaran_id=raw.get("linea_albaran_id", "") or "",
+        cantidad_conciliada=_decimal_from_json(raw.get("cantidad_conciliada"))
+        or __import__("decimal").Decimal("0"),
+        fecha=_parse_date(fe) if fe else date.today(),
+        estado=estado,
+        importe_conciliado=_decimal_from_json(raw.get("importe_conciliado")),
+        creado_en=(
+            _parse_datetime(raw["creado_en"]) if raw.get("creado_en") else None
+        ),
+        anulada_en=(
+            _parse_datetime(raw["anulada_en"]) if raw.get("anulada_en") else None
+        ),
+        motivo_anulacion=raw.get("motivo_anulacion"),
+        usuario_id=raw.get("usuario_id"),
+        confirmacion_id=raw.get("confirmacion_id"),
+    )
 
 
 def _linea_documento_to_dict(ln: LineaDocumento) -> dict:
@@ -528,6 +603,10 @@ def _linea_documento_to_dict(ln: LineaDocumento) -> dict:
             getattr(ln, "coste_unitario_inventario", None)
         ),
         "client_line_key": getattr(ln, "client_line_key", None),
+        "base_tras_descuento_linea": _decimal_to_json(
+            getattr(ln, "base_tras_descuento_linea", None)
+        ),
+        "legacy_conciliacion_estado": getattr(ln, "legacy_conciliacion_estado", None),
     }
 
 
@@ -581,6 +660,10 @@ def _linea_documento_from_dict(ln: dict) -> LineaDocumento:
             ln.get("coste_unitario_inventario")
         ),
         client_line_key=ln.get("client_line_key"),
+        base_tras_descuento_linea=_decimal_from_json(
+            ln.get("base_tras_descuento_linea")
+        ),
+        legacy_conciliacion_estado=ln.get("legacy_conciliacion_estado"),
     )
 
 
@@ -852,6 +935,10 @@ def appdata_to_dict(data: AppData) -> dict:
                 "motivo_anulacion": getattr(l, "motivo_anulacion", "") or "",
                 "referencia_anulacion": getattr(l, "referencia_anulacion", "") or "",
                 "anulado_por": getattr(l, "anulado_por", "") or "",
+                "documento_origen_id": getattr(l, "documento_origen_id", None),
+                "linea_documento_origen_id": getattr(
+                    l, "linea_documento_origen_id", None
+                ),
             }
             for l in data.lotes
         ],
@@ -1100,6 +1187,10 @@ def appdata_to_dict(data: AppData) -> dict:
             _documento_to_dict(d)
             for d in getattr(data, "documentos", []) or []
         ],
+        "conciliaciones_documento": [
+            _conciliacion_to_dict(c)
+            for c in getattr(data, "conciliaciones_documento", []) or []
+        ],
         "alertas": [
             {
                 "id": a.id, "tipo": a.tipo.value, "titulo": a.titulo, "mensaje": a.mensaje,
@@ -1173,6 +1264,8 @@ def dict_to_appdata(payload: dict) -> AppData:
                 motivo_anulacion=l.get("motivo_anulacion", "") or "",
                 referencia_anulacion=l.get("referencia_anulacion", "") or "",
                 anulado_por=l.get("anulado_por", "") or "",
+                documento_origen_id=l.get("documento_origen_id"),
+                linea_documento_origen_id=l.get("linea_documento_origen_id"),
             )
             for l in payload.get("lotes", [])
         ],
@@ -1416,6 +1509,10 @@ def dict_to_appdata(payload: dict) -> AppData:
         documentos=[
             _documento_from_dict(d)
             for d in payload.get("documentos", [])
+        ],
+        conciliaciones_documento=[
+            _conciliacion_from_dict(c)
+            for c in payload.get("conciliaciones_documento", [])
         ],
         alertas=[
             AlertaOperativa(

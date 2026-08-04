@@ -41,6 +41,7 @@ def _entrada_desde_linea(ln: LineaDocumento) -> EntradaLineaCalculo | None:
 def aplicar_resultado_a_linea(ln: LineaDocumento, resultado) -> None:
     """Escribe importes calculados en la línea (mutación in-place)."""
     ln.base_antes_descuento = resultado.base_antes_descuentos
+    ln.base_tras_descuento_linea = resultado.base_tras_descuento_linea
     ln.base_imponible = resultado.base_imponible_final
     ln.descuento_cabecera_asignado = resultado.descuento_cabecera_asignado
     ln.cuota_impuesto = resultado.cuota_impuesto

@@ -22,3 +22,6 @@ class LoteStock:
     motivo_anulacion: str = ""
     referencia_anulacion: str = ""
     anulado_por: str = ""
+    # A7/B3 — trazabilidad documental (aditivo; legacy None).
+    documento_origen_id: str | None = None
+    linea_documento_origen_id: str | None = None

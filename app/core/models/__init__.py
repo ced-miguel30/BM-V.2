@@ -50,6 +50,7 @@ from app.core.models.documento import (
     LineaDocumento,
     TipoDocumento,
 )
+from app.core.models.conciliacion import ConciliacionLineaDocumento, EstadoConciliacion
 from app.core.models.lote import LoteStock
 from app.core.models.merma import LineaMerma, RegistroMerma, ResponsableMerma
 from app.core.models.movimiento import MovimientoInventario
@@ -76,6 +77,7 @@ __all__ = [
     "Categoria",
     "CategoriaReceta",
     "ConfiguracionHotel",
+    "ConciliacionLineaDocumento",
     "Departamento",
     "DIRECCION_MOVIMIENTO_VALORES",
     "DIRECCION_POR_TIPO_MOVIMIENTO",
@@ -84,6 +86,7 @@ __all__ = [
     "Documento",
     "ESTADO_ALERTA_LABEL",
     "EstadoAlerta",
+    "EstadoConciliacion",
     "EstadoDocumento",
     "EstadoRecuento",
     "ExtraRecetaDesayuno",

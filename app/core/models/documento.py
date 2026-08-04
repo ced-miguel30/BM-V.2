@@ -17,6 +17,7 @@ class TipoDocumento(str, Enum):
     ALBARAN = "albaran"
     FACTURA = "factura"
     RECTIFICATIVA = "rectificativa"
+    DEVOLUCION = "devolucion"
 
 
 class EstadoDocumento(str, Enum):
@@ -72,6 +73,8 @@ class LineaDocumento:
     coste_inventariable_linea: Decimal | None = None
     coste_unitario_inventario: Decimal | None = None
     client_line_key: str | None = None
+    base_tras_descuento_linea: Decimal | None = None
+    legacy_conciliacion_estado: str | None = None  # A8: pendiente_revision | None
 
 
 @dataclass

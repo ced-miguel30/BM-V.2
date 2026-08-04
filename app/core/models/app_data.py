@@ -10,6 +10,7 @@ from app.core.models.catalogo import Categoria, Departamento, Subcategoria, Ubic
 from app.core.models.configuracion import ConfiguracionHotel
 from app.core.models.desayuno import RegistroDesayuno
 from app.core.models.documento import Documento
+from app.core.models.conciliacion import ConciliacionLineaDocumento
 from app.core.models.lote import LoteStock
 from app.core.models.merma import RegistroMerma, ResponsableMerma
 from app.core.models.movimiento import MovimientoInventario
@@ -49,5 +50,9 @@ class AppData:
     archivos_documentales: list[ArchivoDocumental] = field(default_factory=list)
     # Fase 10 — albaranes (facturas = F11).
     documentos: list[Documento] = field(default_factory=list)
+    # A7 — conciliaciones N:M factura↔albarán
+    conciliaciones_documento: list[ConciliacionLineaDocumento] = field(
+        default_factory=list
+    )
     configuracion: ConfiguracionHotel | None = None
     usuario_actual_id: str = ""
