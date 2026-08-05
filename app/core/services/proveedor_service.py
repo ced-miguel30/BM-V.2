@@ -191,6 +191,13 @@ def editar_proveedor(
     codigo: str | None = None,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     prov = next((p for p in data.proveedores if p.id == proveedor_id), None)
@@ -253,6 +260,13 @@ def editar_proveedor(
 def desactivar_proveedor(
     proveedor_id: str, *, ctx: AppContext | None = None
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     prov = next((p for p in data.proveedores if p.id == proveedor_id), None)
@@ -269,6 +283,13 @@ def desactivar_proveedor(
 def reactivar_proveedor(
     proveedor_id: str, *, ctx: AppContext | None = None
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     prov = next((p for p in data.proveedores if p.id == proveedor_id), None)
@@ -303,6 +324,13 @@ def crear_impuesto(
     descripcion: str | None = None,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     if not hasattr(data, "impuestos") or data.impuestos is None:
@@ -346,6 +374,13 @@ def editar_impuesto(
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
     """Editar metadatos. Cambiar % no reescribe snapshots de líneas futuras (aún no hay)."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     imp = next((i for i in data.impuestos if i.id == impuesto_id), None)
@@ -385,6 +420,13 @@ def editar_impuesto(
 def desactivar_impuesto(
     impuesto_id: str, *, ctx: AppContext | None = None
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     imp = next((i for i in data.impuestos if i.id == impuesto_id), None)
@@ -401,6 +443,13 @@ def desactivar_impuesto(
 def reactivar_impuesto(
     impuesto_id: str, *, ctx: AppContext | None = None
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     imp = next((i for i in data.impuestos if i.id == impuesto_id), None)
@@ -442,6 +491,13 @@ def vincular_producto_proveedor(
     preferente: bool = False,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     if not hasattr(data, "relaciones_producto_proveedor") or data.relaciones_producto_proveedor is None:
@@ -489,6 +545,13 @@ def vincular_producto_proveedor(
 def desactivar_relacion(
     relacion_id: str, *, ctx: AppContext | None = None
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     rel = next(
@@ -508,6 +571,13 @@ def desactivar_relacion(
 def marcar_preferente(
     relacion_id: str, *, ctx: AppContext | None = None
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     rel = next(

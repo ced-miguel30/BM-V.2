@@ -412,6 +412,13 @@ def crear_departamento(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     texto = _nombre_presentacion(nombre)
     if not texto:
         return ResultadoOperacion(False, "Indique un nombre de departamento.")
@@ -437,6 +444,13 @@ def renombrar_departamento(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     texto = _nombre_presentacion(nombre)
     if not texto:
         return ResultadoOperacion(False, "Indique un nombre de departamento.")
@@ -465,6 +479,13 @@ def desactivar_departamento(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     context = _ctx(ctx)
     data = context.data()
     actual = next((d for d in data.departamentos if d.id == departamento_id), None)
@@ -483,6 +504,13 @@ def reactivar_departamento(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     context = _ctx(ctx)
     data = context.data()
     actual = next((d for d in data.departamentos if d.id == departamento_id), None)
@@ -512,6 +540,13 @@ def crear_categoria(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     texto = _nombre_presentacion(nombre)
     if not texto:
         return ResultadoOperacion(False, "Indique un nombre de categoría.")
@@ -537,6 +572,13 @@ def renombrar_categoria(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     texto = _nombre_presentacion(nombre)
     if not texto:
         return ResultadoOperacion(False, "Indique un nombre de categoría.")
@@ -565,6 +607,13 @@ def desactivar_categoria(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     context = _ctx(ctx)
     data = context.data()
     actual = next((c for c in data.categorias if c.id == categoria_id), None)
@@ -587,6 +636,13 @@ def reactivar_categoria(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     context = _ctx(ctx)
     data = context.data()
     actual = next((c for c in data.categorias if c.id == categoria_id), None)
@@ -617,6 +673,13 @@ def crear_subcategoria(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     texto = _nombre_presentacion(nombre)
     if not texto:
         return ResultadoOperacion(False, "Indique un nombre de subcategoría.")
@@ -658,6 +721,13 @@ def renombrar_subcategoria(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     texto = _nombre_presentacion(nombre)
     if not texto:
         return ResultadoOperacion(False, "Indique un nombre de subcategoría.")
@@ -691,6 +761,13 @@ def desactivar_subcategoria(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     context = _ctx(ctx)
     data = context.data()
     actual = next((s for s in data.subcategorias if s.id == subcategoria_id), None)
@@ -709,6 +786,13 @@ def reactivar_subcategoria(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     context = _ctx(ctx)
     data = context.data()
     actual = next((s for s in data.subcategorias if s.id == subcategoria_id), None)
@@ -743,6 +827,13 @@ def crear_ubicacion(
     codigo: str,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     from app.core.services.money import normalizar_codigo_funcional
 
     texto = _nombre_presentacion(nombre)
@@ -779,6 +870,13 @@ def renombrar_ubicacion(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     texto = _nombre_presentacion(nombre)
     if not texto:
         return ResultadoOperacion(False, "Indique un nombre de ubicación.")
@@ -807,6 +905,13 @@ def desactivar_ubicacion(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     context = _ctx(ctx)
     data = context.data()
     actual = next((u for u in data.ubicaciones if u.id == ubicacion_id), None)
@@ -825,6 +930,13 @@ def reactivar_ubicacion(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     context = _ctx(ctx)
     data = context.data()
     actual = next((u for u in data.ubicaciones if u.id == ubicacion_id), None)

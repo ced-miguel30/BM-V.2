@@ -55,6 +55,11 @@ def _costes_categoria(repo, inicio: date, fin: date, categorias: list[str]) -> d
 
 
 def resumen_periodo(inicio: date, fin: date, categorias: list[str]) -> dict:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     repo = get_repository()
     costes = _costes_naturaleza(inicio, fin, categorias)
     total = sum(costes.values())
@@ -74,6 +79,11 @@ def comparar_periodos(
     b_hasta: date,
     categorias: list[str],
 ) -> dict:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     periodo_a = resumen_periodo(a_desde, a_hasta, categorias)
     periodo_b = resumen_periodo(b_desde, b_hasta, categorias)
 
@@ -115,6 +125,11 @@ def datos_grafico_comparacion(comparacion: dict) -> list[dict]:
 
 
 def costes_consumo_por_servicio(inicio: date, fin: date) -> dict[str, float]:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     data = get_repository().data
     c = analitica.coste_servicios_excluyentes(inicio, fin, data=data)
     return {
@@ -127,6 +142,11 @@ def costes_consumo_por_servicio(inicio: date, fin: date) -> dict[str, float]:
 
 
 def desglose_costes_desayuno(inicio: date, fin: date) -> dict[str, float]:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     data = get_repository().data
     d = analitica.desglose_desayuno(inicio, fin, data=data)
     return {
@@ -205,6 +225,11 @@ def top_generadores_coste(
     limite: int = 10,
 ) -> list[dict]:
     """Productos con mayor coste monetario (no ranking físico global)."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     repo = get_repository()
     filas = analitica.ranking_productos(
         inicio, fin,
@@ -233,6 +258,11 @@ def top_recetas_coste(
     categoria_receta: str | None = None,
     limite: int = 10,
 ) -> list[dict]:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     repo = get_repository()
     filas = analitica.ranking_recetas(
         inicio, fin,
@@ -256,6 +286,11 @@ def top_recetas_coste(
 
 
 def evolucion_coste_naturaleza(inicio: date, fin: date) -> list[dict]:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     from datetime import timedelta
 
     if inicio > fin:
@@ -281,6 +316,11 @@ def exportar_costes_excel(
     b_hasta: date,
     categorias: list[str],
 ) -> bytes:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     comparacion = comparar_periodos(a_desde, a_hasta, b_desde, b_hasta, categorias)
     pa = comparacion["periodo_a"]
     pb = comparacion["periodo_b"]

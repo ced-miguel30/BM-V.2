@@ -118,6 +118,13 @@ def crear_borrador_rectificativa(
     commit: bool = True,
 ) -> ResultadoRectificativa:
     """Copia líneas del original; no edita el original."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoRectificativa(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     if not hasattr(data, "documentos") or data.documentos is None:
@@ -251,6 +258,13 @@ def confirmar_rectificativa(
     ctx: AppContext | None = None,
     commit: bool = True,
 ) -> ResultadoRectificativa:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoRectificativa(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     doc = buscar_documento(data, documento_id)
@@ -429,6 +443,13 @@ def anular_rectificativa(
     commit: bool = True,
 ) -> ResultadoRectificativa:
     """Solo borradores. Confirmada = append-only en F12."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoRectificativa(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     doc = buscar_documento(data, documento_id)

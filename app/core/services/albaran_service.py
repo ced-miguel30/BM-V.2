@@ -104,6 +104,13 @@ def crear_borrador_albaran(
     ctx: AppContext | None = None,
     commit: bool = True,
 ) -> ResultadoAlbaran:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoAlbaran(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     if not hasattr(data, "documentos") or data.documentos is None:
@@ -166,6 +173,13 @@ def anadir_linea_albaran(
     ctx: AppContext | None = None,
     commit: bool = True,
 ) -> ResultadoAlbaran:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoAlbaran(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     doc = buscar_documento(data, documento_id)
@@ -245,6 +259,13 @@ def confirmar_albaran(
     commit: bool = True,
 ) -> ResultadoAlbaran:
     """Atómico: lotes + movimientos entrada_albaran + estado confirmado."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoAlbaran(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     doc = buscar_documento(data, documento_id)
@@ -357,6 +378,13 @@ def anular_albaran(
     commit: bool = True,
 ) -> ResultadoAlbaran:
     """Anula confirmado: reversion_entrada por restante de cada lote; append-only."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoAlbaran(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     doc = buscar_documento(data, documento_id)

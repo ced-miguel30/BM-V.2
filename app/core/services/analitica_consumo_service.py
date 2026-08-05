@@ -374,6 +374,11 @@ def desglose_desayuno(
     data: AppData | None = None,
 ) -> DesgloseDesayuno:
     """Partición A / B / sin_desglose. Total = suma de coste_total de registros."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     app = _app_data(data)
     desayuno = 0.0
     bebida = 0.0
@@ -429,6 +434,11 @@ def coste_servicios_excluyentes(
     data: AppData | None = None,
 ) -> CostesServiciosExcluyentes:
     """Cuatro categorías mutuamente excluyentes + coste_general."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     app = _app_data(data)
     des = desglose_desayuno(desde, hasta, data=app).desayuno_total
     comida = _suma_registros_servicio(app, TipoServicio.COMIDA.value, desde, hasta)
@@ -452,6 +462,11 @@ def coste_bucket_bebida(
     data: AppData | None = None,
 ) -> float:
     """Coste transversal de un bucket de bebida (solo eventos_producto)."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     return round(
         sum(
             e.coste
@@ -474,6 +489,11 @@ def ranking_recetas(
     busqueda: str | None = None,
 ) -> list[dict]:
     """Rankings por porciones. Solo elementos con porciones > 0."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     acumulado: dict[str, dict] = {}
     for e in iter_eventos_receta(desde, hasta, data=data):
         if e.porciones <= 0:
@@ -536,6 +556,11 @@ def ranking_productos(
     busqueda: str | None = None,
 ) -> list[dict]:
     """Rankings por coste. Cantidad solo en unidad_normalizada del producto."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     acumulado: dict[str, dict] = {}
     for e in iter_eventos_producto(desde, hasta, data=data):
         if solo_bebidas is True and not e.consumo_bebida:
@@ -598,6 +623,11 @@ def resumen_consumo(
     data: AppData | None = None,
 ) -> dict:
     """KPIs de resumen para el gestor de consumo."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     app = _app_data(data)
     productos = iter_eventos_producto(desde, hasta, data=app)
     costes = coste_servicios_excluyentes(desde, hasta, data=app)
@@ -677,6 +707,11 @@ def resumen_historico_incompleto(
     data: AppData | None = None,
 ) -> dict:
     """Registros con coste pero sin detalle de origen (histórico incompleto)."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     app = _app_data(data)
     sin_detalle = 0
     coste_sin_detalle = 0.0

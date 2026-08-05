@@ -122,6 +122,13 @@ def crear_borrador_factura(
     ctx: AppContext | None = None,
     commit: bool = True,
 ) -> ResultadoFactura:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoFactura(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     if not hasattr(data, "documentos") or data.documentos is None:
@@ -186,6 +193,13 @@ def anadir_linea_factura(
     ctx: AppContext | None = None,
     commit: bool = True,
 ) -> ResultadoFactura:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoFactura(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     doc = buscar_documento(data, documento_id)
@@ -326,6 +340,13 @@ def confirmar_factura(
     commit: bool = True,
 ) -> ResultadoFactura:
     """Atómico. Conciliación = metadatos; directa = lotes + entrada_factura."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoFactura(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     doc = buscar_documento(data, documento_id)
@@ -468,6 +489,13 @@ def anular_factura(
     commit: bool = True,
 ) -> ResultadoFactura:
     """Anula factura. Conciliación: libera enlace. Directa: reverso de restante."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoFactura(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     doc = buscar_documento(data, documento_id)

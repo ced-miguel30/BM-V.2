@@ -141,6 +141,11 @@ def resumen_historico_merma(
     *,
     data: AppData | None = None,
 ) -> dict:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     lineas = iter_lineas_merma(desde, hasta, data=data, ambito=AMBITO_TODO)
     sin_servicio = sum(1 for l in lineas if l.bucket_servicio == BUCKET_SIN_DESGLOSE)
     sin_turno = sum(1 for l in lineas if not l.turno_snapshot)
@@ -174,6 +179,11 @@ def resumen_merma(
     data: AppData | None = None,
     ambito: str = AMBITO_TODO,
 ) -> dict:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     repo = get_repository()
     app = _data(data)
     lineas = iter_lineas_merma(desde, hasta, data=app, ambito=ambito)
@@ -218,6 +228,11 @@ def ranking_productos_merma(
     busqueda: str | None = None,
 ) -> list[dict]:
     """Ranking por coste. Cantidad en unidad del producto (sin mezclar unidades)."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     repo = get_repository()
     app = _data(data)
     acumulado: dict[str, dict] = {}
@@ -288,6 +303,11 @@ def coste_por_motivo(
     data: AppData | None = None,
     ambito: str = AMBITO_TODO,
 ) -> list[dict]:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     repo = get_repository()
     por: dict[str, float] = {}
     for l in iter_lineas_merma(desde, hasta, data=data, ambito=ambito):
@@ -311,6 +331,11 @@ def evolucion_merma(
     data: AppData | None = None,
     ambito: str = AMBITO_TODO,
 ) -> list[dict]:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     if desde > hasta:
         desde, hasta = hasta, desde
     series: dict[date, dict] = {}
@@ -344,6 +369,11 @@ def distribucion_servicio(
     *,
     data: AppData | None = None,
 ) -> list[dict]:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     repo = get_repository()
     por = coste_por_grupo_servicio(desde, hasta, data=data)
     total = sum(por.values()) or 1.0

@@ -49,6 +49,11 @@ def contar_servicios(
     *,
     data: AppData | None = None,
 ) -> dict[str, int]:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.ACCEDER_GESTOR)
+
     app = _data(data)
     cont = {
         TipoServicio.DESAYUNO.value: 0,
@@ -66,10 +71,20 @@ def contar_servicios(
 
 
 def total_registros(desde: date, hasta: date, *, data: AppData | None = None) -> int:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.ACCEDER_GESTOR)
+
     return sum(contar_servicios(desde, hasta, data=data).values())
 
 
 def huespedes_desayuno(desde: date, hasta: date, *, data: AppData | None = None) -> int:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.ACCEDER_GESTOR)
+
     app = _data(data)
     return sum(
         int(d.num_huespedes)
@@ -87,6 +102,11 @@ def coste_filtrado(
     data: AppData | None = None,
 ) -> float:
     """Coste según filtro de categoría Dashboard (excluyentes)."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     app = _data(data)
     if categoria == "Todas":
         return analitica.coste_servicios_excluyentes(desde, hasta, data=app).coste_general
@@ -113,6 +133,11 @@ def registros_filtrados(
     categoria: str,
     data: AppData | None = None,
 ) -> int:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.ACCEDER_GESTOR)
+
     cont = contar_servicios(desde, hasta, data=data)
     if categoria == "Todas":
         return sum(cont.values())
@@ -137,6 +162,11 @@ def categoria_mayor_coste(
     *,
     data: AppData | None = None,
 ) -> tuple[str, float, float]:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     c = analitica.coste_servicios_excluyentes(desde, hasta, data=data)
     pares = [
         ("Desayuno", c.desayuno_total),
@@ -157,6 +187,11 @@ def evolucion_por_categoria(
     data: AppData | None = None,
 ) -> list[dict]:
     """Serie diaria para gráfico de líneas."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     app = _data(data)
     if desde > hasta:
         desde, hasta = hasta, desde
@@ -192,6 +227,11 @@ def evolucion_bebidas_por_origen(
     data: AppData | None = None,
 ) -> list[dict]:
     """Serie diaria de coste de bebidas por origen (vista transversal)."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     app = _data(data)
     if desde > hasta:
         desde, hasta = hasta, desde
@@ -222,6 +262,11 @@ def evolucion_servicio(
     data: AppData | None = None,
 ) -> list[dict]:
     """Serie diaria de una sola categoría Dashboard (Comida / Cena / Bebidas)."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     evo = evolucion_por_categoria(desde, hasta, modo_desayuno=False, data=data)
     return [
         {"fecha": r["fecha"], etiqueta: float(r.get(etiqueta, 0) or 0)}
@@ -235,6 +280,11 @@ def distribucion_categorias(
     *,
     data: AppData | None = None,
 ) -> list[dict]:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     app = _data(data)
     actual = analitica.coste_servicios_excluyentes(desde, hasta, data=app)
     ant_desde, ant_hasta = analitica.periodo_anterior(desde, hasta)
@@ -264,6 +314,11 @@ def consumo_vs_merma_naturaleza(
     data: AppData | None = None,
 ) -> list[dict]:
     """Consumo por servicio excluyente + merma/expiración globales (sin atribución inventada)."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     app = _data(data)
     repo = DataRepository(app)
     c = analitica.coste_servicios_excluyentes(desde, hasta, data=app)

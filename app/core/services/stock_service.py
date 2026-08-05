@@ -236,6 +236,13 @@ def editar_producto_catalogo(
     Excepción temporal: un histórico sin clasificar puede seguir con
     ``tipo_articulo=None`` al editar otros campos (sin clasificación automática).
     """
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_INVENTARIO, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     data = get_data()
     producto = next((p for p in data.productos if p.id == producto_id), None)
     if not producto:

@@ -15,6 +15,11 @@ class AlertaSidebar:
 
 
 def resumen_sidebar() -> dict:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     repo = get_repository()
     negativos = repo.productos_stock_negativo()
     agotados = repo.productos_stock_cero()

@@ -17,6 +17,11 @@ PREGUNTAS_SUGERIDAS = [
 
 
 def resumen_automatico() -> str:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     repo = get_repository()
     hoy = date.today()
     inicio = hoy.replace(day=1)
@@ -75,6 +80,11 @@ def _merma_por_producto_mes() -> list[dict]:
 
 
 def responder_pregunta(pregunta_id: str) -> str:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
     repo = get_repository()
     hoy = date.today()
     inicio_mes = hoy.replace(day=1)
