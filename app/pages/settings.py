@@ -72,13 +72,37 @@ def _render_usuarios() -> None:
                 else:
                     st.error(resultado.mensaje)
 
-        if st.button("Eliminar usuario", use_container_width=True, key="settings_eliminar_usuario"):
-            resultado = eliminar_usuario(usuario_id)
-            if resultado.ok:
-                st.success(resultado.mensaje)
-                st.rerun()
+        st.markdown("###### Eliminar usuario (confirmación)")
+        from app.core.services.destructive_ops_service import (
+            FRASE_ELIMINAR_USUARIO,
+            validar_confirmacion,
+        )
+
+        chk = st.checkbox(
+            f"Confirmo eliminar al usuario «{sel_nombre}»",
+            key="settings_del_user_chk",
+        )
+        frase = st.text_input(
+            f"Escriba exactamente {FRASE_ELIMINAR_USUARIO}",
+            key="settings_del_user_frase",
+        )
+        barrera = validar_confirmacion(FRASE_ELIMINAR_USUARIO, frase, chk)
+        if st.button(
+            "Eliminar usuario",
+            use_container_width=True,
+            key="settings_eliminar_usuario",
+            disabled=not barrera.ok,
+            type="secondary",
+        ):
+            if not barrera.ok:
+                st.error(barrera.mensaje)
             else:
-                st.error(resultado.mensaje)
+                resultado = eliminar_usuario(usuario_id)
+                if resultado.ok:
+                    st.success(resultado.mensaje)
+                    st.rerun()
+                else:
+                    st.error(resultado.mensaje)
 
 
 def _render_configuracion() -> None:
@@ -423,7 +447,9 @@ def _render_diagnostico_tecnico() -> None:
     st.caption(
         "Descarga un ZIP restaurable (schema v2) con appdata.json, "
         "hashes SHA-256, adjuntos referenciados bajo data/documentos/ y manifest.json. "
-        "La restauración está en la sección «Restauración de datos»."
+        "Solo descarga: no restaura ni borra datos. "
+        "La restauración está en «Restauración de datos»; "
+        "el restablecimiento total en «Zona de peligro»."
     )
     try:
         from app.core.services.backup_service import generar_backup_zip
@@ -568,13 +594,16 @@ def _render_exportacion() -> None:
 
 
 def _render_datos_demo() -> None:
-    from app.core.storage.session_store import get_demo_path, reload_from_disk, reset_data
+    from app.core.storage.session_store import get_demo_path, reload_from_disk
 
     repo = get_repository()
     ruta = get_demo_path()
 
     st.markdown("#### Datos de demostración")
-    st.caption("Los cambios de Stock y otras secciones se guardan en el archivo JSON local.")
+    st.caption(
+        "Los cambios de Stock y otras secciones se guardan en el archivo JSON local. "
+        "El restablecimiento total está en «Zona de peligro» (no hay borrado de un clic)."
+    )
 
     st.code(ruta, language=None)
 
@@ -587,22 +616,14 @@ def _render_datos_demo() -> None:
         st.metric("Actividades", len(repo.data.actividades))
 
     section_divider()
-
-    col_a, col_b = st.columns(2)
-    with col_a:
-        if st.button("Recargar desde disco", use_container_width=True, key="settings_reload_demo"):
-            reload_from_disk()
-            st.success("Datos recargados desde el archivo.")
-            st.rerun()
-    with col_b:
-        if st.button("Restablecer datos mock", use_container_width=True, key="settings_reset_demo"):
-            reset_data()
-            st.success("Datos restablecidos al conjunto de demostración.")
-            st.rerun()
+    if st.button("Recargar desde disco", use_container_width=True, key="settings_reload_demo"):
+        reload_from_disk()
+        st.success("Datos recargados desde el archivo.")
+        st.rerun()
 
     st.caption(
-        "Use «Recargar» si editó el JSON manualmente. "
-        "«Restablecer» vuelve a los datos de ejemplo originales."
+        "«Recargar» lee el JSON de disco a la sesión. "
+        "Para sustituir todo por datos mock use Configuración → Zona de peligro."
     )
 
 
@@ -1512,6 +1533,98 @@ def _render_restauracion_datos() -> None:
         st.caption(f"Último resultado: {prev.get('estado')} · {prev.get('operacion_id')}")
 
 
+def _render_zona_peligro() -> None:
+    """C3 — restablecimiento total con barrera y backup preventivo."""
+    from app.core.services import destructive_ops_service as dop
+    from app.core.services.restore_backup_service import destino_es_demo_protegido
+    from app.core.storage.demo_files import DEMO_FILE, get_demo_file
+
+    st.markdown("### Zona de peligro")
+    st.error(
+        "Acciones que sustituyen o destruyen datos operativos. "
+        "No son mantenimiento rutinario. No equivalen a restaurar un backup "
+        "ni a reiniciar preferencias."
+    )
+    st.caption(
+        "Sin sistema de roles F16: esta zona no está acotada por rol; "
+        "solo por confirmación reforzada y backup preventivo."
+    )
+    st.markdown(
+        """
+**Restablecer a datos mock** sustituye **todo** el AppData activo:
+
+productos, lotes, stock, movimientos, consumos, mermas, compras, documentos,
+usuarios de datos mock, configuración de ejemplo, etc.
+
+Se creará un backup preventivo (`pre_reset`) validado **antes** de escribir.
+Los ficheros adjuntos previos bajo `data/documentos/` no se borran automáticamente
+(pueden quedar huérfanos respecto al nuevo JSON).
+"""
+    )
+
+    dest = get_demo_file()
+    if destino_es_demo_protegido(dest):
+        st.error("Destino demo protegido (BM_TEST_ISOLATION). Operación bloqueada.")
+        return
+    if dest.resolve() == DEMO_FILE.resolve():
+        st.caption("Destino: almacén canónico de la app (mismo path que el demo de desarrollo).")
+
+    # Anti-rerun: token único por intento
+    if "settings_danger_token" not in st.session_state:
+        st.session_state["settings_danger_token"] = str(__import__("uuid").uuid4())
+
+    chk = st.checkbox(
+        "Entiendo que se sustituirán todos los datos operativos",
+        key="settings_danger_reset_chk",
+    )
+    frase = st.text_input(
+        f"Escriba exactamente {dop.FRASE_RESET_TOTAL}",
+        key="settings_danger_reset_frase",
+    )
+    barrera = dop.validar_confirmacion(dop.FRASE_RESET_TOTAL, frase, chk)
+    can_run = barrera.ok
+
+    if st.button(
+        "Restablecer a datos mock",
+        type="primary",
+        disabled=not can_run,
+        key="settings_danger_reset_run",
+    ):
+        token = st.session_state["settings_danger_token"]
+        res = dop.restablecer_a_datos_mock(
+            confirmacion_escrita=frase,
+            checkbox_aceptado=chk,
+            operation_token=token,
+            recargar_sesion=True,
+        )
+        st.session_state["settings_danger_last"] = {
+            "ok": res.ok,
+            "estado": res.estado,
+            "mensaje": res.mensaje,
+            "operacion_id": res.operacion_id,
+            "backup_preventivo": res.backup_preventivo,
+            "advertencias": res.advertencias,
+            "error": res.error,
+        }
+        # Nuevo token tras intento para no repetir el mismo
+        st.session_state["settings_danger_token"] = str(__import__("uuid").uuid4())
+        if res.ok:
+            st.success(res.mensaje)
+            st.info(
+                f"Operación `{res.operacion_id}`. "
+                f"Preventivo: `{res.backup_preventivo}`. Recargue la app si es necesario."
+            )
+        else:
+            st.error(f"{res.mensaje} [{res.estado}]")
+        st.json(st.session_state["settings_danger_last"])
+
+    last = st.session_state.get("settings_danger_last")
+    if last:
+        st.caption(
+            f"Último resultado: {last.get('estado')} · id={last.get('operacion_id')}"
+        )
+
+
 _SUBTABS = {
     "Usuarios": _render_usuarios,
     "Configuración": _render_configuracion,
@@ -1522,6 +1635,7 @@ _SUBTABS = {
     "Actividad": _render_actividad,
     "Exportación": _render_exportacion,
     "Restauración de datos": _render_restauracion_datos,
+    "Zona de peligro": _render_zona_peligro,
     "Datos demo": _render_datos_demo,
 }
 
