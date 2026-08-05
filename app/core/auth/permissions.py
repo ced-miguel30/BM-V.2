@@ -51,7 +51,7 @@ _MATRIZ: dict[str, frozenset[Permiso]] = {
             Permiso.CONSULTAR_COSTES,
         }
     ),
-    ROL_RECEPCION: frozenset(),  # módulo pendiente
+    ROL_RECEPCION: frozenset(),  # módulo pendiente — todos los Permiso = False (explícito)
     ROL_RESTAURANTE: frozenset(
         {
             Permiso.ACCEDER_REGISTRO,
