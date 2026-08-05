@@ -421,8 +421,9 @@ def _render_diagnostico_tecnico() -> None:
 
     st.markdown("##### Copia de seguridad")
     st.caption(
-        "Descarga un ZIP con los JSON de disco (sin transformar), "
-        "el estado actual en memoria y manifest.json. No hay restauración automática."
+        "Descarga un ZIP restaurable (schema v2) con appdata.json, "
+        "hashes SHA-256, adjuntos referenciados bajo data/documentos/ y manifest.json. "
+        "La restauración está en la sección «Restauración de datos»."
     )
     try:
         from app.core.services.backup_service import generar_backup_zip
@@ -442,7 +443,11 @@ def _render_diagnostico_tecnico() -> None:
         use_container_width=True,
         key="settings_descargar_backup_zip",
     )
-    st.caption("Incluye: " + ", ".join(backup.archivos_incluidos))
+    st.caption(
+        f"Schema {backup.schema_version} · "
+        + ", ".join(backup.archivos_incluidos[:8])
+        + ("…" if len(backup.archivos_incluidos) > 8 else "")
+    )
 
 
 def _boton_exportar_actividad() -> None:
@@ -1382,6 +1387,131 @@ def _render_archivos_documentales() -> None:
                     st.error(d.mensaje)
 
 
+def _render_restauracion_datos() -> None:
+    """C2 — restauración con inspección previa y confirmación RESTAURAR."""
+    from app.core.services import restore_backup_service as rst
+    from app.core.storage.demo_files import DEMO_FILE, get_demo_file
+
+    st.markdown("### Restauración de datos")
+    st.warning(
+        "Operación destructiva. Se creará un backup preventivo "
+        "(`pre_restore`) antes de sustituir los datos activos. "
+        "Requiere inspección previa y confirmación explícita. "
+        "Sin roles F16: solo disponible en Configuración con confirmación fuerte."
+    )
+    dest = get_demo_file()
+    if rst.destino_es_demo_protegido(dest):
+        st.error(
+            "Destino demo protegido (BM_TEST_ISOLATION). "
+            "La restauración está bloqueada en este entorno."
+        )
+        return
+    if dest.resolve() == DEMO_FILE.resolve():
+        st.caption(
+            f"Destino activo: almacén canónico `{dest.name}` "
+            "(mismo path que el demo de desarrollo; no ejecutar en tests)."
+        )
+    else:
+        st.caption(f"Destino activo (override): `{dest}`")
+
+    uploaded = st.file_uploader(
+        "Seleccionar backup ZIP (schema v2)",
+        type=["zip"],
+        key="settings_restore_upload",
+    )
+    if uploaded is None:
+        st.info("Suba un backup para inspeccionarlo. Sin inspección no hay restauración.")
+        return
+
+    raw = uploaded.getvalue()
+    if st.button("Inspeccionar backup", key="settings_restore_inspect"):
+        insp = rst.inspeccionar_backup(raw, nombre=uploaded.name)
+        st.session_state["settings_restore_insp"] = {
+            "ok": insp.ok,
+            "mensaje": insp.mensaje,
+            "schema_version": insp.schema_version,
+            "fecha": insp.fecha,
+            "version_app": insp.version_app,
+            "kind": insp.kind,
+            "archivos": insp.archivos,
+            "advertencias": insp.advertencias,
+            "nombre": uploaded.name,
+            "sha256": __import__("hashlib").sha256(raw).hexdigest(),
+            "nbytes": len(raw),
+        }
+        st.session_state["settings_restore_bytes"] = raw
+
+    insp_state = st.session_state.get("settings_restore_insp")
+    if not insp_state:
+        st.caption("Pulse «Inspeccionar backup» antes de restaurar.")
+        return
+
+    st.markdown("#### Resultado de inspección")
+    st.write(
+        {
+            "válido": insp_state.get("ok"),
+            "mensaje": insp_state.get("mensaje"),
+            "schema": insp_state.get("schema_version"),
+            "fecha": insp_state.get("fecha"),
+            "versión": insp_state.get("version_app"),
+            "kind": insp_state.get("kind"),
+            "archivos": len(insp_state.get("archivos") or []),
+            "advertencias": insp_state.get("advertencias") or [],
+        }
+    )
+    if not insp_state.get("ok"):
+        st.error("Validación fallida: restauración deshabilitada.")
+        return
+
+    # Evitar un solo clic: exige texto exacto + checkbox + botón
+    st.markdown("#### Confirmación")
+    st.caption("Se creará un backup preventivo del estado actual.")
+    confirm_txt = st.text_input(
+        "Escriba exactamente RESTAURAR para habilitar la acción",
+        key="settings_restore_confirm_txt",
+    )
+    accept = st.checkbox(
+        "Entiendo que los datos activos serán sustituidos",
+        key="settings_restore_accept",
+    )
+    can_run = confirm_txt == "RESTAURAR" and accept and insp_state.get("ok")
+    if st.button(
+        "Ejecutar restauración",
+        type="primary",
+        disabled=not can_run,
+        key="settings_restore_run",
+    ):
+        payload = st.session_state.get("settings_restore_bytes") or raw
+        res = rst.restaurar_desde_bytes(
+            payload,
+            nombre_backup=insp_state.get("nombre") or uploaded.name,
+            recargar_sesion=True,
+        )
+        st.session_state["settings_restore_result"] = {
+            "ok": res.ok,
+            "estado": res.estado,
+            "mensaje": res.mensaje,
+            "operacion_id": res.operacion_id,
+            "backup_preventivo": res.backup_preventivo,
+            "archivos_restaurados": res.archivos_restaurados,
+            "advertencias": res.advertencias,
+            "error": res.error,
+        }
+        if res.ok:
+            st.success(res.mensaje)
+            st.info(
+                f"Operación `{res.operacion_id}`. "
+                "Recargue la aplicación (o navegue de nuevo) para ver los datos."
+            )
+        else:
+            st.error(f"{res.mensaje} [{res.estado}]")
+        st.json(st.session_state["settings_restore_result"])
+
+    prev = st.session_state.get("settings_restore_result")
+    if prev and not st.session_state.get("settings_restore_run"):
+        st.caption(f"Último resultado: {prev.get('estado')} · {prev.get('operacion_id')}")
+
+
 _SUBTABS = {
     "Usuarios": _render_usuarios,
     "Configuración": _render_configuracion,
@@ -1391,6 +1521,7 @@ _SUBTABS = {
     "Responsables merma": _render_responsables_merma,
     "Actividad": _render_actividad,
     "Exportación": _render_exportacion,
+    "Restauración de datos": _render_restauracion_datos,
     "Datos demo": _render_datos_demo,
 }
 
