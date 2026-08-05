@@ -22,16 +22,31 @@ from app.ui.components import empty_state, page_header, render_sub_tabs, section
 
 
 def _render_usuarios() -> None:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.roles import ETIQUETAS_ROL, etiqueta_rol, rol_canonico, roles_asignables
+    from app.core.auth.session import session_tiene_permiso
+    from app.core.services.settings_service import (
+        cambiar_rol_usuario,
+        restablecer_password,
+        set_usuario_activo,
+    )
+
+    if not session_tiene_permiso(Permiso.GESTIONAR_USUARIOS):
+        st.error("No autorizado para gestionar usuarios.")
+        return
+
     repo = get_repository()
     usuarios = repo.data.usuarios
+    puede_dir = session_tiene_permiso(Permiso.CREAR_USUARIO_DIRECCION)
 
     st.markdown("#### Usuarios del sistema")
-    st.caption("Gestión de usuarios. El login se implementará en la fase final.")
+    st.caption("Gestión F16. Nunca se muestran contraseñas ni hashes.")
 
     st.dataframe(
         {
             "Nombre": [u.nombre for u in usuarios],
-            "Rol": [u.rol.value for u in usuarios],
+            "Acceso": [getattr(u, "login", "") or "—" for u in usuarios],
+            "Rol": [etiqueta_rol(u.rol) for u in usuarios],
             "Estado": ["Activo" if u.activo else "Inactivo" for u in usuarios],
         },
         use_container_width=True,
@@ -40,11 +55,21 @@ def _render_usuarios() -> None:
 
     section_divider()
     st.markdown("##### Crear usuario")
+    roles_ui = roles_asignables(incluye_direccion=puede_dir)
     with st.form("form_usuario", clear_on_submit=True):
         nombre = st.text_input("Nombre", key="settings_usuario_nombre")
-        rol = st.selectbox("Rol", ["Owner", "Admin"], key="settings_usuario_rol")
+        login = st.text_input("Identificador de acceso", key="settings_usuario_login")
+        rol = st.selectbox(
+            "Rol",
+            roles_ui,
+            format_func=lambda r: ETIQUETAS_ROL.get(r, r),
+            key="settings_usuario_rol",
+        )
+        password = st.text_input(
+            "Contraseña inicial", type="password", key="settings_usuario_password"
+        )
         if st.form_submit_button("Crear usuario", type="primary"):
-            resultado = crear_usuario(nombre, rol)
+            resultado = crear_usuario(nombre, rol, login=login, password=password)
             if resultado.ok:
                 st.success(resultado.mensaje)
                 st.rerun()
@@ -54,16 +79,19 @@ def _render_usuarios() -> None:
     section_divider()
     st.markdown("##### Editar / eliminar")
     if usuarios:
-        opciones = {u.nombre: u.id for u in usuarios}
-        sel_nombre = st.selectbox(
+        opciones = {f"{u.nombre} ({getattr(u, 'login', '') or u.id})": u.id for u in usuarios}
+        sel_label = st.selectbox(
             "Seleccionar usuario",
             list(opciones.keys()),
             key="settings_sel_usuario",
         )
-        usuario_id = opciones[sel_nombre]
+        usuario_id = opciones[sel_label]
+        sel_u = next(u for u in usuarios if u.id == usuario_id)
 
         with st.form("form_editar_usuario"):
-            nuevo_nombre = st.text_input("Nuevo nombre", value=sel_nombre, key="settings_edit_nombre")
+            nuevo_nombre = st.text_input(
+                "Nuevo nombre", value=sel_u.nombre, key="settings_edit_nombre"
+            )
             if st.form_submit_button("Guardar nombre", use_container_width=True):
                 resultado = editar_usuario(usuario_id, nuevo_nombre)
                 if resultado.ok:
@@ -72,14 +100,51 @@ def _render_usuarios() -> None:
                 else:
                     st.error(resultado.mensaje)
 
-        st.markdown("###### Eliminar usuario (confirmación)")
+        roles_edit = roles_asignables(incluye_direccion=puede_dir)
+        rol_actual = rol_canonico(sel_u.rol)
+        idx_rol = roles_edit.index(rol_actual) if rol_actual in roles_edit else 0
+        nuevo_rol = st.selectbox(
+            "Rol",
+            roles_edit,
+            index=idx_rol,
+            format_func=lambda r: ETIQUETAS_ROL.get(r, r),
+            key="settings_edit_rol",
+        )
+        if st.button("Cambiar rol", key="settings_btn_rol"):
+            r = cambiar_rol_usuario(usuario_id, nuevo_rol)
+            st.success(r.mensaje) if r.ok else st.error(r.mensaje)
+            if r.ok:
+                st.rerun()
+
+        col_a, col_b = st.columns(2)
+        with col_a:
+            if st.button("Activar", key="settings_btn_act"):
+                r = set_usuario_activo(usuario_id, True)
+                st.success(r.mensaje) if r.ok else st.error(r.mensaje)
+                if r.ok:
+                    st.rerun()
+        with col_b:
+            if st.button("Desactivar", key="settings_btn_deact"):
+                r = set_usuario_activo(usuario_id, False)
+                st.success(r.mensaje) if r.ok else st.error(r.mensaje)
+                if r.ok:
+                    st.rerun()
+
+        nueva_pw = st.text_input(
+            "Nueva contraseña", type="password", key="settings_reset_pw"
+        )
+        if st.button("Restablecer contraseña", key="settings_btn_pw"):
+            r = restablecer_password(usuario_id, nueva_pw)
+            st.success(r.mensaje) if r.ok else st.error(r.mensaje)
+
+        st.markdown("###### Eliminar usuario (confirmación + autorización)")
         from app.core.services.destructive_ops_service import (
             FRASE_ELIMINAR_USUARIO,
             validar_confirmacion,
         )
 
         chk = st.checkbox(
-            f"Confirmo eliminar al usuario «{sel_nombre}»",
+            f"Confirmo eliminar al usuario «{sel_u.nombre}»",
             key="settings_del_user_chk",
         )
         frase = st.text_input(
@@ -451,6 +516,12 @@ def _render_diagnostico_tecnico() -> None:
         "La restauración está en «Restauración de datos»; "
         "el restablecimiento total en «Zona de peligro»."
     )
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.session import session_tiene_permiso
+
+    if not session_tiene_permiso(Permiso.EXPORTAR_BACKUP):
+        st.warning("No autorizado para exportar copias de seguridad.")
+        return
     try:
         from app.core.services.backup_service import generar_backup_zip
 
@@ -1410,15 +1481,21 @@ def _render_archivos_documentales() -> None:
 
 def _render_restauracion_datos() -> None:
     """C2 — restauración con inspección previa y confirmación RESTAURAR."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.session import session_tiene_permiso
     from app.core.services import restore_backup_service as rst
     from app.core.storage.demo_files import DEMO_FILE, get_demo_file
+
+    if not session_tiene_permiso(Permiso.RESTAURAR_BACKUP):
+        st.error("Solo Dirección puede restaurar backups.")
+        return
 
     st.markdown("### Restauración de datos")
     st.warning(
         "Operación destructiva. Se creará un backup preventivo "
         "(`pre_restore`) antes de sustituir los datos activos. "
         "Requiere inspección previa y confirmación explícita. "
-        "Sin roles F16: solo disponible en Configuración con confirmación fuerte."
+        "Solo Dirección (F16) puede ejecutar la restauración."
     )
     dest = get_demo_file()
     if rst.destino_es_demo_protegido(dest):
@@ -1535,9 +1612,15 @@ def _render_restauracion_datos() -> None:
 
 def _render_zona_peligro() -> None:
     """C3 — restablecimiento total con barrera y backup preventivo."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.session import session_tiene_permiso
     from app.core.services import destructive_ops_service as dop
     from app.core.services.restore_backup_service import destino_es_demo_protegido
     from app.core.storage.demo_files import DEMO_FILE, get_demo_file
+
+    if not session_tiene_permiso(Permiso.EJECUTAR_OPERACION_DESTRUCTIVA):
+        st.error("Solo Dirección puede ejecutar operaciones destructivas.")
+        return
 
     st.markdown("### Zona de peligro")
     st.error(
@@ -1546,8 +1629,7 @@ def _render_zona_peligro() -> None:
         "ni a reiniciar preferencias."
     )
     st.caption(
-        "Sin sistema de roles F16: esta zona no está acotada por rol; "
-        "solo por confirmación reforzada y backup preventivo."
+        "Reservado a Dirección. Confirmación reforzada + backup preventivo + autorización F16."
     )
     st.markdown(
         """
@@ -1641,7 +1723,13 @@ _SUBTABS = {
 
 
 def render() -> None:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.session import session_tiene_permiso
     from app.ui.theme import APP_VERSION
+
+    if not session_tiene_permiso(Permiso.ACCEDER_CONFIGURACION):
+        st.error("No autorizado para Configuración.")
+        return
 
     page_header(
         "Configuración",
@@ -1657,7 +1745,22 @@ def render() -> None:
     _render_diagnostico_tecnico()
     section_divider()
 
-    opciones = list(_SUBTABS.keys())
+    opciones = []
+    for name in _SUBTABS:
+        if name == "Usuarios" and not session_tiene_permiso(Permiso.GESTIONAR_USUARIOS):
+            continue
+        if name == "Restauración de datos" and not session_tiene_permiso(
+            Permiso.VER_RESTAURACION
+        ):
+            continue
+        if name == "Zona de peligro" and not session_tiene_permiso(Permiso.VER_ZONA_PELIGRO):
+            continue
+        if name == "Exportación" and not session_tiene_permiso(Permiso.EXPORTAR_BACKUP):
+            # Admin tiene EXPORTAR_BACKUP; if somehow not, still show other export?
+            # Keep Exportación visible for ACCEDER_CONFIGURACION; backup button checks separately
+            pass
+        opciones.append(name)
+
     pending = st.session_state.pop("settings_subtab_pending", None)
     if pending in opciones:
         st.session_state["settings_subtab"] = pending
@@ -1666,7 +1769,6 @@ def render() -> None:
         del st.session_state["settings_subtab"]
 
     st.markdown("#### Sección")
-    # Selectbox: con muchas opciones el radio horizontal ocultaba «Catálogos…».
     selected = st.selectbox(
         "Sección de configuración",
         opciones,

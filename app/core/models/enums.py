@@ -12,6 +12,17 @@ class UnidadProducto(str, Enum):
 
 
 class RolUsuario(str, Enum):
+    """Roles de usuario.
+
+    Canónicos F16: direccion, administracion, recepcion, restaurante.
+    Legacy Owner/Admin se conservan para deserializar JSON histórico.
+    """
+
+    DIRECCION = "direccion"
+    ADMINISTRACION = "administracion"
+    RECEPCION = "recepcion"
+    RESTAURANTE = "restaurante"
+    # Legacy (solo lectura / compat tests)
     OWNER = "Owner"
     ADMIN = "Admin"
 

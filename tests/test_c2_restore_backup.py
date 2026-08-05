@@ -25,6 +25,7 @@ if str(ROOT) not in sys.path:
 
 os.environ["BM_TEST_ISOLATION"] = "1"
 
+from app.core.auth.session import AuthSession, clear_test_session, set_test_session
 from app.core.models import AppData, ArchivoDocumental, Producto, UnidadProducto
 from app.core.services import backup_service as bak
 from app.core.services import restore_backup_service as rst
@@ -49,6 +50,18 @@ def _data_basica(*, nombre: str = "Producto A") -> AppData:
     return data
 
 
+def _sesion_direccion() -> AuthSession:
+    return AuthSession(
+        authenticated=True,
+        actor_type="usuario",
+        actor_id="u_dir",
+        actor_label="Dirección Test",
+        role="direccion",
+        session_id="c2-test-session",
+        login_at="2026-01-01T00:00:00",
+    )
+
+
 class TestC2RestoreBackup(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
@@ -56,6 +69,8 @@ class TestC2RestoreBackup(unittest.TestCase):
         self.json_path = self.root / "datos.json"
         atomic_write_json(self.json_path, appdata_to_dict(_data_basica()))
         set_demo_file_override(self.json_path)
+        set_test_session(_sesion_direccion())
+        self.addCleanup(clear_test_session)
         self.addCleanup(set_demo_file_override, None)
         self.addCleanup(self._tmp.cleanup)
 

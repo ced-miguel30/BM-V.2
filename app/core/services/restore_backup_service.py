@@ -281,6 +281,23 @@ def restaurar_desde_bytes(
     root = (project_root or PROJECT_ROOT).resolve()
     ahora = datetime.now().isoformat(timespec="seconds")
 
+    try:
+        from app.core.auth.permissions import Permiso
+        from app.core.auth.session import require_permiso
+
+        require_permiso(Permiso.RESTAURAR_BACKUP)
+    except Exception as exc:  # noqa: BLE001
+        msg = getattr(exc, "mensaje", None) or str(exc) or "No autorizado."
+        return ResultadoRestauracion(
+            False,
+            RESTORE_RECHAZADO,
+            msg,
+            op_id,
+            backup_nombre=nombre_backup,
+            fecha=ahora,
+            error="no_autorizado",
+        )
+
     if destino_es_demo_protegido(dest):
         return ResultadoRestauracion(
             False,

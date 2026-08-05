@@ -203,8 +203,22 @@ def crear_datos_mock() -> AppData:
     ]
 
     usuarios = [
-        Usuario("u01", "María García", RolUsuario.OWNER, activo=True),
-        Usuario("u02", "Carlos Ruiz", RolUsuario.ADMIN, activo=True),
+        Usuario(
+            "u01",
+            "María García",
+            RolUsuario.DIRECCION,
+            activo=True,
+            login="maria",
+            password_hash="",
+        ),
+        Usuario(
+            "u02",
+            "Carlos Ruiz",
+            RolUsuario.ADMINISTRACION,
+            activo=True,
+            login="carlos",
+            password_hash="",
+        ),
     ]
 
     configuracion = ConfiguracionHotel(

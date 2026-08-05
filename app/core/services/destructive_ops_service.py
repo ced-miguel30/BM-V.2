@@ -203,6 +203,23 @@ def restablecer_a_datos_mock(
     dest = Path(destino_json).resolve() if destino_json else get_demo_file().resolve()
     dest_label = _destino_label(dest)
 
+    try:
+        from app.core.auth.permissions import Permiso
+        from app.core.auth.session import require_permiso
+
+        require_permiso(Permiso.EJECUTAR_OPERACION_DESTRUCTIVA)
+    except Exception as exc:  # noqa: BLE001
+        msg = getattr(exc, "mensaje", None) or str(exc) or "No autorizado."
+        return _resultado_base(
+            ok=False,
+            estado=OP_RECHAZADO,
+            mensaje=msg,
+            op_id=op_id,
+            ahora=ahora,
+            dest_label=dest_label,
+            error="no_autorizado",
+        )
+
     if operation_token:
         if operation_token in _CONSUMED_TOKENS:
             return _resultado_base(

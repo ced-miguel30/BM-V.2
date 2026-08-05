@@ -1,6 +1,7 @@
-"""Modelo de usuario temporal."""
+"""Modelo de usuario."""
 
 from dataclasses import dataclass
+
 
 from app.core.models.enums import RolUsuario
 
@@ -11,3 +12,7 @@ class Usuario:
     nombre: str
     rol: RolUsuario
     activo: bool = True
+    login: str = ""
+    password_hash: str = ""
+    creado_en: str | None = None
+    modificado_en: str | None = None

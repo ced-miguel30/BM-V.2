@@ -23,6 +23,7 @@ if str(ROOT) not in sys.path:
 
 os.environ["BM_TEST_ISOLATION"] = "1"
 
+from app.core.auth.session import AuthSession, clear_test_session, set_test_session
 from app.core.models import AppData, ArchivoDocumental, Producto, UnidadProducto
 from app.core.services import backup_service as bak
 from app.core.services import destructive_ops_service as dop
@@ -46,6 +47,18 @@ def _data_basica(*, nombre: str = "Producto A") -> AppData:
     return data
 
 
+def _sesion_direccion() -> AuthSession:
+    return AuthSession(
+        authenticated=True,
+        actor_type="usuario",
+        actor_id="u_dir",
+        actor_label="Dirección Test",
+        role="direccion",
+        session_id="c3-test-session",
+        login_at="2026-01-01T00:00:00",
+    )
+
+
 class TestC3DestructiveOps(unittest.TestCase):
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
@@ -54,6 +67,8 @@ class TestC3DestructiveOps(unittest.TestCase):
         atomic_write_json(self.json_path, appdata_to_dict(_data_basica()))
         set_demo_file_override(self.json_path)
         dop.clear_consumed_tokens()
+        set_test_session(_sesion_direccion())
+        self.addCleanup(clear_test_session)
         self.addCleanup(set_demo_file_override, None)
         self.addCleanup(self._tmp.cleanup)
         self.addCleanup(dop.clear_consumed_tokens)

@@ -73,35 +73,64 @@ def render_sidebar() -> str:
     """Renderiza la barra lateral y devuelve la clave interna de sección.
 
     Fase 5: selector «Espacio de trabajo» filtra la navegación operativa.
-    Configuración es global (siempre visible). No toca AppData/JSON.
+    F16: permisos de rol filtran secciones visibles.
+    Configuración es global solo si el rol lo permite.
 
     Orden: resolver deep-link / coherencia → fijar session_state → widgets
     → como máximo un ``st.rerun()`` (botón Configuración).
     """
     from app.core.application import espacios as esp
+    from app.core.auth.permissions import Permiso, puede_ver_seccion
+    from app.core.auth.session import get_auth_session, session_tiene_permiso
+    from app.pages.auth_gate import render_logout_sidebar
 
     key_esp = esp.SESSION_KEY_ESPACIO
     key_op = "nav_section_op"
     key_nav = "nav_section"
+    session = get_auth_session()
+    role = session.role if session else None
+    show_costes = session_tiene_permiso(Permiso.CONSULTAR_COSTES)
 
     # 1–5. Deep-link y coherencia ANTES de instanciar widgets.
     pending = st.session_state.pop("nav_section_pending", None)
+    # Remap deep-link no autorizado
+    if pending and role and not puede_ver_seccion(role, pending):
+        pending = None
+        st.session_state["_nav_remap_denied"] = True
+
     estado = esp.resolver_navegacion(
         espacio_actual=st.session_state.get(key_esp),
         seccion_actual=st.session_state.get(key_nav),
         seccion_pendiente=pending,
     )
+    # Filtrar sección actual si no hay permiso
+    if role and not puede_ver_seccion(role, estado.seccion):
+        # Primera operativa permitida
+        for cand in esp.secciones_operativas(estado.espacio) + list(esp.SECCIONES_GLOBALES):
+            if puede_ver_seccion(role, cand):
+                estado = esp.EstadoNavegacion(espacio=estado.espacio, seccion=cand)
+                break
+
     st.session_state[key_esp] = estado.espacio
     st.session_state[key_nav] = estado.seccion
 
-    operativas = list(esp.secciones_operativas(estado.espacio))
+    operativas = [
+        s for s in esp.secciones_operativas(estado.espacio) if puede_ver_seccion(role, s)
+    ]
+    if not operativas:
+        # Sin operativas (p. ej. mal mapeo): evitar crash
+        operativas = list(esp.secciones_operativas(estado.espacio))
+
     if estado.seccion in operativas:
         st.session_state[key_op] = estado.seccion
     elif st.session_state.get(key_op) not in operativas:
         st.session_state[key_op] = operativas[0]
 
     with st.sidebar:
-        _render_sidebar_alertas()
+        if show_costes:
+            _render_sidebar_alertas()
+        else:
+            st.caption("Resumen económico oculto (sin permiso de costes).")
 
         st.markdown(
             '<p class="bm-sidebar-section-label">Espacio de trabajo</p>',
@@ -120,8 +149,6 @@ def render_sidebar() -> str:
             unsafe_allow_html=True,
         )
 
-        # Botones (no radio): con una sola opción (Registro) el radio no dispara
-        # on_change si el valor no cambia, y no se podía salir de Configuración.
         for sec in operativas:
             activa = st.session_state.get(key_nav) == sec
             if st.button(
@@ -134,27 +161,36 @@ def render_sidebar() -> str:
                 st.session_state[key_op] = sec
                 st.rerun()
 
-        st.markdown(
-            '<p class="bm-sidebar-section-label">Global</p>',
-            unsafe_allow_html=True,
-        )
-        config_activa = st.session_state.get(key_nav) == esp.SECCION_CONFIGURACION
-        if st.button(
-            "Configuración",
-            key="nav_btn_configuracion",
-            type="primary" if config_activa else "secondary",
-            use_container_width=True,
-        ):
-            st.session_state[key_nav] = esp.SECCION_CONFIGURACION
-            st.rerun()
+        if puede_ver_seccion(role, esp.SECCION_CONFIGURACION):
+            st.markdown(
+                '<p class="bm-sidebar-section-label">Global</p>',
+                unsafe_allow_html=True,
+            )
+            config_activa = st.session_state.get(key_nav) == esp.SECCION_CONFIGURACION
+            if st.button(
+                "Configuración",
+                key="nav_btn_configuracion",
+                type="primary" if config_activa else "secondary",
+                use_container_width=True,
+            ):
+                st.session_state[key_nav] = esp.SECCION_CONFIGURACION
+                st.rerun()
 
-        _render_sidebar_diagnostico()
+        if show_costes:
+            _render_sidebar_diagnostico()
+
+        render_logout_sidebar()
+
+    if st.session_state.pop("_nav_remap_denied", None):
+        st.sidebar.caption("Destino no autorizado; se ignoró el enlace.")
 
     seccion_label = st.session_state.get(
         key_nav, esp.primera_seccion_operativa(estado.espacio),
     )
-    if seccion_label not in NAV_SECTIONS:
-        seccion_label = esp.primera_seccion_operativa(
+    if seccion_label not in NAV_SECTIONS or (
+        role and not puede_ver_seccion(role, seccion_label)
+    ):
+        seccion_label = operativas[0] if operativas else esp.primera_seccion_operativa(
             esp.normalizar_espacio(st.session_state.get(key_esp)),
         )
         st.session_state[key_nav] = seccion_label

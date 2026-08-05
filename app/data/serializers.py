@@ -62,6 +62,34 @@ from app.core.models import (
     Usuario,
 )
 from app.core.models.registro_servicio import ConsumoLoteDetalle
+from app.core.auth.roles import parse_rol_persistido, rol_canonico
+
+
+def _usuario_to_dict(u: Usuario) -> dict:
+    return {
+        "id": u.id,
+        "nombre": u.nombre,
+        "rol": rol_canonico(u.rol)
+        or (u.rol.value if hasattr(u.rol, "value") else str(u.rol)),
+        "activo": u.activo,
+        "login": getattr(u, "login", "") or "",
+        "password_hash": getattr(u, "password_hash", "") or "",
+        "creado_en": getattr(u, "creado_en", None),
+        "modificado_en": getattr(u, "modificado_en", None),
+    }
+
+
+def _usuario_from_dict(u: dict) -> Usuario:
+    return Usuario(
+        id=u["id"],
+        nombre=u["nombre"],
+        rol=parse_rol_persistido(u.get("rol")),
+        activo=u.get("activo", True),
+        login=u.get("login") or "",
+        password_hash=u.get("password_hash") or "",
+        creado_en=u.get("creado_en"),
+        modificado_en=u.get("modificado_en"),
+    )
 
 
 def _parse_tipo_articulo(raw: Any) -> TipoArticulo | str | None:
@@ -1201,10 +1229,7 @@ def appdata_to_dict(data: AppData) -> dict:
             for a in data.alertas
         ],
         "alertas_descartadas": list(data.alertas_descartadas),
-        "usuarios": [
-            {"id": u.id, "nombre": u.nombre, "rol": u.rol.value, "activo": u.activo}
-            for u in data.usuarios
-        ],
+        "usuarios": [_usuario_to_dict(u) for u in data.usuarios],
         "configuracion": _configuracion_to_dict(data.configuracion)
         if data.configuracion
         else None,
@@ -1525,10 +1550,7 @@ def dict_to_appdata(payload: dict) -> AppData:
             for a in payload.get("alertas", [])
         ],
         alertas_descartadas=list(payload.get("alertas_descartadas", [])),
-        usuarios=[
-            Usuario(u["id"], u["nombre"], RolUsuario(u["rol"]), u.get("activo", True))
-            for u in payload.get("usuarios", [])
-        ],
+        usuarios=[_usuario_from_dict(u) for u in payload.get("usuarios", [])],
         configuracion=_configuracion_from_dict(config),
         actividades=[
             Actividad(

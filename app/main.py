@@ -90,11 +90,61 @@ def main() -> None:
     )
     inject_global_styles()
     init_data()
-    sincronizar_alertas()
 
+    from app.pages.auth_gate import render_auth_gate
+
+    if not render_auth_gate():
+        return
+
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.session import get_auth_session, session_tiene_permiso
+
+    session = get_auth_session()
+    # Recepción: módulo pendiente
+    if session and session.role == "recepcion":
+        st.warning("Módulo de Recepción pendiente de implementación.")
+        st.info(f"Sesión: {session.actor_label}. Acceso limitado.")
+        from app.pages.auth_gate import render_logout_sidebar
+
+        with st.sidebar:
+            render_logout_sidebar()
+        return
+
+    # Terminal restaurante: UI dedicada
+    if session and (
+        session.actor_type == "terminal"
+        or session.role == "restaurante"
+    ):
+        if not session_tiene_permiso(Permiso.ACCEDER_REGISTRO):
+            st.error("No autorizado.")
+            return
+        from app.pages import terminal_restaurante
+        from app.pages.auth_gate import render_logout_sidebar
+
+        with st.sidebar:
+            st.caption("Terminal Restaurante")
+            render_logout_sidebar()
+        terminal_restaurante.render()
+        return
+
+    sincronizar_alertas()
     _procesar_exportaciones_semanales_pendientes()
 
     section = render_sidebar()
+    # Defensa en profundidad: sección no autorizada → remap
+    from app.core.auth.permissions import puede_ver_seccion
+    from app.ui.theme import NAV_SECTIONS
+
+    label_by_key = {v: k for k, v in NAV_SECTIONS.items()}
+    label = label_by_key.get(section, "Dashboard")
+    if session and not puede_ver_seccion(session.role, label):
+        st.session_state["nav_section"] = "Registros" if session_tiene_permiso(
+            Permiso.ACCEDER_REGISTRO
+        ) else "Dashboard"
+        st.warning("Destino no autorizado; redirigido a una zona permitida.")
+        st.rerun()
+        return
+
     PAGES[section]()
 
 
