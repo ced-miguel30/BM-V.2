@@ -51,7 +51,13 @@ def actor_desde_auth_session() -> Actor | None:
 def actor_desde_appdata(data: AppData) -> Actor:
     auth = actor_desde_auth_session()
     if auth is not None:
-        return auth
+        # Terminal técnico: no está en usuarios AppData.
+        if auth.actor_type == "terminal":
+            return auth
+        # Sesión de usuario solo si el id existe en este AppData
+        # (evita que el harness de tests/AuthSession ajena pise fixtures InMemory).
+        if any(u.id == auth.id for u in data.usuarios):
+            return auth
     usuario: Usuario | None = None
     for u in data.usuarios:
         if u.id == data.usuario_actual_id:

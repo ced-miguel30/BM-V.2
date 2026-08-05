@@ -12,6 +12,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from app.core.auth.passwords import hash_password
+from tests.auth_harness import restore_harness_session
 from app.core.auth.session import (
     AuthSession,
     clear_test_session,
@@ -225,6 +226,7 @@ class E2EEnv:
 
     def cleanup(self) -> None:
         clear_test_session()
+        restore_harness_session()
         for p in reversed(self._patches):
             p.stop()
         set_demo_file_override(None)

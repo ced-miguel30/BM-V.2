@@ -167,6 +167,13 @@ def confirmar_traslado(
     ctx: AppContext | None = None,
     commit: bool = True,
 ) -> ResultadoTraslado:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_INVENTARIO, deny_terminal=True)
+    if denied:
+        return ResultadoTraslado(False, denied)
+
     c = ctx or _ctx_session()
     data = c.uow.get_data()
     if not hasattr(data, "movimientos") or data.movimientos is None:
@@ -265,6 +272,13 @@ def anular_traslado(
     commit: bool = True,
 ) -> ResultadoTraslado:
     """Crea traslado reverso (destino→origen). No borra el original."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_INVENTARIO, deny_terminal=True)
+    if denied:
+        return ResultadoTraslado(False, denied)
+
     c = ctx or _ctx_session()
     data = c.uow.get_data()
     originales = [

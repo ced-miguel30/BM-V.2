@@ -161,6 +161,13 @@ def aplicar_ajuste(
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
     """Aplica un ajuste de una línea con atomicidad (todo o nada)."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_INVENTARIO, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     context = _ctx(ctx)
     if fecha > context.clock.today():
         return ResultadoOperacion(False, "No puede registrar ajustes en fechas futuras.")

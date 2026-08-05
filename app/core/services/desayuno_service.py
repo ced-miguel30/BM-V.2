@@ -368,6 +368,13 @@ def registrar_desayuno(
 
     `ignorar_stock` queda deshabilitado (Fase 9): se ignora el bypass.
     """
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_REGISTRO)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     _ = ignorar_stock  # Bypass retirado; no permitir stock negativo.
 
     if cesta_vacia():

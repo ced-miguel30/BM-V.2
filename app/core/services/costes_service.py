@@ -139,9 +139,12 @@ def desglose_costes_desayuno(inicio: date, fin: date) -> dict[str, float]:
 
 def resumen_ejecutivo_costes(inicio: date, fin: date) -> dict:
     """Indicadores generales del gestor de costes."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
     from app.core.services import dashboard_service as dash
     from app.core.services import analitica_consumo_service as anal
 
+    require_usecase(Permiso.CONSULTAR_COSTES)
     repo = get_repository()
     nat = _costes_naturaleza(inicio, fin)
     serv = costes_consumo_por_servicio(inicio, fin)

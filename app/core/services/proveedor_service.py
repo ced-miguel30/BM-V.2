@@ -123,7 +123,13 @@ def crear_proveedor(
     observaciones: str | None = None,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
     from app.core.services.money import normalizar_codigo_funcional
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
 
     c = _ctx(ctx)
     data = c.uow.get_data()

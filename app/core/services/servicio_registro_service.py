@@ -350,6 +350,13 @@ class ServicioRegistro:
         ctx: AppContext | None = None,
     ) -> ResultadoOperacion:
         """Registra con descuento atómico. `ignorar_stock` deshabilitado (Fase 9)."""
+        from app.core.auth.permissions import Permiso
+        from app.core.auth.usecase_guard import usecase_deny_message
+
+        denied = usecase_deny_message(Permiso.ACCEDER_REGISTRO)
+        if denied:
+            return ResultadoOperacion(False, denied)
+
         _ = ignorar_stock
 
         if self.cesta_vacia():

@@ -54,6 +54,13 @@ def crear_borrador(
     ctx: AppContext | None = None,
     commit: bool = True,
 ) -> ResultadoRecuento:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_INVENTARIO, deny_terminal=True)
+    if denied:
+        return ResultadoRecuento(False, denied)
+
     c = ctx or _ctx_session()
     data = c.uow.get_data()
     if not hasattr(data, "recuentos") or data.recuentos is None:
@@ -140,6 +147,13 @@ def confirmar_recuento(
     ctx: AppContext | None = None,
     commit: bool = True,
 ) -> ResultadoRecuento:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_INVENTARIO, deny_terminal=True)
+    if denied:
+        return ResultadoRecuento(False, denied)
+
     c = ctx or _ctx_session()
     data = c.uow.get_data()
     sesion = next((r for r in data.recuentos if r.id == recuento_id), None)
@@ -238,6 +252,13 @@ def anular_recuento(
     commit: bool = True,
 ) -> ResultadoRecuento:
     """Anula confirmado generando ajustes inversos (reversos). Borrador → anulado sin movimientos."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_INVENTARIO, deny_terminal=True)
+    if denied:
+        return ResultadoRecuento(False, denied)
+
     c = ctx or _ctx_session()
     data = c.uow.get_data()
     sesion = next((r for r in data.recuentos if r.id == recuento_id), None)

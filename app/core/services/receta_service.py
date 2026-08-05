@@ -248,6 +248,13 @@ def crear_receta(
     servicios_disponibles: list[str] | None = None,
     porciones_estandar: float | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_INVENTARIO, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     nombre = _normalizar_nombre(nombre)
     if not nombre:
         return ResultadoOperacion(False, "El nombre de la receta es obligatorio.")

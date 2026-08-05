@@ -26,6 +26,7 @@ if str(ROOT) not in sys.path:
 os.environ["BM_TEST_ISOLATION"] = "1"
 
 from app.core.auth.session import AuthSession, clear_test_session, set_test_session
+from tests.auth_harness import restore_harness_session
 from app.core.models import AppData, ArchivoDocumental, Producto, UnidadProducto
 from app.core.services import backup_service as bak
 from app.core.services import restore_backup_service as rst
@@ -70,7 +71,7 @@ class TestC2RestoreBackup(unittest.TestCase):
         atomic_write_json(self.json_path, appdata_to_dict(_data_basica()))
         set_demo_file_override(self.json_path)
         set_test_session(_sesion_direccion())
-        self.addCleanup(clear_test_session)
+        self.addCleanup(restore_harness_session)
         self.addCleanup(set_demo_file_override, None)
         self.addCleanup(self._tmp.cleanup)
 

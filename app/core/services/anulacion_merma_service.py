@@ -221,6 +221,13 @@ def anular_merma(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoAnulacionMerma:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_REGISTRO, deny_terminal=True)
+    if denied:
+        return ResultadoAnulacionMerma(False, denied)
+
     context, data = _context(data, ctx)
     motivo_limpio = (motivo or "").strip()
     if not motivo_limpio:

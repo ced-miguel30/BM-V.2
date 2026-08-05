@@ -667,6 +667,13 @@ def confirmar_compra(
     operación. Si el JSON ya quedó confirmado, no se borran adjuntos (estado
     ``incierto`` solo si la compensación falla).
     """
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoCompra(False, denied, codigo="no_autorizado")
+
     import copy
 
     from app.core.models import ArchivoDocumental

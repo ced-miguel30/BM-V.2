@@ -96,6 +96,13 @@ def generar_backup_zip(
     include_disk_snapshot: bool = True,
 ) -> ResultadoBackup:
     """Genera un ZIP restaurable (schema v2) en memoria."""
+    # Preventivos C2/C3: el caso de uso padre ya autorizó; no re-exigir export.
+    if kind not in ("pre_restore", "pre_reset"):
+        from app.core.auth.permissions import Permiso
+        from app.core.auth.usecase_guard import require_usecase
+
+        require_usecase(Permiso.EXPORTAR_BACKUP)
+
     ahora = datetime.now()
     incluidos: list[dict] = []
     buffer = io.BytesIO()

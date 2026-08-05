@@ -42,6 +42,7 @@ from app.core.auth.session import (
     save_auth_session,
     session_tiene_permiso,
 )
+from app.core.auth.usecase_guard import require_usecase, usecase_deny_message
 
 __all__ = [
     "AUTH_SESSION_KEY",
@@ -72,10 +73,12 @@ __all__ = [
     "permisos_de_rol",
     "puede_ver_seccion",
     "require_permiso",
+    "require_usecase",
     "rol_canonico",
     "roles_asignables",
     "save_auth_session",
     "session_tiene_permiso",
     "tiene_permiso",
+    "usecase_deny_message",
     "verify_password",
 ]

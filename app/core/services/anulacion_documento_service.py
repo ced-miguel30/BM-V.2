@@ -270,6 +270,13 @@ def anular_documento_confirmado(
     actor: str = "Sistema",
 ) -> ResultadoAnulacion:
     """Anulación bajo lock A2. Toda la reversión o ninguna."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoAnulacion(False, denied)
+
     path = Path(json_path).resolve()
     holder: dict = {"result": None}
 

@@ -104,7 +104,13 @@ def crear_producto(
     ubicacion_ids: list[str] | None = None,
     tipo_articulo: str | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
     from app.core.services.money import normalizar_codigo_funcional
+
+    denied = usecase_deny_message(Permiso.ACCEDER_INVENTARIO, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
 
     nombre = nombre.strip()
     if not nombre:
@@ -297,6 +303,13 @@ def registrar_lote(
     alerta_expiracion_dias: int | None = None,
     ubicacion_destino_id: str | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_INVENTARIO, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     if not producto_id:
         return ResultadoOperacion(False, "Seleccione un producto.")
     if precio_total <= 0:

@@ -38,6 +38,7 @@ from app.core.auth import (
     tiene_permiso,
     verify_password,
 )
+from tests.auth_harness import restore_harness_session
 from app.core.auth.session import (
     AuthSession,
     clear_test_session,
@@ -230,10 +231,10 @@ class TestF17RolesSensibles(unittest.TestCase):
         self.addCleanup(self.env.cleanup)
 
     def test_11_12_c2_por_rol(self) -> None:
+        self.env.as_direccion()
         z = bak.generar_backup_zip(self.env.data).contenido
         insp = rst.inspeccionar_backup(z)
         self.assertTrue(insp.ok, insp.mensaje)
-        self.env.as_direccion()
         ok = rst.restaurar_desde_bytes(
             z, destino_json=self.env.json_path, project_root=self.env.root
         )
@@ -290,10 +291,11 @@ class TestF17RolesSensibles(unittest.TestCase):
         self.assertFalse(sett.eliminar_usuario("u_dir_e2e").ok)
 
     def test_17_recepcion_limitada(self) -> None:
+        self.env.as_direccion()
+        z = bak.generar_backup_zip(self.env.data).contenido
         self.env.as_recepcion()
         for p in Permiso:
             self.assertFalse(tiene_permiso("recepcion", p), p.value)
-        z = bak.generar_backup_zip(self.env.data).contenido
         self.assertFalse(
             rst.restaurar_desde_bytes(
                 z, destino_json=self.env.json_path, project_root=self.env.root

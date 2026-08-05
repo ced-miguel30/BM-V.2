@@ -24,6 +24,7 @@ if str(ROOT) not in sys.path:
 os.environ["BM_TEST_ISOLATION"] = "1"
 
 from app.core.auth.session import AuthSession, clear_test_session, set_test_session
+from tests.auth_harness import restore_harness_session
 from app.core.models import AppData, ArchivoDocumental, Producto, UnidadProducto
 from app.core.services import backup_service as bak
 from app.core.services import destructive_ops_service as dop
@@ -68,7 +69,7 @@ class TestC3DestructiveOps(unittest.TestCase):
         set_demo_file_override(self.json_path)
         dop.clear_consumed_tokens()
         set_test_session(_sesion_direccion())
-        self.addCleanup(clear_test_session)
+        self.addCleanup(restore_harness_session)
         self.addCleanup(set_demo_file_override, None)
         self.addCleanup(self._tmp.cleanup)
         self.addCleanup(dop.clear_consumed_tokens)

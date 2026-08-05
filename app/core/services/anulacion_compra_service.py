@@ -207,6 +207,13 @@ def anular_compra(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoAnulacionCompra:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoAnulacionCompra(False, denied)
+
     context, data = _context(data, ctx)
     motivo_limpio = (motivo or "").strip()
     if not motivo_limpio:

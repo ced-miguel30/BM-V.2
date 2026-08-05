@@ -36,6 +36,7 @@ from app.core.auth import (
     verify_password,
 )
 from app.core.auth.passwords import LEGACY_PLAIN_PREFIX, migrate_legacy_if_needed
+from tests.auth_harness import restore_harness_session
 from app.core.auth.session import (
     AuthSession,
     clear_test_session,
@@ -112,7 +113,7 @@ class TestF16Login(unittest.TestCase):
         ]
 
     def tearDown(self) -> None:
-        clear_test_session()
+        restore_harness_session()
 
     def test_04_usuario_inexistente_y_mala_clave_mismo_mensaje(self) -> None:
         a = autenticar_usuario(self.users, "nadie", "x")
@@ -211,7 +212,7 @@ class TestF16AuthzServices(unittest.TestCase):
         atomic_write_json(self.json_path, appdata_to_dict(data))
         set_demo_file_override(self.json_path)
         clear_test_session()
-        self.addCleanup(clear_test_session)
+        self.addCleanup(restore_harness_session)
         self.addCleanup(set_demo_file_override, None)
         self.addCleanup(self._tmp.cleanup)
 
@@ -236,6 +237,7 @@ class TestF16AuthzServices(unittest.TestCase):
         self.assertIsNone(get_auth_session())
 
     def test_17_18_restaurar_por_rol(self) -> None:
+        set_test_session(_dir_session())
         zip_bytes = bak.generar_backup_zip(
             dict_to_appdata(json.loads(self.json_path.read_text(encoding="utf-8")))
         ).contenido
@@ -334,7 +336,7 @@ class TestF16UsuariosReglas(unittest.TestCase):
         self._p_persist.start()
         self.addCleanup(self._p_persist.stop)
         self.addCleanup(self._p_get.stop)
-        self.addCleanup(clear_test_session)
+        self.addCleanup(restore_harness_session)
         self.addCleanup(set_demo_file_override, None)
         self.addCleanup(self._tmp.cleanup)
 
@@ -448,7 +450,7 @@ class TestF16Regresion(unittest.TestCase):
         set_demo_file_override(self.json_path)
         set_test_session(_dir_session())
         dop.clear_consumed_tokens()
-        self.addCleanup(clear_test_session)
+        self.addCleanup(restore_harness_session)
         self.addCleanup(set_demo_file_override, None)
         self.addCleanup(self._tmp.cleanup)
 
