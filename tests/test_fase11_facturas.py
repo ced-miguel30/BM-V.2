@@ -233,7 +233,8 @@ class TestFase11Facturas(unittest.TestCase):
         self.assertEqual(facts[0].lineas[0].linea_origen_id, alb_doc.lineas[0].id)
 
     def test_08_version(self) -> None:
-        self.assertIn("Facturas", APP_VERSION)
+        # C1: Facturas (F11) siguen en servicios; nav unificada.
+        self.assertIn("Compras y documentos", APP_VERSION)
 
     def test_09_direccion_entrada_factura(self) -> None:
         from app.core.models.enums import DIRECCION_POR_TIPO_MOVIMIENTO

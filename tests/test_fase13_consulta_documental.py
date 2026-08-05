@@ -133,7 +133,8 @@ class TestFase13ConsultaDocumental(unittest.TestCase):
         self.assertEqual(res["importe"], 6.5)
 
     def test_06_version(self) -> None:
-        self.assertIn("Documentos", APP_VERSION)
+        # C1: pestaña Documentos (consulta) permanece; versión cita flujo unificado.
+        self.assertIn("Compras y documentos", APP_VERSION)
 
 
 if __name__ == "__main__":

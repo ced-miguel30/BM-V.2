@@ -1,7 +1,8 @@
-"""UI B4 — Registro de compras Fase 13.5 (solo servicios productivos).
+"""UI canónica de compras (Fase 13.5 / C1 — solo servicios productivos).
 
 No crea lotes/movimientos ni calcula conversiones/costes en la UI.
-Confirmación → compra_registro_service; anulación/devolución → anulacion_compra_service.
+Confirmación → compra_registro_service;
+anulación/devolución/rectificativa → anulacion_documento_service.
 """
 
 from __future__ import annotations
@@ -51,10 +52,11 @@ def render_registro_compras_135() -> None:
     data = repo.data
     path = _json_path()
 
-    st.markdown("#### Registro de compras (13.5)")
+    st.markdown("#### Compras y documentos")
     st.caption(
-        "Borrador SoT en JSON. Confirmación vía `compra_registro_service` "
-        "(lock A2 + hash + UUID). La UI no crea lotes ni movimientos."
+        "Flujo canónico de compras. Borrador SoT en JSON. Confirmación vía "
+        "`compra_registro_service` (lock A2 + hash + UUID). "
+        "La UI no crea lotes ni movimientos."
     )
 
     modo = st.radio(

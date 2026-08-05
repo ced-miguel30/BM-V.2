@@ -1657,31 +1657,60 @@ def _render_tab_documentos() -> None:
 
 
 def _render_tab_registro_135() -> None:
-    """B4 — flujo productivo compra_registro_service (Fase 13.5)."""
+    """Flujo canónico de compras (Fase 13.5 / C1): compra_registro_service."""
     from app.ui.registro_compras_135 import render_registro_compras_135
 
     render_registro_compras_135()
 
 
+# C1 — único flujo visible de compras/documentos operativos.
+# Las pestañas F10–F12 y «Compras» (lote manual) permanecen en el módulo
+# para compatibilidad y tests de dominio, pero no se listan en la nav.
+TAB_COMPRAS_DOCUMENTOS = "Compras y documentos"
+
 _SUBTABS = {
     "Productos": _render_tab_productos,
-    "Compras": _render_tab_compras,
-    "Registro 13.5": _render_tab_registro_135,
-    "Albaranes": _render_tab_albaranes,
-    "Facturas": _render_tab_facturas,
-    "Rectificativas": _render_tab_rectificativas,
+    TAB_COMPRAS_DOCUMENTOS: _render_tab_registro_135,
     "Documentos": _render_tab_documentos,
     "Inventario": _render_tab_inventario,
     "Traslados": _render_tab_traslados,
 }
 
+# Renderers legacy retenidos (no visibles). Streamlit no tiene rutas URL
+# propias: si session_state conserva un nombre antiguo, se remapea abajo.
+_SUBTABS_LEGACY_HIDDEN = {
+    "Compras": _render_tab_compras,
+    "Registro 13.5": _render_tab_registro_135,
+    "Albaranes": _render_tab_albaranes,
+    "Facturas": _render_tab_facturas,
+    "Rectificativas": _render_tab_rectificativas,
+}
+
+_LEGACY_STOCK_SUBTABS = {
+    "Compras": TAB_COMPRAS_DOCUMENTOS,
+    "Registro 13.5": TAB_COMPRAS_DOCUMENTOS,
+    "Albaranes": TAB_COMPRAS_DOCUMENTOS,
+    "Facturas": TAB_COMPRAS_DOCUMENTOS,
+    "Rectificativas": TAB_COMPRAS_DOCUMENTOS,
+}
+
+
+def _normalizar_stock_subtab_session() -> None:
+    """Evita reabrir pestañas F10–F12 / Compras ocultas vía session_state."""
+    actual = st.session_state.get("stock_subtab")
+    if actual in _LEGACY_STOCK_SUBTABS:
+        st.session_state["stock_subtab"] = _LEGACY_STOCK_SUBTABS[actual]
+    elif actual is not None and actual not in _SUBTABS:
+        st.session_state["stock_subtab"] = TAB_COMPRAS_DOCUMENTOS
+
 
 def render() -> None:
     page_header(
         "Stock",
-        "Inventario, documentos de compra, búsqueda y alertas",
+        "Inventario, compras y documentos, búsqueda y alertas",
     )
 
+    _normalizar_stock_subtab_session()
     selected = render_sub_tabs(list(_SUBTABS.keys()), key="stock_subtab")
     _SUBTABS[selected]()
 
@@ -1763,7 +1792,7 @@ def _render_alertas_stock() -> None:
                 ):
                     producto = repo.get_producto(alerta.producto_id)
                     tipo = "Bebida" if producto and producto.es_bebida else "Producto"
-                    _ir_stock_accion("Compras", compra_tipo=tipo)
+                    _ir_stock_accion(TAB_COMPRAS_DOCUMENTOS, compra_tipo=tipo)
             with acciones[4]:
                 if alerta.producto_id and st.button(
                     "Ver producto", key=f"alerta_prod_{alerta.id}", use_container_width=True,

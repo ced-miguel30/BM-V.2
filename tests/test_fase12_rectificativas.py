@@ -208,7 +208,8 @@ class TestFase12Rectificativas(unittest.TestCase):
         )
 
     def test_10_version(self) -> None:
-        self.assertIn("Rectificativas", APP_VERSION)
+        # C1: Rectificativas (F12) siguen en servicios; nav unificada.
+        self.assertIn("Compras y documentos", APP_VERSION)
 
 
 if __name__ == "__main__":

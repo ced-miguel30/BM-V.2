@@ -223,8 +223,9 @@ class TestFase10Albaranes(unittest.TestCase):
         self.assertIsNotNone(d.lineas[0].lote_id)
         self.assertIsNotNone(d.lineas[0].movimiento_id)
 
-    def test_08_version_incluye_albaranes(self) -> None:
-        self.assertIn("Albaranes", APP_VERSION)
+    def test_08_version_incluye_compras_documentos(self) -> None:
+        # C1: nav unificada; Albaranes sigue en dominio/servicios, no en APP_VERSION.
+        self.assertIn("Compras y documentos", APP_VERSION)
 
     def test_09_direccion_entrada_albaran(self) -> None:
         from app.core.models.enums import DIRECCION_POR_TIPO_MOVIMIENTO
