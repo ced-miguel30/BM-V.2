@@ -255,6 +255,13 @@ def crear_alerta_manual(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_INVENTARIO, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     titulo = titulo.strip()
     mensaje = mensaje.strip()
     if not titulo:
@@ -289,6 +296,13 @@ def cambiar_estado_alerta(
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
     """Cambia el workflow de una alerta. Revisada no oculta la causa persistente."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_INVENTARIO, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     try:
         estado = EstadoAlerta(nuevo_estado)
     except ValueError:

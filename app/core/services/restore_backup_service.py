@@ -126,6 +126,11 @@ def inspeccionar_backup(
     nombre: str = "backup.zip",
 ) -> InspeccionBackup:
     """Lee y valida el ZIP sin restaurar."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.RESTAURAR_BACKUP)
+
     advertencias: list[str] = []
     try:
         if not contenido:
@@ -283,9 +288,9 @@ def restaurar_desde_bytes(
 
     try:
         from app.core.auth.permissions import Permiso
-        from app.core.auth.session import require_permiso
+        from app.core.auth.usecase_guard import require_usecase
 
-        require_permiso(Permiso.RESTAURAR_BACKUP)
+        require_usecase(Permiso.RESTAURAR_BACKUP)
     except Exception as exc:  # noqa: BLE001
         msg = getattr(exc, "mensaje", None) or str(exc) or "No autorizado."
         return ResultadoRestauracion(

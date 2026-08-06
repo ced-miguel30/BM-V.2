@@ -15,7 +15,8 @@ from app.core.auth.roles import (
     rol_canonico,
     roles_asignables,
 )
-from app.core.auth.session import get_auth_session, require_permiso
+from app.core.auth.session import get_auth_session
+from app.core.auth.usecase_guard import require_usecase
 from app.core.models import Actividad, ConfiguracionHotel, RolUsuario, Usuario
 from app.core.storage.session_store import get_data, persist_data
 
@@ -114,12 +115,12 @@ def crear_usuario(
 
     if not skip_auth:
         try:
-            require_permiso(Permiso.GESTIONAR_USUARIOS)
+            require_usecase(Permiso.GESTIONAR_USUARIOS)
         except AuthorizationError as exc:
             return ResultadoOperacion(False, exc.mensaje)
         if rol_c == ROL_DIRECCION:
             try:
-                require_permiso(Permiso.CREAR_USUARIO_DIRECCION)
+                require_usecase(Permiso.CREAR_USUARIO_DIRECCION)
             except AuthorizationError as exc:
                 return ResultadoOperacion(False, exc.mensaje)
 
@@ -152,7 +153,7 @@ def editar_usuario(usuario_id: str, nuevo_nombre: str) -> ResultadoOperacion:
         return ResultadoOperacion(False, "El nombre debe tener al menos 2 caracteres.")
 
     try:
-        require_permiso(Permiso.GESTIONAR_USUARIOS)
+        require_usecase(Permiso.GESTIONAR_USUARIOS)
     except AuthorizationError as exc:
         return ResultadoOperacion(False, exc.mensaje)
 
@@ -162,7 +163,7 @@ def editar_usuario(usuario_id: str, nuevo_nombre: str) -> ResultadoOperacion:
         return ResultadoOperacion(False, "Usuario no encontrado.")
     if es_direccion(usuario.rol):
         try:
-            require_permiso(Permiso.MODIFICAR_USUARIO_DIRECCION)
+            require_usecase(Permiso.MODIFICAR_USUARIO_DIRECCION)
         except AuthorizationError as exc:
             return ResultadoOperacion(False, exc.mensaje)
     if any(u.id != usuario_id and u.nombre.lower() == nuevo_nombre.lower() for u in data.usuarios):
@@ -178,7 +179,7 @@ def editar_usuario(usuario_id: str, nuevo_nombre: str) -> ResultadoOperacion:
 
 def cambiar_rol_usuario(usuario_id: str, nuevo_rol: str) -> ResultadoOperacion:
     try:
-        require_permiso(Permiso.GESTIONAR_USUARIOS)
+        require_usecase(Permiso.GESTIONAR_USUARIOS)
     except AuthorizationError as exc:
         return ResultadoOperacion(False, exc.mensaje)
 
@@ -195,7 +196,7 @@ def cambiar_rol_usuario(usuario_id: str, nuevo_rol: str) -> ResultadoOperacion:
     sera_dir = rol_c == ROL_DIRECCION
     if era_dir or sera_dir:
         try:
-            require_permiso(Permiso.MODIFICAR_USUARIO_DIRECCION)
+            require_usecase(Permiso.MODIFICAR_USUARIO_DIRECCION)
         except AuthorizationError as exc:
             return ResultadoOperacion(False, exc.mensaje)
 
@@ -212,7 +213,7 @@ def cambiar_rol_usuario(usuario_id: str, nuevo_rol: str) -> ResultadoOperacion:
 
 def set_usuario_activo(usuario_id: str, activo: bool) -> ResultadoOperacion:
     try:
-        require_permiso(Permiso.GESTIONAR_USUARIOS)
+        require_usecase(Permiso.GESTIONAR_USUARIOS)
     except AuthorizationError as exc:
         return ResultadoOperacion(False, exc.mensaje)
 
@@ -222,7 +223,7 @@ def set_usuario_activo(usuario_id: str, activo: bool) -> ResultadoOperacion:
         return ResultadoOperacion(False, "Usuario no encontrado.")
     if es_direccion(usuario.rol):
         try:
-            require_permiso(Permiso.MODIFICAR_USUARIO_DIRECCION)
+            require_usecase(Permiso.MODIFICAR_USUARIO_DIRECCION)
         except AuthorizationError as exc:
             return ResultadoOperacion(False, exc.mensaje)
     if not activo and es_direccion(usuario.rol):
@@ -239,7 +240,7 @@ def set_usuario_activo(usuario_id: str, activo: bool) -> ResultadoOperacion:
 
 def restablecer_password(usuario_id: str, nueva_password: str) -> ResultadoOperacion:
     try:
-        require_permiso(Permiso.GESTIONAR_USUARIOS)
+        require_usecase(Permiso.GESTIONAR_USUARIOS)
     except AuthorizationError as exc:
         return ResultadoOperacion(False, exc.mensaje)
     if len(nueva_password) < MIN_PASSWORD_LEN:
@@ -253,7 +254,7 @@ def restablecer_password(usuario_id: str, nueva_password: str) -> ResultadoOpera
         return ResultadoOperacion(False, "Usuario no encontrado.")
     if es_direccion(usuario.rol):
         try:
-            require_permiso(Permiso.MODIFICAR_USUARIO_DIRECCION)
+            require_usecase(Permiso.MODIFICAR_USUARIO_DIRECCION)
         except AuthorizationError as exc:
             return ResultadoOperacion(False, exc.mensaje)
 
@@ -267,7 +268,7 @@ def restablecer_password(usuario_id: str, nueva_password: str) -> ResultadoOpera
 def eliminar_usuario(usuario_id: str, *, skip_auth: bool = False) -> ResultadoOperacion:
     if not skip_auth:
         try:
-            require_permiso(Permiso.ELIMINAR_USUARIO)
+            require_usecase(Permiso.ELIMINAR_USUARIO)
         except AuthorizationError as exc:
             return ResultadoOperacion(False, exc.mensaje)
 
@@ -286,7 +287,7 @@ def eliminar_usuario(usuario_id: str, *, skip_auth: bool = False) -> ResultadoOp
 
     if es_direccion(usuario.rol) and not skip_auth:
         try:
-            require_permiso(Permiso.MODIFICAR_USUARIO_DIRECCION)
+            require_usecase(Permiso.MODIFICAR_USUARIO_DIRECCION)
         except AuthorizationError as exc:
             return ResultadoOperacion(False, exc.mensaje)
         if usuario.activo and _contar_direccion_activos(data.usuarios) <= 1:
@@ -365,7 +366,7 @@ def bootstrap_direccion(
 
 def guardar_configuracion(nombre: str, moneda_key: str) -> ResultadoOperacion:
     try:
-        require_permiso(Permiso.ACCEDER_CONFIGURACION)
+        require_usecase(Permiso.ACCEDER_CONFIGURACION)
     except AuthorizationError as exc:
         return ResultadoOperacion(False, exc.mensaje)
 
@@ -397,7 +398,7 @@ def guardar_configuracion(nombre: str, moneda_key: str) -> ResultadoOperacion:
 
 def guardar_logo(archivo_bytes: bytes, extension: str = "png") -> ResultadoOperacion:
     try:
-        require_permiso(Permiso.ACCEDER_CONFIGURACION)
+        require_usecase(Permiso.ACCEDER_CONFIGURACION)
     except AuthorizationError as exc:
         return ResultadoOperacion(False, exc.mensaje)
 

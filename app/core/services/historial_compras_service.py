@@ -127,6 +127,11 @@ def _generar_excel_bytes(
 
 
 def archivar_historial_semanal() -> Path | None:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.ACCEDER_INVENTARIO, deny_terminal=True)
+
     if not debe_archivar_semanal():
         return None
 
@@ -154,6 +159,11 @@ def exportar_historial_hasta(fecha_hasta: date, orden: str, es_bebida: bool = Fa
     """Exporta el historial de compras hasta `fecha_hasta`, restringido a
     productos o a bebidas según `es_bebida` — con el mismo formato, columnas
     y estilo para ambas secciones."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.ACCEDER_INVENTARIO, deny_terminal=True)
+
     filas = _ordenar_filas(_filas_lotes(fecha_hasta, es_bebida=es_bebida), orden)
     orden_txt = "nombre (A→Z)" if orden == "nombre" else "fecha de compra (reciente primero)"
     etiqueta = "Bebida" if es_bebida else "Producto"

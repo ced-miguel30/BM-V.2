@@ -93,6 +93,11 @@ def buscar_documentos(
     data: AppData | None = None,
 ) -> list[Documento]:
     """Filtra documentos en memoria. Orden: fecha desc, id desc."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+
     if data is None:
         data = _ctx(ctx).uow.get_data()
     f = filtro or FiltroDocumentos()
@@ -122,6 +127,11 @@ def buscar_archivos(
     ctx: AppContext | None = None,
     data: AppData | None = None,
 ) -> list[ArchivoDocumental]:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+
     if data is None:
         data = _ctx(ctx).uow.get_data()
     out: list[ArchivoDocumental] = []
@@ -239,6 +249,13 @@ def exportar_documentos_csv(
     guardar: bool = True,
     registrar_actividad: bool = True,
 ) -> ResultadoExportacionDocumental:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoExportacionDocumental(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     docs = buscar_documentos(filtro, data=data)

@@ -197,6 +197,13 @@ def crear_responsable_merma(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     texto = (nombre or "").strip()
     if not texto:
         return ResultadoOperacion(False, "Indique un nombre de responsable.")
@@ -221,6 +228,13 @@ def renombrar_responsable_merma(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     texto = (nombre or "").strip()
     if not texto:
         return ResultadoOperacion(False, "Indique un nombre de responsable.")
@@ -252,6 +266,13 @@ def desactivar_responsable_merma(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     context = _ctx(ctx)
     data = context.data()
     actual = next((r for r in data.responsables_merma if r.id == responsable_id), None)
@@ -270,6 +291,13 @@ def reactivar_responsable_merma(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
     context = _ctx(ctx)
     data = context.data()
     actual = next((r for r in data.responsables_merma if r.id == responsable_id), None)

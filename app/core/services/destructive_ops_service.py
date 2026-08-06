@@ -205,9 +205,9 @@ def restablecer_a_datos_mock(
 
     try:
         from app.core.auth.permissions import Permiso
-        from app.core.auth.session import require_permiso
+        from app.core.auth.usecase_guard import require_usecase
 
-        require_permiso(Permiso.EJECUTAR_OPERACION_DESTRUCTIVA)
+        require_usecase(Permiso.EJECUTAR_OPERACION_DESTRUCTIVA)
     except Exception as exc:  # noqa: BLE001
         msg = getattr(exc, "mensaje", None) or str(exc) or "No autorizado."
         return _resultado_base(

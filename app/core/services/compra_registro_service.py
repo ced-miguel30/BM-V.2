@@ -557,6 +557,13 @@ def guardar_borrador(
     documento_id: str | None = None,
 ) -> ResultadoCompra:
     """Crea o actualiza borrador en memoria (SoT). Persistencia = caller/A2."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoCompra(False, denied, codigo="no_autorizado")
+
     if documento_id:
         doc = next((d for d in data.documentos if d.id == documento_id), None)
         if doc is None:
@@ -804,6 +811,13 @@ def guardar_borrador_persistente(
     json_path: Path | str,
     **kwargs,
 ) -> ResultadoCompra:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoCompra(False, denied, codigo="no_autorizado")
+
     holder: dict = {"result": None}
 
     def _mutate(data: AppData) -> AppData:

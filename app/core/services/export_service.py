@@ -24,6 +24,11 @@ def _guardar_en_exports(nombre: str, contenido: bytes) -> Path:
 
 
 def exportar_actividad_hoy() -> tuple[bytes, str]:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+
     repo = get_repository()
     hoy = date.today()
     inicio = datetime.combine(hoy, datetime.min.time())
@@ -66,6 +71,11 @@ def formato_fecha_hoy_str() -> str:
 
 
 def exportar_informe_cliente(desde: date, hasta: date, huespedes: int = 30) -> tuple[bytes, str]:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES, deny_terminal=True)
+
     repo = get_repository()
     hotel = nombre_hotel_sidebar()
     kpis = resumen_kpis(desde, hasta, huespedes)

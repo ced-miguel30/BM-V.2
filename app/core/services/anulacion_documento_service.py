@@ -304,6 +304,13 @@ def anular_conciliacion(
     json_path: Path | str,
 ) -> ResultadoAnulacion:
     """Anula una conciliación activa (sin tocar stock)."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoAnulacion(False, denied, "no_autorizado")
+
     path = Path(json_path)
 
     def _mutate(data: AppData) -> AppData:
@@ -344,6 +351,13 @@ def registrar_rectificativa_economica(
     actor: str = "Sistema",
 ) -> ResultadoAnulacion:
     """RECTIFICATIVA con impacto_stock=False (D72/A6): sin tocar lotes ni movimientos."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoAnulacion(False, denied, "no_autorizado")
+
     path = Path(json_path)
     token = (confirmacion_id or str(uuid.uuid4())).strip().lower()
     holder: dict = {"result": None}
@@ -452,6 +466,13 @@ def registrar_devolucion(
     confirmacion_id: str | None = None,
 ) -> ResultadoAnulacion:
     """DEVOLUCION física: salida trazable por lote origen. Rechaza si insuficiente."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoAnulacion(False, denied, "no_autorizado")
+
     path = Path(json_path)
     token = (confirmacion_id or str(uuid.uuid4())).strip().lower()
     holder: dict = {"result": None}

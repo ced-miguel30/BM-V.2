@@ -286,7 +286,12 @@ def exportar_periodo(
     clock: Clock | None = None,
 ) -> ResultadoExportacion:
     """Genera y guarda el Excel de un módulo para el periodo
-    [inicio 00:00, hasta]. Nunca lanza excepciones hacia afuera."""
+    [inicio 00:00, hasta]. Nunca lanza excepciones hacia afuera.
+
+    Motor compartido: lo usa ``procesar_pendientes`` (arranque, sin sesión)
+    y la exportación manual ya autorizada en ``exportar_semana_actual``.
+    No añadir require_usecase aquí.
+    """
     periodo_txt = f"{inicio.isoformat()} a {hasta.date().isoformat()}"
     clk = _clock(ctx, clock)
 
@@ -359,6 +364,11 @@ def exportar_semana_actual(
     `ahora`. Nunca marca ninguna semana como cerrada — una semana incompleta
     no se considera "ya exportada automáticamente" ni impide el cierre
     automático posterior de esa misma semana."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.ACCEDER_GESTOR, deny_terminal=True)
+
     inicio, hasta = rango_manual_actual(ahora)
     return exportar_periodo(
         config, inicio, hasta, automatica=False,

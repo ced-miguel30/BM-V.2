@@ -85,6 +85,11 @@ def ruta_absoluta(archivo: ArchivoDocumental) -> Path:
 def listar_archivos(
     ctx: AppContext | None = None, *, solo_activos: bool = True
 ) -> list[ArchivoDocumental]:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+
     data = _ctx(ctx).uow.get_data()
     items = list(getattr(data, "archivos_documentales", []) or [])
     if solo_activos:
@@ -120,6 +125,13 @@ def registrar_archivo(
     base_dir: Path | None = None,
 ) -> ResultadoArchivo:
     """Persiste bytes en disco (una sola escritura) y metadatos en AppData."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoArchivo(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     if not hasattr(data, "archivos_documentales") or data.archivos_documentales is None:
@@ -194,6 +206,13 @@ def registrar_archivo(
 def verificar_integridad(
     archivo_id: str, *, ctx: AppContext | None = None
 ) -> ResultadoArchivo:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoArchivo(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     arch = buscar_por_id(data, archivo_id)
@@ -216,6 +235,13 @@ def desactivar_archivo(
     archivo_id: str, *, ctx: AppContext | None = None
 ) -> ResultadoArchivo:
     """Soft-delete de metadatos. No borra el fichero en disco."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoArchivo(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     arch = buscar_por_id(data, archivo_id)
@@ -233,6 +259,13 @@ def leer_bytes(
     archivo_id: str, *, ctx: AppContext | None = None
 ) -> tuple[bytes | None, str]:
     """Lectura del original. No modifica el fichero."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return None, denied
+
     c = _ctx(ctx)
     arch = buscar_por_id(c.uow.get_data(), archivo_id)
     if arch is None:
@@ -250,6 +283,13 @@ def enlazar_documento(
     ctx: AppContext | None = None,
 ) -> ResultadoArchivo:
     """Asocia el archivo a una cabecera documental futura (F10+)."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+    if denied:
+        return ResultadoArchivo(False, denied)
+
     c = _ctx(ctx)
     data = c.uow.get_data()
     arch = buscar_por_id(data, archivo_id)

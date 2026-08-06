@@ -79,6 +79,11 @@ def listar_albaranes(
     *,
     estado: str | None = None,
 ) -> list[Documento]:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+
     data = _ctx(ctx).uow.get_data()
     docs = [
         d
