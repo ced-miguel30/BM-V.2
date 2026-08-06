@@ -142,8 +142,8 @@ def celda_numero(valor: Any, default: float = 0.0) -> float:
 
 # Columnas numéricas mostradas como texto ES en el editor
 GRID_NUM_FMT: dict[str, int] = {
-    "cantidad": 4,
-    "precio_unitario": 4,
+    "cantidad": 2,
+    "precio_unitario": 2,
     "precio_total": 2,
     "dto_pct": 2,
     "dto_eur": 2,
@@ -226,16 +226,22 @@ def sincronizar_precios_fila(
     if qty > 0 and edited == "precio_total":
         out["precio_unitario"] = float(money_round(as_decimal(total) / as_decimal(qty)))
         out["precio_total"] = float(money_round(as_decimal(total)))
-    elif qty > 0 and edited in ("precio_unitario", "cantidad", None):
-        # Default: unitario manda (también al cargar / sin prev)
-        if edited is None and total > 0 and unit == 0:
+    elif qty > 0 and edited in ("precio_unitario", "cantidad"):
+        out["precio_total"] = float(
+            money_round(as_decimal(celda_numero(out.get("precio_unitario"))) * as_decimal(qty))
+        )
+    elif qty > 0 and edited is None:
+        # Sin campo editado: solo corregir inconsistencias (no reescribir siempre)
+        if total > 0 and unit == 0:
             out["precio_unitario"] = float(
                 money_round(as_decimal(total) / as_decimal(qty))
             )
-        else:
-            out["precio_total"] = float(
-                money_round(as_decimal(celda_numero(out.get("precio_unitario"))) * as_decimal(qty))
+        elif unit > 0:
+            esperado = float(
+                money_round(as_decimal(unit) * as_decimal(qty))
             )
+            if abs(esperado - total) > 1e-9:
+                out["precio_total"] = esperado
     elif qty <= 0:
         out["precio_total"] = 0.0
 

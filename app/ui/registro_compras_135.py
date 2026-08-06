@@ -269,9 +269,9 @@ def _ui_borrador(data, path) -> None:
     st.markdown("##### Líneas de compra")
     st.caption(
         "Importes en formato contable español (10,00 / 10.000,00). "
-        "Al cambiar cantidad, unitario o total, la otra celda de precio se recalcula. "
-        "Prefiera editar en la rejilla embebida (Tab entre celdas); "
-        "la vista ampliada puede perder el foco al refrescar precios. "
+        "Escriba el número y pulse Enter o Tab para confirmar la celda. "
+        "Los totales del documento se actualizan al vuelo; "
+        "unitario y total de línea se alinean al guardar. "
         "Puede añadir varias filas vacías y rellenarlas con calma. "
         "Vaciar el producto elimina esa línea."
     )
@@ -366,18 +366,16 @@ def _ui_borrador(data, path) -> None:
         merged.append(base)
 
     purged = grid.purgar_filas_sin_producto(merged, prev_rows)
+    # Sync solo para totales / guardar — no remontar el editor (rompe la edición)
     synced = grid.sincronizar_precios_filas(purged, prev_rows)
 
     prev_prod_n = sum(1 for r in prev_rows if grid.fila_tiene_producto(r))
     purged_prod_n = sum(1 for r in purged if grid.fila_tiene_producto(r))
-    # Remount: purga de producto O para reflejar unitario↔total en celdas
-    needs_remount = (
-        purged_prod_n < prev_prod_n
-        or grid.filas_precios_distintas(purged, synced)
-    )
+    needs_remount = purged_prod_n < prev_prod_n
 
-    st.session_state[_GRID_SS] = synced
-    st.session_state[_GRID_PREV] = [dict(r) for r in synced]
+    # Persistimos la edición del usuario; el panel usa la copia sync
+    st.session_state[_GRID_SS] = purged
+    st.session_state[_GRID_PREV] = [dict(r) for r in purged]
     if needs_remount:
         st.session_state["reg135_editor_ver"] = (
             int(st.session_state.get("reg135_editor_ver") or 0) + 1

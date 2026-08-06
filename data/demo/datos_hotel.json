@@ -282,7 +282,7 @@
     {
       "id": "u01",
       "nombre": "Ana",
-      "rol": "administracion",
+      "rol": "rolusuario.administracion",
       "activo": true,
       "login": "",
       "password_hash": "",
@@ -292,7 +292,7 @@
     {
       "id": "u02",
       "nombre": "al",
-      "rol": "administracion",
+      "rol": "rolusuario.administracion",
       "activo": true,
       "login": "ad",
       "password_hash": "pbkdf2_sha256$200000$S5oDFMBdt8QJjCxKzs9VTw==$K79JpedXWOgTN23qvkBrOrj6zn8ege4EQPv+AIKYe2w=",
@@ -302,7 +302,7 @@
     {
       "id": "u03",
       "nombre": "own",
-      "rol": "direccion",
+      "rol": "rolusuario.direccion",
       "activo": true,
       "login": "own",
       "password_hash": "pbkdf2_sha256$200000$SiacH8Esc0F7KiCZYjCwkA==$8FaA2TGddW4lX8VSQLhGSuaLK7HuuBf5bJzYCvEhuoY=",
