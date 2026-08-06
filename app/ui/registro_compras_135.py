@@ -269,9 +269,9 @@ def _ui_borrador(data, path) -> None:
     st.markdown("##### Líneas de compra")
     st.caption(
         "Importes en formato contable español (10,00 / 10.000,00). "
-        "Escriba el número y pulse Enter o Tab para confirmar la celda. "
-        "Los totales del documento se actualizan al vuelo; "
-        "unitario y total de línea se alinean al guardar. "
+        "Confirme la celda con Enter o Tab: al cambiar el unitario se recalcula el total "
+        "(y al cambiar el total, el unitario), si la cantidad es mayor que 0. "
+        "Los totales del documento se actualizan al vuelo. "
         "Puede añadir varias filas vacías y rellenarlas con calma. "
         "Vaciar el producto elimina esa línea."
     )
@@ -366,21 +366,24 @@ def _ui_borrador(data, path) -> None:
         merged.append(base)
 
     purged = grid.purgar_filas_sin_producto(merged, prev_rows)
-    # Sync solo para totales / guardar — no remontar el editor (rompe la edición)
     synced = grid.sincronizar_precios_filas(purged, prev_rows)
 
     prev_prod_n = sum(1 for r in prev_rows if grid.fila_tiene_producto(r))
     purged_prod_n = sum(1 for r in purged if grid.fila_tiene_producto(r))
-    needs_remount = purged_prod_n < prev_prod_n
+    price_sync = grid.filas_precios_distintas(purged, synced)
+    # Remount solo al purgar producto o para mostrar el precio pareja recalculado
+    needs_remount = purged_prod_n < prev_prod_n or price_sync
 
-    # Persistimos la edición del usuario; el panel usa la copia sync
-    st.session_state[_GRID_SS] = purged
-    st.session_state[_GRID_PREV] = [dict(r) for r in purged]
     if needs_remount:
+        st.session_state[_GRID_SS] = synced
+        st.session_state[_GRID_PREV] = [dict(r) for r in synced]
         st.session_state["reg135_editor_ver"] = (
             int(st.session_state.get("reg135_editor_ver") or 0) + 1
         )
         st.rerun()
+
+    st.session_state[_GRID_SS] = purged
+    st.session_state[_GRID_PREV] = [dict(r) for r in purged]
 
     _render_grupos_albaran(synced, data)
     _render_totales_panel(synced, float(dto_cab))
