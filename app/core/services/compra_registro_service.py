@@ -631,6 +631,8 @@ def guardar_borrador(
                     codigo_lote_proveedor=raw.get("codigo_lote_proveedor"),
                     fecha_expiracion=raw.get("fecha_expiracion"),
                     ubicacion_destino_id=raw.get("ubicacion_destino_id"),
+                    documento_origen_id=raw.get("documento_origen_id"),
+                    linea_origen_id=raw.get("linea_origen_id"),
                 )
             )
         doc.lineas = nuevas

@@ -3,6 +3,8 @@
 No crea lotes/movimientos ni calcula conversiones/costes en la UI.
 Confirmación → compra_registro_service;
 anulación/devolución/rectificativa → anulacion_documento_service.
+
+Rejilla multi-línea tipo Excel + conciliación multi-albarán.
 """
 
 from __future__ import annotations
@@ -11,6 +13,7 @@ import uuid
 from datetime import date
 from decimal import Decimal
 
+import pandas as pd
 import streamlit as st
 
 from app.core.models import EstadoDocumento, TipoDocumento
@@ -18,7 +21,13 @@ from app.core.services import anulacion_documento_service as anul
 from app.core.services import compra_registro_service as compra
 from app.core.services.data_service import get_repository
 from app.core.storage.session_store import get_demo_path, reload_from_disk
+from app.ui import compra_grid_helpers as grid
 from app.ui.components import section_divider
+
+_GRID_SS = "reg135_grid"
+_GRID_PREV = "reg135_grid_prev"
+_GRID_DOC = "reg135_grid_doc_id"
+_HEADER_DTO = "reg135_dto_cab"
 
 
 def _json_path():
@@ -81,19 +90,78 @@ def render_registro_compras_135() -> None:
         _ui_consultar(data)
 
 
-def _ui_borrador(data, path) -> None:
-    proveedores = [p for p in data.proveedores if getattr(p, "activo", True)]
-    mapa_prov = {f"{p.nombre_fiscal} [{p.codigo or '—'}] ({p.id})": p.id for p in proveedores}
+def _mapa_productos(data):
     productos = list(data.productos)
     mapa_prod = {
-        f"{p.nombre} [{getattr(p, 'codigo', None) or '—'}] ({p.id})": p for p in productos
+        f"{p.nombre} [{getattr(p, 'codigo', None) or '—'}] ({p.id})": p
+        for p in productos
     }
+    mapa_por_id = {p.id: p for p in productos}
+    mapa_label_por_id = {p.id: lbl for lbl, p in mapa_prod.items()}
+    return mapa_prod, mapa_por_id, mapa_label_por_id
+
+
+def _ensure_grid(rows: list[dict] | None = None) -> list[dict]:
+    if _GRID_SS not in st.session_state or rows is not None:
+        st.session_state[_GRID_SS] = rows if rows is not None else [grid.empty_row()]
+    if not st.session_state[_GRID_SS]:
+        st.session_state[_GRID_SS] = [grid.empty_row()]
+    return st.session_state[_GRID_SS]
+
+
+def _render_totales_panel(rows: list[dict], dto_cab: float) -> None:
+    res = grid.calcular_totales_grid(rows, descuento_cabecera=dto_cab)
+    info = grid.totales_a_dict(res)
+    st.markdown("##### Totales del documento")
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Total sin impuesto", f"{info['base_imponible']} €")
+    c2.metric("Total impuestos", f"{info['impuesto_total']} €")
+    c3.metric("Total documento", f"{info['total_documento']} €")
+    if info["desglose"]:
+        st.caption("Desglose por impuesto")
+        st.dataframe(
+            [
+                {
+                    "IGIC %": d["porcentaje"],
+                    "Base": f"{d['base']} €",
+                    "Cuota": f"{d['cuota']} €",
+                }
+                for d in info["desglose"]
+            ],
+            use_container_width=True,
+            hide_index=True,
+        )
+
+
+def _render_grupos_albaran(rows: list[dict], data) -> None:
+    mapa_alb = {
+        d.id: d
+        for d in data.documentos
+        if _tipo_val(d) == TipoDocumento.ALBARAN.value
+    }
+    grupos = grid.agrupar_filas_por_albaran(rows, mapa_alb=mapa_alb)
+    if not grupos:
+        return
+    st.markdown("##### Albaranes incorporados")
+    for g in grupos:
+        st.markdown(f"**{g['etiqueta']}** — {g['total']} €")
+        st.caption(f"· {g['productos']}")
+
+
+def _ui_borrador(data, path) -> None:
+    proveedores = [p for p in data.proveedores if getattr(p, "activo", True)]
+    mapa_prov = {
+        f"{p.nombre_fiscal} [{p.codigo or '—'}] ({p.id})": p.id for p in proveedores
+    }
+    mapa_prod, mapa_por_id, mapa_label_por_id = _mapa_productos(data)
+    labels_prod = list(mapa_prod.keys())
 
     borradores = [
         d
         for d in data.documentos
         if _estado_val(d) == EstadoDocumento.BORRADOR.value
-        and _tipo_val(d) in (
+        and _tipo_val(d)
+        in (
             TipoDocumento.ALBARAN.value,
             TipoDocumento.FACTURA.value,
         )
@@ -106,100 +174,305 @@ def _ui_borrador(data, path) -> None:
         }
     )
 
-    with st.form("reg135_borrador", clear_on_submit=False):
-        edit_lbl = st.selectbox("Documento", list(mapa_edit.keys()))
-        tipo = st.selectbox("Tipo", ["albaran", "factura"])
-        prov_lbl = st.selectbox("Proveedor", list(mapa_prov.keys()) or ["—"])
-        ref = st.text_input("Referencia externa")
-        notas = st.text_area("Observaciones / notas", height=68)
-        dto_cab = st.number_input(
-            "Descuento cabecera (€)", min_value=0.0, step=0.01, format="%.2f"
+    # --- Cabecera ---
+    edit_lbl = st.selectbox(
+        "Documento", list(mapa_edit.keys()), key="reg135_edit_doc"
+    )
+    doc_id = mapa_edit[edit_lbl]
+
+    # Precargar rejilla al cambiar de documento (antes de otros widgets)
+    if st.session_state.get(_GRID_DOC) != (doc_id or "__new__"):
+        st.session_state[_GRID_DOC] = doc_id or "__new__"
+        if doc_id:
+            doc = next((d for d in data.documentos if d.id == doc_id), None)
+            if doc is not None:
+                filas = grid.lineas_documento_a_filas(
+                    doc,
+                    mapa_prod_por_id=mapa_por_id,
+                    mapa_label_por_id=mapa_label_por_id,
+                )
+                _ensure_grid(filas)
+                if _tipo_val(doc) in ("albaran", "factura"):
+                    st.session_state["reg135_tipo"] = _tipo_val(doc)
+                # Proveedor del documento si está en mapa
+                if doc.proveedor_id:
+                    for lbl, pid in mapa_prov.items():
+                        if pid == doc.proveedor_id:
+                            st.session_state["reg135_prov"] = lbl
+                            break
+            else:
+                _ensure_grid([grid.empty_row()])
+        else:
+            _ensure_grid([grid.empty_row()])
+        st.session_state.pop(_GRID_PREV, None)
+        st.rerun()
+
+    tipo = st.selectbox("Tipo", ["albaran", "factura"], key="reg135_tipo")
+    prov_lbl = st.selectbox(
+        "Proveedor", list(mapa_prov.keys()) or ["—"], key="reg135_prov"
+    )
+    proveedor_id = mapa_prov.get(prov_lbl) if mapa_prov else None
+    ref = st.text_input("Referencia externa", key="reg135_ref")
+    notas = st.text_area("Observaciones / notas", height=68, key="reg135_notas")
+    dto_cab = st.number_input(
+        "Descuento cabecera (€)",
+        min_value=0.0,
+        step=0.01,
+        format="%.2f",
+        key=_HEADER_DTO,
+    )
+
+    rows = _ensure_grid()
+
+    # --- Conciliación multi-albarán (solo factura) ---
+    if tipo == "factura" and proveedor_id:
+        st.markdown("##### Conciliar albaranes del proveedor")
+        disponibles = grid.albaranes_conciliables(
+            data, proveedor_id=proveedor_id, excluir_factura_id=doc_id
         )
-        st.markdown("##### Línea de compra")
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            prod_lbl = st.selectbox("Producto", list(mapa_prod.keys()) or ["—"])
-            qty = st.number_input("Cantidad compra", min_value=0.0, step=0.1, value=1.0)
-            unidad_compra = st.text_input("Unidad compra", value="Ud")
-        with c2:
-            precio = st.number_input(
-                "Precio unitario compra", min_value=0.0, step=0.01, format="%.4f"
+        mapa_alb_lbl = {grid.etiqueta_albaran(a): a for a in disponibles}
+        if mapa_alb_lbl:
+            sel_albs = st.multiselect(
+                "Albaranes pendientes de facturar",
+                list(mapa_alb_lbl.keys()),
+                key="reg135_alb_multi",
             )
-            factor = st.number_input(
-                "Factor → inventario (1 si misma unidad)",
+            if st.button("Incorporar albaranes seleccionados", key="reg135_alb_add"):
+                nuevos = grid.expandir_albaranes_a_filas(
+                    data,
+                    [mapa_alb_lbl[k] for k in sel_albs],
+                    mapa_label_por_id=mapa_label_por_id,
+                    mapa_prod_por_id=mapa_por_id,
+                    excluir_factura_id=doc_id,
+                )
+                # Evitar duplicar misma línea de albarán ya en rejilla
+                ya = {
+                    (r.get(grid.META_ALB_LN) or "")
+                    for r in st.session_state[_GRID_SS]
+                }
+                for n in nuevos:
+                    if n.get(grid.META_ALB_LN) and n[grid.META_ALB_LN] in ya:
+                        continue
+                    st.session_state[_GRID_SS].append(n)
+                # Quitar filas vacías iniciales
+                st.session_state[_GRID_SS] = [
+                    r
+                    for r in st.session_state[_GRID_SS]
+                    if grid.fila_tiene_producto(r)
+                    or (r.get(grid.META_ALB_LN) or "")
+                ] or [grid.empty_row()]
+                st.session_state.pop(_GRID_PREV, None)
+                st.rerun()
+        else:
+            st.caption("No hay albaranes confirmados pendientes para este proveedor.")
+
+    st.markdown("##### Líneas de compra")
+    st.caption(
+        "Edite en la rejilla (o ampliada): al guardar se alinean unitario/total. "
+        "Puede añadir varias filas vacías y rellenarlas con calma. "
+        "Vaciar el producto (Retroceso) elimina esa línea. "
+        "Los totales se actualizan al vuelo."
+    )
+
+    # DataFrame visible (sin metadatos internos)
+    visible_cols = grid.GRID_COLS
+    df_src = pd.DataFrame(rows)
+    for col in visible_cols:
+        if col not in df_src.columns:
+            df_src[col] = None
+    # Asegurar tipos
+    if "incluye_igic" in df_src.columns:
+        df_src["incluye_igic"] = df_src["incluye_igic"].fillna(False).astype(bool)
+    if "producto" in df_src.columns:
+        df_src["producto"] = df_src["producto"].map(grid.celda_texto)
+    if "unidad" in df_src.columns:
+        df_src["unidad"] = df_src["unidad"].map(
+            lambda v: grid.celda_texto(v) or "Ud"
+        )
+    for ncol in (
+        "cantidad",
+        "precio_unitario",
+        "precio_total",
+        "dto_pct",
+        "dto_eur",
+        "igic_pct",
+    ):
+        if ncol in df_src.columns:
+            default = 7.0 if ncol == "igic_pct" else 0.0
+            df_src[ncol] = df_src[ncol].map(
+                lambda v, d=default: grid.celda_numero(v, d)
+            )
+
+    edited = st.data_editor(
+        df_src[visible_cols],
+        num_rows="dynamic",
+        use_container_width=True,
+        hide_index=True,
+        height=380,
+        key=f"reg135_data_editor_{st.session_state.get('reg135_editor_ver', 0)}",
+        column_config={
+            "producto": st.column_config.SelectboxColumn(
+                "Producto",
+                options=labels_prod or [""],
+                required=False,
+                width="medium",
+            ),
+            "cantidad": st.column_config.NumberColumn(
+                "Cantidad",
                 min_value=0.0,
                 step=0.1,
-                value=1.0,
-            )
-            unidad_inv = st.text_input("Unidad inventario", value="Ud")
-        with c3:
-            dto_pct = st.number_input("Dto. línea %", min_value=0.0, step=0.1, value=0.0)
-            dto_imp = st.number_input(
-                "Dto. línea €", min_value=0.0, step=0.01, format="%.2f", value=0.0
-            )
-            igic = st.number_input("IGIC %", min_value=0.0, step=0.1, value=7.0)
-            incluye_igic = st.checkbox("Precio incluye IGIC")
-        conc_alb = st.text_input(
-            "Conciliación: id línea albarán (solo factura vinculada; vacío = directa)",
-            value="",
-        )
-        submitted = st.form_submit_button("Guardar borrador", type="primary")
+                format="%.4f",
+                width="small",
+            ),
+            "unidad": st.column_config.TextColumn("Ud", width="small"),
+            "precio_unitario": st.column_config.NumberColumn(
+                "P. unit.",
+                min_value=0.0,
+                step=0.01,
+                format="%.4f",
+                width="small",
+            ),
+            "precio_total": st.column_config.NumberColumn(
+                "P. total",
+                min_value=0.0,
+                step=0.01,
+                format="%.2f",
+                width="small",
+            ),
+            "dto_pct": st.column_config.NumberColumn(
+                "Dto %",
+                min_value=0.0,
+                max_value=100.0,
+                step=0.1,
+                format="%.2f",
+                width="small",
+            ),
+            "dto_eur": st.column_config.NumberColumn(
+                "Dto €",
+                min_value=0.0,
+                step=0.01,
+                format="%.2f",
+                width="small",
+            ),
+            "igic_pct": st.column_config.NumberColumn(
+                "IGIC %",
+                min_value=0.0,
+                step=0.1,
+                format="%.2f",
+                width="small",
+            ),
+            "incluye_igic": st.column_config.CheckboxColumn(
+                "c/IGIC", width="small"
+            ),
+        },
+    )
 
-    if submitted:
+    # Fusionar edición con metadatos previos (por índice / claves)
+    prev_rows = list(st.session_state.get(_GRID_PREV) or rows)
+    merged: list[dict] = []
+    edited_records = edited.to_dict(orient="records")
+    for i, rec in enumerate(edited_records):
+        base = dict(prev_rows[i]) if i < len(prev_rows) else grid.empty_row()
+        if i >= len(prev_rows):
+            base = grid.empty_row()
+        for col in visible_cols:
+            if col not in rec:
+                continue
+            val = rec[col]
+            if col in ("producto", "unidad"):
+                base[col] = grid.celda_texto(val)
+                if col == "unidad" and not base[col]:
+                    base[col] = "Ud"
+            elif col == "incluye_igic":
+                base[col] = bool(val) if val is not None and not (
+                    isinstance(val, float) and str(val) == "nan"
+                ) else False
+            elif col == "igic_pct":
+                base[col] = grid.celda_numero(val, 7.0)
+            else:
+                base[col] = grid.celda_numero(val)
+        label = grid.celda_texto(base.get("producto"))
+        base["producto"] = label
+        if label in mapa_prod:
+            prod = mapa_prod[label]
+            base[grid.META_PROD_ID] = prod.id
+            if not grid.celda_texto(base.get("unidad")):
+                u = prod.unidad
+                base["unidad"] = u.value if hasattr(u, "value") else str(u)
+        elif not label:
+            base[grid.META_PROD_ID] = ""
+        merged.append(base)
+
+    purged = grid.purgar_filas_sin_producto(merged, prev_rows)
+    # Copia sync solo para totales / guardar — no remonta el editor
+    synced = grid.sincronizar_precios_filas(purged, prev_rows)
+
+    prev_prod_n = sum(1 for r in prev_rows if grid.fila_tiene_producto(r))
+    purged_prod_n = sum(1 for r in purged if grid.fila_tiene_producto(r))
+    # Remount solo si se eliminó una línea con producto (vaciar celda)
+    needs_remount = purged_prod_n < prev_prod_n
+
+    st.session_state[_GRID_SS] = purged
+    st.session_state[_GRID_PREV] = [dict(r) for r in purged]
+    if needs_remount:
+        st.session_state["reg135_editor_ver"] = (
+            int(st.session_state.get("reg135_editor_ver") or 0) + 1
+        )
+        st.rerun()
+
+    _render_grupos_albaran(synced, data)
+    _render_totales_panel(synced, float(dto_cab))
+
+    if st.button("Guardar borrador", type="primary", key="reg135_guardar"):
         if not mapa_prov or not mapa_prod:
             st.error("Se requieren proveedor y producto en catálogo.")
             return
-        prod = mapa_prod[prod_lbl]
-        lineas = [
-            {
-                "producto_id": prod.id,
-                "client_line_key": st.session_state.get(
-                    "reg135_line_key", str(uuid.uuid4())
-                ),
-                "cantidad_compra": str(qty),
-                "unidad_compra": unidad_compra or "Ud",
-                "unidad_inventario": unidad_inv
-                or (
-                    prod.unidad.value
-                    if hasattr(prod.unidad, "value")
-                    else str(prod.unidad)
-                ),
-                "factor_conversion": str(factor) if factor > 0 else None,
-                "precio_unitario_compra": str(precio),
-                "precio_incluye_igic": incluye_igic,
-                "descuento_porcentaje": str(dto_pct),
-                "descuento_importe": str(dto_imp),
-                "impuesto_porcentaje": str(igic),
-            }
-        ]
-        st.session_state["reg135_line_key"] = lineas[0]["client_line_key"]
-        if conc_alb.strip():
-            st.session_state["reg135_conc"] = [
-                {
-                    "linea_factura_client_key": lineas[0]["client_line_key"],
-                    "linea_albaran_id": conc_alb.strip(),
-                    "cantidad_conciliada": str(
-                        Decimal(str(qty)) * Decimal(str(factor or 1))
-                    ),
-                }
-            ]
+        lineas = grid.filas_a_payload_lineas(
+            synced, mapa_prod_por_label=mapa_prod
+        )
+        if not lineas:
+            st.error("Añada al menos una línea con producto y cantidad > 0.")
+            return
+        conc = grid.filas_a_conciliaciones(synced)
+        if conc:
+            st.session_state["reg135_conc"] = conc
         else:
             st.session_state.pop("reg135_conc", None)
 
         r = compra.guardar_borrador_persistente(
             json_path=path,
             tipo=tipo,
-            proveedor_id=mapa_prov[prov_lbl],
+            proveedor_id=proveedor_id,
             referencia_externa=ref or None,
             notas=notas or None,
             descuento_cabecera_importe=dto_cab,
             lineas=lineas,
-            documento_id=mapa_edit[edit_lbl],
+            documento_id=doc_id,
             fecha_documento=date.today(),
         )
         if r.ok:
             reload_from_disk()
             st.success(r.mensaje)
+            if r.documento is not None:
+                st.session_state[_GRID_DOC] = r.documento.id
+                # Recargar desde persistido
+                filas = grid.lineas_documento_a_filas(
+                    r.documento,
+                    mapa_prod_por_id=mapa_por_id,
+                    mapa_label_por_id=mapa_label_por_id,
+                )
+                # Re-aplicar enlaces alb desde synced por client_line_key
+                by_key = {r.get(grid.META_KEY): r for r in synced}
+                for f in filas:
+                    src = by_key.get(f.get(grid.META_KEY))
+                    if src:
+                        f[grid.META_ALB_LN] = src.get(grid.META_ALB_LN) or f.get(
+                            grid.META_ALB_LN
+                        )
+                        f[grid.META_ALB_DOC] = src.get(grid.META_ALB_DOC) or f.get(
+                            grid.META_ALB_DOC
+                        )
+                _ensure_grid(filas)
             if r.alerta_precio:
                 for a in r.alerta_precio:
                     st.warning(a)
@@ -230,33 +503,63 @@ def _ui_confirmar(data, path) -> None:
     h = compra.construir_hash_documento(doc, conc)
 
     st.markdown("##### Resumen antes de confirmar")
-    st.write(
-        {
-            "id": doc.id,
-            "tipo": _tipo_val(doc),
-            "proveedor": doc.proveedor_nombre_snapshot,
-            "referencia": doc.referencia_externa,
-            "base": str(doc.base_imponible),
-            "impuesto": str(doc.impuesto_total),
-            "total": str(doc.total_documento),
-            "contenido_hash": h[:16] + "…",
-            "confirmacion_id": token,
-            "conciliaciones": conc or [],
-            "líneas": [
+
+    # Totales persistidos
+    st.markdown("###### Totales")
+    t1, t2, t3 = st.columns(3)
+    t1.metric("Total sin impuesto", f"{doc.base_imponible or 0} €")
+    t2.metric("Total impuestos", f"{doc.impuesto_total or 0} €")
+    t3.metric("Total documento", f"{doc.total_documento or 0} €")
+    desglose = getattr(doc, "desglose_impuestos", None) or []
+    if desglose:
+        st.dataframe(
+            [
                 {
-                    "producto": ln.producto_id,
-                    "qty_compra": str(ln.cantidad_compra),
-                    "unidad": ln.unidad_compra,
-                    "factor": str(ln.factor_conversion),
-                    "qty_inv": str(ln.cantidad_inventario),
-                    "precio": str(ln.precio_unitario_compra),
-                    "base": str(ln.base_imponible),
-                    "igic": str(ln.cuota_impuesto),
-                    "coste_inv": str(ln.coste_inventariable_linea),
+                    "IGIC %": str(d.porcentaje),
+                    "Base": f"{d.base} €",
+                    "Cuota": f"{d.cuota} €",
                 }
-                for ln in doc.lineas
+                for d in desglose
             ],
-        }
+            use_container_width=True,
+            hide_index=True,
+        )
+
+    # Vista agrupada por albarán si hay enlaces
+    rows_vista = []
+    for ln in doc.lineas:
+        rows_vista.append(
+            {
+                "producto": ln.producto_nombre_snapshot or ln.producto_id,
+                "precio_total": float(
+                    Decimal(str(ln.total_linea or ln.precio_total or 0))
+                ),
+                grid.META_ALB_DOC: ln.documento_origen_id or "",
+                grid.META_ALB_LN: ln.linea_origen_id or "",
+            }
+        )
+    _render_grupos_albaran(rows_vista, data)
+
+    st.dataframe(
+        [
+            {
+                "Producto": ln.producto_nombre_snapshot or ln.producto_id,
+                "Cantidad": str(ln.cantidad_compra or ln.cantidad),
+                "Unidad": ln.unidad_compra or "—",
+                "P. unitario": str(ln.precio_unitario_compra or "—"),
+                "Base": str(ln.base_imponible or "—"),
+                "IGIC": str(ln.cuota_impuesto or "—"),
+                "Total línea": str(ln.total_linea or ln.precio_total or "—"),
+                "Albarán": ln.documento_origen_id or "—",
+            }
+            for ln in doc.lineas
+        ],
+        use_container_width=True,
+        hide_index=True,
+    )
+    st.caption(
+        f"Hash {h[:16]}… · confirmacion_id {token}"
+        + (f" · {len(conc)} conciliación(es)" if conc else "")
     )
 
     uploaded = st.file_uploader(
@@ -284,6 +587,21 @@ def _ui_confirmar(data, path) -> None:
                 )
                 for f in uploaded
             ]
+        # Reconstruir conciliaciones desde líneas persistidas si no hay en session
+        if not conc:
+            conc = [
+                {
+                    "linea_factura_client_key": ln.client_line_key,
+                    "linea_albaran_id": ln.linea_origen_id,
+                    "cantidad_conciliada": str(
+                        ln.cantidad_compra
+                        if ln.cantidad_compra is not None
+                        else ln.cantidad
+                    ),
+                }
+                for ln in doc.lineas
+                if ln.linea_origen_id and ln.client_line_key
+            ] or None
         res = compra.confirmar_compra(
             doc.id,
             confirmacion_id=token,

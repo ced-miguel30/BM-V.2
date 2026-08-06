@@ -1,6 +1,6 @@
 {
   "meta": {
-    "usuario_actual_id": "u01",
+    "usuario_actual_id": "u02",
     "origen": "demo"
   },
   "productos": [
@@ -49,7 +49,9 @@
       "hora_anulacion": null,
       "motivo_anulacion": "",
       "referencia_anulacion": "",
-      "anulado_por": ""
+      "anulado_por": "",
+      "documento_origen_id": null,
+      "linea_documento_origen_id": null
     },
     {
       "id": "l2",
@@ -66,7 +68,9 @@
       "hora_anulacion": null,
       "motivo_anulacion": "",
       "referencia_anulacion": "",
-      "anulado_por": ""
+      "anulado_por": "",
+      "documento_origen_id": null,
+      "linea_documento_origen_id": null
     }
   ],
   "desayunos": [
@@ -259,13 +263,14 @@
   "relaciones_producto_proveedor": [],
   "archivos_documentales": [],
   "documentos": [],
+  "conciliaciones_documento": [],
   "alertas": [
     {
       "id": "a01",
       "tipo": "desayuno_no_registrado",
       "titulo": "Desayuno de hoy no registrado",
       "mensaje": "Aún no se ha registrado el consumo del desayuno de hoy.",
-      "fecha": "2026-08-04",
+      "fecha": "2026-08-06",
       "activa": true,
       "producto_id": null,
       "estado": "pendiente",
@@ -277,12 +282,38 @@
     {
       "id": "u01",
       "nombre": "Ana",
-      "rol": "Admin",
-      "activo": true
+      "rol": "rolusuario.administracion",
+      "activo": true,
+      "login": "",
+      "password_hash": "",
+      "creado_en": null,
+      "modificado_en": null
+    },
+    {
+      "id": "u02",
+      "nombre": "al",
+      "rol": "rolusuario.direccion",
+      "activo": true,
+      "login": "ad",
+      "password_hash": "pbkdf2_sha256$200000$S5oDFMBdt8QJjCxKzs9VTw==$K79JpedXWOgTN23qvkBrOrj6zn8ege4EQPv+AIKYe2w=",
+      "creado_en": "2026-08-06T12:36:10",
+      "modificado_en": "2026-08-06T12:36:10"
     }
   ],
   "configuracion": null,
   "actividades": [
+    {
+      "id": "act19",
+      "fecha_hora": "2026-08-06T12:36:11.038991",
+      "usuario": "Ana",
+      "accion": "Crear usuario",
+      "detalle": "Usuario «al» (direccion) creado",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
+    },
     {
       "id": "act18",
       "fecha_hora": "2026-08-04T10:17:41.627478",
