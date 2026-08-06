@@ -1,6 +1,6 @@
 {
   "meta": {
-    "usuario_actual_id": "u02",
+    "usuario_actual_id": "u03",
     "origen": "demo"
   },
   "productos": [
@@ -282,7 +282,7 @@
     {
       "id": "u01",
       "nombre": "Ana",
-      "rol": "rolusuario.administracion",
+      "rol": "administracion",
       "activo": true,
       "login": "",
       "password_hash": "",
@@ -292,16 +292,38 @@
     {
       "id": "u02",
       "nombre": "al",
-      "rol": "rolusuario.direccion",
+      "rol": "administracion",
       "activo": true,
       "login": "ad",
       "password_hash": "pbkdf2_sha256$200000$S5oDFMBdt8QJjCxKzs9VTw==$K79JpedXWOgTN23qvkBrOrj6zn8ege4EQPv+AIKYe2w=",
       "creado_en": "2026-08-06T12:36:10",
       "modificado_en": "2026-08-06T12:36:10"
+    },
+    {
+      "id": "u03",
+      "nombre": "own",
+      "rol": "direccion",
+      "activo": true,
+      "login": "own",
+      "password_hash": "pbkdf2_sha256$200000$SiacH8Esc0F7KiCZYjCwkA==$8FaA2TGddW4lX8VSQLhGSuaLK7HuuBf5bJzYCvEhuoY=",
+      "creado_en": "2026-08-06T17:58:34",
+      "modificado_en": "2026-08-06T17:58:34"
     }
   ],
   "configuracion": null,
   "actividades": [
+    {
+      "id": "act20",
+      "fecha_hora": "2026-08-06T17:58:34.220080",
+      "usuario": "al",
+      "accion": "Crear usuario",
+      "detalle": "Usuario «own» (direccion) creado",
+      "modulo": null,
+      "resultado": null,
+      "tipo_exportacion": null,
+      "periodo_afectado": null,
+      "archivo_generado": null
+    },
     {
       "id": "act19",
       "fecha_hora": "2026-08-06T12:36:11.038991",

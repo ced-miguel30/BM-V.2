@@ -111,7 +111,7 @@ class TestTotalesGrid(unittest.TestCase):
         self.assertEqual(res.total_documento, Decimal("21.00"))
         self.assertEqual(len(res.desglose_impuestos), 2)
         info = grid.totales_a_dict(res)
-        self.assertEqual(info["base_imponible"], "20.00")
+        self.assertEqual(info["base_imponible"], "20,00")
         self.assertEqual(len(info["desglose"]), 2)
 
 
@@ -281,6 +281,52 @@ class TestGuardarMultiLinea(unittest.TestCase):
         self.assertEqual(len(r.documento.lineas), 2)
         self.assertIsNotNone(r.documento.base_imponible)
         self.assertEqual(r.documento.base_imponible, Decimal("16.00"))
+
+
+class TestFormatoEs(unittest.TestCase):
+    def test_formatear_basico(self) -> None:
+        self.assertEqual(grid.formatear_numero_es(10), "10,00")
+        self.assertEqual(grid.formatear_numero_es(10000), "10.000,00")
+        self.assertEqual(grid.formatear_numero_es(10000.5), "10.000,50")
+        self.assertEqual(grid.formatear_numero_es(2.5, decimales=4), "2,5000")
+
+    def test_parsear_es(self) -> None:
+        self.assertEqual(grid.parsear_numero_es("10,00"), 10.0)
+        self.assertEqual(grid.parsear_numero_es("10.000"), 10000.0)
+        self.assertEqual(grid.parsear_numero_es("10.000,50"), 10000.5)
+        self.assertAlmostEqual(grid.parsear_numero_es("1.234,56"), 1234.56)
+
+    def test_parsear_en_y_float(self) -> None:
+        self.assertEqual(grid.parsear_numero_es("10.5"), 10.5)
+        self.assertEqual(grid.parsear_numero_es(10.5), 10.5)
+        self.assertEqual(grid.parsear_numero_es(float("nan")), 0.0)
+        self.assertEqual(grid.parsear_numero_es(""), 0.0)
+
+    def test_celda_numero_acepta_es(self) -> None:
+        self.assertEqual(grid.celda_numero("1.250,75"), 1250.75)
+
+    def test_sync_tras_texto_es(self) -> None:
+        row = grid.empty_row()
+        row["cantidad"] = "4,0000"
+        row["precio_unitario"] = "5,00"
+        out = grid.sincronizar_precios_fila(row, campo_editado="precio_unitario")
+        self.assertAlmostEqual(out["precio_total"], 20.0, places=2)
+
+    def test_sync_total_a_unitario_es(self) -> None:
+        row = grid.empty_row()
+        row["cantidad"] = "4"
+        row["precio_total"] = "20,00"
+        out = grid.sincronizar_precios_fila(row, campo_editado="precio_total")
+        self.assertAlmostEqual(out["precio_unitario"], 5.0, places=4)
+
+    def test_filas_precios_distintas(self) -> None:
+        a = [grid.empty_row()]
+        a[0]["precio_unitario"] = 2
+        a[0]["cantidad"] = 3
+        a[0]["precio_total"] = 0
+        b = grid.sincronizar_precios_filas(a)
+        self.assertTrue(grid.filas_precios_distintas(a, b))
+        self.assertFalse(grid.filas_precios_distintas(b, b))
 
 
 class TestCeldaTexto(unittest.TestCase):

@@ -268,19 +268,21 @@ def _ui_borrador(data, path) -> None:
 
     st.markdown("##### Líneas de compra")
     st.caption(
-        "Edite en la rejilla (o ampliada): al guardar se alinean unitario/total. "
+        "Importes en formato contable español (10,00 / 10.000,00). "
+        "Al cambiar cantidad, unitario o total, la otra celda de precio se recalcula. "
+        "Prefiera editar en la rejilla embebida (Tab entre celdas); "
+        "la vista ampliada puede perder el foco al refrescar precios. "
         "Puede añadir varias filas vacías y rellenarlas con calma. "
-        "Vaciar el producto (Retroceso) elimina esa línea. "
-        "Los totales se actualizan al vuelo."
+        "Vaciar el producto elimina esa línea."
     )
 
-    # DataFrame visible (sin metadatos internos)
+    # DataFrame visible: números como texto ES (sin metadatos internos)
     visible_cols = grid.GRID_COLS
-    df_src = pd.DataFrame(rows)
+    rows_ui = [grid.fila_numeros_a_texto_es(r) for r in rows]
+    df_src = pd.DataFrame(rows_ui)
     for col in visible_cols:
         if col not in df_src.columns:
             df_src[col] = None
-    # Asegurar tipos
     if "incluye_igic" in df_src.columns:
         df_src["incluye_igic"] = df_src["incluye_igic"].fillna(False).astype(bool)
     if "producto" in df_src.columns:
@@ -289,18 +291,13 @@ def _ui_borrador(data, path) -> None:
         df_src["unidad"] = df_src["unidad"].map(
             lambda v: grid.celda_texto(v) or "Ud"
         )
-    for ncol in (
-        "cantidad",
-        "precio_unitario",
-        "precio_total",
-        "dto_pct",
-        "dto_eur",
-        "igic_pct",
-    ):
+    for ncol in grid.GRID_NUM_FMT:
         if ncol in df_src.columns:
-            default = 7.0 if ncol == "igic_pct" else 0.0
+            dec = grid.GRID_NUM_FMT[ncol]
             df_src[ncol] = df_src[ncol].map(
-                lambda v, d=default: grid.celda_numero(v, d)
+                lambda v, d=dec: grid.formatear_numero_es(
+                    grid.celda_numero(v), decimales=d
+                )
             )
 
     edited = st.data_editor(
@@ -317,50 +314,13 @@ def _ui_borrador(data, path) -> None:
                 required=False,
                 width="medium",
             ),
-            "cantidad": st.column_config.NumberColumn(
-                "Cantidad",
-                min_value=0.0,
-                step=0.1,
-                format="%.4f",
-                width="small",
-            ),
+            "cantidad": st.column_config.TextColumn("Cantidad", width="small"),
             "unidad": st.column_config.TextColumn("Ud", width="small"),
-            "precio_unitario": st.column_config.NumberColumn(
-                "P. unit.",
-                min_value=0.0,
-                step=0.01,
-                format="%.4f",
-                width="small",
-            ),
-            "precio_total": st.column_config.NumberColumn(
-                "P. total",
-                min_value=0.0,
-                step=0.01,
-                format="%.2f",
-                width="small",
-            ),
-            "dto_pct": st.column_config.NumberColumn(
-                "Dto %",
-                min_value=0.0,
-                max_value=100.0,
-                step=0.1,
-                format="%.2f",
-                width="small",
-            ),
-            "dto_eur": st.column_config.NumberColumn(
-                "Dto €",
-                min_value=0.0,
-                step=0.01,
-                format="%.2f",
-                width="small",
-            ),
-            "igic_pct": st.column_config.NumberColumn(
-                "IGIC %",
-                min_value=0.0,
-                step=0.1,
-                format="%.2f",
-                width="small",
-            ),
+            "precio_unitario": st.column_config.TextColumn("P. unit.", width="small"),
+            "precio_total": st.column_config.TextColumn("P. total", width="small"),
+            "dto_pct": st.column_config.TextColumn("Dto %", width="small"),
+            "dto_eur": st.column_config.TextColumn("Dto €", width="small"),
+            "igic_pct": st.column_config.TextColumn("IGIC %", width="small"),
             "incluye_igic": st.column_config.CheckboxColumn(
                 "c/IGIC", width="small"
             ),
@@ -389,8 +349,10 @@ def _ui_borrador(data, path) -> None:
                 ) else False
             elif col == "igic_pct":
                 base[col] = grid.celda_numero(val, 7.0)
-            else:
+            elif col in grid.GRID_NUM_FMT:
                 base[col] = grid.celda_numero(val)
+            else:
+                base[col] = val
         label = grid.celda_texto(base.get("producto"))
         base["producto"] = label
         if label in mapa_prod:
@@ -404,16 +366,18 @@ def _ui_borrador(data, path) -> None:
         merged.append(base)
 
     purged = grid.purgar_filas_sin_producto(merged, prev_rows)
-    # Copia sync solo para totales / guardar — no remonta el editor
     synced = grid.sincronizar_precios_filas(purged, prev_rows)
 
     prev_prod_n = sum(1 for r in prev_rows if grid.fila_tiene_producto(r))
     purged_prod_n = sum(1 for r in purged if grid.fila_tiene_producto(r))
-    # Remount solo si se eliminó una línea con producto (vaciar celda)
-    needs_remount = purged_prod_n < prev_prod_n
+    # Remount: purga de producto O para reflejar unitario↔total en celdas
+    needs_remount = (
+        purged_prod_n < prev_prod_n
+        or grid.filas_precios_distintas(purged, synced)
+    )
 
-    st.session_state[_GRID_SS] = purged
-    st.session_state[_GRID_PREV] = [dict(r) for r in purged]
+    st.session_state[_GRID_SS] = synced
+    st.session_state[_GRID_PREV] = [dict(r) for r in synced]
     if needs_remount:
         st.session_state["reg135_editor_ver"] = (
             int(st.session_state.get("reg135_editor_ver") or 0) + 1

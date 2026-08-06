@@ -56,18 +56,124 @@ def celda_texto(valor: Any) -> str:
     return texto
 
 
-def celda_numero(valor: Any, default: float = 0.0) -> float:
-    """Número seguro; NaN / None / inválido → default."""
+def parsear_numero_es(valor: Any, default: float = 0.0) -> float:
+    """Parsea número en formato contable ES (1.234,56) o float/inglés.
+
+    - ``10,00`` → 10.0
+    - ``10.000`` → 10000.0
+    - ``10.000,50`` → 10000.5
+    - También acepta ``10.5`` / ``10000.5`` (punto decimal anglosajón).
+    """
     if valor is None:
         return default
-    if isinstance(valor, float) and math.isnan(valor):
+    if isinstance(valor, bool):
         return default
-    if isinstance(valor, str) and not valor.strip():
+    if isinstance(valor, (int, float)):
+        if isinstance(valor, float) and math.isnan(valor):
+            return default
+        return float(valor)
+    if isinstance(valor, Decimal):
+        return float(valor)
+
+    texto = celda_texto(valor)
+    if not texto:
         return default
+    texto = (
+        texto.replace("€", "")
+        .replace("\u00a0", "")
+        .replace(" ", "")
+        .replace("%", "")
+    )
+    if not texto or texto in {".", ",", "-", "-.", "-,"}:
+        return default
+
     try:
-        return float(as_decimal(valor))
+        if "," in texto and "." in texto:
+            if texto.rfind(",") > texto.rfind("."):
+                # ES: 1.234,56
+                texto = texto.replace(".", "").replace(",", ".")
+            else:
+                # EN: 1,234.56
+                texto = texto.replace(",", "")
+        elif "," in texto:
+            # ES: coma decimal (10,00)
+            texto = texto.replace(",", ".")
+        elif "." in texto:
+            partes = texto.split(".")
+            # Solo miles ES: 10.000 / 1.234.567 (grupos de 3)
+            if len(partes) > 1 and all(p.lstrip("-").isdigit() for p in partes):
+                if all(len(p) == 3 for p in partes[1:]):
+                    texto = texto.replace(".", "")
+        return float(as_decimal(texto))
     except Exception:  # noqa: BLE001
         return default
+
+
+def formatear_numero_es(valor: Any, *, decimales: int = 2) -> str:
+    """Formato contable español: ``10,00`` / ``10.000,50``."""
+    n = parsear_numero_es(valor, 0.0)
+    if decimales < 0:
+        decimales = 0
+    q = Decimal(str(n)).quantize(Decimal(10) ** -decimales)
+    sign = "-" if q < 0 else ""
+    q = abs(q)
+    raw = f"{q:.{decimales}f}"
+    if decimales > 0:
+        entero, frac = raw.split(".")
+    else:
+        entero, frac = raw, ""
+    # Miles con punto
+    neg = entero.startswith("-")
+    digitos = entero[1:] if neg else entero
+    grupos: list[str] = []
+    while digitos:
+        grupos.insert(0, digitos[-3:])
+        digitos = digitos[:-3]
+    entero_fmt = ".".join(grupos) if grupos else "0"
+    if frac:
+        return f"{sign}{entero_fmt},{frac}"
+    return f"{sign}{entero_fmt}"
+
+
+def celda_numero(valor: Any, default: float = 0.0) -> float:
+    """Número seguro; acepta NaN / None / texto ES o EN → float."""
+    return parsear_numero_es(valor, default)
+
+
+# Columnas numéricas mostradas como texto ES en el editor
+GRID_NUM_FMT: dict[str, int] = {
+    "cantidad": 4,
+    "precio_unitario": 4,
+    "precio_total": 2,
+    "dto_pct": 2,
+    "dto_eur": 2,
+    "igic_pct": 2,
+}
+
+
+def fila_numeros_a_texto_es(row: dict[str, Any]) -> dict[str, Any]:
+    """Copia de fila con importes/cantidades en texto contable ES (para data_editor)."""
+    out = dict(row)
+    for col, dec in GRID_NUM_FMT.items():
+        if col in out:
+            out[col] = formatear_numero_es(out.get(col), decimales=dec)
+    return out
+
+
+def filas_precios_distintas(
+    a: list[dict[str, Any]],
+    b: list[dict[str, Any]],
+    *,
+    eps: float = 1e-9,
+) -> bool:
+    """True si unitario/total/cantidad difieren (hace falta refrescar celdas)."""
+    if len(a) != len(b):
+        return True
+    for ra, rb in zip(a, b):
+        for col in ("cantidad", "precio_unitario", "precio_total"):
+            if abs(celda_numero(ra.get(col)) - celda_numero(rb.get(col))) > eps:
+                return True
+    return False
 
 
 def empty_row(*, igic_default: float = 7.0) -> dict[str, Any]:
@@ -250,20 +356,20 @@ def calcular_totales_grid(
 def totales_a_dict(res: ResultadoDocumento | None) -> dict[str, Any]:
     if res is None:
         return {
-            "base_imponible": "0.00",
-            "impuesto_total": "0.00",
-            "total_documento": "0.00",
+            "base_imponible": formatear_numero_es(0),
+            "impuesto_total": formatear_numero_es(0),
+            "total_documento": formatear_numero_es(0),
             "desglose": [],
         }
     return {
-        "base_imponible": f"{res.base_imponible:.2f}",
-        "impuesto_total": f"{res.impuesto_total:.2f}",
-        "total_documento": f"{res.total_documento:.2f}",
+        "base_imponible": formatear_numero_es(res.base_imponible),
+        "impuesto_total": formatear_numero_es(res.impuesto_total),
+        "total_documento": formatear_numero_es(res.total_documento),
         "desglose": [
             {
-                "porcentaje": f"{d.porcentaje:g}",
-                "base": f"{d.base:.2f}",
-                "cuota": f"{d.cuota:.2f}",
+                "porcentaje": formatear_numero_es(d.porcentaje, decimales=2),
+                "base": formatear_numero_es(d.base),
+                "cuota": formatear_numero_es(d.cuota),
             }
             for d in res.desglose_impuestos
         ],
@@ -563,7 +669,7 @@ def agrupar_filas_por_albaran(
             {
                 "alb_id": g["alb_id"],
                 "etiqueta": g["etiqueta"],
-                "total": f"{money_round(g['total']):.2f}",
+                "total": formatear_numero_es(money_round(g["total"])),
                 "productos": ", ".join(g["productos"]),
             }
         )
