@@ -1,0 +1,3 @@
+# JSON versionado en LF; la integridad del demo también normaliza CRLF→LF
+# en runtime para no depender del SO ni de core.autocrlf.
+*.json text eol=lf

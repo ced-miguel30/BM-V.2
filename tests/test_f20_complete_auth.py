@@ -60,11 +60,13 @@ from app.core.services import (
 )
 from app.core.services import destructive_ops_service as dop
 from app.core.services.cesta_service import LineaCesta
-from app.core.storage.demo_files import DEMO_FILE
+from app.core.storage.demo_files import (
+    DEMO_CONTENT_SHA256_CANONICO,
+    DEMO_FILE,
+    sha256_demo_file,
+)
 from app.data.serializers import appdata_to_dict, dict_to_appdata
 from tests.auth_harness import restore_harness_session
-
-DEMO_HASH = "7EE7A94468E9B57766D803E4529C4F7E9DE2CB39A11701363AA5D58820385A30"
 
 
 def _sess(
@@ -451,8 +453,7 @@ class TestF20CompleteAuth(unittest.TestCase):
 
     def test_42_demo_hash(self) -> None:
         self.assertEqual(os.environ.get("BM_TEST_ISOLATION"), "1")
-        h = hashlib.sha256(DEMO_FILE.read_bytes()).hexdigest().upper()
-        self.assertEqual(h, DEMO_HASH)
+        self.assertEqual(sha256_demo_file(DEMO_FILE), DEMO_CONTENT_SHA256_CANONICO)
 
     def test_48_errores_no_filtran_rutas(self) -> None:
         set_test_session(_sess("recepcion"))

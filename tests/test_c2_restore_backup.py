@@ -31,8 +31,10 @@ from app.core.models import AppData, ArchivoDocumental, Producto, UnidadProducto
 from app.core.services import backup_service as bak
 from app.core.services import restore_backup_service as rst
 from app.core.storage.demo_files import (
+    DEMO_CONTENT_SHA256_CANONICO,
     DEMO_FILE,
     set_demo_file_override,
+    sha256_demo_file,
 )
 from app.core.storage.json_atomic import atomic_write_json
 from app.data.serializers import appdata_to_dict, dict_to_appdata
@@ -394,11 +396,7 @@ class TestC2RestoreBackup(unittest.TestCase):
         self.assertNotIn("Albaranes", stock._SUBTABS)
 
     def test_demo_hash_no_alterado_por_suite(self) -> None:
-        h = hashlib.sha256(DEMO_FILE.read_bytes()).hexdigest().upper()
-        self.assertEqual(
-            h,
-            "7EE7A94468E9B57766D803E4529C4F7E9DE2CB39A11701363AA5D58820385A30",
-        )
+        self.assertEqual(sha256_demo_file(DEMO_FILE), DEMO_CONTENT_SHA256_CANONICO)
 
 
 if __name__ == "__main__":

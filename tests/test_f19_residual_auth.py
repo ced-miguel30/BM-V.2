@@ -54,11 +54,13 @@ from app.core.services import (
     sidebar_service,
     stock_service,
 )
-from app.core.storage.demo_files import DEMO_FILE
+from app.core.storage.demo_files import (
+    DEMO_CONTENT_SHA256_CANONICO,
+    DEMO_FILE,
+    sha256_demo_file,
+)
 from app.data.serializers import appdata_to_dict
 from tests.auth_harness import restore_harness_session
-
-DEMO_HASH = "7EE7A94468E9B57766D803E4529C4F7E9DE2CB39A11701363AA5D58820385A30"
 
 
 def _sess(role: str, *, actor_type: str = "usuario", actor_id: str = "u1") -> AuthSession:
@@ -362,8 +364,7 @@ class TestF19ResidualAuth(unittest.TestCase):
 
     def test_10_demo_hash(self) -> None:
         self.assertEqual(os.environ.get("BM_TEST_ISOLATION"), "1")
-        h = hashlib.sha256(DEMO_FILE.read_bytes()).hexdigest().upper()
-        self.assertEqual(h, DEMO_HASH)
+        self.assertEqual(sha256_demo_file(DEMO_FILE), DEMO_CONTENT_SHA256_CANONICO)
 
 
 class _FakeRepo:

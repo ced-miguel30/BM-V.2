@@ -50,13 +50,16 @@ from app.core.services import backup_service as bak
 from app.core.services import destructive_ops_service as dop
 from app.core.services import restore_backup_service as rst
 from app.core.services import settings_service as sett
-from app.core.storage.demo_files import DEMO_FILE, set_demo_file_override
+from app.core.storage.demo_files import (
+    DEMO_CONTENT_SHA256_CANONICO,
+    DEMO_FILE,
+    set_demo_file_override,
+    sha256_demo_file,
+)
 from app.core.storage.json_atomic import atomic_write_json
 from app.data.serializers import appdata_to_dict, dict_to_appdata
 from app.pages import settings as settings_page
 from app.pages import stock
-
-DEMO_HASH = "7EE7A94468E9B57766D803E4529C4F7E9DE2CB39A11701363AA5D58820385A30"
 
 
 def _dir_session(**kw) -> AuthSession:
@@ -489,8 +492,7 @@ class TestF16Regresion(unittest.TestCase):
 
     def test_44_45_isolation_hash(self) -> None:
         self.assertEqual(os.environ.get("BM_TEST_ISOLATION"), "1")
-        h = hashlib.sha256(DEMO_FILE.read_bytes()).hexdigest().upper()
-        self.assertEqual(h, DEMO_HASH)
+        self.assertEqual(sha256_demo_file(DEMO_FILE), DEMO_CONTENT_SHA256_CANONICO)
 
     def test_46_47_serializers_usuarios(self) -> None:
         payload = {

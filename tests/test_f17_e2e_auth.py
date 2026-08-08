@@ -56,7 +56,11 @@ from app.core.services import restore_backup_service as rst
 from app.core.services import settings_service as sett
 from app.core.services import stock_service
 from app.core.services.cesta_service import LineaCesta
-from app.core.storage.demo_files import DEMO_FILE
+from app.core.storage.demo_files import (
+    DEMO_CONTENT_SHA256_CANONICO,
+    DEMO_FILE,
+    sha256_demo_file,
+)
 from app.data.serializers import _usuario_from_dict, appdata_to_dict
 from app.pages import settings as settings_page
 from app.pages import stock as stock_page
@@ -69,8 +73,6 @@ from tests.f17_e2e_fixture import (
     build_appdata_minima,
     session_for,
 )
-
-DEMO_HASH = "7EE7A94468E9B57766D803E4529C4F7E9DE2CB39A11701363AA5D58820385A30"
 
 # Matriz explícita Recepción: todos los permisos = False (sin celdas implícitas)
 _RECEPCION_ESPERADA: dict[str, bool] = {p.value: False for p in Permiso}
@@ -477,8 +479,7 @@ class TestF17TerminalFlujos(unittest.TestCase):
     def test_30_31_32_aislamiento_demo_limpieza(self) -> None:
         self.assertEqual(os.environ.get("BM_TEST_ISOLATION"), "1")
         self.assertTrue(rst.destino_es_demo_protegido(DEMO_FILE))
-        h = hashlib.sha256(DEMO_FILE.read_bytes()).hexdigest().upper()
-        self.assertEqual(h, DEMO_HASH)
+        self.assertEqual(sha256_demo_file(DEMO_FILE), DEMO_CONTENT_SHA256_CANONICO)
         # Residuos de esta suite: solo bajo TemporaryDirectory
         self.assertTrue(str(self.env.root).startswith(os.environ.get("TEMP", str(self.env.root))[:3]) or True)
         leftovers = list(self.env.root.rglob("*.tmp.*"))

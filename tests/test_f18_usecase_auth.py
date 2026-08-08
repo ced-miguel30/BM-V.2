@@ -46,11 +46,14 @@ from app.core.services import destructive_ops_service as dop
 from app.core.services import restore_backup_service as rst
 from app.core.services import stock_service
 from app.core.services.cesta_service import LineaCesta
-from app.core.storage.demo_files import DEMO_FILE, set_demo_file_override
+from app.core.storage.demo_files import (
+    DEMO_CONTENT_SHA256_CANONICO,
+    DEMO_FILE,
+    set_demo_file_override,
+    sha256_demo_file,
+)
 from app.core.storage.json_atomic import atomic_write_json
 from app.data.serializers import appdata_to_dict, dict_to_appdata
-
-DEMO_HASH = "7EE7A94468E9B57766D803E4529C4F7E9DE2CB39A11701363AA5D58820385A30"
 
 
 def _sess(role: str, *, actor_type: str = "usuario", actor_id: str = "u1") -> AuthSession:
@@ -288,8 +291,7 @@ class TestF18UseCaseAuth(unittest.TestCase):
 
     def test_21_22_23_demo_hash_limpieza(self) -> None:
         self.assertEqual(os.environ.get("BM_TEST_ISOLATION"), "1")
-        h = hashlib.sha256(DEMO_FILE.read_bytes()).hexdigest().upper()
-        self.assertEqual(h, DEMO_HASH)
+        self.assertEqual(sha256_demo_file(DEMO_FILE), DEMO_CONTENT_SHA256_CANONICO)
 
 
 class TestF18ExportBackupGate(unittest.TestCase):

@@ -1,6 +1,6 @@
 {
   "meta": {
-    "usuario_actual_id": "u03",
+    "usuario_actual_id": "u01",
     "origen": "demo"
   },
   "productos": [
@@ -49,9 +49,7 @@
       "hora_anulacion": null,
       "motivo_anulacion": "",
       "referencia_anulacion": "",
-      "anulado_por": "",
-      "documento_origen_id": null,
-      "linea_documento_origen_id": null
+      "anulado_por": ""
     },
     {
       "id": "l2",
@@ -68,9 +66,7 @@
       "hora_anulacion": null,
       "motivo_anulacion": "",
       "referencia_anulacion": "",
-      "anulado_por": "",
-      "documento_origen_id": null,
-      "linea_documento_origen_id": null
+      "anulado_por": ""
     }
   ],
   "desayunos": [
@@ -263,14 +259,13 @@
   "relaciones_producto_proveedor": [],
   "archivos_documentales": [],
   "documentos": [],
-  "conciliaciones_documento": [],
   "alertas": [
     {
       "id": "a01",
       "tipo": "desayuno_no_registrado",
       "titulo": "Desayuno de hoy no registrado",
       "mensaje": "Aún no se ha registrado el consumo del desayuno de hoy.",
-      "fecha": "2026-08-06",
+      "fecha": "2026-08-04",
       "activa": true,
       "producto_id": null,
       "estado": "pendiente",
@@ -282,60 +277,12 @@
     {
       "id": "u01",
       "nombre": "Ana",
-      "rol": "rolusuario.administracion",
-      "activo": true,
-      "login": "",
-      "password_hash": "",
-      "creado_en": null,
-      "modificado_en": null
-    },
-    {
-      "id": "u02",
-      "nombre": "al",
-      "rol": "rolusuario.administracion",
-      "activo": true,
-      "login": "ad",
-      "password_hash": "pbkdf2_sha256$200000$S5oDFMBdt8QJjCxKzs9VTw==$K79JpedXWOgTN23qvkBrOrj6zn8ege4EQPv+AIKYe2w=",
-      "creado_en": "2026-08-06T12:36:10",
-      "modificado_en": "2026-08-06T12:36:10"
-    },
-    {
-      "id": "u03",
-      "nombre": "own",
-      "rol": "rolusuario.direccion",
-      "activo": true,
-      "login": "own",
-      "password_hash": "pbkdf2_sha256$200000$SiacH8Esc0F7KiCZYjCwkA==$8FaA2TGddW4lX8VSQLhGSuaLK7HuuBf5bJzYCvEhuoY=",
-      "creado_en": "2026-08-06T17:58:34",
-      "modificado_en": "2026-08-06T17:58:34"
+      "rol": "Admin",
+      "activo": true
     }
   ],
   "configuracion": null,
   "actividades": [
-    {
-      "id": "act20",
-      "fecha_hora": "2026-08-06T17:58:34.220080",
-      "usuario": "al",
-      "accion": "Crear usuario",
-      "detalle": "Usuario «own» (direccion) creado",
-      "modulo": null,
-      "resultado": null,
-      "tipo_exportacion": null,
-      "periodo_afectado": null,
-      "archivo_generado": null
-    },
-    {
-      "id": "act19",
-      "fecha_hora": "2026-08-06T12:36:11.038991",
-      "usuario": "Ana",
-      "accion": "Crear usuario",
-      "detalle": "Usuario «al» (direccion) creado",
-      "modulo": null,
-      "resultado": null,
-      "tipo_exportacion": null,
-      "periodo_afectado": null,
-      "archivo_generado": null
-    },
     {
       "id": "act18",
       "fecha_hora": "2026-08-04T10:17:41.627478",

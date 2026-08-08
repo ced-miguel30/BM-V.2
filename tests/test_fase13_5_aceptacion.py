@@ -6,7 +6,6 @@ No escribe el demo canónico.
 
 from __future__ import annotations
 
-import hashlib
 import os
 import sys
 import tempfile
@@ -37,20 +36,13 @@ from app.core.services.persistencia_appdata import (
     transactional_update_appdata,
 )
 from app.core.storage.archivo_storage import LocalArchivoStorage
-from app.core.storage.demo_files import DEMO_FILE
+from app.core.storage.demo_files import (
+    DEMO_CONTENT_SHA256_CANONICO,
+    DEMO_FILE,
+    sha256_demo_file,
+)
 from app.data.serializers import appdata_to_dict
 from app.data.mock_data import crear_datos_mock
-
-
-DEMO_HASH_CANONICO = (
-    "7EE7A94468E9B57766D803E4529C4F7E9DE2CB39A11701363AA5D58820385A30"
-)
-
-
-def _sha256(path: Path) -> str:
-    h = hashlib.sha256()
-    h.update(path.read_bytes())
-    return h.hexdigest().upper()
 
 
 def _seed_masters(data: AppData) -> None:
@@ -65,7 +57,7 @@ def _seed_masters(data: AppData) -> None:
 class TestB5Aceptacion(unittest.TestCase):
     def test_01_demo_protegido_hash(self) -> None:
         self.assertTrue(DEMO_FILE.exists())
-        self.assertEqual(_sha256(DEMO_FILE), DEMO_HASH_CANONICO)
+        self.assertEqual(sha256_demo_file(DEMO_FILE), DEMO_CONTENT_SHA256_CANONICO)
 
     def test_02_e2e_albaran_adjunto_idempotencia_anulacion(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -357,7 +349,7 @@ class TestB5Aceptacion(unittest.TestCase):
             r = migrar_json_path(path, dry_run=True)
             self.assertTrue(getattr(r, "ok", True) or r is not None)
             # hash demo intacto
-            self.assertEqual(_sha256(DEMO_FILE), DEMO_HASH_CANONICO)
+            self.assertEqual(sha256_demo_file(DEMO_FILE), DEMO_CONTENT_SHA256_CANONICO)
 
     def test_06_devolucion_y_rectificativa(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
