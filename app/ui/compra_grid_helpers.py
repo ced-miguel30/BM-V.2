@@ -214,36 +214,48 @@ def sincronizar_precios_fila(
     edited = campo_editado
     if edited is None and prev is not None:
         try:
-            if celda_numero(prev.get("precio_total")) != total:
+            if abs(celda_numero(prev.get("precio_total")) - total) > 1e-9:
                 edited = "precio_total"
-            elif celda_numero(prev.get("precio_unitario")) != unit:
+            elif abs(celda_numero(prev.get("precio_unitario")) - unit) > 1e-9:
                 edited = "precio_unitario"
-            elif celda_numero(prev.get("cantidad")) != qty:
+            elif abs(celda_numero(prev.get("cantidad")) - qty) > 1e-9:
                 edited = "cantidad"
         except Exception:  # noqa: BLE001
             edited = None
 
-    if qty > 0 and edited == "precio_total":
-        out["precio_unitario"] = float(money_round(as_decimal(total) / as_decimal(qty)))
-        out["precio_total"] = float(money_round(as_decimal(total)))
-    elif qty > 0 and edited in ("precio_unitario", "cantidad"):
-        out["precio_total"] = float(
-            money_round(as_decimal(celda_numero(out.get("precio_unitario"))) * as_decimal(qty))
+    if qty <= 0:
+        # No dividir (evita NaN/Infinity) y no pisar unitario/total al vaciar cantidad.
+        return out
+
+    if edited == "precio_total":
+        # Vaciar/cero el total no debe destruir el unitario (edición a medias).
+        if total <= 0:
+            return out
+        out["precio_unitario"] = float(
+            money_round(as_decimal(total) / as_decimal(qty))
         )
-    elif qty > 0 and edited is None:
+        out["precio_total"] = float(money_round(as_decimal(total)))
+    elif edited == "precio_unitario":
+        if unit <= 0:
+            return out
+        out["precio_total"] = float(
+            money_round(as_decimal(unit) * as_decimal(qty))
+        )
+    elif edited == "cantidad":
+        # Al cambiar cantidad se conserva el unitario y se recalcula el total.
+        out["precio_total"] = float(
+            money_round(as_decimal(unit) * as_decimal(qty))
+        )
+    elif edited is None:
         # Sin campo editado: solo corregir inconsistencias (no reescribir siempre)
         if total > 0 and unit == 0:
             out["precio_unitario"] = float(
                 money_round(as_decimal(total) / as_decimal(qty))
             )
         elif unit > 0:
-            esperado = float(
-                money_round(as_decimal(unit) * as_decimal(qty))
-            )
+            esperado = float(money_round(as_decimal(unit) * as_decimal(qty)))
             if abs(esperado - total) > 1e-9:
                 out["precio_total"] = esperado
-    elif qty <= 0:
-        out["precio_total"] = 0.0
 
     return out
 

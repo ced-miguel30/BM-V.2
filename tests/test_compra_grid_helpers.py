@@ -72,12 +72,14 @@ class TestBidirPrecios(unittest.TestCase):
         out = grid.sincronizar_precios_fila(row, prev=prev)
         self.assertAlmostEqual(out["precio_total"], 15.0, places=2)
 
-    def test_qty_cero_total_cero(self) -> None:
+    def test_qty_cero_no_destruye_precios(self) -> None:
         row = grid.empty_row()
         row["cantidad"] = 0
         row["precio_unitario"] = 9
+        row["precio_total"] = 99
         out = grid.sincronizar_precios_fila(row, campo_editado="precio_unitario")
-        self.assertEqual(out["precio_total"], 0.0)
+        self.assertEqual(out["precio_unitario"], 9)
+        self.assertEqual(out["precio_total"], 99)
 
 
 class TestTotalesGrid(unittest.TestCase):
@@ -244,6 +246,159 @@ class TestMultiAlbaran(unittest.TestCase):
         self.assertIn("aln2", ids)
 
 
+class TestBidirValidacionCierre(unittest.TestCase):
+    """Casos obligatorios del recálculo bidireccional (helpers puros)."""
+
+    def _sync(self, row, *, campo=None, prev=None):
+        return grid.sincronizar_precios_fila(
+            row, campo_editado=campo, prev=prev
+        )
+
+    def test_01_unitario_a_total(self) -> None:
+        row = {**grid.empty_row(), "cantidad": 2, "precio_unitario": 5, "precio_total": 0}
+        out = self._sync(row, campo="precio_unitario")
+        self.assertEqual(out["precio_total"], 10.0)
+
+    def test_02_total_a_unitario(self) -> None:
+        row = {**grid.empty_row(), "cantidad": 2, "precio_total": 14, "precio_unitario": 0}
+        out = self._sync(row, campo="precio_total")
+        self.assertEqual(out["precio_unitario"], 7.0)
+
+    def test_03_unitario_coma_decimal(self) -> None:
+        row = {
+            **grid.empty_row(),
+            "cantidad": 3,
+            "precio_unitario": "4,50",
+            "precio_total": 0,
+        }
+        out = self._sync(row, campo="precio_unitario")
+        self.assertEqual(out["precio_total"], 13.5)
+
+    def test_04_total_precision_money_round(self) -> None:
+        row = {**grid.empty_row(), "cantidad": 3, "precio_total": 10, "precio_unitario": 0}
+        out = self._sync(row, campo="precio_total")
+        self.assertEqual(out["precio_unitario"], 3.33)
+        self.assertIsInstance(
+            __import__("decimal").Decimal(str(out["precio_unitario"])),
+            Decimal,
+        )
+
+    def test_05_06_cantidad_cero_o_vacia_no_divide(self) -> None:
+        for qty in (0, "", None):
+            row = {
+                **grid.empty_row(),
+                "cantidad": qty,
+                "precio_unitario": 9,
+                "precio_total": 99,
+            }
+            out = self._sync(row, campo="precio_unitario")
+            self.assertEqual(out["precio_unitario"], 9)
+            self.assertEqual(out["precio_total"], 99)
+            self.assertFalse(
+                __import__("math").isinf(out["precio_unitario"])
+                or __import__("math").isnan(out["precio_unitario"])
+            )
+
+    def test_07_08_vaciar_precio_no_destruye_pareja(self) -> None:
+        row = {**grid.empty_row(), "cantidad": 2, "precio_unitario": "", "precio_total": 10}
+        out = self._sync(row, campo="precio_unitario")
+        self.assertEqual(out["precio_total"], 10)
+        row2 = {**grid.empty_row(), "cantidad": 2, "precio_unitario": 5, "precio_total": ""}
+        out2 = self._sync(row2, campo="precio_total")
+        self.assertEqual(out2["precio_unitario"], 5)
+
+    def test_10_11_12_edicion_repetida_y_alternancia(self) -> None:
+        row = {**grid.empty_row(), "cantidad": 2, "precio_unitario": 5, "precio_total": 0}
+        row = self._sync(row, campo="precio_unitario")
+        self.assertEqual(row["precio_total"], 10.0)
+        row = self._sync(
+            {**row, "precio_unitario": 6},
+            prev=row,
+        )
+        self.assertEqual(row["precio_total"], 12.0)
+        prev = dict(row)
+        row = self._sync({**row, "precio_total": 14}, prev=prev)
+        self.assertEqual(row["precio_unitario"], 7.0)
+        prev = dict(row)
+        row = self._sync({**row, "precio_unitario": 8}, prev=prev)
+        self.assertEqual(row["precio_total"], 16.0)
+        # Ausencia de bucle: re-sync estable
+        for _ in range(5):
+            nxt = self._sync(row, prev=row)
+            self.assertFalse(grid.filas_precios_distintas([row], [nxt]))
+            row = nxt
+
+    def test_13_una_linea_no_altera_otra(self) -> None:
+        a = {
+            **grid.empty_row(),
+            grid.META_KEY: "a",
+            "cantidad": 2,
+            "precio_unitario": 5,
+            "precio_total": 10,
+        }
+        b = {
+            **grid.empty_row(),
+            grid.META_KEY: "b",
+            "cantidad": 1,
+            "precio_unitario": 3,
+            "precio_total": 3,
+        }
+        prev = [dict(a), dict(b)]
+        a2 = dict(a)
+        a2["precio_unitario"] = 8
+        out = grid.sincronizar_precios_filas([a2, dict(b)], prev)
+        self.assertEqual(out[0]["precio_total"], 16.0)
+        self.assertEqual(out[1]["precio_unitario"], 3)
+        self.assertEqual(out[1]["precio_total"], 3)
+
+    def test_14_cambio_cantidad_conserva_unitario(self) -> None:
+        prev = {
+            **grid.empty_row(),
+            "cantidad": 2,
+            "precio_unitario": 7,
+            "precio_total": 14,
+        }
+        row = dict(prev)
+        row["cantidad"] = 4
+        out = self._sync(row, prev=prev)
+        self.assertEqual(out["precio_unitario"], 7)
+        self.assertEqual(out["precio_total"], 28.0)
+
+    def test_15_impuestos_totales_documento(self) -> None:
+        rows = [
+            {
+                **grid.empty_row(),
+                "producto": "Pan",
+                grid.META_PROD_ID: "p1",
+                "cantidad": 2,
+                "precio_unitario": 5,
+                "precio_total": 10,
+                "igic_pct": 7,
+            },
+            {
+                **grid.empty_row(),
+                "producto": "Aceite",
+                grid.META_PROD_ID: "p2",
+                "cantidad": 2,
+                "precio_unitario": 7,
+                "precio_total": 14,
+                "igic_pct": 7,
+                "dto_eur": 0,
+            },
+        ]
+        # Sync unitario en línea 0 no debe cambiar impuestos de forma incorrecta
+        prev = [dict(rows[0]), dict(rows[1])]
+        rows[0] = self._sync(
+            {**rows[0], "precio_unitario": 5}, campo="precio_unitario"
+        )
+        res = grid.calcular_totales_grid(rows)
+        assert res is not None
+        self.assertEqual(res.base_imponible, Decimal("24.00"))
+        self.assertEqual(res.impuesto_total, Decimal("1.68"))
+        self.assertEqual(res.total_documento, Decimal("25.68"))
+        _ = prev  # isolation of lines already covered in test_13
+
+
 class TestGuardarMultiLinea(unittest.TestCase):
     def setUp(self) -> None:
         clear_test_session()
@@ -281,6 +436,75 @@ class TestGuardarMultiLinea(unittest.TestCase):
         self.assertEqual(len(r.documento.lineas), 2)
         self.assertIsNotNone(r.documento.base_imponible)
         self.assertEqual(r.documento.base_imponible, Decimal("16.00"))
+
+    def test_borrador_y_confirmacion_conservan_unitario_sync(self) -> None:
+        """Valores tras sync unitario→total se persisten en borrador y confirmación."""
+        import tempfile
+
+        from app.core.services.persistencia_appdata import (
+            read_appdata_json,
+            transactional_update_appdata,
+        )
+
+        row = {
+            **grid.empty_row(),
+            grid.META_PROD_ID: "p1",
+            "cantidad": 2,
+            "precio_unitario": 5,
+            "precio_total": 0,
+            "unidad": "Kg",
+            "igic_pct": 7,
+        }
+        synced = grid.sincronizar_precios_fila(row, campo_editado="precio_unitario")
+        self.assertEqual(synced["precio_total"], 10.0)
+        mapa = {
+            f"{p.nombre} [{getattr(p, 'codigo', None) or '—'}] ({p.id})": p
+            for p in self.data.productos
+        }
+        synced["producto"] = next(
+            lbl for lbl, p in mapa.items() if p.id == "p1"
+        )
+        payload = grid.filas_a_payload_lineas([synced], mapa_prod_por_label=mapa)
+        self.assertEqual(len(payload), 1)
+        self.assertEqual(Decimal(payload[0]["precio_unitario_compra"]), Decimal("5"))
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "datos_hotel.json"
+
+            def seed(data: AppData) -> AppData:
+                data.productos = list(self.data.productos)
+                data.proveedores = list(self.data.proveedores)
+                r = compra.guardar_borrador(
+                    data, tipo="albaran", proveedor_id="prov1", lineas=payload
+                )
+                self.assertTrue(r.ok, r.mensaje)
+                self.assertEqual(
+                    Decimal(str(r.documento.lineas[0].precio_unitario_compra)),
+                    Decimal("5"),
+                )
+                self.assertEqual(r.documento.base_imponible, Decimal("10.00"))
+                return data
+
+            transactional_update_appdata(path, seed)
+            data = read_appdata_json(path)
+            doc = data.documentos[0]
+            h = compra.construir_hash_documento(doc)
+            token = str(uuid.uuid4())
+            c = compra.confirmar_compra(
+                doc.id,
+                confirmacion_id=token,
+                contenido_hash=h,
+                json_path=path,
+            )
+            self.assertTrue(c.ok, c.mensaje)
+            after = read_appdata_json(path)
+            conf = after.documentos[0]
+            self.assertEqual(conf.estado.value, "confirmado")
+            self.assertEqual(
+                Decimal(str(conf.lineas[0].precio_unitario_compra)),
+                Decimal("5"),
+            )
+            self.assertEqual(conf.base_imponible, Decimal("10.00"))
 
 
 class TestFormatoEs(unittest.TestCase):
