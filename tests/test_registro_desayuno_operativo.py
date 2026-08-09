@@ -218,10 +218,15 @@ class TestRegistroDesayunoOperativo(unittest.TestCase):
         r = desayuno_service.anadir_a_cesta("pc", 0.0)
         self.assertFalse(r.ok)
 
-    def test_12_cantidad_negativa_como_omision_permitida_producto(self) -> None:
-        # Motor histórico: negativo = omisión/extra; no es stock sale.
+    def test_12_cantidad_negativa_rechazada_producto(self) -> None:
         r = desayuno_service.anadir_a_cesta("pc", -1.0)
-        self.assertTrue(r.ok, r.mensaje)
+        self.assertFalse(r.ok)
+        self.assertIn("negativ", r.mensaje.lower())
+
+    def test_12b_nan_infinito_rechazados(self) -> None:
+        self.assertFalse(desayuno_service.anadir_a_cesta("pc", float("nan")).ok)
+        self.assertFalse(desayuno_service.anadir_a_cesta("pc", float("inf")).ok)
+        self.assertFalse(desayuno_service.anadir_receta_a_cesta("r1", float("nan")).ok)
 
     def test_13_duplicados_producto_fusionan(self) -> None:
         self.assertTrue(desayuno_service.anadir_a_cesta("pc", 2.0).ok)

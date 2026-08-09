@@ -21,6 +21,7 @@ from app.core.services.unidad_service import (
     paso_unidad,
 )
 from app.core.storage.session_store import get_data
+from app.core.services.registro_estado_service import estado_registro_dia
 from app.ui.cesta_render import boton_exportar_semana, render_cesta_servicio
 from app.ui.components import aviso_servicios_pendientes, empty_state, page_header, section_divider
 from app.ui.search import render_buscador_producto
@@ -28,7 +29,7 @@ from app.ui.search import render_buscador_producto
 PASO_CANTIDAD = 1.0  # Compat; inputs usan paso_unidad().
 
 _MODO_RECETAS = "Recetas / elaboraciones"
-_MODO_PRODUCTOS = "Productos directos"
+_MODO_PRODUCTOS = "Productos / otros consumos"
 _MODO_BEBIDAS = "Bebidas"
 
 
@@ -122,6 +123,9 @@ def _render_detalle(servicio, registro) -> None:
     reg = registros[0]
     hora_txt = reg.hora.strftime("%H:%M") if reg.hora else "—"
     st.caption(f"Nº {reg.identificador} · Hora {hora_txt} · {reg.usuario or '—'}")
+    obs = getattr(registro, "observaciones", "") or ""
+    if obs:
+        st.caption(f"Observaciones: {obs}")
     idx_tipo = reg.columnas.index("Tipo") if "Tipo" in reg.columnas else None
     idx_detalle = reg.columnas.index("Detalle") if "Detalle" in reg.columnas else None
     idx_coste = reg.columnas.index("Coste") if "Coste" in reg.columnas else None
@@ -251,8 +255,22 @@ def render_pagina_registro_servicio(
         st.markdown("**Responsable**")
         st.write(_responsable_actual())
     with col_h4:
-        st.markdown("**Estado**")
+        st.markdown("**Estado cesta**")
         st.write(estado_reg)
+
+    dia = estado_registro_dia(
+        get_data(),
+        tipo_servicio=getattr(servicio, "tipo_servicio", ""),
+        fecha=fecha,
+    )
+    if dia.registros_activos > 0:
+        st.info(
+            f"{dia.etiqueta}. Puede crear otro registro si el servicio lo requiere "
+            "(por turnos); la confirmación no duplica el mismo contenido gracias "
+            "al token de idempotencia."
+        )
+    else:
+        st.caption(dia.etiqueta)
 
     num_huespedes = 0
     if mostrar_huespedes:
@@ -289,12 +307,33 @@ def render_pagina_registro_servicio(
                 servicio_disponible=servicio.tipo_servicio, solo_activas=True,
             )
             if recetas:
+                # Selección rápida: primeras recetas activas como botones compactos
+                rapidas = recetas[:8]
+                st.caption("Selección rápida")
+                cols_r = st.columns(min(4, len(rapidas)))
                 mapa_recetas = {
                     f"{r.nombre} · {_etiqueta_categoria_receta(r)}": r.id for r in recetas
                 }
+                for i, r in enumerate(rapidas):
+                    etiqueta_opt = f"{r.nombre} · {_etiqueta_categoria_receta(r)}"
+                    with cols_r[i % len(cols_r)]:
+                        if st.button(
+                            r.nombre,
+                            key=f"{key_prefix}_rapida_{r.id}",
+                            use_container_width=True,
+                            help=(
+                                f"{_etiqueta_categoria_receta(r)} · "
+                                f"rend. {r.porciones_estandar:g}"
+                                if r.porciones_estandar
+                                else _etiqueta_categoria_receta(r)
+                            ),
+                        ):
+                            st.session_state[f"{key_prefix}_sel_receta"] = etiqueta_opt
+                            st.rerun()
+                opciones = list(mapa_recetas.keys())
                 receta_nombre = st.selectbox(
                     "Buscar receta",
-                    list(mapa_recetas.keys()),
+                    opciones,
                     key=f"{key_prefix}_sel_receta",
                 )
                 receta_id = mapa_recetas[receta_nombre]
@@ -397,17 +436,24 @@ def render_pagina_registro_servicio(
 
         else:
             es_bebida_modo = modo == _MODO_BEBIDAS
-            tipo_lbl = "Bebida" if es_bebida_modo else "Producto directo"
+            tipo_lbl = "Bebida" if es_bebida_modo else "Producto / otro consumo"
             st.markdown(
                 f'##### {modo} '
                 f'<span class="bm-cesta-tipo">{tipo_lbl}</span>',
                 unsafe_allow_html=True,
             )
-            if es_bebida_modo and getattr(servicio, "tipo_servicio", "") == "desayuno":
+            if not es_bebida_modo:
                 st.caption(
-                    "Estas bebidas pertenecen al servicio Desayuno "
+                    "Consumo directo de inventario sin receta "
+                    "(no usar merma para consumo normal)."
+                )
+            if es_bebida_modo and getattr(servicio, "tipo_servicio", "") != "bebidas":
+                st.caption(
+                    f"Estas bebidas pertenecen al servicio {etiqueta} "
                     "(no se registran como servicio independiente Bebidas)."
                 )
+            elif es_bebida_modo:
+                st.caption("Servicio independiente Bebidas.")
             todos_productos = [
                 p for p in servicio.productos_catalogo("")
                 if bool(p.get("es_bebida")) == es_bebida_modo
@@ -493,6 +539,12 @@ def render_pagina_registro_servicio(
                 for aviso in _avisos_coste_incompleto(plan_stock):
                     st.warning(aviso)
 
+        observaciones = st.text_area(
+            "Observaciones (opcional)",
+            key=f"{key_prefix}_observaciones",
+            height=68,
+            placeholder="Notas del servicio…",
+        )
         confirma = st.checkbox(
             f"Confirmo el registro de {etiqueta.lower()}",
             key=f"{key_prefix}_confirma_reg",
@@ -511,12 +563,16 @@ def render_pagina_registro_servicio(
         ):
             token = _token_idempotencia(key_prefix)
             resultado = servicio.registrar(
-                fecha, num_huespedes, clave_idempotencia=token,
+                fecha,
+                num_huespedes,
+                clave_idempotencia=token,
+                observaciones=observaciones or "",
             )
             if resultado.ok:
                 st.session_state.pop(stock_key, None)
                 _rotar_token_idempotencia(key_prefix)
                 st.session_state[f"{key_prefix}_confirma_reg"] = False
+                st.session_state[f"{key_prefix}_observaciones"] = ""
                 st.success(resultado.mensaje)
                 st.rerun()
             elif resultado.codigo == "STOCK_INSUFICIENTE":
