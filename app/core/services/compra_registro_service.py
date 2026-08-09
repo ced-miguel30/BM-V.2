@@ -221,18 +221,13 @@ def _preparar_lineas_compra(data: AppData, doc: Documento) -> None:
         )
         factor_cat = None
         if doc.proveedor_id:
-            rel = next(
-                (
-                    r
-                    for r in getattr(data, "relaciones_producto_proveedor", []) or []
-                    if r.producto_id == ln.producto_id
-                    and r.proveedor_id == doc.proveedor_id
-                    and r.activo
-                ),
-                None,
+            from app.core.services.conversion_compra import obtener_factor_catalogo
+
+            factor_cat = obtener_factor_catalogo(
+                data,
+                producto_id=ln.producto_id,
+                proveedor_id=doc.proveedor_id,
             )
-            if rel is not None:
-                factor_cat = getattr(rel, "factor_compra", None)
         try:
             factor = resolver_factor_conversion(
                 unidad_compra=ln.unidad_compra or unidad_inv,

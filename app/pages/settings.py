@@ -1314,31 +1314,54 @@ def _render_crud_impuestos(prv) -> None:
 
 
 def _render_crud_vinculos(prv, repo) -> None:
+    from app.core.services.conversion_compra import texto_equivalencia
+    from app.core.services.proveedor_service import _unidad_base_producto
+
     st.markdown("##### Vínculos producto – proveedor")
+    st.caption(
+        "Configure la unidad de compra del proveedor y el factor hacia la unidad "
+        "base del producto. Ejemplo: 1 caja = 6 L."
+    )
     data = repo.data
     rels = prv.listar_relaciones(solo_activas=False)
     if rels:
-        st.dataframe(
-            {
-                "Producto": [
-                    next((p.nombre for p in data.productos if p.id == r.producto_id), r.producto_id)
-                    for r in rels
-                ],
-                "Proveedor (snapshot)": [
-                    r.proveedor_nombre_snapshot or r.proveedor_id for r in rels
-                ],
-                "Código": [r.codigo_proveedor or "—" for r in rels],
-                "Preferente": ["Sí" if r.preferente else "No" for r in rels],
-                "Estado": ["Activo" if r.activo else "Inactivo" for r in rels],
-            },
-            use_container_width=True,
-            hide_index=True,
-        )
+        filas_tbl = []
+        for r in rels:
+            prod = next((p for p in data.productos if p.id == r.producto_id), None)
+            ub = _unidad_base_producto(prod) if prod else "—"
+            uc = (r.unidad_compra or ub) if prod else (r.unidad_compra or "—")
+            eq = texto_equivalencia(uc, r.factor_compra, ub) if prod else "—"
+            if not eq and prod and (r.unidad_compra is None or uc == ub):
+                eq = texto_equivalencia(ub, 1, ub)
+            precio = (
+                format(r.ultimo_precio_unitario_compra, "f")
+                if r.ultimo_precio_unitario_compra is not None
+                else "—"
+            )
+            filas_tbl.append(
+                {
+                    "Producto": prod.nombre if prod else r.producto_id,
+                    "Proveedor (snapshot)": r.proveedor_nombre_snapshot or r.proveedor_id,
+                    "Ud compra": r.unidad_compra or "—",
+                    "Ud base": ub,
+                    "Factor": (
+                        format(r.factor_compra.normalize(), "f").rstrip("0").rstrip(".")
+                        if r.factor_compra is not None
+                        else ("1" if (r.unidad_compra is None or uc == ub) else "—")
+                    ),
+                    "Equivalencia": eq or "—",
+                    "P. ref.": precio,
+                    "Código": r.codigo_proveedor or "—",
+                    "Preferente": "Sí" if r.preferente else "No",
+                    "Estado": "Activo" if r.activo else "Inactivo",
+                }
+            )
+        st.dataframe(filas_tbl, use_container_width=True, hide_index=True)
     else:
         empty_state("Sin vínculos todavía.", icon="🔗")
 
     section_divider()
-    prods = {p.nombre: p.id for p in data.productos}
+    prods = {p.nombre: p for p in data.productos}
     provs = {
         (p.nombre_comercial or p.nombre_fiscal): p.id
         for p in prv.listar_proveedores(solo_activos=True)
@@ -1346,17 +1369,55 @@ def _render_crud_vinculos(prv, repo) -> None:
     if not prods or not provs:
         st.warning("Se necesitan productos y proveedores activos para vincular.")
         return
+
+    unidades_sugeridas = [
+        "Caja", "Paquete", "Botella", "Bandeja", "Saco", "Ud", "Kg", "L", "Gr",
+    ]
     with st.form("form_vincular_pp", clear_on_submit=True):
         pl = st.selectbox("Producto", list(prods.keys()))
+        prod_sel = prods[pl]
+        ub = _unidad_base_producto(prod_sel)
+        st.caption(f"Unidad base del producto: **{ub}**")
         vl = st.selectbox("Proveedor", list(provs.keys()))
         codigo = st.text_input("Código proveedor")
+        unidad_compra = st.text_input(
+            "Unidad de compra",
+            value=ub,
+            help=(
+                "Presentación del proveedor (Caja, Paquete, Botella…). "
+                f"Sugerencias: {', '.join(unidades_sugeridas)}."
+            ),
+        )
+        factor_txt = st.text_input(
+            "Factor de conversión a unidad base",
+            value="1",
+            help=(
+                f"Cuántas {ub} equivalen a 1 unidad de compra. "
+                f"Ej.: 1 caja = 6 {ub} → escriba 6."
+            ),
+        )
+        precio_ref = st.text_input("Precio de referencia (opcional)", value="")
         pref = st.checkbox("Preferente")
+        uc_show = (unidad_compra or "").strip() or ub
+        try:
+            from app.core.services.conversion_compra import parse_factor_conversion
+            f_prev = parse_factor_conversion(factor_txt)
+        except ValueError:
+            f_prev = None
+        eq_prev = texto_equivalencia(
+            uc_show, f_prev if f_prev is not None else factor_txt, ub
+        )
+        if eq_prev:
+            st.info(eq_prev)
         if st.form_submit_button("Vincular", type="primary"):
             r = prv.vincular_producto_proveedor(
-                prods[pl],
+                prod_sel.id,
                 provs[vl],
                 codigo_proveedor=codigo or None,
                 preferente=pref,
+                unidad_compra=unidad_compra or None,
+                factor_compra=factor_txt if factor_txt.strip() else None,
+                ultimo_precio_unitario_compra=precio_ref if precio_ref.strip() else None,
             )
             if r.ok:
                 st.success(r.mensaje)
@@ -1367,21 +1428,83 @@ def _render_crud_vinculos(prv, repo) -> None:
     activas = [r for r in rels if r.activo]
     if activas:
         section_divider()
+        st.markdown("##### Editar vínculo activo")
         opts = {
-            f"{r.id} · {r.proveedor_nombre_snapshot}": r.id for r in activas
+            (
+                f"{r.id} · {r.proveedor_nombre_snapshot} · "
+                f"{next((p.nombre for p in data.productos if p.id == r.producto_id), r.producto_id)}"
+            ): r
+            for r in activas
         }
         sel = st.selectbox("Vínculo activo", list(opts.keys()), key="settings_ppv_sel")
-        rid = opts[sel]
+        rel = opts[sel]
+        prod_e = next((p for p in data.productos if p.id == rel.producto_id), None)
+        ub_e = _unidad_base_producto(prod_e) if prod_e else "Ud"
+        with st.form("form_editar_ppv"):
+            st.caption(f"Unidad base: **{ub_e}**")
+            codigo_e = st.text_input(
+                "Código proveedor",
+                value=rel.codigo_proveedor or "",
+                key="settings_ppv_codigo",
+            )
+            unidad_e = st.text_input(
+                "Unidad de compra",
+                value=rel.unidad_compra or ub_e,
+                key="settings_ppv_uc",
+            )
+            factor_e = st.text_input(
+                "Factor de conversión",
+                value=(
+                    format(rel.factor_compra.normalize(), "f").rstrip("0").rstrip(".")
+                    if rel.factor_compra is not None
+                    else "1"
+                ),
+                key="settings_ppv_factor",
+            )
+            precio_e = st.text_input(
+                "Precio de referencia",
+                value=(
+                    format(rel.ultimo_precio_unitario_compra, "f")
+                    if rel.ultimo_precio_unitario_compra is not None
+                    else ""
+                ),
+                key="settings_ppv_precio",
+            )
+            pref_e = st.checkbox(
+                "Preferente", value=rel.preferente, key="settings_ppv_pref_chk"
+            )
+            eq_e = texto_equivalencia(
+                (unidad_e or "").strip() or ub_e,
+                factor_e,
+                ub_e,
+            )
+            if eq_e:
+                st.info(eq_e)
+            if st.form_submit_button("Guardar cambios", type="primary"):
+                r = prv.actualizar_relacion_producto_proveedor(
+                    rel.id,
+                    codigo_proveedor=codigo_e,
+                    preferente=pref_e,
+                    unidad_compra=unidad_e,
+                    factor_compra=factor_e if factor_e.strip() else None,
+                    ultimo_precio_unitario_compra=precio_e,
+                )
+                if r.ok:
+                    st.success(r.mensaje)
+                    st.rerun()
+                else:
+                    st.error(r.mensaje)
+
         c1, c2 = st.columns(2)
         with c1:
             if st.button("Marcar preferente", key="settings_ppv_pref"):
-                r = prv.marcar_preferente(rid)
+                r = prv.marcar_preferente(rel.id)
                 st.success(r.mensaje) if r.ok else st.error(r.mensaje)
                 if r.ok:
                     st.rerun()
         with c2:
             if st.button("Desactivar vínculo", key="settings_ppv_off"):
-                r = prv.desactivar_relacion(rid)
+                r = prv.desactivar_relacion(rel.id)
                 st.success(r.mensaje) if r.ok else st.error(r.mensaje)
                 if r.ok:
                     st.rerun()

@@ -59,6 +59,9 @@ class RelacionProductoProveedor:
     nif_cif_snapshot: str | None = None
     activo: bool = True
     # Plan v3 — aditivos comerciales
+    # unidad_compra: presentación del proveedor (Caja, Paquete…); factor_compra:
+    # «1 unidad_compra = factor_compra × unidad base del producto».
+    unidad_compra: str | None = None
     factor_compra: Decimal | None = None
     impuesto_id_default: str | None = None
     ultimo_precio_unitario_compra: Decimal | None = None

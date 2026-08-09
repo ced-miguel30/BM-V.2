@@ -82,6 +82,50 @@ def parse_porcentaje(raw: str | float | Decimal | None) -> Decimal | None:
     return d.quantize(Decimal("0.0001"))
 
 
+def parse_factor_compra(raw: str | float | Decimal | None) -> Decimal | None:
+    """Factor > 0 (admite coma). Vacío → None. Inválido/≤0 → lanza ValueError."""
+    from app.core.services.conversion_compra import parse_factor_conversion
+
+    try:
+        d = parse_factor_conversion(raw)
+    except ValueError:
+        raise
+    if d is None:
+        return None
+    if d <= 0:
+        raise ValueError("El factor de conversión debe ser mayor que cero.")
+    return d
+
+
+def _unidad_base_producto(prod) -> str:
+    u = getattr(prod, "unidad", None)
+    if u is None:
+        return "Ud"
+    return u.value if hasattr(u, "value") else str(u)
+
+
+def _validar_conversion_vinculo(
+    prod,
+    *,
+    unidad_compra: str | None,
+    factor_compra: Decimal | None,
+) -> str | None:
+    """None si OK; mensaje de error si la conversión del vínculo no es válida."""
+    from app.core.services.conversion_compra import normalizar_unidad
+
+    ub = _unidad_base_producto(prod)
+    uc = (unidad_compra or "").strip() or ub
+    if factor_compra is not None and factor_compra <= 0:
+        return "El factor de conversión debe ser mayor que cero."
+    if normalizar_unidad(uc) != normalizar_unidad(ub):
+        if factor_compra is None:
+            return (
+                f"Falta el factor de conversión: indique cuántas {ub} "
+                f"equivalen a 1 {uc} (p. ej. 1 {uc} = 6 {ub})."
+            )
+    return None
+
+
 def etiqueta_proveedor(data: AppData, proveedor_id: str | None) -> str:
     if not proveedor_id:
         return "No configurado"
@@ -489,6 +533,9 @@ def vincular_producto_proveedor(
     *,
     codigo_proveedor: str | None = None,
     preferente: bool = False,
+    unidad_compra: str | None = None,
+    factor_compra: str | float | Decimal | None = None,
+    ultimo_precio_unitario_compra: str | float | Decimal | None = None,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
     from app.core.auth.permissions import Permiso
@@ -516,6 +563,23 @@ def vincular_producto_proveedor(
     ):
         return ResultadoOperacion(False, "Ya existe un vínculo activo entre este producto y proveedor.")
 
+    try:
+        factor = parse_factor_compra(factor_compra)
+    except ValueError as exc:
+        return ResultadoOperacion(False, str(exc))
+    try:
+        precio_ref = parse_factor_compra(ultimo_precio_unitario_compra) if (
+            ultimo_precio_unitario_compra is not None
+            and ultimo_precio_unitario_compra != ""
+        ) else None
+    except ValueError:
+        return ResultadoOperacion(False, "El precio de referencia debe ser mayor que cero.")
+
+    uc = _presentacion(unidad_compra) or None
+    err = _validar_conversion_vinculo(prod, unidad_compra=uc, factor_compra=factor)
+    if err:
+        return ResultadoOperacion(False, err)
+
     snap_nombre, snap_nif = snapshot_proveedor(prov)
     if preferente:
         for r in data.relaciones_producto_proveedor:
@@ -531,6 +595,9 @@ def vincular_producto_proveedor(
         proveedor_nombre_snapshot=snap_nombre,
         nif_cif_snapshot=snap_nif,
         activo=True,
+        unidad_compra=uc,
+        factor_compra=factor,
+        ultimo_precio_unitario_compra=precio_ref,
     )
     data.relaciones_producto_proveedor.append(rel)
     _registrar_actividad(
@@ -540,6 +607,82 @@ def vincular_producto_proveedor(
     )
     c.uow.commit(data)
     return ResultadoOperacion(True, f"Vínculo creado ({rel.id}).")
+
+
+def actualizar_relacion_producto_proveedor(
+    relacion_id: str,
+    *,
+    codigo_proveedor: str | None = None,
+    preferente: bool | None = None,
+    unidad_compra: str | None = None,
+    factor_compra: str | float | Decimal | None = None,
+    ultimo_precio_unitario_compra: str | float | Decimal | None = None,
+    ctx: AppContext | None = None,
+) -> ResultadoOperacion:
+    """Edita un vínculo activo (factor/unidad de compra). No altera documentos confirmados."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
+    c = _ctx(ctx)
+    data = c.uow.get_data()
+    rel = next(
+        (r for r in data.relaciones_producto_proveedor if r.id == relacion_id),
+        None,
+    )
+    if rel is None:
+        return ResultadoOperacion(False, "Relación no encontrada.")
+    if not rel.activo:
+        return ResultadoOperacion(False, "Reactive el vínculo antes de editarlo.")
+
+    prod = next((p for p in data.productos if p.id == rel.producto_id), None)
+    if prod is None:
+        return ResultadoOperacion(False, "Producto no encontrado.")
+
+    try:
+        factor = parse_factor_compra(factor_compra)
+    except ValueError as exc:
+        return ResultadoOperacion(False, str(exc))
+
+    precio_ref = rel.ultimo_precio_unitario_compra
+    if ultimo_precio_unitario_compra is not None:
+        if ultimo_precio_unitario_compra == "":
+            precio_ref = None
+        else:
+            try:
+                precio_ref = parse_factor_compra(ultimo_precio_unitario_compra)
+            except ValueError:
+                return ResultadoOperacion(
+                    False, "El precio de referencia debe ser mayor que cero."
+                )
+
+    uc = _presentacion(unidad_compra) if unidad_compra is not None else rel.unidad_compra
+    if unidad_compra is not None and not uc:
+        uc = None
+    err = _validar_conversion_vinculo(prod, unidad_compra=uc, factor_compra=factor)
+    if err:
+        return ResultadoOperacion(False, err)
+
+    if codigo_proveedor is not None:
+        rel.codigo_proveedor = _presentacion(codigo_proveedor) or None
+    if unidad_compra is not None:
+        rel.unidad_compra = uc
+    rel.factor_compra = factor
+    rel.ultimo_precio_unitario_compra = precio_ref
+
+    if preferente is True:
+        for r in data.relaciones_producto_proveedor:
+            if r.producto_id == rel.producto_id and r.activo:
+                r.preferente = r.id == relacion_id
+    elif preferente is False:
+        rel.preferente = False
+
+    _registrar_actividad(c, "Editar vínculo producto-proveedor", relacion_id)
+    c.uow.commit(data)
+    return ResultadoOperacion(True, "Vínculo actualizado.")
 
 
 def desactivar_relacion(

@@ -335,7 +335,25 @@ def purgar_filas_sin_producto(
 
 def filas_a_entradas_calculo(
     rows: list[dict[str, Any]],
+    *,
+    mapa_prod_por_label: dict[str, Any] | None = None,
+    mapa_prod_por_id: dict[str, Any] | None = None,
+    data: Any | None = None,
+    proveedor_id: str | None = None,
 ) -> list[EntradaLineaCalculo]:
+    """Construye entradas monetarias resolviendo el factor con la misma regla
+    productiva que borrador/confirmación (``resolver_factor_conversion``).
+
+    Sin ``data``/mapa (llamadas legacy de test con unidades iguales) se usa
+    factor 1 solo cuando no hay contexto de catálogo; nunca se fuerza 1 si
+    el contexto indica unidades distintas sin factor.
+    """
+    from app.core.services.conversion_compra import (
+        ConversionDesconocidaError,
+        obtener_factor_catalogo,
+        resolver_factor_conversion,
+    )
+
     entradas: list[EntradaLineaCalculo] = []
     for row in rows:
         if not fila_tiene_producto(row):
@@ -343,11 +361,40 @@ def filas_a_entradas_calculo(
         qty = as_decimal(celda_numero(row.get("cantidad")))
         if qty <= 0:
             continue
+        prod = _producto_de_fila(
+            row,
+            mapa_prod_por_label=mapa_prod_por_label,
+            mapa_prod_por_id=mapa_prod_por_id,
+        )
+        unidad_inv = _unidad_producto(prod) if prod else (
+            celda_texto(row.get("unidad")) or "Ud"
+        )
+        unidad_compra = celda_texto(row.get("unidad")) or unidad_inv
+        factor_explicito = row.get("_factor_conversion")
+        factor_cat = None
+        if data is not None and prod is not None:
+            factor_cat = obtener_factor_catalogo(
+                data,
+                producto_id=prod.id,
+                proveedor_id=proveedor_id,
+            )
+        try:
+            if data is None and prod is None and factor_explicito is None:
+                factor: Decimal | float | str = 1
+            else:
+                factor = resolver_factor_conversion(
+                    unidad_compra=unidad_compra,
+                    unidad_inventario=unidad_inv,
+                    factor_explicito=factor_explicito,
+                    factor_catalogo=factor_cat,
+                )
+        except (ConversionDesconocidaError, ValueError):
+            raise
         entradas.append(
             EntradaLineaCalculo(
                 cantidad_compra=qty,
                 precio_unitario_compra=celda_numero(row.get("precio_unitario")),
-                factor_conversion=1,
+                factor_conversion=factor,
                 precio_incluye_igic=bool(row.get("incluye_igic")),
                 impuesto_porcentaje=celda_numero(row.get("igic_pct")),
                 descuento_linea_porcentaje=celda_numero(row.get("dto_pct")),
@@ -358,12 +405,170 @@ def filas_a_entradas_calculo(
     return entradas
 
 
+def diagnostico_conversion_filas(
+    rows: list[dict[str, Any]],
+    *,
+    mapa_prod_por_label: dict[str, Any] | None = None,
+    mapa_prod_por_id: dict[str, Any] | None = None,
+    data: Any | None = None,
+    proveedor_id: str | None = None,
+) -> list[dict[str, Any]]:
+    """Resumen por línea: equivalencia, qty inventariable, coste/ud base o error."""
+    from app.core.services.conversion_compra import (
+        ConversionDesconocidaError,
+        obtener_factor_catalogo,
+        resolver_factor_conversion,
+        texto_equivalencia,
+    )
+    from app.core.services.money import calcular_linea
+
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        if not fila_tiene_producto(row):
+            continue
+        qty = as_decimal(celda_numero(row.get("cantidad")))
+        if qty <= 0:
+            continue
+        prod = _producto_de_fila(
+            row,
+            mapa_prod_por_label=mapa_prod_por_label,
+            mapa_prod_por_id=mapa_prod_por_id,
+        )
+        nombre = celda_texto(row.get("producto")) or (
+            getattr(prod, "nombre", None) if prod else "?"
+        )
+        unidad_inv = _unidad_producto(prod) if prod else (
+            celda_texto(row.get("unidad")) or "Ud"
+        )
+        unidad_compra = celda_texto(row.get("unidad")) or unidad_inv
+        factor_cat = None
+        if data is not None and prod is not None:
+            factor_cat = obtener_factor_catalogo(
+                data,
+                producto_id=prod.id,
+                proveedor_id=proveedor_id,
+            )
+        try:
+            factor = resolver_factor_conversion(
+                unidad_compra=unidad_compra,
+                unidad_inventario=unidad_inv,
+                factor_explicito=row.get("_factor_conversion"),
+                factor_catalogo=factor_cat,
+            )
+            calc = calcular_linea(
+                cantidad_compra=qty,
+                precio_unitario_compra=celda_numero(row.get("precio_unitario")),
+                factor_conversion=factor,
+                precio_incluye_igic=bool(row.get("incluye_igic")),
+                impuesto_porcentaje=celda_numero(row.get("igic_pct")),
+                descuento_linea_porcentaje=celda_numero(row.get("dto_pct")),
+                descuento_linea_importe=celda_numero(row.get("dto_eur")),
+            )
+            out.append(
+                {
+                    "producto": nombre,
+                    "cantidad_compra": qty,
+                    "unidad_compra": unidad_compra,
+                    "unidad_base": unidad_inv,
+                    "factor": factor,
+                    "equivalencia": texto_equivalencia(
+                        unidad_compra, factor, unidad_inv
+                    ),
+                    "cantidad_inventario": calc.cantidad_inventario,
+                    "coste_linea": calc.coste_inventariable_linea,
+                    "coste_unitario_base": calc.coste_unitario_inventario,
+                    "error": None,
+                }
+            )
+        except (ConversionDesconocidaError, ValueError) as exc:
+            out.append(
+                {
+                    "producto": nombre,
+                    "cantidad_compra": qty,
+                    "unidad_compra": unidad_compra,
+                    "unidad_base": unidad_inv,
+                    "factor": None,
+                    "equivalencia": "",
+                    "cantidad_inventario": None,
+                    "coste_linea": None,
+                    "coste_unitario_base": None,
+                    "error": str(exc),
+                }
+            )
+    return out
+
+
+def _producto_de_fila(
+    row: dict[str, Any],
+    *,
+    mapa_prod_por_label: dict[str, Any] | None = None,
+    mapa_prod_por_id: dict[str, Any] | None = None,
+) -> Any | None:
+    label = celda_texto(row.get("producto"))
+    if mapa_prod_por_label and label and label in mapa_prod_por_label:
+        return mapa_prod_por_label[label]
+    pid = celda_texto(row.get(META_PROD_ID))
+    if mapa_prod_por_id and pid and pid in mapa_prod_por_id:
+        return mapa_prod_por_id[pid]
+    if mapa_prod_por_label and pid:
+        for p in mapa_prod_por_label.values():
+            if getattr(p, "id", None) == pid:
+                return p
+    return None
+
+
+def aplicar_defaults_vinculo_fila(
+    row: dict[str, Any],
+    prod: Any,
+    *,
+    data: Any | None = None,
+    proveedor_id: str | None = None,
+    forzar_unidad: bool = False,
+) -> dict[str, Any]:
+    """Rellena unidad (y precio ref.) desde el vínculo activo si aplica."""
+    from app.core.services.conversion_compra import (
+        obtener_unidad_compra_catalogo,
+        relacion_activa,
+    )
+
+    out = dict(row)
+    out[META_PROD_ID] = prod.id
+    ub = _unidad_producto(prod)
+    uc_cat = obtener_unidad_compra_catalogo(
+        data, producto_id=prod.id, proveedor_id=proveedor_id
+    )
+    if forzar_unidad:
+        out["unidad"] = uc_cat or ub
+    elif not celda_texto(out.get("unidad")):
+        out["unidad"] = uc_cat or ub
+    rel = relacion_activa(data, producto_id=prod.id, proveedor_id=proveedor_id)
+    if rel is not None and getattr(rel, "ultimo_precio_unitario_compra", None) is not None:
+        if as_decimal(celda_numero(out.get("precio_unitario"))) <= 0:
+            out["precio_unitario"] = float(rel.ultimo_precio_unitario_compra)
+    return out
+
+
 def calcular_totales_grid(
     rows: list[dict[str, Any]],
     *,
     descuento_cabecera: float | Decimal | str = 0,
+    mapa_prod_por_label: dict[str, Any] | None = None,
+    mapa_prod_por_id: dict[str, Any] | None = None,
+    data: Any | None = None,
+    proveedor_id: str | None = None,
 ) -> ResultadoDocumento | None:
-    entradas = filas_a_entradas_calculo(rows)
+    from app.core.services.conversion_compra import ConversionDesconocidaError
+
+    try:
+        entradas = filas_a_entradas_calculo(
+            rows,
+            mapa_prod_por_label=mapa_prod_por_label,
+            mapa_prod_por_id=mapa_prod_por_id,
+            data=data,
+            proveedor_id=proveedor_id,
+        )
+    except (ConversionDesconocidaError, ValueError):
+        return None
     if not entradas:
         return None
     return calcular_documento(

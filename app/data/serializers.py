@@ -434,6 +434,8 @@ def _relacion_pp_to_dict(r: RelacionProductoProveedor) -> dict:
         "nif_cif_snapshot": r.nif_cif_snapshot,
         "activo": bool(r.activo),
     }
+    if getattr(r, "unidad_compra", None):
+        out["unidad_compra"] = r.unidad_compra
     if getattr(r, "factor_compra", None) is not None:
         out["factor_compra"] = _decimal_to_json(r.factor_compra)
     if getattr(r, "impuesto_id_default", None) is not None:
@@ -455,6 +457,7 @@ def _relacion_pp_from_dict(raw: dict) -> RelacionProductoProveedor:
         proveedor_nombre_snapshot=raw.get("proveedor_nombre_snapshot"),
         nif_cif_snapshot=raw.get("nif_cif_snapshot"),
         activo=bool(raw.get("activo", True)),
+        unidad_compra=(raw.get("unidad_compra") or None),
         factor_compra=_decimal_from_json(raw.get("factor_compra")),
         impuesto_id_default=raw.get("impuesto_id_default"),
         ultimo_precio_unitario_compra=_decimal_from_json(

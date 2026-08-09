@@ -109,8 +109,55 @@ def _ensure_grid(rows: list[dict] | None = None) -> list[dict]:
     return st.session_state[_GRID_SS]
 
 
-def _render_totales_panel(rows: list[dict], dto_cab: float) -> None:
-    res = grid.calcular_totales_grid(rows, descuento_cabecera=dto_cab)
+def _render_totales_panel(
+    rows: list[dict],
+    dto_cab: float,
+    *,
+    data=None,
+    proveedor_id: str | None = None,
+    mapa_prod=None,
+    mapa_por_id=None,
+) -> None:
+    diags = grid.diagnostico_conversion_filas(
+        rows,
+        mapa_prod_por_label=mapa_prod,
+        mapa_prod_por_id=mapa_por_id,
+        data=data,
+        proveedor_id=proveedor_id,
+    )
+    errores = [d for d in diags if d.get("error")]
+    if errores:
+        for d in errores:
+            st.error(
+                f"«{d['producto']}»: {d['error']} "
+                "Corrija la unidad de la línea o configure el factor en "
+                "Configuración → Proveedores e impuestos → Vínculos "
+                f"(1 {d['unidad_compra']} = N {d['unidad_base']})."
+            )
+    elif diags:
+        st.markdown("##### Conversión a inventario")
+        for d in diags:
+            eq = d.get("equivalencia") or ""
+            st.caption(
+                f"· {d['producto']}: {d['cantidad_compra']} {d['unidad_compra']} → "
+                f"{d['cantidad_inventario']} {d['unidad_base']}"
+                + (f" ({eq})" if eq else "")
+                + (
+                    f" · coste {d['coste_linea']} €"
+                    f" ({d['coste_unitario_base']} €/{d['unidad_base']})"
+                    if d.get("coste_unitario_base") is not None
+                    else ""
+                )
+            )
+
+    res = grid.calcular_totales_grid(
+        rows,
+        descuento_cabecera=dto_cab,
+        mapa_prod_por_label=mapa_prod,
+        mapa_prod_por_id=mapa_por_id,
+        data=data,
+        proveedor_id=proveedor_id,
+    )
     info = grid.totales_a_dict(res)
     st.markdown("##### Totales del documento")
     c1, c2, c3 = st.columns(3)
@@ -273,7 +320,9 @@ def _ui_borrador(data, path) -> None:
         "(y al cambiar el total, el unitario), si la cantidad es mayor que 0. "
         "Los totales del documento se actualizan al vuelo. "
         "Puede añadir varias filas vacías y rellenarlas con calma. "
-        "Vaciar el producto elimina esa línea."
+        "Vaciar el producto elimina esa línea. "
+        "La conversión compra→inventario sale del vínculo producto–proveedor "
+        "(Configuración → Vínculos): p. ej. 1 caja = 6 L."
     )
 
     # DataFrame visible: números como texto ES (sin metadatos internos)
@@ -355,12 +404,19 @@ def _ui_borrador(data, path) -> None:
                 base[col] = val
         label = grid.celda_texto(base.get("producto"))
         base["producto"] = label
+        prev_pid = grid.celda_texto(
+            (prev_rows[i] if i < len(prev_rows) else {}).get(grid.META_PROD_ID)
+        )
         if label in mapa_prod:
             prod = mapa_prod[label]
-            base[grid.META_PROD_ID] = prod.id
-            if not grid.celda_texto(base.get("unidad")):
-                u = prod.unidad
-                base["unidad"] = u.value if hasattr(u, "value") else str(u)
+            producto_nuevo = prev_pid != prod.id
+            base = grid.aplicar_defaults_vinculo_fila(
+                base,
+                prod,
+                data=data,
+                proveedor_id=proveedor_id,
+                forzar_unidad=producto_nuevo,
+            )
         elif not label:
             base[grid.META_PROD_ID] = ""
         merged.append(base)
@@ -386,7 +442,14 @@ def _ui_borrador(data, path) -> None:
     st.session_state[_GRID_PREV] = [dict(r) for r in purged]
 
     _render_grupos_albaran(synced, data)
-    _render_totales_panel(synced, float(dto_cab))
+    _render_totales_panel(
+        synced,
+        float(dto_cab),
+        data=data,
+        proveedor_id=proveedor_id,
+        mapa_prod=mapa_prod,
+        mapa_por_id=mapa_por_id,
+    )
 
     if st.button("Guardar borrador", type="primary", key="reg135_guardar"):
         if not mapa_prov or not mapa_prod:
