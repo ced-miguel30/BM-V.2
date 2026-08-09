@@ -204,7 +204,7 @@ def render_pagina_registro_servicio(
             '<span class="bm-cesta-tipo">Receta</span>',
             unsafe_allow_html=True,
         )
-        recetas = listar_recetas(servicio_disponible=servicio.tipo_servicio)
+        recetas = listar_recetas(servicio_disponible=servicio.tipo_servicio, solo_activas=True)
         if recetas:
             mapa_recetas = {r.nombre: r.id for r in recetas}
             receta_nombre = st.selectbox(

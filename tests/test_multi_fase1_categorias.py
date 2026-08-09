@@ -58,32 +58,32 @@ class TestCrearRecetaPorCategoria(unittest.TestCase):
         return [IngredienteReceta("p01", 0.1)]
 
     def test_crear_desayuno(self) -> None:
-        resultado = receta_service.crear_receta("Tostada", self._ingredientes(), CategoriaReceta.DESAYUNO)
+        resultado = receta_service.crear_receta("Tostada", self._ingredientes(), CategoriaReceta.DESAYUNO, porciones_estandar=1)
         self.assertTrue(resultado.ok)
         self.assertEqual(self.data.recetas[0].categoria, CategoriaReceta.DESAYUNO)
 
     def test_crear_comida(self) -> None:
-        resultado = receta_service.crear_receta("Ensalada", self._ingredientes(), CategoriaReceta.COMIDA)
+        resultado = receta_service.crear_receta("Ensalada", self._ingredientes(), CategoriaReceta.COMIDA, porciones_estandar=1)
         self.assertTrue(resultado.ok)
         self.assertEqual(self.data.recetas[0].categoria, CategoriaReceta.COMIDA)
 
     def test_crear_cena(self) -> None:
-        resultado = receta_service.crear_receta("Sopa", self._ingredientes(), CategoriaReceta.CENA)
+        resultado = receta_service.crear_receta("Sopa", self._ingredientes(), CategoriaReceta.CENA, porciones_estandar=1)
         self.assertTrue(resultado.ok)
         self.assertEqual(self.data.recetas[0].categoria, CategoriaReceta.CENA)
 
     def test_crear_bebidas(self) -> None:
-        resultado = receta_service.crear_receta("Café latte", self._ingredientes(), CategoriaReceta.BEBIDAS)
+        resultado = receta_service.crear_receta("Café latte", self._ingredientes(), CategoriaReceta.BEBIDAS, porciones_estandar=1)
         self.assertTrue(resultado.ok)
         self.assertEqual(self.data.recetas[0].categoria, CategoriaReceta.BEBIDAS)
 
     def test_crear_sin_categoria_usa_desayuno(self) -> None:
-        resultado = receta_service.crear_receta("Antigua", self._ingredientes())
+        resultado = receta_service.crear_receta("Antigua", self._ingredientes(), porciones_estandar=1)
         self.assertTrue(resultado.ok)
         self.assertEqual(self.data.recetas[0].categoria, CategoriaReceta.DESAYUNO)
 
     def test_rechazar_categoria_invalida(self) -> None:
-        resultado = receta_service.crear_receta("X", self._ingredientes(), "brunch")
+        resultado = receta_service.crear_receta("X", self._ingredientes(), "brunch", porciones_estandar=1)
         self.assertFalse(resultado.ok)
         self.assertIn("no válida", resultado.mensaje.lower())
         self.assertEqual(len(self.data.recetas), 0)
@@ -94,7 +94,13 @@ class TestEditarCategoria(unittest.TestCase):
         self.ingredientes = [IngredienteReceta("p01", 0.05, 50.0, "gr")]
         self.data = _datos_base()
         self.data.recetas = [
-            Receta("r01", "Tostada", list(self.ingredientes), CategoriaReceta.DESAYUNO),
+            Receta(
+                "r01",
+                "Tostada",
+                list(self.ingredientes),
+                CategoriaReceta.DESAYUNO,
+                porciones_estandar=1,
+            ),
         ]
         self.patcher = patch("app.core.services.receta_service.get_data", return_value=self.data)
         self.patcher_persist = patch("app.core.services.receta_service.persist_data")
@@ -108,6 +114,7 @@ class TestEditarCategoria(unittest.TestCase):
     def test_editar_solo_categoria_mantiene_ingredientes(self) -> None:
         resultado = receta_service.editar_receta(
             "r01", "Tostada", list(self.ingredientes), CategoriaReceta.COMIDA,
+            porciones_estandar=1,
         )
         self.assertTrue(resultado.ok)
         receta = self.data.recetas[0]
@@ -123,6 +130,7 @@ class TestEditarCategoria(unittest.TestCase):
     def test_editar_categoria_invalida(self) -> None:
         resultado = receta_service.editar_receta(
             "r01", "Tostada", list(self.ingredientes), "tapas",
+            porciones_estandar=1,
         )
         self.assertFalse(resultado.ok)
         self.assertEqual(self.data.recetas[0].categoria, CategoriaReceta.DESAYUNO)

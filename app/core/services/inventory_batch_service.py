@@ -53,17 +53,60 @@ def stock_disponible(data: AppData, producto_id: str) -> float:
 
 
 def calcular_coste_linea(data: AppData, producto_id: str, cantidad: float) -> float:
-    if cantidad <= 0:
-        return 0.0
-    restante = cantidad
+    """Coste FIFO parcial (compat). Preferir ``valorizar_cantidad_fifo`` si hace falta
+    detectar coste incompleto."""
+    return valorizar_cantidad_fifo(data, producto_id, cantidad).coste
+
+
+@dataclass
+class ResultadoValoracionFifo:
+    coste: float
+    cantidad_solicitada: float
+    cantidad_valorada: float
+    incompleto: bool
+    coste_unitario_aplicable: float | None
+
+    @property
+    def faltante(self) -> float:
+        return max(0.0, round(self.cantidad_solicitada - self.cantidad_valorada, 6))
+
+
+def valorizar_cantidad_fifo(
+    data: AppData, producto_id: str, cantidad: float
+) -> ResultadoValoracionFifo:
+    """Valora por FIFO. Marca incompleto si no hay stock/lotes suficientes.
+
+    Sin lotes activos o con stock insuficiente → incompleto=True y coste solo de
+    lo valorable (nunca inventa precio cero como coste completo).
+    """
+    solicitada = float(cantidad) if cantidad else 0.0
+    if solicitada <= 0:
+        return ResultadoValoracionFifo(0.0, 0.0, 0.0, False, None)
+    restante = solicitada
     coste = 0.0
+    valorada = 0.0
     for lote in lotes_ordenados_consumo(data, producto_id):
         if restante <= 0:
             break
         tomar = min(restante, lote.cantidad_restante)
+        if tomar <= 0:
+            continue
         coste += tomar * coste_unidad_lote(lote)
+        valorada += tomar
         restante -= tomar
-    return round(coste, 2)
+    valorada = round(valorada, 6)
+    coste_r = round(coste, 2)
+    incompleto = restante > 1e-9
+    unit = None
+    if valorada > 0:
+        unit = coste / valorada
+    return ResultadoValoracionFifo(
+        coste=coste_r,
+        cantidad_solicitada=solicitada,
+        cantidad_valorada=valorada,
+        incompleto=incompleto,
+        coste_unitario_aplicable=unit,
+    )
 
 
 def snapshot_cantidades_restantes(data: AppData) -> dict[str, float]:

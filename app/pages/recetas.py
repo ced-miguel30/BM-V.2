@@ -13,6 +13,7 @@ from app.core.models import (
 from app.core.services.data_service import get_repository
 from app.core.services.receta_service import (
     crear_receta,
+    desactivar_receta,
     editar_receta,
     eliminar_receta,
     etiqueta_categoria,
@@ -20,7 +21,9 @@ from app.core.services.receta_service import (
     listar_recetas,
     normalizar_porciones_estandar,
     obtener_receta,
+    reactivar_receta,
     resumen_ingredientes,
+    valorar_receta,
 )
 from app.core.services.stock_service import mapa_productos
 from app.core.services.unidad_service import (
@@ -141,17 +144,32 @@ def _selector_categoria(key: str, valor_inicial: CategoriaReceta = CategoriaRece
     return _CATEGORIA_POR_ETIQUETA[seleccion]
 
 
-def _render_editor_ingredientes(session_key: str, key_prefix: str) -> None:
+def _render_editor_ingredientes(
+    session_key: str,
+    key_prefix: str,
+    *,
+    ids_existentes: set[str] | None = None,
+) -> None:
     repo = get_repository()
-    productos_map = mapa_productos(repo.data)
-    opciones = [
-        {
-            "id": pid,
-            "label": nombre,
-            "unidad": repo.get_producto(pid).unidad if repo.get_producto(pid) else UnidadProducto.UD,
-        }
-        for nombre, pid in sorted(productos_map.items())
-    ]
+    # Nuevas selecciones: solo activos. Conservar inactivos ya en la receta.
+    productos_map = mapa_productos(repo.data, solo_activos=True)
+    ids_existentes = ids_existentes or set()
+    for p in repo.data.productos:
+        if p.id in ids_existentes and p.id not in productos_map.values():
+            productos_map[p.nombre] = p.id
+    opciones = []
+    for nombre, pid in sorted(productos_map.items()):
+        prod = repo.get_producto(pid)
+        label = nombre
+        if prod is not None and not getattr(prod, "activo", True):
+            label = f"{nombre} (inactivo)"
+        opciones.append(
+            {
+                "id": pid,
+                "label": label,
+                "unidad": prod.unidad if prod else UnidadProducto.UD,
+            }
+        )
     filas = _ingredientes_desde_sesion(session_key)
 
     if not filas:
@@ -208,9 +226,16 @@ def _render_editor_ingredientes(session_key: str, key_prefix: str) -> None:
                 st.caption("—")
         with col_btn:
             st.markdown("<div style='height:1.6rem'></div>", unsafe_allow_html=True)
-            if st.button("✕", key=f"{key_prefix}_quitar_{idx}", help="Quitar ingrediente"):
+            prod_btn = repo.get_producto(fila.get("producto_id", ""))
+            nom_btn = prod_btn.nombre if prod_btn else "ingrediente"
+            if st.button(
+                "✕",
+                key=f"{key_prefix}_quitar_{idx}",
+                help=f"Quitar «{nom_btn}»",
+            ):
                 filas.pop(idx)
                 st.session_state[session_key] = filas
+                st.success(f"Se quitó «{nom_btn}» de la receta (sin guardar aún).")
                 st.rerun()
 
     if st.button("Añadir ingrediente", key=f"{key_prefix}_anadir"):
@@ -221,19 +246,78 @@ def _render_editor_ingredientes(session_key: str, key_prefix: str) -> None:
         st.rerun()
 
 
+def _render_coste_panel(receta_id: str) -> None:
+    val = valorar_receta(receta_id)
+    if not val.ok:
+        st.warning(val.mensaje)
+        return
+    estado = (
+        "Coste completo"
+        if val.coste_completo
+        else f"Coste incompleto: faltan precios o lotes para {val.ingredientes_sin_coste} ingrediente(s)"
+    )
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Coste teórico total", f"{val.coste_total:.2f} €")
+    c2.metric(
+        "Coste por ración",
+        f"{val.coste_por_racion:.4f} €" if val.coste_por_racion is not None else "—",
+    )
+    c3.metric("Rendimiento", f"{val.porciones_estandar:g}" if val.porciones_estandar else "—")
+    st.caption(f"{estado} · valoración FIFO de lotes activos · €")
+    if val.lineas:
+        st.dataframe(
+            [
+                {
+                    "Ingrediente": ln.nombre
+                    + (" (inactivo)" if ln.producto_inactivo else ""),
+                    "Cantidad": f"{ln.cantidad_nativa:g} {ln.unidad_nativa}",
+                    "Coste unitario": (
+                        f"{ln.coste_unitario_aplicable:.4f} €/{ln.unidad_nativa}"
+                        if ln.coste_unitario_aplicable is not None
+                        else "—"
+                    ),
+                    "Coste": f"{ln.coste_estimado:.2f} €",
+                    "Estado": "Incompleto" if ln.coste_incompleto else "OK",
+                }
+                for ln in val.lineas
+            ],
+            use_container_width=True,
+            hide_index=True,
+        )
+
+
 def _render_listado() -> None:
-    recetas = listar_recetas()
+    recetas = listar_recetas(solo_activas=False)
     st.markdown("#### Recetas registradas")
-    st.caption("Platos definidos con productos del catálogo de stock.")
+    st.caption(
+        "Maestro único de preparaciones del buffet. "
+        "Las activas aparecen directamente en el registro operativo "
+        "(no hace falta un menú buffet duplicado)."
+    )
 
     if recetas:
         filas = []
         for receta in recetas:
+            val = valorar_receta(receta.id) if receta.porciones_estandar else None
             filas.append({
                 "Receta": receta.nombre,
+                "Estado": "Activa" if getattr(receta, "activo", True) else "Inactiva",
                 "Categoría receta": etiqueta_categoria(receta.categoria),
                 "Servicios disponibles": _etiqueta_servicios(receta.servicios_disponibles),
                 "Porciones estándar": etiqueta_porciones_estandar(receta.porciones_estandar),
+                "Coste total €": (
+                    f"{val.coste_total:.2f}" if val and val.ok else "—"
+                ),
+                "Coste/ración €": (
+                    f"{val.coste_por_racion:.4f}"
+                    if val and val.ok and val.coste_por_racion is not None
+                    else "—"
+                ),
+                "Valoración": (
+                    "Completo"
+                    if val and val.ok and val.coste_completo
+                    else ("Incompleto" if val and val.ok else "—")
+                ),
                 "Ingredientes": len(receta.ingredientes),
                 "Detalle": resumen_ingredientes(receta),
             })
@@ -252,11 +336,11 @@ def _render_crear() -> None:
     porciones_std = st.number_input(
         "Porciones estándar (rendimiento)",
         min_value=0.0,
-        value=0.0,
+        value=1.0,
         step=1.0,
         format="%.0f",
         key="receta_nuevo_porciones_std",
-        help="Rendimiento base de la ficha. 0 = no configurado. Usado por el simulador (Diagnóstico).",
+        help="Rendimiento obligatorio (> 0). Base del coste por ración.",
     )
     st.markdown("##### Ingredientes")
     _render_editor_ingredientes(session_key, "receta_nuevo")
@@ -279,13 +363,16 @@ def _render_crear() -> None:
 
 
 def _render_editar_eliminar() -> None:
-    recetas = listar_recetas()
-    st.markdown("#### Editar / eliminar")
+    recetas = listar_recetas(solo_activas=False)
+    st.markdown("#### Editar / activar / desactivar")
     if not recetas:
         empty_state("Cree una receta para poder editarla.", icon="✏️")
         return
 
-    opciones = {r.nombre: r.id for r in recetas}
+    opciones = {
+        f"{r.nombre} ({'activa' if getattr(r, 'activo', True) else 'inactiva'})": r.id
+        for r in recetas
+    }
     sel_nombre = st.selectbox("Seleccionar receta", list(opciones.keys()), key="receta_sel_editar")
     receta_id = opciones[sel_nombre]
     receta = obtener_receta(receta_id)
@@ -298,24 +385,30 @@ def _render_editar_eliminar() -> None:
         st.session_state["receta_edit_prev_id"] = receta_id
         st.rerun()
 
+    st.markdown("##### Coste teórico")
+    _render_coste_panel(receta_id)
+
     nuevo_nombre = st.text_input("Nombre", value=receta.nombre, key=f"receta_edit_nombre_{receta_id}")
     categoria = _selector_categoria(f"receta_edit_categoria_{receta_id}", receta.categoria)
     servicios = _selector_servicios_disponibles(
         f"receta_edit_servicios_{receta_id}",
         receta.servicios_disponibles,
     )
-    valor_std = float(receta.porciones_estandar) if receta.porciones_estandar else 0.0
+    valor_std = float(receta.porciones_estandar) if receta.porciones_estandar else 1.0
     porciones_std = st.number_input(
         "Porciones estándar (rendimiento)",
         min_value=0.0,
-        value=valor_std,
+        value=valor_std if valor_std > 0 else 1.0,
         step=1.0,
         format="%.0f",
         key=f"receta_edit_porciones_std_{receta_id}",
-        help="0 = no configurado (el simulador mostrará «Dato no disponible»).",
+        help="Obligatorio > 0 para guardar y para el coste por ración.",
     )
     st.markdown("##### Ingredientes")
-    _render_editor_ingredientes(session_key, f"receta_edit_{receta_id}")
+    ids_exist = {i.producto_id for i in receta.ingredientes}
+    _render_editor_ingredientes(
+        session_key, f"receta_edit_{receta_id}", ids_existentes=ids_exist
+    )
 
     if st.button("Guardar cambios", type="primary", use_container_width=True, key="receta_btn_guardar"):
         ingredientes = _ingredientes_a_modelo(session_key)
@@ -333,14 +426,33 @@ def _render_editar_eliminar() -> None:
         else:
             st.error(resultado.mensaje)
 
-    if st.button("Eliminar receta", use_container_width=True, key="receta_btn_eliminar"):
-        resultado = eliminar_receta(receta_id)
-        if resultado.ok:
-            st.session_state.pop("receta_edit_prev_id", None)
-            st.success(resultado.mensaje)
-            st.rerun()
+    c1, c2 = st.columns(2)
+    with c1:
+        if getattr(receta, "activo", True):
+            if st.button("Desactivar receta", use_container_width=True, key="receta_btn_off"):
+                resultado = desactivar_receta(receta_id)
+                st.success(resultado.mensaje) if resultado.ok else st.error(resultado.mensaje)
+                if resultado.ok:
+                    st.rerun()
         else:
-            st.error(resultado.mensaje)
+            if st.button("Reactivar receta", use_container_width=True, key="receta_btn_on"):
+                resultado = reactivar_receta(receta_id)
+                st.success(resultado.mensaje) if resultado.ok else st.error(resultado.mensaje)
+                if resultado.ok:
+                    st.rerun()
+    with c2:
+        if st.button(
+            "Eliminar (solo sin histórico)",
+            use_container_width=True,
+            key="receta_btn_eliminar",
+        ):
+            resultado = eliminar_receta(receta_id)
+            if resultado.ok:
+                st.session_state.pop("receta_edit_prev_id", None)
+                st.success(resultado.mensaje)
+                st.rerun()
+            else:
+                st.error(resultado.mensaje)
 
 
 def render() -> None:

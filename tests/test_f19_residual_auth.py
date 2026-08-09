@@ -102,6 +102,7 @@ def _data() -> AppData:
                 "Tostada",
                 [IngredienteReceta("p1", 1.0)],
                 CategoriaReceta.DESAYUNO,
+                porciones_estandar=1,
             )
         ],
         proveedores=[
@@ -243,6 +244,7 @@ class TestF19ResidualAuth(unittest.TestCase):
                     "Tostada 2",
                     [IngredienteReceta("p1", 1.0)],
                     CategoriaReceta.DESAYUNO,
+                    porciones_estandar=1,
                 ).ok
             )
 
