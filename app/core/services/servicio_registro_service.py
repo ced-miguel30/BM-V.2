@@ -246,6 +246,8 @@ class ServicioRegistro:
         resultado = []
         termino = buscar.strip()
         for producto in sorted(data.productos, key=lambda p: p.nombre):
+            if not getattr(producto, "activo", True):
+                continue
             if self.solo_bebidas_sueltas and not producto.es_bebida:
                 continue
             if not disponible_en_servicio(producto.servicios_disponibles, self.tipo_servicio):
@@ -258,6 +260,7 @@ class ServicioRegistro:
                 "nombre": producto.nombre,
                 "unidad": producto.unidad.value,
                 "stock": stock,
+                "es_bebida": bool(getattr(producto, "es_bebida", False)),
                 "etiqueta": f"{producto.nombre} ({stock:g} {producto.unidad.value})",
             })
         return resultado
@@ -347,10 +350,12 @@ class ServicioRegistro:
         num_huespedes: int = 0,
         *,
         ignorar_stock: bool = False,
+        clave_idempotencia: str | None = None,
         ctx: AppContext | None = None,
     ) -> ResultadoOperacion:
         """Registra con descuento atómico. `ignorar_stock` deshabilitado (Fase 9)."""
         from app.core.auth.permissions import Permiso
+        from app.core.auth.session import session_tiene_permiso
         from app.core.auth.usecase_guard import usecase_deny_message
 
         denied = usecase_deny_message(Permiso.ACCEDER_REGISTRO)
@@ -369,6 +374,24 @@ class ServicioRegistro:
             return ResultadoOperacion(False, f"No puede registrar {self.etiqueta.lower()} en fechas futuras.")
 
         data = context.data()
+        clave = (clave_idempotencia or "").strip() or None
+        if clave:
+            existente = next(
+                (
+                    r for r in data.registros_servicio
+                    if r.tipo_servicio == self.tipo_servicio
+                    and getattr(r, "clave_idempotencia", None) == clave
+                    and not getattr(r, "anulado", False)
+                ),
+                None,
+            )
+            if existente is not None:
+                return ResultadoOperacion(
+                    True,
+                    f"{self.etiqueta} ya confirmada — ref. {existente.id}.",
+                    codigo="IDEMPOTENTE",
+                )
+
         fusionado = self._aplanar_cesta()
         grupos = list(self.get_cesta_recetas())
         cesta_suelta = list(self.get_cesta())
@@ -435,6 +458,7 @@ class ServicioRegistro:
                 registros_recetas,
                 context.clock.now().time(),
                 lineas_detalle,
+                clave_idempotencia=clave,
             )
             data.registros_servicio.append(registro)
 
@@ -451,12 +475,14 @@ class ServicioRegistro:
             )
 
             detalle_recetas = f" — {len(registros_recetas)} receta(s)" if registros_recetas else ""
+            ver_costes = session_tiene_permiso(Permiso.CONSULTAR_COSTES)
+            resumen_econ = f" — {coste_total:.2f} €" if ver_costes else ""
             _registrar_actividad(
                 context,
                 f"Registro {self.etiqueta.lower()}",
                 (
-                    f"{self.etiqueta} del {fecha.strftime('%d/%m/%Y')} — "
-                    f"{coste_total:.2f} €{detalle_recetas}"
+                    f"{self.etiqueta} del {fecha.strftime('%d/%m/%Y')}"
+                    f"{resumen_econ}{detalle_recetas}"
                 ),
             )
             context.uow.commit(data)
@@ -473,10 +499,18 @@ class ServicioRegistro:
         from app.core.services.alert_service import sincronizar_alertas
         sincronizar_alertas(context)
 
-        return ResultadoOperacion(
-            True,
-            f"{self.etiqueta} registrada — {coste_total:.2f} € ({len(lineas)} producto(s)).",
-        )
+        ver_costes = session_tiene_permiso(Permiso.CONSULTAR_COSTES)
+        if ver_costes:
+            msg = (
+                f"{self.etiqueta} registrada — ref. {registro_id} — "
+                f"{coste_total:.2f} € ({len(lineas)} producto(s))."
+            )
+        else:
+            msg = (
+                f"{self.etiqueta} registrada — ref. {registro_id} "
+                f"({len(lineas)} producto(s))."
+            )
+        return ResultadoOperacion(True, msg)
 
     def historial_ordenado(self, *, ctx: AppContext | None = None) -> list[RegistroServicio]:
         data = _ctx(ctx).data()

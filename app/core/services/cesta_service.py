@@ -209,6 +209,11 @@ class MotorCesta:
         producto = repo.get_producto(producto_id)
         if not producto:
             return ResultadoOperacionCesta(False, "Producto no encontrado.")
+        if not getattr(producto, "activo", True):
+            return ResultadoOperacionCesta(
+                False,
+                f"«{producto.nombre}» está desactivado y no puede añadirse a registros nuevos.",
+            )
 
         cesta = self.get_cesta()
         paso = abs(cantidad) if cantidad != 0 else PASO_CANTIDAD
@@ -266,6 +271,11 @@ class MotorCesta:
         receta = repo.get_receta(receta_id)
         if not receta:
             return ResultadoOperacionCesta(False, "Receta no encontrada.")
+        if not getattr(receta, "activo", True):
+            return ResultadoOperacionCesta(
+                False,
+                f"La receta «{receta.nombre}» está desactivada y no puede usarse en registros nuevos.",
+            )
         if categorias_permitidas is not None and receta.categoria not in categorias_permitidas:
             return ResultadoOperacionCesta(
                 False,

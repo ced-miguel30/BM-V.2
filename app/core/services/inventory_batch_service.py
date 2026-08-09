@@ -174,9 +174,10 @@ def planificar_descuento(
             ok=ok,
         ))
         if not ok:
+            ud = f" {unidad}" if unidad else ""
             deficits.append(
-                f"{nombre}: necesita {salida:g} {unidad}, disponible {actual:g} {unidad}"
-                f" → quedaría {resultante:g} {unidad}".rstrip(),
+                f"No hay suficiente {nombre}. "
+                f"Necesario: {salida:g}{ud}. Disponible: {actual:g}{ud}.".strip()
             )
 
     return PlanDescuentoStock(lineas=lineas, ok=not deficits, deficits=deficits)

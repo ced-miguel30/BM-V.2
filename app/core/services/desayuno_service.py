@@ -165,6 +165,8 @@ def productos_catalogo(
     resultado = []
     termino = buscar.strip()
     for producto in sorted(data.productos, key=lambda p: p.nombre):
+        if not getattr(producto, "activo", True):
+            continue
         if servicio is not None and not disponible_en_servicio(
             producto.servicios_disponibles, servicio,
         ):
@@ -177,6 +179,7 @@ def productos_catalogo(
             "nombre": producto.nombre,
             "unidad": producto.unidad.value,
             "stock": stock,
+            "es_bebida": bool(getattr(producto, "es_bebida", False)),
             "etiqueta": f"{producto.nombre} ({stock:g} {producto.unidad.value})",
         })
     return resultado
@@ -362,13 +365,16 @@ def registrar_desayuno(
     num_huespedes: int,
     *,
     ignorar_stock: bool = False,
+    clave_idempotencia: str | None = None,
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
     """Registra el desayuno con descuento atómico.
 
     `ignorar_stock` queda deshabilitado (Fase 9): se ignora el bypass.
+    `clave_idempotencia`: si ya existe un registro con la misma clave, no duplica.
     """
     from app.core.auth.permissions import Permiso
+    from app.core.auth.session import session_tiene_permiso
     from app.core.auth.usecase_guard import usecase_deny_message
 
     denied = usecase_deny_message(Permiso.ACCEDER_REGISTRO)
@@ -391,6 +397,23 @@ def registrar_desayuno(
         return ResultadoOperacion(False, "Indique al menos 1 huésped.")
 
     data = context.data()
+
+    clave = (clave_idempotencia or "").strip() or None
+    if clave:
+        existente = next(
+            (
+                d for d in data.desayunos
+                if getattr(d, "clave_idempotencia", None) == clave
+                and not getattr(d, "anulado", False)
+            ),
+            None,
+        )
+        if existente is not None:
+            return ResultadoOperacion(
+                True,
+                f"Desayuno ya confirmado — ref. {existente.id}.",
+                codigo="IDEMPOTENTE",
+            )
 
     fusionado = _aplanar_cesta()
     grupos = list(get_cesta_recetas())
@@ -453,6 +476,7 @@ def registrar_desayuno(
             registros_recetas,
             context.clock.now().time(),
             lineas_detalle,
+            clave_idempotencia=clave,
         )
         data.desayunos.append(registro)
 
@@ -472,10 +496,12 @@ def registrar_desayuno(
         if registros_recetas:
             detalle_recetas = f" — {len(registros_recetas)} receta(s)"
 
+        ver_costes = session_tiene_permiso(Permiso.CONSULTAR_COSTES)
+        resumen_econ = f" — {coste_total:.2f} €" if ver_costes else ""
         _registrar_actividad(
             context,
             "Registro desayuno",
-            f"Desayuno del {fecha.strftime('%d/%m/%Y')} — {coste_total:.2f} € — {num_huespedes} huéspedes{detalle_recetas}",
+            f"Desayuno del {fecha.strftime('%d/%m/%Y')}{resumen_econ} — {num_huespedes} huéspedes{detalle_recetas}",
         )
         context.uow.commit(data)
     except Exception:
@@ -491,10 +517,18 @@ def registrar_desayuno(
     from app.core.services.alert_service import sincronizar_alertas
     sincronizar_alertas(context)
 
-    return ResultadoOperacion(
-        True,
-        f"Desayuno registrado — {coste_total:.2f} € ({len(lineas)} producto(s)).",
-    )
+    ver_costes = session_tiene_permiso(Permiso.CONSULTAR_COSTES)
+    if ver_costes:
+        msg = (
+            f"Desayuno registrado — ref. {registro_id} — "
+            f"{coste_total:.2f} € ({len(lineas)} producto(s))."
+        )
+    else:
+        msg = (
+            f"Desayuno registrado — ref. {registro_id} "
+            f"({len(lineas)} producto(s))."
+        )
+    return ResultadoOperacion(True, msg)
 
 
 def fecha_mas_antigua(*, ctx: AppContext | None = None) -> date | None:
@@ -675,10 +709,15 @@ class DesayunoRegistroAdapter:
         num_huespedes: int = 0,
         *,
         ignorar_stock: bool = False,
+        clave_idempotencia: str | None = None,
         ctx: AppContext | None = None,
     ) -> ResultadoOperacion:
         return registrar_desayuno(
-            fecha, int(num_huespedes), ignorar_stock=ignorar_stock, ctx=ctx,
+            fecha,
+            int(num_huespedes),
+            ignorar_stock=ignorar_stock,
+            clave_idempotencia=clave_idempotencia,
+            ctx=ctx,
         )
 
     def historial_ordenado(self, *, ctx: AppContext | None = None):

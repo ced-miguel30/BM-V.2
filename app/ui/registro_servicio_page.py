@@ -2,30 +2,83 @@
 
 from __future__ import annotations
 
+import uuid
 from datetime import date, datetime, time
 
 import streamlit as st
 
-from app.core.models import CategoriaReceta
+from app.core.auth.permissions import Permiso
+from app.core.auth.session import get_auth_session, session_tiene_permiso
+from app.core.models import CATEGORIA_RECETA_LABEL, CategoriaReceta
 from app.core.services.data_service import get_repository
 from app.core.services.exportacion_semanal_service import limite_semana
 from app.core.services.formatting import formato_fecha
+from app.core.services.inventory_batch_service import valorizar_cantidad_fifo
 from app.core.services.receta_service import listar_recetas
 from app.core.services.unidad_service import (
     formato_number_input,
     normalizar_cantidad,
     paso_unidad,
 )
+from app.core.storage.session_store import get_data
 from app.ui.cesta_render import boton_exportar_semana, render_cesta_servicio
 from app.ui.components import aviso_servicios_pendientes, empty_state, page_header, section_divider
 from app.ui.search import render_buscador_producto
 
 PASO_CANTIDAD = 1.0  # Compat; inputs usan paso_unidad().
 
+_MODO_RECETAS = "Recetas / elaboraciones"
+_MODO_PRODUCTOS = "Productos directos"
+_MODO_BEBIDAS = "Bebidas"
+
 
 def _lunes_semana_actual() -> date:
     lunes, _ = limite_semana(date.today())
     return lunes
+
+
+def _responsable_actual() -> str:
+    session = get_auth_session()
+    if session and session.actor_label:
+        return session.actor_label
+    return "—"
+
+
+def _etiqueta_categoria_receta(receta) -> str:
+    try:
+        return CATEGORIA_RECETA_LABEL.get(receta.categoria, str(receta.categoria))
+    except Exception:
+        return "—"
+
+
+def _avisos_coste_incompleto(plan_stock) -> list[str]:
+    """Mensajes operativos cuando hay stock pero la valoración FIFO es incompleta."""
+    if plan_stock is None or not plan_stock.ok:
+        return []
+    data = get_data()
+    avisos: list[str] = []
+    for ln in plan_stock.lineas:
+        if ln.salida <= 0 or not ln.ok:
+            continue
+        val = valorizar_cantidad_fifo(data, ln.producto_id, ln.salida)
+        if val.incompleto:
+            ud = f" {ln.unidad}" if ln.unidad else ""
+            avisos.append(
+                f"Coste incompleto para {ln.nombre}: valorado "
+                f"{val.cantidad_valorada:g}{ud} de {ln.salida:g}{ud}."
+            )
+    return avisos
+
+
+def _token_idempotencia(key_prefix: str) -> str:
+    tok_key = f"{key_prefix}_clave_idempotencia"
+    if tok_key not in st.session_state or not st.session_state[tok_key]:
+        st.session_state[tok_key] = str(uuid.uuid4())
+    return st.session_state[tok_key]
+
+
+def _rotar_token_idempotencia(key_prefix: str) -> None:
+    st.session_state[f"{key_prefix}_clave_idempotencia"] = str(uuid.uuid4())
 
 
 def _render_detalle(servicio, registro) -> None:
@@ -80,7 +133,7 @@ def _render_detalle(servicio, registro) -> None:
         ]
         if factores:
             st.caption("Escalado: " + " · ".join(str(f) for f in factores))
-    if idx_coste is not None:
+    if idx_coste is not None and session_tiene_permiso(Permiso.CONSULTAR_COSTES):
         costes = []
         for fila in reg.filas:
             raw = fila[idx_coste]
@@ -95,8 +148,14 @@ def _render_detalle(servicio, registro) -> None:
                 f"Coste líneas de detalle: "
                 f"{get_repository().formato_precio(sum(costes))}"
             )
+    columnas_vis = list(reg.columnas)
+    filas_vis = [list(f) for f in reg.filas]
+    if not session_tiene_permiso(Permiso.CONSULTAR_COSTES) and "Coste" in columnas_vis:
+        idx = columnas_vis.index("Coste")
+        columnas_vis = [c for i, c in enumerate(columnas_vis) if i != idx]
+        filas_vis = [[c for i, c in enumerate(fila) if i != idx] for fila in filas_vis]
     st.dataframe(
-        {col: [fila[i] for fila in reg.filas] for i, col in enumerate(reg.columnas)},
+        {col: [fila[i] for fila in filas_vis] for i, col in enumerate(columnas_vis)},
         use_container_width=True,
         hide_index=True,
     )
@@ -171,187 +230,239 @@ def render_pagina_registro_servicio(
     _ = categorias_receta  # Conservado por compat; el filtro activo es servicios_disponibles.
     repo = get_repository()
     stock_key = f"bm_stock_pendiente_{key_prefix}"
+    ver_costes = session_tiene_permiso(Permiso.CONSULTAR_COSTES)
 
     if mostrar_cabecera:
         page_header(titulo_pagina, subtitulo)
 
-    st.markdown(f"#### Registro rápido de {etiqueta.lower()}")
-    st.caption(
-        "Patrón: fecha → receta o producto directo → cantidad → cesta → confirmar. "
-        "Cantidades positivas (c/ extra) o negativas (s/) ajustan ingredientes."
-    )
     aviso_servicios_pendientes(key_prefix=f"{key_prefix}_aviso_serv")
+
+    cesta_vacia = servicio.cesta_vacia()
+    estado_reg = "Borrador (sin líneas)" if cesta_vacia else "Borrador (pendiente de confirmar)"
+    col_h1, col_h2, col_h3, col_h4 = st.columns(4)
+    with col_h1:
+        fecha = st.date_input(
+            "Fecha", value=date.today(), max_value=date.today(), key=f"{key_prefix}_fecha",
+        )
+    with col_h2:
+        st.markdown("**Servicio**")
+        st.write(etiqueta)
+    with col_h3:
+        st.markdown("**Responsable**")
+        st.write(_responsable_actual())
+    with col_h4:
+        st.markdown("**Estado**")
+        st.write(estado_reg)
+
+    num_huespedes = 0
+    if mostrar_huespedes:
+        num_huespedes = int(st.number_input(
+            "Nº de huéspedes",
+            min_value=min_huespedes,
+            value=max(default_huespedes, min_huespedes),
+            step=1,
+            key=f"{key_prefix}_num_huespedes",
+        ))
+
+    st.caption(
+        "Semántica de receta: la cantidad son **raciones** (no preparaciones completas). "
+        "Factor = raciones ÷ rendimiento configurado. Solo elementos activos."
+    )
 
     col_buscar, col_cesta = st.columns([2, 1])
 
     with col_buscar:
-        fecha = st.date_input(
-            "Fecha", value=date.today(), max_value=date.today(), key=f"{key_prefix}_fecha",
+        modo = st.radio(
+            "Tipo a registrar",
+            [_MODO_RECETAS, _MODO_PRODUCTOS, _MODO_BEBIDAS],
+            horizontal=True,
+            key=f"{key_prefix}_modo_tipo",
         )
-        num_huespedes = 0
-        if mostrar_huespedes:
-            num_huespedes = int(st.number_input(
-                "Nº de huéspedes",
-                min_value=min_huespedes,
-                value=max(default_huespedes, min_huespedes),
-                step=1,
-                key=f"{key_prefix}_num_huespedes",
-            ))
 
-        section_divider()
-        st.markdown(
-            '##### Añadir receta '
-            '<span class="bm-cesta-tipo">Receta</span>',
-            unsafe_allow_html=True,
-        )
-        recetas = listar_recetas(servicio_disponible=servicio.tipo_servicio, solo_activas=True)
-        if recetas:
-            mapa_recetas = {r.nombre: r.id for r in recetas}
-            receta_nombre = st.selectbox(
-                "Receta",
-                list(mapa_recetas.keys()),
-                key=f"{key_prefix}_sel_receta",
+        if modo == _MODO_RECETAS:
+            st.markdown(
+                '##### Recetas / elaboraciones '
+                '<span class="bm-cesta-tipo">Receta</span>',
+                unsafe_allow_html=True,
             )
-            receta_id = mapa_recetas[receta_nombre]
-            receta_obj = next(r for r in recetas if r.id == receta_id)
-            default_porciones = float(receta_obj.porciones_estandar or 0) or 1.0
-            if receta_obj.porciones_estandar:
-                st.caption(
-                    f"Porciones estándar: {receta_obj.porciones_estandar:g}. "
-                    "El factor será porciones pedidas ÷ estándar (igual que el simulador)."
+            recetas = listar_recetas(
+                servicio_disponible=servicio.tipo_servicio, solo_activas=True,
+            )
+            if recetas:
+                mapa_recetas = {
+                    f"{r.nombre} · {_etiqueta_categoria_receta(r)}": r.id for r in recetas
+                }
+                receta_nombre = st.selectbox(
+                    "Buscar receta",
+                    list(mapa_recetas.keys()),
+                    key=f"{key_prefix}_sel_receta",
                 )
-            else:
-                st.warning(
-                    "Esta receta no tiene porciones estándar. "
-                    "Configúrela en Recetas antes de añadirla a la cesta."
-                )
+                receta_id = mapa_recetas[receta_nombre]
+                receta_obj = next(r for r in recetas if r.id == receta_id)
+                default_porciones = float(receta_obj.porciones_estandar or 0) or 1.0
+                if receta_obj.porciones_estandar:
+                    st.caption(
+                        f"Rendimiento configurado: {receta_obj.porciones_estandar:g} raciones. "
+                        "Ejemplo: 2 = 2 raciones (no 2 preparaciones completas)."
+                    )
+                else:
+                    st.warning(
+                        "Esta receta no tiene rendimiento configurado. "
+                        "Configúrela en Recetas antes de añadirla."
+                    )
 
-            porciones = st.number_input(
-                "Porciones a preparar",
-                min_value=0.0,
-                value=default_porciones,
-                step=1.0,
-                format="%.0f",
-                key=f"{key_prefix}_porciones_{receta_id}",
-                help="Rendimiento deseado. Factor = pedidas / estándar.",
-            )
-            if receta_obj.porciones_estandar and porciones > 0:
-                factor_prev = porciones / receta_obj.porciones_estandar
-                st.caption(f"Factor previsto: {factor_prev:g}")
-
-            st.caption("Extras u omisiones para esta receta (antes de añadir a la cesta)")
-            catalogo = servicio.productos_catalogo("")
-            producto_mod = render_buscador_producto(
-                catalogo,
-                f"{key_prefix}_mod_receta",
-                label="Buscar producto",
-                placeholder="Escriba para buscar producto...",
-            )
-            if producto_mod:
-                unidad_mod = producto_mod.get("unidad", "Ud")
-                cant_mod = st.number_input(
-                    "Cantidad (+ extra / − omitir)",
-                    value=float(paso_unidad(unidad_mod)),
-                    step=paso_unidad(unidad_mod),
-                    format=formato_number_input(unidad_mod),
-                    key=f"{key_prefix}_cant_mod",
+                porciones = st.number_input(
+                    "Raciones a registrar",
+                    min_value=0.0,
+                    value=default_porciones,
+                    step=1.0,
+                    format="%.0f",
+                    key=f"{key_prefix}_porciones_{receta_id}",
+                    help="Cantidad en raciones. Factor = pedidas / rendimiento.",
                 )
-                cant_mod = normalizar_cantidad(cant_mod, unidad_mod)
+                if receta_obj.porciones_estandar and porciones > 0:
+                    factor_prev = porciones / receta_obj.porciones_estandar
+                    st.caption(f"Factor previsto: {factor_prev:g}")
+
+                with st.expander("Extras u omisiones (opcional)", expanded=False):
+                    catalogo = servicio.productos_catalogo("")
+                    producto_mod = render_buscador_producto(
+                        catalogo,
+                        f"{key_prefix}_mod_receta",
+                        label="Buscar producto",
+                        placeholder="Escriba para buscar producto...",
+                    )
+                    if producto_mod:
+                        unidad_mod = producto_mod.get("unidad", "Ud")
+                        cant_mod = st.number_input(
+                            "Cantidad (+ extra / − omitir)",
+                            value=float(paso_unidad(unidad_mod)),
+                            step=paso_unidad(unidad_mod),
+                            format=formato_number_input(unidad_mod),
+                            key=f"{key_prefix}_cant_mod",
+                        )
+                        cant_mod = normalizar_cantidad(cant_mod, unidad_mod)
+                        if st.button(
+                            "Añadir extra/omisión",
+                            key=f"{key_prefix}_btn_mod",
+                            use_container_width=True,
+                        ):
+                            resultado = servicio.anadir_mod_pendiente_receta(
+                                producto_mod["id"], cant_mod,
+                            )
+                            if resultado.ok:
+                                st.success(resultado.mensaje)
+                                st.rerun()
+                            else:
+                                st.error(resultado.mensaje)
+
+                    mods = servicio.get_mods_pendientes()
+                    if mods:
+                        st.markdown("**Pendientes para esta receta:**")
+                        for mod in mods:
+                            col_txt, col_q = st.columns([5, 1])
+                            etiqueta_mod = (
+                                f"c/ extra {mod.nombre}"
+                                if mod.cantidad > 0
+                                else f"s/ {mod.nombre}"
+                            )
+                            with col_txt:
+                                st.markdown(
+                                    f"- {etiqueta_mod} — {abs(mod.cantidad):g} {mod.unidad}"
+                                )
+                            with col_q:
+                                if st.button("✕", key=f"{key_prefix}_quitar_mod_{mod.mod_id}"):
+                                    servicio.quitar_mod_pendiente(mod.mod_id)
+                                    st.rerun()
+
                 if st.button(
-                    "Añadir extra/omisión",
-                    key=f"{key_prefix}_btn_mod",
+                    "Añadir a la cesta",
+                    type="primary",
                     use_container_width=True,
+                    key=f"{key_prefix}_btn_receta",
                 ):
-                    resultado = servicio.anadir_mod_pendiente_receta(producto_mod["id"], cant_mod)
+                    mods = servicio.get_mods_pendientes()
+                    resultado = servicio.anadir_receta_a_cesta(receta_id, porciones, list(mods))
                     if resultado.ok:
                         st.success(resultado.mensaje)
                         st.rerun()
                     else:
                         st.error(resultado.mensaje)
+            else:
+                empty_state(
+                    "No hay recetas activas con este servicio disponible. "
+                    "Configúrelas en Recetas.",
+                    icon="📖",
+                )
 
-            mods = servicio.get_mods_pendientes()
-            if mods:
-                st.markdown("**Pendientes para esta receta:**")
-                for mod in mods:
-                    col_txt, col_q = st.columns([5, 1])
-                    etiqueta_mod = f"c/ extra {mod.nombre}" if mod.cantidad > 0 else f"s/ {mod.nombre}"
-                    with col_txt:
-                        st.markdown(f"- {etiqueta_mod} — {abs(mod.cantidad):g} {mod.unidad}")
-                    with col_q:
-                        if st.button("✕", key=f"{key_prefix}_quitar_mod_{mod.mod_id}"):
-                            servicio.quitar_mod_pendiente(mod.mod_id)
+        else:
+            es_bebida_modo = modo == _MODO_BEBIDAS
+            tipo_lbl = "Bebida" if es_bebida_modo else "Producto directo"
+            st.markdown(
+                f'##### {modo} '
+                f'<span class="bm-cesta-tipo">{tipo_lbl}</span>',
+                unsafe_allow_html=True,
+            )
+            if es_bebida_modo and getattr(servicio, "tipo_servicio", "") == "desayuno":
+                st.caption(
+                    "Estas bebidas pertenecen al servicio Desayuno "
+                    "(no se registran como servicio independiente Bebidas)."
+                )
+            todos_productos = [
+                p for p in servicio.productos_catalogo("")
+                if bool(p.get("es_bebida")) == es_bebida_modo
+            ]
+            producto_sel = render_buscador_producto(
+                todos_productos,
+                f"{key_prefix}_{'beb' if es_bebida_modo else 'prod'}",
+                label="Buscar por nombre",
+                placeholder="Escriba el nombre...",
+            )
+            if producto_sel:
+                unidad_prod = producto_sel.get("unidad", "Ud")
+                st.caption(
+                    f"Unidad: {unidad_prod} · Stock: {producto_sel.get('stock', 0):g}"
+                )
+                cantidad = st.number_input(
+                    "Cantidad",
+                    min_value=0.0,
+                    value=float(paso_unidad(unidad_prod)),
+                    step=paso_unidad(unidad_prod),
+                    format=formato_number_input(unidad_prod),
+                    key=f"{key_prefix}_cantidad_{'beb' if es_bebida_modo else 'prod'}",
+                )
+                cantidad = normalizar_cantidad(cantidad, unidad_prod)
+                if st.button(
+                    "Añadir a la cesta",
+                    type="primary",
+                    use_container_width=True,
+                    key=f"{key_prefix}_btn_anadir_{'beb' if es_bebida_modo else 'prod'}",
+                ):
+                    if cantidad <= 0:
+                        st.error("La cantidad debe ser mayor que 0.")
+                    else:
+                        resultado = servicio.anadir_a_cesta(producto_sel["id"], cantidad)
+                        if resultado.ok:
+                            st.success(resultado.mensaje)
                             st.rerun()
-
-            if st.button(
-                "Añadir receta a la cesta",
-                type="secondary",
-                use_container_width=True,
-                key=f"{key_prefix}_btn_receta",
-            ):
-                resultado = servicio.anadir_receta_a_cesta(receta_id, porciones, list(mods))
-                if resultado.ok:
-                    st.success(resultado.mensaje)
-                    st.rerun()
-                else:
-                    st.error(resultado.mensaje)
-        else:
-            empty_state(
-                "No hay recetas con este servicio disponible. "
-                "Configúrelas en Recetas (servicios disponibles).",
-                icon="📖",
-            )
-
-        section_divider()
-        st.markdown(
-            '##### Añadir producto suelto '
-            '<span class="bm-cesta-tipo">Producto directo</span>',
-            unsafe_allow_html=True,
-        )
-        todos_productos = servicio.productos_catalogo("")
-        producto_sel = render_buscador_producto(
-            todos_productos,
-            key_prefix,
-            label="Buscar producto",
-            placeholder="Escriba el nombre del producto...",
-        )
-        if producto_sel:
-            unidad_prod = producto_sel.get("unidad", "Ud")
-            cantidad = st.number_input(
-                "Cantidad (+ extra / − omitir)",
-                value=float(paso_unidad(unidad_prod)),
-                step=paso_unidad(unidad_prod),
-                format=formato_number_input(unidad_prod),
-                key=f"{key_prefix}_cantidad",
-            )
-            cantidad = normalizar_cantidad(cantidad, unidad_prod)
-            if st.button(
-                "Añadir producto a la cesta",
-                type="secondary",
-                use_container_width=True,
-                key=f"{key_prefix}_btn_anadir",
-            ):
-                resultado = servicio.anadir_a_cesta(producto_sel["id"], cantidad)
-                if resultado.ok:
-                    st.success(resultado.mensaje)
-                    st.rerun()
-                else:
-                    st.error(resultado.mensaje)
-        elif todos_productos:
-            empty_state("No hay coincidencias para la búsqueda.", icon="🔍")
-        else:
-            empty_state(
-                "No hay productos con este servicio disponible. "
-                "Configúrelos en Stock (servicios disponibles).",
-                icon="🔍",
-            )
+                        else:
+                            st.error(resultado.mensaje)
+            elif todos_productos:
+                empty_state("No hay coincidencias para la búsqueda.", icon="🔍")
+            else:
+                empty_state(
+                    f"No hay {'bebidas' if es_bebida_modo else 'productos'} activos "
+                    "con este servicio disponible.",
+                    icon="🔍",
+                )
 
     with col_cesta:
         render_cesta_servicio(
             servicio,
             repo,
-            titulo_cesta=etiqueta,
+            titulo_cesta="Resumen",
             key_prefix=key_prefix,
-            vacio_mensaje=f"Todavía no has añadido productos a {etiqueta.lower()}.",
+            vacio_mensaje=f"Todavía no has añadido líneas a {etiqueta.lower()}.",
         )
 
         plan_stock = None
@@ -376,21 +487,36 @@ def render_pagina_registro_servicio(
                     hide_index=True,
                 )
                 if not plan_stock.ok:
-                    st.error(
-                        "Stock insuficiente: al confirmar no se modificará nada. "
-                        "Ajuste la cesta o reponga inventario."
-                    )
+                    st.error("Stock insuficiente: no se confirmará nada hasta corregir.")
+                    for linea in plan_stock.deficits:
+                        st.markdown(f"- {linea}")
+                for aviso in _avisos_coste_incompleto(plan_stock):
+                    st.warning(aviso)
 
+        confirma = st.checkbox(
+            f"Confirmo el registro de {etiqueta.lower()}",
+            key=f"{key_prefix}_confirma_reg",
+            disabled=servicio.cesta_vacia() or bool(plan_stock is not None and not plan_stock.ok),
+        )
         if st.button(
             f"Registrar {etiqueta.lower()}",
             type="primary",
             use_container_width=True,
             key=f"{key_prefix}_btn_registrar",
-            disabled=bool(plan_stock is not None and not plan_stock.ok),
+            disabled=(
+                not confirma
+                or servicio.cesta_vacia()
+                or bool(plan_stock is not None and not plan_stock.ok)
+            ),
         ):
-            resultado = servicio.registrar(fecha, num_huespedes)
+            token = _token_idempotencia(key_prefix)
+            resultado = servicio.registrar(
+                fecha, num_huespedes, clave_idempotencia=token,
+            )
             if resultado.ok:
                 st.session_state.pop(stock_key, None)
+                _rotar_token_idempotencia(key_prefix)
+                st.session_state[f"{key_prefix}_confirma_reg"] = False
                 st.success(resultado.mensaje)
                 st.rerun()
             elif resultado.codigo == "STOCK_INSUFICIENTE":
@@ -413,7 +539,6 @@ def render_pagina_registro_servicio(
 
     registros = servicio.historial_ordenado()
     registros_semana = [r for r in registros if r.fecha >= _lunes_semana_actual()]
-    # Listado operativo: excluir anulados. Historial/detalle: incluir con etiqueta.
     registros_activos = [
         r for r in registros_semana if not getattr(r, "anulado", False)
     ]
@@ -434,9 +559,11 @@ def render_pagina_registro_servicio(
             "Cantidad total": [
                 round(sum(abs(l.cantidad) for l in r.lineas), 2) for r in registros_activos
             ],
-            "Coste": [repo.formato_precio(r.coste_total) for r in registros_activos],
+            "Ref.": [r.id for r in registros_activos],
             "Registrado por": [r.registrado_por for r in registros_activos],
         })
+        if ver_costes:
+            columnas["Coste"] = [repo.formato_precio(r.coste_total) for r in registros_activos]
         st.dataframe(columnas, use_container_width=True, hide_index=True)
     elif not registros_semana:
         empty_state(mensaje_vacio_historial, icon="📅")

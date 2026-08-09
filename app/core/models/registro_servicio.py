@@ -90,3 +90,5 @@ class RegistroServicio:
     motivo_anulacion: str = ""
     referencia_anulacion: str = ""
     anulado_por: str = ""
+    # Token de confirmación UI (aditivo; históricos → None). Evita doble registro.
+    clave_idempotencia: str | None = None

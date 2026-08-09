@@ -1021,6 +1021,7 @@ def appdata_to_dict(data: AppData) -> dict:
                 "motivo_anulacion": getattr(d, "motivo_anulacion", "") or "",
                 "referencia_anulacion": getattr(d, "referencia_anulacion", "") or "",
                 "anulado_por": getattr(d, "anulado_por", "") or "",
+                "clave_idempotencia": getattr(d, "clave_idempotencia", None),
             }
             for d in data.desayunos
         ],
@@ -1075,6 +1076,7 @@ def appdata_to_dict(data: AppData) -> dict:
                 "motivo_anulacion": getattr(r, "motivo_anulacion", "") or "",
                 "referencia_anulacion": getattr(r, "referencia_anulacion", "") or "",
                 "anulado_por": getattr(r, "anulado_por", "") or "",
+                "clave_idempotencia": getattr(r, "clave_idempotencia", None),
             }
             for r in data.registros_servicio
         ],
@@ -1343,6 +1345,7 @@ def dict_to_appdata(payload: dict) -> AppData:
                 motivo_anulacion=d.get("motivo_anulacion", "") or "",
                 referencia_anulacion=d.get("referencia_anulacion", "") or "",
                 anulado_por=d.get("anulado_por", "") or "",
+                clave_idempotencia=d.get("clave_idempotencia"),
             )
             for d in payload.get("desayunos", [])
         ],
@@ -1396,6 +1399,7 @@ def dict_to_appdata(payload: dict) -> AppData:
                 motivo_anulacion=r.get("motivo_anulacion", "") or "",
                 referencia_anulacion=r.get("referencia_anulacion", "") or "",
                 anulado_por=r.get("anulado_por", "") or "",
+                clave_idempotencia=r.get("clave_idempotencia"),
             )
             for r in payload.get("registros_servicio", [])
         ],

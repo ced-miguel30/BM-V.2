@@ -7,6 +7,8 @@ from datetime import datetime
 
 import streamlit as st
 
+from app.core.auth.permissions import Permiso
+from app.core.auth.session import session_tiene_permiso
 from app.core.models import SERVICIO_DISPONIBLE_LABEL, TipoServicio
 from app.core.services.cesta_service import (
     cantidad_texto_linea_receta,
@@ -148,6 +150,10 @@ def _bloque_titulo_cesta(
     )
 
 
+def _meta_partes(*partes: str) -> str:
+    return " · ".join(p for p in partes if p)
+
+
 def render_cesta_servicio(
     servicio,
     repo,
@@ -162,6 +168,7 @@ def render_cesta_servicio(
     hay_contenido = bool(grupos or cesta)
     data = get_data()
     servicio_lbl = _etiqueta_servicio(getattr(servicio, "tipo_servicio", ""))
+    ver_costes = session_tiene_permiso(Permiso.CONSULTAR_COSTES)
 
     with st.container(border=True):
         st.markdown(
@@ -195,7 +202,6 @@ def render_cesta_servicio(
                     ),
                     2,
                 )
-                # Disponibilidad: peor caso entre ingredientes con consumo positivo.
                 estados = [
                     _texto_disponibilidad(data, ing.producto_id, ing.cantidad)
                     for ing in grupo.ingredientes
@@ -213,15 +219,16 @@ def render_cesta_servicio(
                 estandar = getattr(grupo, "porciones_estandar", None)
                 if factor is not None and estandar is not None:
                     escala_txt = (
-                        f"{grupo.porciones:g} porciones "
-                        f"(est. {estandar:g}, factor {factor:g})"
+                        f"{grupo.porciones:g} raciones "
+                        f"(rend. {estandar:g}, factor {factor:g})"
                     )
                 else:
-                    escala_txt = f"{grupo.porciones:g} porciones"
-                meta = (
-                    f"{escala_txt} · "
-                    f"{repo.formato_precio(coste_grupo)} · "
-                    f"{servicio_lbl} · {disp}"
+                    escala_txt = f"{grupo.porciones:g} raciones"
+                meta = _meta_partes(
+                    escala_txt,
+                    repo.formato_precio(coste_grupo) if ver_costes else "",
+                    servicio_lbl,
+                    disp,
                 )
                 fila_cesta(
                     _bloque_titulo_cesta(grupo.nombre_receta, "Receta", meta=meta),
@@ -238,8 +245,10 @@ def render_cesta_servicio(
                     paso = servicio.paso_linea_grupo(grupo.grupo_id, ing.linea_id)
                     coste_ing = calcular_coste_linea(data, ing.producto_id, max(ing.cantidad, 0))
                     disp_ing = _texto_disponibilidad(data, ing.producto_id, ing.cantidad)
-                    meta_ing = (
-                        f"{repo.formato_precio(coste_ing)} · {servicio_lbl} · {disp_ing}"
+                    meta_ing = _meta_partes(
+                        repo.formato_precio(coste_ing) if ver_costes else "",
+                        servicio_lbl,
+                        disp_ing,
                     )
                     fila_cesta(
                         (
@@ -264,14 +273,24 @@ def render_cesta_servicio(
                 paso = servicio.paso_linea_suelta(linea.linea_id)
                 coste_ln = calcular_coste_linea(data, linea.producto_id, max(linea.cantidad, 0))
                 disp_ln = _texto_disponibilidad(data, linea.producto_id, linea.cantidad)
-                meta_ln = (
-                    f"{abs(linea.cantidad):g} {linea.unidad} · "
-                    f"{repo.formato_precio(coste_ln)} · "
-                    f"{servicio_lbl} · {disp_ln}"
+                prod = next(
+                    (p for p in data.productos if p.id == linea.producto_id),
+                    None,
+                )
+                tipo_ln = (
+                    "Bebida"
+                    if prod is not None and getattr(prod, "es_bebida", False)
+                    else "Producto directo"
+                )
+                meta_ln = _meta_partes(
+                    f"{abs(linea.cantidad):g} {linea.unidad}",
+                    repo.formato_precio(coste_ln) if ver_costes else "",
+                    servicio_lbl,
+                    disp_ln,
                 )
                 fila_cesta(
                     _bloque_titulo_cesta(
-                        etiqueta_linea_suelta(linea), "Producto directo", meta=meta_ln,
+                        etiqueta_linea_suelta(linea), tipo_ln, meta=meta_ln,
                     ),
                     f"{key_prefix}_suelto_{linea.linea_id}",
                     lambda l=linea: quitar_y_rerun(servicio.quitar_linea_suelta, l.linea_id),
@@ -282,18 +301,19 @@ def render_cesta_servicio(
                     on_mas=lambda l=linea, p=paso: ok_o_error(
                         servicio.ajustar_cantidad_suelto(l.linea_id, p)
                     ),
-                    ayuda_quitar="Eliminar producto",
+                    ayuda_quitar="Eliminar línea",
                 )
 
-        total = servicio.coste_total_cesta()
-        st.markdown(
-            '<div class="bm-cesta-total">'
-            "<span>Coste estimado</span>"
-            f"<span>{repo.formato_precio(total)}</span>"
-            "</div>",
-            unsafe_allow_html=True,
-        )
-        st.caption("Coste calculado por FIFO según lotes actuales.")
+        if ver_costes:
+            total = servicio.coste_total_cesta()
+            st.markdown(
+                '<div class="bm-cesta-total">'
+                "<span>Coste estimado</span>"
+                f"<span>{repo.formato_precio(total)}</span>"
+                "</div>",
+                unsafe_allow_html=True,
+            )
+            st.caption("Coste calculado por FIFO según lotes actuales.")
 
         if st.button("Vaciar cesta", use_container_width=True, key=f"{key_prefix}_vaciar_cesta"):
             servicio.limpiar_cesta()
