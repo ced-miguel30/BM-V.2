@@ -21,10 +21,15 @@ from app.core.services.stock_service import (
     UNIDADES,
     crear_bebida,
     crear_producto,
+    desactivar_producto,
+    editar_producto,
     editar_producto_catalogo,
+    eliminar_producto,
     mapa_bebidas,
     mapa_productos,
+    reactivar_producto,
     registrar_lote,
+    resumen_uso_producto,
 )
 from app.core.services.unidad_service import (
     formato_number_input,
@@ -315,7 +320,11 @@ def _render_catalogo_solo(*, es_bebida: bool) -> None:
     key_prefix = "bebida" if es_bebida else "producto"
     etiqueta = "bebida" if es_bebida else "producto"
     crear_fn = crear_bebida if es_bebida else crear_producto
-    mapa_fn = mapa_bebidas if es_bebida else lambda d: mapa_productos(d, es_bebida=False)
+    mapa_fn = (
+        (lambda d: mapa_bebidas(d))  # bebidas vía mapa_productos
+        if es_bebida
+        else (lambda d: mapa_productos(d, es_bebida=False, solo_activos=False))
+    )
 
     st.caption(
         "La categoría estructurada y los departamentos organizan el inventario. "
@@ -436,7 +445,18 @@ def _render_catalogo_solo(*, es_bebida: bool) -> None:
         if not catalogo_map:
             st.warning(f"No hay {etiqueta}s para configurar.")
         else:
+            filtro = st.text_input(
+                f"Buscar {etiqueta}",
+                key=f"cfg_buscar_{key_prefix}",
+                placeholder="Nombre…",
+            )
             nombres = list(catalogo_map.keys())
+            if filtro.strip():
+                q = filtro.strip().lower()
+                nombres = [n for n in nombres if q in n.lower()]
+            if not nombres:
+                st.info("Ningún resultado para la búsqueda.")
+                return
             sel_nombre = st.selectbox(
                 f"Seleccionar {etiqueta}",
                 nombres,
@@ -444,6 +464,93 @@ def _render_catalogo_solo(*, es_bebida: bool) -> None:
             )
             producto = repo.get_producto(catalogo_map[sel_nombre])
             if producto:
+                uso = resumen_uso_producto(repo.data, producto.id)
+                estado = "Activo" if getattr(producto, "activo", True) else "Inactivo"
+                unidad_txt = (
+                    producto.unidad.value
+                    if hasattr(producto.unidad, "value")
+                    else str(producto.unidad)
+                )
+                st.caption(
+                    f"Estado: **{estado}** · Unidad base: **{unidad_txt}** · "
+                    f"Código: **{getattr(producto, 'codigo', None) or '—'}** · "
+                    f"Recetas: **{uso['recetas']}** · Lotes: **{uso['lotes']}** · "
+                    f"Movimientos: **{uso['movimientos']}** · "
+                    f"Vínculos: **{uso['vinculos']}**"
+                )
+                st.markdown("###### Datos básicos")
+                nombre_e = st.text_input(
+                    "Nombre",
+                    value=producto.nombre,
+                    key=f"cfg_nombre_{key_prefix}_{producto.id}",
+                )
+                stock_min_e = st.number_input(
+                    f"Stock mínimo ({unidad_txt})",
+                    min_value=0.0,
+                    value=float(producto.stock_minimo or 0.0),
+                    step=paso_unidad(unidad_txt),
+                    format=formato_number_input(unidad_txt),
+                    key=f"cfg_stockmin_{key_prefix}_{producto.id}",
+                    help="0 = sin mínimo. No se admiten negativos.",
+                )
+                unidad_bloqueada = (
+                    uso["lotes"]
+                    + uso["movimientos"]
+                    + uso["documentos"]
+                    + uso["recetas"]
+                    > 0
+                )
+                unidad_e = st.selectbox(
+                    "Unidad base",
+                    UNIDADES,
+                    index=UNIDADES.index(unidad_txt) if unidad_txt in UNIDADES else 0,
+                    key=f"cfg_unidad_{key_prefix}_{producto.id}",
+                    disabled=unidad_bloqueada,
+                    help=(
+                        "Bloqueada por histórico existente."
+                        if unidad_bloqueada
+                        else "Cambiar solo sin lotes/movimientos/documentos/recetas."
+                    ),
+                )
+                if st.button(
+                    "Guardar datos básicos",
+                    key=f"cfg_basicos_{key_prefix}",
+                ):
+                    resultado = editar_producto(
+                        producto.id,
+                        nombre=nombre_e,
+                        stock_minimo=normalizar_cantidad(stock_min_e, unidad_txt),
+                        unidad=None if unidad_bloqueada else unidad_e,
+                    )
+                    if resultado.ok:
+                        st.success(resultado.mensaje)
+                        st.rerun()
+                    else:
+                        st.error(resultado.mensaje)
+                c_act, c_del = st.columns(2)
+                with c_act:
+                    if getattr(producto, "activo", True):
+                        if st.button("Desactivar", key=f"cfg_off_{key_prefix}"):
+                            r = desactivar_producto(producto.id)
+                            st.success(r.mensaje) if r.ok else st.error(r.mensaje)
+                            if r.ok:
+                                st.rerun()
+                    else:
+                        if st.button("Reactivar", key=f"cfg_on_{key_prefix}"):
+                            r = reactivar_producto(producto.id)
+                            st.success(r.mensaje) if r.ok else st.error(r.mensaje)
+                            if r.ok:
+                                st.rerun()
+                with c_del:
+                    if st.button(
+                        "Eliminar (solo sin histórico)",
+                        key=f"cfg_del_{key_prefix}",
+                    ):
+                        r = eliminar_producto(producto.id)
+                        st.success(r.mensaje) if r.ok else st.error(r.mensaje)
+                        if r.ok:
+                            st.rerun()
+                st.markdown("###### Catálogo")
                 et_cat = cat.etiqueta_categoria(repo.data, producto.categoria_id)
                 et_sub = cat.etiqueta_subcategoria(repo.data, producto.subcategoria_id)
                 et_deps = ", ".join(

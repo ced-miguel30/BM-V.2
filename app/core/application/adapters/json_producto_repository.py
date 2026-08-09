@@ -20,7 +20,7 @@ class JsonProductoRepository:
 
     def listar(self, *, es_bebida: bool | None = None, solo_activos: bool = True) -> list[Producto]:
         items = list(self._uow.get_data().productos)
-        # `activo` aún no existe en Producto; getattr mantiene compatibilidad futura.
+        # `activo` en Producto; getattr mantiene compatibilidad con datos antiguos.
         if solo_activos:
             items = [p for p in items if getattr(p, "activo", True)]
         if es_bebida is not None:

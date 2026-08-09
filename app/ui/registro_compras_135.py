@@ -91,13 +91,16 @@ def render_registro_compras_135() -> None:
 
 
 def _mapa_productos(data):
-    productos = list(data.productos)
+    productos = [p for p in data.productos if getattr(p, "activo", True)]
     mapa_prod = {
         f"{p.nombre} [{getattr(p, 'codigo', None) or '—'}] ({p.id})": p
         for p in productos
     }
-    mapa_por_id = {p.id: p for p in productos}
-    mapa_label_por_id = {p.id: lbl for lbl, p in mapa_prod.items()}
+    mapa_por_id = {p.id: p for p in data.productos}
+    mapa_label_por_id = {
+        p.id: f"{p.nombre} [{getattr(p, 'codigo', None) or '—'}] ({p.id})"
+        for p in data.productos
+    }
     return mapa_prod, mapa_por_id, mapa_label_por_id
 
 

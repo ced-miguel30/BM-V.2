@@ -943,6 +943,7 @@ def appdata_to_dict(data: AppData) -> dict:
                     if getattr(p, "codigo", None) is not None
                     else {}
                 ),
+                "activo": bool(getattr(p, "activo", True)),
             }
             for p in data.productos
         ],
@@ -1084,6 +1085,7 @@ def appdata_to_dict(data: AppData) -> dict:
                 "categoria": r.categoria.value,
                 "servicios_disponibles": list(r.servicios_disponibles),
                 "porciones_estandar": r.porciones_estandar,
+                "activo": bool(getattr(r, "activo", True)),
                 "ingredientes": [
                     {
                         "producto_id": i.producto_id,
@@ -1278,6 +1280,7 @@ def dict_to_appdata(payload: dict) -> AppData:
                 ],
                 tipo_articulo=_parse_tipo_articulo(p.get("tipo_articulo")),
                 codigo=p.get("codigo"),
+                activo=bool(p.get("activo", True)),
             )
             for p in payload.get("productos", [])
         ],
@@ -1417,6 +1420,7 @@ def dict_to_appdata(payload: dict) -> AppData:
                 ],
                 # Ausente / null = no configurado (Fase 7).
                 r.get("porciones_estandar"),
+                activo=bool(r.get("activo", True)),
             )
             for r in payload.get("recetas", [])
         ],

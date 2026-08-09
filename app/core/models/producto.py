@@ -33,3 +33,5 @@ class Producto:
     tipo_articulo: TipoArticulo | str | None = None
     # A9 — código funcional; obligatorio en altas nuevas; legacy None admitido.
     codigo: str | None = None
+    # Soft-disable: inactivo no entra en selecciones nuevas; el histórico se conserva.
+    activo: bool = True

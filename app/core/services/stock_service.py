@@ -84,9 +84,85 @@ def _registrar_actividad(data: AppData, accion: str, detalle: str) -> None:
     data.actividades.insert(0, actividad)
 
 
-def _nombre_duplicado(data: AppData, nombre: str) -> bool:
-    nombre_norm = nombre.strip().lower()
-    return any(p.nombre.strip().lower() == nombre_norm for p in data.productos)
+def _normalizar_nombre_producto(nombre: str) -> str:
+    return " ".join((nombre or "").strip().split())
+
+
+def _nombre_duplicado(
+    data: AppData, nombre: str, *, excluir_id: str | None = None
+) -> bool:
+    nombre_norm = _normalizar_nombre_producto(nombre).lower()
+    for p in data.productos:
+        if excluir_id and p.id == excluir_id:
+            continue
+        if _normalizar_nombre_producto(p.nombre).lower() == nombre_norm:
+            return True
+    return False
+
+
+def _validar_stock_minimo(
+    stock_minimo: float | None,
+) -> tuple[float | None, str | None]:
+    if stock_minimo is None or stock_minimo == "":
+        return None, None
+    try:
+        valor = float(stock_minimo)
+    except (TypeError, ValueError):
+        return None, "El stock mínimo no es un número válido."
+    if valor < 0:
+        return None, "El stock mínimo no puede ser negativo."
+    if valor == 0:
+        return None, None
+    return valor, None
+
+
+def resumen_uso_producto(data: AppData, producto_id: str) -> dict[str, int]:
+    """Conteos de referencias operativas (para UI y protecciones)."""
+    n_recetas = sum(
+        1
+        for r in data.recetas
+        if any(i.producto_id == producto_id for i in r.ingredientes)
+    )
+    n_lotes = sum(1 for l in data.lotes if l.producto_id == producto_id)
+    n_movs = sum(
+        1
+        for m in getattr(data, "movimientos", []) or []
+        if getattr(m, "producto_id", None) == producto_id
+    )
+    n_docs = 0
+    for d in getattr(data, "documentos", []) or []:
+        for ln in getattr(d, "lineas", []) or []:
+            if getattr(ln, "producto_id", None) == producto_id:
+                n_docs += 1
+                break
+    n_rel = sum(
+        1
+        for r in getattr(data, "relaciones_producto_proveedor", []) or []
+        if r.producto_id == producto_id and getattr(r, "activo", True)
+    )
+    return {
+        "recetas": n_recetas,
+        "lotes": n_lotes,
+        "movimientos": n_movs,
+        "documentos": n_docs,
+        "vinculos": n_rel,
+    }
+
+
+def producto_tiene_historico_unidad(data: AppData, producto_id: str) -> bool:
+    """True si cambiar la unidad base invalidaría histórico."""
+    uso = resumen_uso_producto(data, producto_id)
+    return (
+        uso["lotes"] > 0
+        or uso["movimientos"] > 0
+        or uso["documentos"] > 0
+        or uso["recetas"] > 0
+    )
+
+
+def producto_tiene_referencias(data: AppData, producto_id: str) -> bool:
+    uso = resumen_uso_producto(data, producto_id)
+    return any(v > 0 for v in uso.values())
 
 
 def crear_producto(
@@ -112,7 +188,7 @@ def crear_producto(
     if denied:
         return ResultadoOperacion(False, denied)
 
-    nombre = nombre.strip()
+    nombre = _normalizar_nombre_producto(nombre)
     if not nombre:
         return ResultadoOperacion(
             False,
@@ -125,6 +201,10 @@ def crear_producto(
     codigo_n = normalizar_codigo_funcional(codigo)
     if not codigo_n:
         return ResultadoOperacion(False, "El código es obligatorio en altas nuevas.")
+
+    stock_min, err_sm = _validar_stock_minimo(stock_minimo)
+    if err_sm:
+        return ResultadoOperacion(False, err_sm)
 
     data = get_data()
     if any(
@@ -162,7 +242,6 @@ def crear_producto(
     if not validacion.ok:
         return ResultadoOperacion(False, validacion.mensaje)
 
-    stock_min = stock_minimo if stock_minimo and stock_minimo > 0 else None
     prefix = "b" if es_bebida else "p"
     ids_mismo_tipo = [p.id for p in data.productos if p.id.startswith(prefix)]
 
@@ -180,6 +259,7 @@ def crear_producto(
         ubicacion_ids=ubis,
         tipo_articulo=tipo_norm,
         codigo=codigo_n,
+        activo=True,
     )
     data.productos.append(producto)
     accion = "Crear bebida" if es_bebida else "Crear producto"
@@ -300,6 +380,149 @@ def editar_producto_catalogo(
     return ResultadoOperacion(True, f"Producto «{producto.nombre}» actualizado.")
 
 
+def editar_producto(
+    producto_id: str,
+    *,
+    nombre: str | None = None,
+    stock_minimo=...,
+    unidad: str | None = None,
+) -> ResultadoOperacion:
+    """Edita nombre, stock mínimo y (si no hay histórico) unidad base."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_INVENTARIO, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
+    data = get_data()
+    producto = next((p for p in data.productos if p.id == producto_id), None)
+    if not producto:
+        return ResultadoOperacion(False, "Producto no encontrado.")
+
+    if nombre is not None:
+        nom = _normalizar_nombre_producto(nombre)
+        if len(nom) < 2:
+            return ResultadoOperacion(False, "El nombre debe tener al menos 2 caracteres.")
+        if _nombre_duplicado(data, nom, excluir_id=producto_id):
+            tipo = "bebida" if producto.es_bebida else "producto"
+            return ResultadoOperacion(False, f"Ya existe un {tipo} llamado «{nom}».")
+        producto.nombre = nom
+
+    if stock_minimo is not ...:
+        sm, err_sm = _validar_stock_minimo(stock_minimo)
+        if err_sm:
+            return ResultadoOperacion(False, err_sm)
+        producto.stock_minimo = sm
+
+    if unidad is not None:
+        if unidad not in UNIDADES:
+            return ResultadoOperacion(False, "Seleccione una unidad válida.")
+        unidad_actual = (
+            producto.unidad.value
+            if hasattr(producto.unidad, "value")
+            else str(producto.unidad)
+        )
+        if unidad != unidad_actual:
+            if producto_tiene_historico_unidad(data, producto_id):
+                uso = resumen_uso_producto(data, producto_id)
+                partes = []
+                if uso["lotes"]:
+                    partes.append(f"{uso['lotes']} lote(s)")
+                if uso["movimientos"]:
+                    partes.append(f"{uso['movimientos']} movimiento(s)")
+                if uso["documentos"]:
+                    partes.append(f"{uso['documentos']} documento(s)")
+                if uso["recetas"]:
+                    partes.append(f"{uso['recetas']} receta(s)")
+                detalle = ", ".join(partes) or "histórico operativo"
+                return ResultadoOperacion(
+                    False,
+                    "No se puede cambiar la unidad base: el producto tiene "
+                    f"{detalle}. El histórico no se convierte automáticamente.",
+                )
+            producto.unidad = UnidadProducto(unidad)
+
+    _registrar_actividad(data, "Editar producto", f"«{producto.nombre}» actualizado")
+    persist_data(data)
+    return ResultadoOperacion(True, f"Producto «{producto.nombre}» actualizado.")
+
+
+def desactivar_producto(producto_id: str) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_INVENTARIO, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
+    data = get_data()
+    producto = next((p for p in data.productos if p.id == producto_id), None)
+    if not producto:
+        return ResultadoOperacion(False, "Producto no encontrado.")
+    if not getattr(producto, "activo", True):
+        return ResultadoOperacion(False, "El producto ya está inactivo.")
+    producto.activo = False
+    _registrar_actividad(data, "Desactivar producto", f"«{producto.nombre}» desactivado")
+    persist_data(data)
+    return ResultadoOperacion(
+        True,
+        f"Producto «{producto.nombre}» desactivado. "
+        "No aparecerá en compras ni recetas nuevas; el histórico se conserva.",
+    )
+
+
+def reactivar_producto(producto_id: str) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_INVENTARIO, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
+    data = get_data()
+    producto = next((p for p in data.productos if p.id == producto_id), None)
+    if not producto:
+        return ResultadoOperacion(False, "Producto no encontrado.")
+    if getattr(producto, "activo", True):
+        return ResultadoOperacion(False, "El producto ya está activo.")
+    producto.activo = True
+    _registrar_actividad(data, "Reactivar producto", f"«{producto.nombre}» reactivado")
+    persist_data(data)
+    return ResultadoOperacion(True, f"Producto «{producto.nombre}» reactivado.")
+
+
+def eliminar_producto(producto_id: str) -> ResultadoOperacion:
+    """Eliminación física solo sin referencias; con histórico → desactivar."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_INVENTARIO, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
+    data = get_data()
+    producto = next((p for p in data.productos if p.id == producto_id), None)
+    if not producto:
+        return ResultadoOperacion(False, "Producto no encontrado.")
+    if producto_tiene_referencias(data, producto_id):
+        uso = resumen_uso_producto(data, producto_id)
+        return ResultadoOperacion(
+            False,
+            (
+                f"No se puede eliminar el producto «{producto.nombre}» porque tiene "
+                f"histórico (recetas={uso['recetas']}, lotes={uso['lotes']}, "
+                f"movimientos={uso['movimientos']}, documentos={uso['documentos']}). "
+                "Desactívelo en su lugar."
+            ),
+        )
+    nombre = producto.nombre
+    data.productos = [p for p in data.productos if p.id != producto_id]
+    _registrar_actividad(data, "Eliminar producto", f"«{nombre}» eliminado")
+    persist_data(data)
+    return ResultadoOperacion(True, f"Producto «{nombre}» eliminado.")
+
+
 def registrar_lote(
     producto_id: str,
     precio_total: float,
@@ -397,8 +620,13 @@ def registrar_lote(
     return ResultadoOperacion(True, f"Lote registrado para «{producto.nombre}».")
 
 
-def mapa_productos(data: AppData, *, es_bebida: bool | None = None) -> dict[str, str]:
-    """Catálogo nombre→id. Fase 4A: lectura vía AppContext / puerto productos."""
+def mapa_productos(
+    data: AppData,
+    *,
+    es_bebida: bool | None = None,
+    solo_activos: bool = True,
+) -> dict[str, str]:
+    """Catálogo nombre→id. Por defecto solo activos (selecciones nuevas)."""
     from app.core.application.context import build_app_context
     from app.core.application.producto_queries import mapa_productos_nombre_id
     from app.core.application.unit_of_work import InMemoryUnitOfWork
@@ -407,7 +635,7 @@ def mapa_productos(data: AppData, *, es_bebida: bool | None = None) -> dict[str,
     return mapa_productos_nombre_id(
         ctx,
         es_bebida=es_bebida,
-        solo_activos=False,
+        solo_activos=solo_activos,
         ordenar=False,
     )
 
