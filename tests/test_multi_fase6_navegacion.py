@@ -38,7 +38,7 @@ class TestFase6NavegacionPaso3(unittest.TestCase):
     def test_registros_alcanza_desayuno_y_merma(self) -> None:
         self.assertEqual(
             list(registros._SUBTABS.keys()),
-            ["Desayuno", "Comida", "Cena", "Bebidas", "Merma"],
+            ["Desayuno", "Comida", "Cena", "Bebidas", "Merma", "Caducidad", "Historial"],
         )
         self.assertTrue(callable(desayuno.render_registro_desayuno))
         self.assertTrue(callable(desayuno.render_registro_merma))

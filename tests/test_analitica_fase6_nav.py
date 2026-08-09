@@ -49,7 +49,7 @@ class TestAnaliticaFase6Nav(unittest.TestCase):
     def test_registros_intactos(self) -> None:
         self.assertEqual(
             list(registros._SUBTABS.keys()),
-            ["Desayuno", "Comida", "Cena", "Bebidas", "Merma"],
+            ["Desayuno", "Comida", "Cena", "Bebidas", "Merma", "Caducidad", "Historial"],
         )
         self.assertIn("registros", PAGES)
         self.assertIs(PAGES["registros"], registros.render)
