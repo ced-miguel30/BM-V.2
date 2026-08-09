@@ -838,16 +838,32 @@ def _render_tab_compras() -> None:
 
 
 def _render_tab_inventario() -> None:
+    from app.ui.components import render_sub_tabs
+
     repo = get_repository()
+    tipo = st.radio(
+        "Tipo de artículo",
+        ["Producto", "Bebida"],
+        horizontal=True,
+        key="stock_inv_tipo",
+    )
     st.markdown("#### Stock actual")
-    tipo = render_sub_tabs(["Producto", "Bebida"], key="stock_inv_tipo")
     _render_inventario(repo, es_bebida=(tipo == "Bebida"))
+
+    inv_sub = render_sub_tabs(
+        ["Ajustes", "Recuentos", "Alertas", "Caducidad"],
+        key="stock_inv_sub",
+    )
     section_divider()
-    _render_ajustes_inventario()
-    section_divider()
-    _render_recuentos_inventario()
-    section_divider()
-    _render_alertas_stock()
+    if inv_sub == "Ajustes":
+        _render_ajustes_inventario()
+    elif inv_sub == "Recuentos":
+        _render_recuentos_inventario()
+    elif inv_sub == "Alertas":
+        _render_alertas_stock()
+    else:
+        from app.pages.caducidad import render_caducidad_workbench
+        render_caducidad_workbench(mostrar_cabecera=False)
 
 
 def _render_recuentos_inventario() -> None:
