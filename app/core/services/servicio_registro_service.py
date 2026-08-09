@@ -191,8 +191,8 @@ class ServicioRegistro:
     def quitar_mod_pendiente(self, mod_id: str) -> None:
         self._cesta.quitar_mod_pendiente(mod_id)
 
-    def quitar_grupo_receta(self, grupo_id: str) -> None:
-        self._cesta.quitar_grupo_receta(grupo_id)
+    def quitar_grupo_receta(self, grupo_id: str) -> str | None:
+        return self._cesta.quitar_grupo_receta(grupo_id)
 
     def quitar_linea_grupo(self, grupo_id: str, linea_id: str) -> None:
         self._cesta.quitar_linea_grupo(grupo_id, linea_id)
@@ -219,8 +219,8 @@ class ServicioRegistro:
     def paso_linea_suelta(self, linea_id: str) -> float:
         return self._cesta.paso_linea_suelta(linea_id)
 
-    def quitar_linea_suelta(self, linea_id: str) -> None:
-        self._cesta.quitar_linea_suelta(linea_id)
+    def quitar_linea_suelta(self, linea_id: str) -> str | None:
+        return self._cesta.quitar_linea_suelta(linea_id)
 
     def ajustar_cantidad_suelto(self, linea_id: str, delta: float) -> ResultadoOperacion:
         r = self._cesta.ajustar_cantidad_suelto(linea_id, delta)
@@ -351,6 +351,7 @@ class ServicioRegistro:
         *,
         ignorar_stock: bool = False,
         clave_idempotencia: str | None = None,
+        observaciones: str = "",
         ctx: AppContext | None = None,
     ) -> ResultadoOperacion:
         """Registra con descuento atómico. `ignorar_stock` deshabilitado (Fase 9)."""
@@ -374,6 +375,7 @@ class ServicioRegistro:
             return ResultadoOperacion(False, f"No puede registrar {self.etiqueta.lower()} en fechas futuras.")
 
         data = context.data()
+        obs = (observaciones or "").strip()
         clave = (clave_idempotencia or "").strip() or None
         if clave:
             existente = next(
@@ -459,6 +461,7 @@ class ServicioRegistro:
                 context.clock.now().time(),
                 lineas_detalle,
                 clave_idempotencia=clave,
+                observaciones=obs,
             )
             data.registros_servicio.append(registro)
 

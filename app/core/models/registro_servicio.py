@@ -92,3 +92,5 @@ class RegistroServicio:
     anulado_por: str = ""
     # Token de confirmación UI (aditivo; históricos → None). Evita doble registro.
     clave_idempotencia: str | None = None
+    # Observaciones operativas del registro (aditivo; históricos → "").
+    observaciones: str = ""

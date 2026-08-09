@@ -7,6 +7,7 @@ las claves históricas exactas para no romper sesiones abiertas.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 
 from app.core.repositories.data_repository import DataRepository
@@ -15,6 +16,27 @@ from app.core.services.unidad_service import cantidad_para_mostrar, presentacion
 from app.core.storage.session_store import get_data
 
 PASO_CANTIDAD = 1.0  # Fallback genérico (Ud); preferir paso_unidad() en inputs.
+
+
+def validar_cantidad_operativa(
+    cantidad: float,
+    *,
+    permitir_cero: bool = False,
+    permitir_negativo: bool = False,
+) -> str | None:
+    """Valida cantidad de cesta (operativo). Devuelve mensaje de error o None."""
+    try:
+        valor = float(cantidad)
+    except (TypeError, ValueError):
+        return "La cantidad no es un número válido."
+    if not math.isfinite(valor):
+        return "La cantidad no puede ser NaN ni infinito."
+    if valor == 0 and not permitir_cero:
+        return "La cantidad no puede ser 0."
+    if valor < 0 and not permitir_negativo:
+        return "La cantidad no puede ser negativa."
+    return None
+
 
 
 @dataclass
@@ -169,8 +191,9 @@ class MotorCesta:
         return not self.get_cesta() and not self.get_cesta_recetas()
 
     def anadir_mod_pendiente_receta(self, producto_id: str, cantidad: float) -> ResultadoOperacionCesta:
-        if cantidad == 0:
-            return ResultadoOperacionCesta(False, "La cantidad no puede ser 0.")
+        error = validar_cantidad_operativa(cantidad, permitir_negativo=True)
+        if error:
+            return ResultadoOperacionCesta(False, error)
 
         data = get_data()
         repo = DataRepository(data)
@@ -201,8 +224,9 @@ class MotorCesta:
         st.session_state[self.keys["mods"]] = mods
 
     def anadir_a_cesta(self, producto_id: str, cantidad: float) -> ResultadoOperacionCesta:
-        if cantidad == 0:
-            return ResultadoOperacionCesta(False, "La cantidad no puede ser 0.")
+        error = validar_cantidad_operativa(cantidad, permitir_negativo=False)
+        if error:
+            return ResultadoOperacionCesta(False, error)
 
         data = get_data()
         repo = DataRepository(data)
@@ -219,9 +243,18 @@ class MotorCesta:
         paso = abs(cantidad) if cantidad != 0 else PASO_CANTIDAD
         for linea in cesta:
             if linea.producto_id == producto_id:
-                linea.cantidad = round(linea.cantidad + cantidad, 4)
+                nueva = round(linea.cantidad + cantidad, 4)
+                err_nueva = validar_cantidad_operativa(nueva, permitir_cero=True, permitir_negativo=False)
+                if err_nueva and nueva != 0:
+                    return ResultadoOperacionCesta(False, err_nueva)
+                if nueva == 0:
+                    self.quitar_linea_suelta(linea.linea_id)
+                    return ResultadoOperacionCesta(
+                        True, f"«{producto.nombre}» eliminado de la cesta.",
+                    )
+                linea.cantidad = nueva
                 linea.es_extra = linea.cantidad > 0
-                linea.es_omision = linea.cantidad < 0
+                linea.es_omision = False
                 if linea.paso_edicion <= 0:
                     linea.paso_edicion = paso
                 self._guardar_cesta(cesta)
@@ -235,8 +268,8 @@ class MotorCesta:
             producto.nombre,
             producto.unidad.value,
             cantidad,
-            es_extra=cantidad > 0,
-            es_omision=cantidad < 0,
+            es_extra=True,
+            es_omision=False,
             paso_edicion=paso,
         ))
         self._guardar_cesta(cesta)
@@ -266,6 +299,10 @@ class MotorCesta:
         *,
         categorias_permitidas: list | None = None,
     ) -> ResultadoOperacionCesta:
+        error_cant = validar_cantidad_operativa(porciones, permitir_negativo=False)
+        if error_cant:
+            return ResultadoOperacionCesta(False, error_cant)
+
         data = get_data()
         repo = DataRepository(data)
         receta = repo.get_receta(receta_id)
@@ -337,9 +374,13 @@ class MotorCesta:
             f"«{receta.nombre}» ({porciones:g} porciones, factor {factor:g}) añadida a la cesta.",
         )
 
-    def quitar_grupo_receta(self, grupo_id: str) -> None:
+    def quitar_grupo_receta(self, grupo_id: str) -> str | None:
+        """Quita un grupo de receta. Devuelve el nombre si existía."""
+        grupo = self._buscar_grupo(grupo_id)
+        nombre = grupo.nombre_receta if grupo else None
         grupos = [g for g in self.get_cesta_recetas() if g.grupo_id != grupo_id]
         self._guardar_cesta_recetas(grupos)
+        return nombre
 
     def _buscar_grupo(self, grupo_id: str) -> GrupoRecetaCesta | None:
         return next((g for g in self.get_cesta_recetas() if g.grupo_id == grupo_id), None)
@@ -422,6 +463,10 @@ class MotorCesta:
         return ResultadoOperacionCesta(True, "Cantidad actualizada.")
 
     def modificar_porciones_grupo(self, grupo_id: str, porciones: float) -> ResultadoOperacionCesta:
+        error_cant = validar_cantidad_operativa(porciones, permitir_negativo=False)
+        if error_cant:
+            return ResultadoOperacionCesta(False, error_cant)
+
         data = get_data()
         repo = DataRepository(data)
         grupo = self._buscar_grupo(grupo_id)
@@ -488,9 +533,13 @@ class MotorCesta:
             return abs(linea.cantidad)
         return PASO_CANTIDAD
 
-    def quitar_linea_suelta(self, linea_id: str) -> None:
+    def quitar_linea_suelta(self, linea_id: str) -> str | None:
+        """Quita una línea suelta. Devuelve el nombre eliminado si existía."""
+        linea = self._buscar_linea_suelta(linea_id)
+        nombre = linea.nombre if linea else None
         cesta = [l for l in self.get_cesta() if l.linea_id != linea_id]
         self._guardar_cesta(cesta)
+        return nombre
 
     def ajustar_cantidad_suelto(self, linea_id: str, delta: float) -> ResultadoOperacionCesta:
         linea = self._buscar_linea_suelta(linea_id)
@@ -503,9 +552,16 @@ class MotorCesta:
         return self.modificar_cantidad_suelto(linea_id, nueva)
 
     def modificar_cantidad_suelto(self, linea_id: str, cantidad: float) -> ResultadoOperacionCesta:
+        error = validar_cantidad_operativa(
+            cantidad, permitir_cero=True, permitir_negativo=False,
+        )
+        if error and cantidad != 0:
+            return ResultadoOperacionCesta(False, error)
         if cantidad == 0:
+            linea = self._buscar_linea_suelta(linea_id)
+            nombre = linea.nombre if linea else "Producto"
             self.quitar_linea_suelta(linea_id)
-            return ResultadoOperacionCesta(True, "Producto eliminado de la cesta.")
+            return ResultadoOperacionCesta(True, f"«{nombre}» eliminado de la cesta.")
 
         linea = self._buscar_linea_suelta(linea_id)
         if not linea:
@@ -513,7 +569,7 @@ class MotorCesta:
 
         linea.cantidad = round(cantidad, 4)
         linea.es_extra = cantidad > 0
-        linea.es_omision = cantidad < 0
+        linea.es_omision = False
         self._guardar_cesta(self.get_cesta())
         return ResultadoOperacionCesta(True, "Cantidad actualizada.")
 

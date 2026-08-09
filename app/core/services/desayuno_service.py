@@ -224,8 +224,8 @@ def anadir_receta_a_cesta(
     return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
 
 
-def quitar_grupo_receta(grupo_id: str) -> None:
-    _cesta.quitar_grupo_receta(grupo_id)
+def quitar_grupo_receta(grupo_id: str) -> str | None:
+    return _cesta.quitar_grupo_receta(grupo_id)
 
 
 def quitar_linea_grupo(grupo_id: str, linea_id: str) -> None:
@@ -260,8 +260,8 @@ def paso_linea_suelta(linea_id: str) -> float:
     return _cesta.paso_linea_suelta(linea_id)
 
 
-def quitar_linea_suelta(linea_id: str) -> None:
-    _cesta.quitar_linea_suelta(linea_id)
+def quitar_linea_suelta(linea_id: str) -> str | None:
+    return _cesta.quitar_linea_suelta(linea_id)
 
 
 def ajustar_cantidad_suelto(linea_id: str, delta: float) -> ResultadoOperacion:
@@ -366,6 +366,7 @@ def registrar_desayuno(
     *,
     ignorar_stock: bool = False,
     clave_idempotencia: str | None = None,
+    observaciones: str = "",
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
     """Registra el desayuno con descuento atómico.
@@ -397,6 +398,7 @@ def registrar_desayuno(
         return ResultadoOperacion(False, "Indique al menos 1 huésped.")
 
     data = context.data()
+    obs = (observaciones or "").strip()
 
     clave = (clave_idempotencia or "").strip() or None
     if clave:
@@ -477,6 +479,7 @@ def registrar_desayuno(
             context.clock.now().time(),
             lineas_detalle,
             clave_idempotencia=clave,
+            observaciones=obs,
         )
         data.desayunos.append(registro)
 
@@ -670,8 +673,8 @@ class DesayunoRegistroAdapter:
     def anadir_receta_a_cesta(self, receta_id: str, porciones: float, mods=None) -> ResultadoOperacion:
         return anadir_receta_a_cesta(receta_id, porciones, mods)
 
-    def quitar_grupo_receta(self, grupo_id: str) -> None:
-        quitar_grupo_receta(grupo_id)
+    def quitar_grupo_receta(self, grupo_id: str) -> str | None:
+        return quitar_grupo_receta(grupo_id)
 
     def quitar_linea_grupo(self, grupo_id: str, linea_id: str) -> None:
         quitar_linea_grupo(grupo_id, linea_id)
@@ -691,8 +694,8 @@ class DesayunoRegistroAdapter:
     def paso_linea_suelta(self, linea_id: str) -> float:
         return paso_linea_suelta(linea_id)
 
-    def quitar_linea_suelta(self, linea_id: str) -> None:
-        quitar_linea_suelta(linea_id)
+    def quitar_linea_suelta(self, linea_id: str) -> str | None:
+        return quitar_linea_suelta(linea_id)
 
     def ajustar_cantidad_suelto(self, linea_id: str, delta: float) -> ResultadoOperacion:
         return ajustar_cantidad_suelto(linea_id, delta)
@@ -710,6 +713,7 @@ class DesayunoRegistroAdapter:
         *,
         ignorar_stock: bool = False,
         clave_idempotencia: str | None = None,
+        observaciones: str = "",
         ctx: AppContext | None = None,
     ) -> ResultadoOperacion:
         return registrar_desayuno(
@@ -717,6 +721,7 @@ class DesayunoRegistroAdapter:
             int(num_huespedes),
             ignorar_stock=ignorar_stock,
             clave_idempotencia=clave_idempotencia,
+            observaciones=observaciones,
             ctx=ctx,
         )
 
