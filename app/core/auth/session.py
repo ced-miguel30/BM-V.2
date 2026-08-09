@@ -16,6 +16,7 @@ from app.core.auth.passwords import (
 )
 from app.core.auth.permissions import Permiso, tiene_permiso
 from app.core.auth.roles import (
+    ROL_ADMINISTRACION,
     ROL_RESTAURANTE,
     es_direccion,
     rol_canonico,
@@ -26,6 +27,9 @@ AUTH_SESSION_KEY = "bm_auth_session"
 TERMINAL_ID_DEFAULT = "terminal_restaurante"
 TERMINAL_ACTOR_ID = "terminal_restaurante"
 TERMINAL_LABEL = "Restaurante"
+TERMINAL_INVENTARIO_ID = "terminal_inventario"
+TERMINAL_INVENTARIO_ACTOR_ID = "terminal_inventario"
+TERMINAL_INVENTARIO_LABEL = "Inventario"
 
 ACTOR_TYPE_USUARIO = "usuario"
 ACTOR_TYPE_TERMINAL = "terminal"
@@ -185,6 +189,23 @@ def logout() -> None:
 
 
 def session_tiene_permiso(permiso: Permiso | str) -> bool:
+    # Terminal Inventario: ocultar economía aunque el rol base tenga CONSULTAR_COSTES.
+    try:
+        import streamlit as st
+
+        ss = getattr(st, "session_state", None)
+        if ss is not None and bool(ss.get("bm_force_hide_costes")):
+            p = Permiso(permiso) if not isinstance(permiso, Permiso) else permiso
+            if p == Permiso.CONSULTAR_COSTES:
+                return False
+            if p in (
+                Permiso.ACCEDER_CONFIGURACION,
+                Permiso.ACCEDER_GESTOR,
+                Permiso.ACCEDER_COMPRAS_DOCUMENTOS,
+            ):
+                return False
+    except Exception:
+        pass
     s = get_auth_session()
     if s is None or not s.authenticated:
         return False
@@ -261,6 +282,23 @@ def iniciar_terminal_restaurante() -> AuthSession:
         session_id=_new_session_id(),
         login_at=_now_iso(),
         terminal_id=TERMINAL_ID_DEFAULT,
+        login=None,
+    )
+
+
+def iniciar_terminal_inventario() -> AuthSession:
+    """Terminal de inventario: stock operativo sin costes ni configuración."""
+    return AuthSession(
+        authenticated=True,
+        actor_type=ACTOR_TYPE_TERMINAL,
+        actor_id=TERMINAL_INVENTARIO_ACTOR_ID,
+        actor_label=TERMINAL_INVENTARIO_LABEL,
+        # Rol administración para ACCEDER_INVENTARIO; la UI del terminal
+        # no expone CONSULTAR_COSTES ni Configuración.
+        role=ROL_ADMINISTRACION,
+        session_id=_new_session_id(),
+        login_at=_now_iso(),
+        terminal_id=TERMINAL_INVENTARIO_ID,
         login=None,
     )
 

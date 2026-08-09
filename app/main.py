@@ -110,6 +110,24 @@ def main() -> None:
             render_logout_sidebar()
         return
 
+    # Terminal inventario (antes que el catch-all restaurante/terminal)
+    if session and session.terminal_id == "terminal_inventario":
+        if not (
+            session_tiene_permiso(Permiso.ACCEDER_TERMINAL_INVENTARIO)
+            or session_tiene_permiso(Permiso.ACCEDER_INVENTARIO)
+        ):
+            st.error("No autorizado.")
+            return
+        from app.pages import terminal_inventario
+        from app.pages.auth_gate import render_logout_sidebar
+
+        st.session_state["bm_force_hide_costes"] = True
+        with st.sidebar:
+            st.caption("Terminal Inventario")
+            render_logout_sidebar()
+        terminal_inventario.render()
+        return
+
     # Terminal restaurante: UI dedicada
     if session and (
         session.actor_type == "terminal"
@@ -121,6 +139,7 @@ def main() -> None:
         from app.pages import terminal_restaurante
         from app.pages.auth_gate import render_logout_sidebar
 
+        st.session_state.pop("bm_force_hide_costes", None)
         with st.sidebar:
             st.caption("Terminal Restaurante")
             render_logout_sidebar()

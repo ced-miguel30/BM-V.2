@@ -8,6 +8,7 @@ from app.core.auth.session import (
     AUTH_SESSION_KEY,
     autenticar_usuario,
     get_auth_session,
+    iniciar_terminal_inventario,
     iniciar_terminal_restaurante,
     invalidate_destructive_ui_tokens,
     logout,
@@ -74,7 +75,9 @@ def render_auth_gate() -> bool:
                             st.rerun()
         return False
 
-    tab_login, tab_terminal = st.tabs(["Acceso personal", "Terminal Restaurante"])
+    tab_login, tab_terminal, tab_inv = st.tabs(
+        ["Acceso personal", "Terminal Restaurante", "Terminal Inventario"]
+    )
     with tab_login:
         with st.form("form_login_f16"):
             login = st.text_input("Identificador de acceso")
@@ -102,9 +105,22 @@ def render_auth_gate() -> bool:
         )
         if st.button("Abrir Terminal Restaurante", type="primary", key="btn_terminal_f16"):
             invalidate_destructive_ui_tokens()
+            st.session_state.pop("bm_force_hide_costes", None)
             save_auth_session(iniciar_terminal_restaurante())
             st.session_state["nav_section"] = "Registros"
             st.session_state["bm_espacio_trabajo"] = "registro"
+            st.rerun()
+
+    with tab_inv:
+        st.caption(
+            "Terminal de inventario: merma, caducidad, alertas y ajustes. "
+            "Sin costes ni compras."
+        )
+        if st.button("Abrir Terminal Inventario", type="primary", key="btn_terminal_inv_f16"):
+            invalidate_destructive_ui_tokens()
+            save_auth_session(iniciar_terminal_inventario())
+            st.session_state["bm_force_hide_costes"] = True
+            st.session_state["nav_section"] = "Stock"
             st.rerun()
 
     return False
@@ -121,4 +137,5 @@ def render_logout_sidebar() -> None:
         st.session_state.pop("_login_done", None)
         st.session_state.pop("_login_attempt_token", None)
         st.session_state.pop(AUTH_SESSION_KEY, None)
+        st.session_state.pop("bm_force_hide_costes", None)
         st.rerun()

@@ -29,6 +29,7 @@ class Permiso(str, Enum):
     CONSULTAR_COSTES = "consultar_costes"
     REGISTRAR_CONSUMO_TERMINAL = "registrar_consumo_terminal"
     ACCEDER_TERMINAL_RESTAURANTE = "acceder_terminal_restaurante"
+    ACCEDER_TERMINAL_INVENTARIO = "acceder_terminal_inventario"
     # Subsecciones peligrosas de Configuración
     VER_RESTAURACION = "ver_restauracion"
     VER_ZONA_PELIGRO = "ver_zona_peligro"
@@ -49,6 +50,7 @@ _MATRIZ: dict[str, frozenset[Permiso]] = {
             Permiso.ELIMINAR_USUARIO,
             Permiso.EXPORTAR_BACKUP,
             Permiso.CONSULTAR_COSTES,
+            Permiso.ACCEDER_TERMINAL_INVENTARIO,
         }
     ),
     ROL_RECEPCION: frozenset(),  # módulo pendiente — todos los Permiso = False (explícito)
