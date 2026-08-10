@@ -311,25 +311,27 @@ def reactivar_responsable_merma(
     return ResultadoOperacion(True, f"Responsable «{actual.nombre}» reactivado.")
 
 
-def get_cesta_merma() -> list[LineaCestaMerma]:
-    import streamlit as st
+def _basket_store():
+    from app.bootstrap import get_container
 
-    if CESTA_MERMA_KEY not in st.session_state:
-        st.session_state[CESTA_MERMA_KEY] = []
-    cesta = st.session_state[CESTA_MERMA_KEY]
+    return get_container().basket_store
+
+
+def get_cesta_merma() -> list[LineaCestaMerma]:
+    store = _basket_store()
+    cesta = store.get_list(CESTA_MERMA_KEY)
     # Compat: líneas antiguas de sesión sin turno/responsable → vaciar.
     if cesta and (
         not hasattr(cesta[0], "turno_snapshot")
         or not hasattr(cesta[0], "responsable_id")
     ):
-        st.session_state[CESTA_MERMA_KEY] = []
-    return st.session_state[CESTA_MERMA_KEY]
+        store.set_list(CESTA_MERMA_KEY, [])
+        return store.get_list(CESTA_MERMA_KEY)
+    return cesta
 
 
 def limpiar_cesta_merma() -> None:
-    import streamlit as st
-
-    st.session_state[CESTA_MERMA_KEY] = []
+    _basket_store().set_list(CESTA_MERMA_KEY, [])
 
 
 def quitar_de_cesta_merma(
@@ -339,15 +341,14 @@ def quitar_de_cesta_merma(
     turno_snapshot: str,
     responsable_id: str,
 ) -> None:
-    import streamlit as st
-
     clave = _clave_linea(
         lote_id, motivo, tipo_servicio_snapshot, turno_snapshot, responsable_id,
     )
     cesta = get_cesta_merma()
-    st.session_state[CESTA_MERMA_KEY] = [
-        l for l in cesta if not _misma_clave(l, clave)
-    ]
+    _basket_store().set_list(
+        CESTA_MERMA_KEY,
+        [l for l in cesta if not _misma_clave(l, clave)],
+    )
 
 
 def productos_con_stock(

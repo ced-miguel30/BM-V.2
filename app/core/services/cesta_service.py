@@ -1,8 +1,8 @@
-"""Motor de cesta de registro parametrizado por prefijo de sesión.
+"""Motor de cesta de registro parametrizado por prefijo de store.
 
 Cada tipo de servicio (desayuno, comida, cena, bebidas) usa su propio
-espacio en `st.session_state` para no mezclar cestas. Desayuno conserva
-las claves históricas exactas para no romper sesiones abiertas.
+espacio en ``BasketStore`` para no mezclar cestas. Desayuno conserva
+las claves históricas exactas. El adaptador Streamlit vive fuera de este módulo.
 """
 
 from __future__ import annotations
@@ -10,6 +10,8 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 
+from app.bootstrap import get_container
+from app.core.application.ports.basket_store import BasketStore
 from app.core.repositories.data_repository import DataRepository
 from app.core.services.receta_service import calcular_factor_escalado
 from app.core.services.unidad_service import cantidad_para_mostrar, presentacion_legible, resolver_presentacion
@@ -118,73 +120,58 @@ def _claves_sesion(prefix: str) -> dict[str, str]:
 class MotorCesta:
     """Cesta de productos sueltos + grupos de receta, aislada por prefijo."""
 
-    def __init__(self, session_prefix: str) -> None:
+    def __init__(
+        self,
+        session_prefix: str,
+        store: BasketStore | None = None,
+    ) -> None:
         self.prefix = session_prefix
         self.keys = _claves_sesion(session_prefix)
+        self._store = store
+
+    @property
+    def store(self) -> BasketStore:
+        return self._store if self._store is not None else get_container().basket_store
 
     def _nueva_linea_id(self) -> str:
-        import streamlit as st
-
-        contador = st.session_state.get(self.keys["linea_counter"], 0) + 1
-        st.session_state[self.keys["linea_counter"]] = contador
+        key = self.keys["linea_counter"]
+        contador = self.store.get_counter(key) + 1
+        self.store.set_counter(key, contador)
         return f"lin_{contador:04d}"
 
     def _nuevo_grupo_id(self) -> str:
-        import streamlit as st
-
-        contador = st.session_state.get(self.keys["grupo_counter"], 0) + 1
-        st.session_state[self.keys["grupo_counter"]] = contador
+        key = self.keys["grupo_counter"]
+        contador = self.store.get_counter(key) + 1
+        self.store.set_counter(key, contador)
         return f"grupo_{contador:03d}"
 
     def get_cesta(self) -> list[LineaCesta]:
-        import streamlit as st
-
-        key = self.keys["cesta"]
-        if key not in st.session_state:
-            st.session_state[key] = []
-        return st.session_state[key]
+        return self.store.get_list(self.keys["cesta"])
 
     def get_cesta_recetas(self) -> list[GrupoRecetaCesta]:
-        import streamlit as st
-
         key = self.keys["recetas"]
-        if key not in st.session_state:
-            st.session_state[key] = []
-        grupos = st.session_state[key]
+        grupos = self.store.get_list(key)
         # Compat sesión pre-Fase 8: sin factor → vaciar para no mezclar semánticas.
         if grupos and not hasattr(grupos[0], "factor_aplicado"):
-            st.session_state[key] = []
-            return st.session_state[key]
+            self.store.set_list(key, [])
+            return self.store.get_list(key)
         return grupos
 
     def _guardar_cesta(self, cesta: list[LineaCesta]) -> None:
-        import streamlit as st
-
-        st.session_state[self.keys["cesta"]] = cesta
+        self.store.set_list(self.keys["cesta"], cesta)
 
     def _guardar_cesta_recetas(self, grupos: list[GrupoRecetaCesta]) -> None:
-        import streamlit as st
-
-        st.session_state[self.keys["recetas"]] = grupos
+        self.store.set_list(self.keys["recetas"], grupos)
 
     def get_mods_pendientes(self) -> list[ModPendienteReceta]:
-        import streamlit as st
-
-        key = self.keys["mods"]
-        if key not in st.session_state:
-            st.session_state[key] = []
-        return st.session_state[key]
+        return self.store.get_list(self.keys["mods"])
 
     def limpiar_mods_pendientes(self) -> None:
-        import streamlit as st
-
-        st.session_state[self.keys["mods"]] = []
+        self.store.set_list(self.keys["mods"], [])
 
     def limpiar_cesta(self) -> None:
-        import streamlit as st
-
-        st.session_state[self.keys["cesta"]] = []
-        st.session_state[self.keys["recetas"]] = []
+        self.store.set_list(self.keys["cesta"], [])
+        self.store.set_list(self.keys["recetas"], [])
         self.limpiar_mods_pendientes()
 
     def cesta_vacia(self) -> bool:
@@ -211,17 +198,14 @@ class MotorCesta:
             es_extra=cantidad > 0,
             es_omision=cantidad < 0,
         ))
-        import streamlit as st
-        st.session_state[self.keys["mods"]] = mods
+        self.store.set_list(self.keys["mods"], mods)
 
         etiqueta = "c/ extra" if cantidad > 0 else "s/"
         return ResultadoOperacionCesta(True, f"{etiqueta} {producto.nombre} añadido a la receta pendiente.")
 
     def quitar_mod_pendiente(self, mod_id: str) -> None:
-        import streamlit as st
-
         mods = [m for m in self.get_mods_pendientes() if m.mod_id != mod_id]
-        st.session_state[self.keys["mods"]] = mods
+        self.store.set_list(self.keys["mods"], mods)
 
     def anadir_a_cesta(self, producto_id: str, cantidad: float) -> ResultadoOperacionCesta:
         error = validar_cantidad_operativa(cantidad, permitir_negativo=False)
