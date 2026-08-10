@@ -9,6 +9,25 @@ import flet as ft
 from app.presentation.flet.viewmodels import CatalogItemVM, TerminalScreenVM
 
 
+def build_catalog_result_controls(
+    screen: TerminalScreenVM,
+    *,
+    on_add_receta: Callable[[str], None],
+    on_add_producto: Callable[[str], None],
+) -> list[ft.Control]:
+    """Solo filas del catálogo (sin campo de búsqueda)."""
+    if not screen.catalogo:
+        vacio = (
+            "Ningún resultado para la búsqueda."
+            if (screen.busqueda or "").strip()
+            else "No hay ítems para este servicio o filtro."
+        )
+        return [ft.Text(vacio, color=ft.Colors.OUTLINE, italic=True)]
+    return [
+        _catalog_tile(item, on_add_receta, on_add_producto) for item in screen.catalogo
+    ]
+
+
 def build_registro_view(
     screen: TerminalScreenVM,
     *,
@@ -25,7 +44,14 @@ def build_registro_view(
     on_huespedes: Callable[[int], None],
     on_logout: Callable[[], None],
     narrow: bool = False,
-) -> ft.Control:
+    search_field: ft.TextField | None = None,
+    catalog_results: ft.Column | None = None,
+) -> tuple[ft.Control, ft.TextField, ft.Column]:
+    """Construye la vista y expone controles estables de búsqueda/catálogo.
+
+    Devuelve ``(root, search_field, catalog_results)`` para actualizar solo
+    el listado sin reconstruir el TextField (conserva foco y cursor).
+    """
     activo = next((s for s in screen.servicios if s.activo), None)
     etiqueta_activo = activo.etiqueta if activo else "—"
 
@@ -86,13 +112,16 @@ def build_registro_view(
             content=ft.Text(screen.feedback.mensaje, size=14),
         )
 
-    search = ft.TextField(
-        label="Buscar receta o producto",
-        value=screen.busqueda,
-        prefix_icon=ft.Icons.SEARCH,
-        on_change=lambda e: on_search(e.control.value or ""),
-        expand=True,
-    )
+    if search_field is None:
+        search_field = ft.TextField(
+            label="Buscar receta o producto",
+            value=screen.busqueda,
+            prefix_icon=ft.Icons.SEARCH,
+            on_change=lambda e: on_search(e.control.value or ""),
+            expand=True,
+        )
+    else:
+        search_field.on_change = lambda e: on_search(e.control.value or "")
 
     huespedes_row: list[ft.Control] = []
     if screen.requiere_huespedes:
@@ -113,24 +142,23 @@ def build_registro_view(
             )
         ]
 
-    catalog_controls: list[ft.Control] = []
-    if not screen.catalogo:
-        catalog_controls.append(
-            ft.Text(
-                "No hay ítems para este servicio o filtro.",
-                color=ft.Colors.OUTLINE,
-                italic=True,
-            )
+    result_controls = build_catalog_result_controls(
+        screen, on_add_receta=on_add_receta, on_add_producto=on_add_producto
+    )
+    if catalog_results is None:
+        catalog_results = ft.Column(
+            spacing=8,
+            scroll=ft.ScrollMode.AUTO,
+            expand=True,
+            controls=result_controls,
         )
     else:
-        for item in screen.catalogo:
-            catalog_controls.append(_catalog_tile(item, on_add_receta, on_add_producto))
+        catalog_results.controls = result_controls
 
     catalog_col = ft.Column(
         spacing=8,
-        scroll=ft.ScrollMode.AUTO,
         expand=True,
-        controls=[search, *huespedes_row, *catalog_controls],
+        controls=[search_field, *huespedes_row, catalog_results],
     )
 
     basket_controls: list[ft.Control] = [
@@ -209,11 +237,12 @@ def build_registro_view(
             ],
         )
 
-    return ft.Column(
+    root = ft.Column(
         expand=True,
         spacing=12,
         controls=[header, selector, feedback, ft.Container(content=body, expand=True)],
     )
+    return root, search_field, catalog_results
 
 
 def _catalog_tile(

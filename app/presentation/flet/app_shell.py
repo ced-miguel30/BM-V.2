@@ -8,7 +8,10 @@ from app.presentation.flet.presenters.terminal_restaurante_presenter import (
     TerminalRestaurantePresenter,
 )
 from app.presentation.flet.views.login_terminal_view import build_login_view
-from app.presentation.flet.views.registro_servicio_view import build_registro_view
+from app.presentation.flet.views.registro_servicio_view import (
+    build_catalog_result_controls,
+    build_registro_view,
+)
 
 
 class TerminalRestauranteShell:
@@ -16,6 +19,9 @@ class TerminalRestauranteShell:
         self.page = page
         self.presenter = presenter or TerminalRestaurantePresenter()
         self._root = ft.Container(expand=True)
+        self._search_field: ft.TextField | None = None
+        self._catalog_results: ft.Column | None = None
+        self._last_refresh_kind: str | None = None
 
     def mount(self) -> None:
         page = self.page
@@ -28,12 +34,17 @@ class TerminalRestauranteShell:
         self.refresh()
 
     def refresh(self) -> None:
+        """Reconstrucción completa (servicio, cesta, login, confirmación…)."""
         screen = self.presenter.screen()
         narrow = (self.page.width or 900) < 720
         if not screen.session.authenticated:
-            content = build_login_view(on_enter=self._on_enter)
+            self._search_field = None
+            self._catalog_results = None
+            self._last_refresh_kind = "login"
+            self._root.content = build_login_view(on_enter=self._on_enter)
         else:
-            content = build_registro_view(
+            # Nuevo TextField solo en rebuilds mayores (no en búsqueda tipada).
+            content, search, catalog = build_registro_view(
                 screen,
                 on_select_servicio=self._on_servicio,
                 on_search=self._on_search,
@@ -48,8 +59,28 @@ class TerminalRestauranteShell:
                 on_huespedes=self._on_huespedes,
                 on_logout=self._on_logout,
                 narrow=narrow,
+                search_field=None,
+                catalog_results=None,
             )
-        self._root.content = content
+            self._search_field = search
+            self._catalog_results = catalog
+            self._last_refresh_kind = "full"
+            self._root.content = content
+        self.page.update()
+
+    def update_catalog_only(self) -> None:
+        """Actualiza solo el listado filtrado; conserva TextField, servicio y cesta UI."""
+        if self._catalog_results is None or self._search_field is None:
+            self.refresh()
+            return
+        screen = self.presenter.screen()
+        self._catalog_results.controls = build_catalog_result_controls(
+            screen,
+            on_add_receta=self._on_add_receta,
+            on_add_producto=self._on_add_producto,
+        )
+        self._last_refresh_kind = "catalog"
+        # Actualiza el árbol existente (no reconstruye el TextField).
         self.page.update()
 
     def _on_enter(self) -> None:
@@ -66,11 +97,12 @@ class TerminalRestauranteShell:
 
     def _on_search(self, texto: str) -> None:
         self.presenter.set_busqueda(texto)
-        self.refresh()
+        self.update_catalog_only()
 
     def _on_add_receta(self, rid: str) -> None:
-        # Desayuno: porciones tipicas para factor 1 (~4 raciones estandar demo)
-        self.presenter.anadir_receta(rid, 4.0 if self.presenter.screen().servicio_activo == "desayuno" else 1.0)
+        self.presenter.anadir_receta(
+            rid, 4.0 if self.presenter.screen().servicio_activo == "desayuno" else 1.0
+        )
         self.refresh()
 
     def _on_add_producto(self, pid: str) -> None:
