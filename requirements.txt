@@ -2,3 +2,5 @@ streamlit>=1.32
 pandas>=2.0
 openpyxl>=3.1
 altair>=5.0
+flet==0.86.4
+flet-desktop==0.86.4
