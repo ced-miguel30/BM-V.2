@@ -152,6 +152,7 @@ class TestArchitectureBoundaries(unittest.TestCase):
         for name in (
             "terminal_restaurante_presenter.py",
             "terminal_inventario_presenter.py",
+            "terminal_administracion_presenter.py",
         ):
             path = APP / "presentation" / "flet" / "presenters" / name
             if not path.exists():
@@ -173,15 +174,22 @@ class TestArchitectureBoundaries(unittest.TestCase):
             ):
                 self.assertNotIn(forbidden, names, msg=name)
 
-    def test_flet_restaurante_inventario_views_not_coupled(self) -> None:
+    def test_flet_verticales_views_not_coupled(self) -> None:
         rest = APP / "presentation" / "flet" / "views" / "registro_servicio_view.py"
         inv = APP / "presentation" / "flet" / "views" / "inventario_shell_view.py"
+        admin = APP / "presentation" / "flet" / "views" / "admin_shell_view.py"
         if rest.exists():
             imports = _imports_of(rest)
             self.assertFalse(any("inventario" in i for i in imports))
+            self.assertFalse(any("admin" in i for i in imports))
         if inv.exists():
             imports = _imports_of(inv)
             self.assertFalse(any("registro_servicio" in i or "login_terminal" in i for i in imports))
+            self.assertFalse(any("admin_shell" in i for i in imports))
+        if admin.exists():
+            imports = _imports_of(admin)
+            self.assertFalse(any("inventario_shell" in i for i in imports))
+            self.assertFalse(any("registro_servicio" in i for i in imports))
 
 
 if __name__ == "__main__":
