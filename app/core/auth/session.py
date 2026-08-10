@@ -1,4 +1,9 @@
-"""Sesión de autenticación F16 (sin contraseñas en session_state)."""
+"""Sesión de autenticación F16 (sin contraseñas en el store de sesión).
+
+La persistencia de AuthSession se obtiene del composition root
+(``AuthSessionStore``). El adaptador Streamlit vive en
+``app.presentation.streamlit.adapters``.
+"""
 
 from __future__ import annotations
 
@@ -35,19 +40,24 @@ ACTOR_TYPE_USUARIO = "usuario"
 ACTOR_TYPE_TERMINAL = "terminal"
 ACTOR_TYPE_SISTEMA = "sistema"
 
-# Mensaje genérico (no revelar existencia de usuario)
 MSG_LOGIN_FALLIDO = "Credenciales incorrectas."
 
-# Hash dummy para igualar tiempo ante usuario inexistente (no es secreto)
 _DUMMY_HASH = (
     "pbkdf2_sha256$200000$"
     "AAAAAAAAAAAAAAAAAAAAAA==$"
     "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 )
 
-# Override para tests sin Streamlit
+# Override harness de tests (prioridad sobre store)
 _TEST_SESSION: AuthSession | None = None
 _TEST_OVERRIDE: bool = False
+
+_PERMISOS_BLOQUEADOS_TERMINAL_INVENTARIO = frozenset({
+    Permiso.CONSULTAR_COSTES,
+    Permiso.ACCEDER_CONFIGURACION,
+    Permiso.ACCEDER_GESTOR,
+    Permiso.ACCEDER_COMPRAS_DOCUMENTOS,
+})
 
 
 @dataclass
@@ -60,7 +70,7 @@ class AuthSession:
     session_id: str
     login_at: str
     terminal_id: str | None = None
-    login: str | None = None  # identificador de acceso (no contraseña)
+    login: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -102,10 +112,20 @@ def _new_session_id() -> str:
     return secrets.token_urlsafe(24)
 
 
+def _auth_store():
+    from app.bootstrap import get_container
+
+    return get_container().auth_session_store
+
+
 def clear_test_session() -> None:
     global _TEST_SESSION, _TEST_OVERRIDE
     _TEST_SESSION = None
     _TEST_OVERRIDE = False
+    try:
+        _auth_store().set_raw(None)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def set_test_session(session: AuthSession | None) -> None:
@@ -113,6 +133,10 @@ def set_test_session(session: AuthSession | None) -> None:
     global _TEST_SESSION, _TEST_OVERRIDE
     _TEST_OVERRIDE = True
     _TEST_SESSION = session
+    try:
+        _auth_store().set_raw(session.to_dict() if session else None)
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def get_auth_session() -> AuthSession | None:
@@ -121,9 +145,7 @@ def get_auth_session() -> AuthSession | None:
             return None
         return _TEST_SESSION
     try:
-        import streamlit as st
-
-        return AuthSession.from_dict(st.session_state.get(AUTH_SESSION_KEY))
+        return AuthSession.from_dict(_auth_store().get_raw())
     except Exception:  # noqa: BLE001
         return None
 
@@ -132,16 +154,11 @@ def save_auth_session(session: AuthSession | None) -> None:
     global _TEST_SESSION
     if _TEST_OVERRIDE:
         _TEST_SESSION = session
-        return
     try:
-        import streamlit as st
-
-        if session is None:
-            st.session_state.pop(AUTH_SESSION_KEY, None)
-        else:
-            st.session_state[AUTH_SESSION_KEY] = session.to_dict()
+        _auth_store().set_raw(session.to_dict() if session else None)
     except Exception:  # noqa: BLE001
-        _TEST_SESSION = session
+        if not _TEST_OVERRIDE:
+            _TEST_SESSION = session
 
 
 def invalidate_destructive_ui_tokens() -> None:
@@ -160,10 +177,7 @@ def invalidate_destructive_ui_tokens() -> None:
     if _TEST_OVERRIDE:
         return
     try:
-        import streamlit as st
-
-        for k in keys:
-            st.session_state.pop(k, None)
+        _auth_store().clear_keys(keys)
     except Exception:  # noqa: BLE001
         pass
 
@@ -174,40 +188,30 @@ def logout() -> None:
     if _TEST_OVERRIDE:
         return
     try:
-        import streamlit as st
-
-        # Limpiar navegación sensible
-        for k in (
+        _auth_store().clear_keys((
             "nav_section",
             "nav_section_op",
             "nav_section_pending",
             "bm_espacio_trabajo",
-        ):
-            st.session_state.pop(k, None)
+            "bm_force_hide_costes",
+        ))
     except Exception:  # noqa: BLE001
         pass
 
 
-def session_tiene_permiso(permiso: Permiso | str) -> bool:
-    # Terminal Inventario: ocultar economía aunque el rol base tenga CONSULTAR_COSTES.
-    try:
-        import streamlit as st
+def _permiso_bloqueado_por_terminal(session: AuthSession | None, permiso: Permiso | str) -> bool:
+    """Terminal Inventario: denegación real (no solo UI) de economía/config."""
+    if session is None or session.terminal_id != TERMINAL_INVENTARIO_ID:
+        return False
+    p = Permiso(permiso) if not isinstance(permiso, Permiso) else permiso
+    return p in _PERMISOS_BLOQUEADOS_TERMINAL_INVENTARIO
 
-        ss = getattr(st, "session_state", None)
-        if ss is not None and bool(ss.get("bm_force_hide_costes")):
-            p = Permiso(permiso) if not isinstance(permiso, Permiso) else permiso
-            if p == Permiso.CONSULTAR_COSTES:
-                return False
-            if p in (
-                Permiso.ACCEDER_CONFIGURACION,
-                Permiso.ACCEDER_GESTOR,
-                Permiso.ACCEDER_COMPRAS_DOCUMENTOS,
-            ):
-                return False
-    except Exception:
-        pass
+
+def session_tiene_permiso(permiso: Permiso | str) -> bool:
     s = get_auth_session()
     if s is None or not s.authenticated:
+        return False
+    if _permiso_bloqueado_por_terminal(s, permiso):
         return False
     return tiene_permiso(s.role, permiso)
 
@@ -218,6 +222,8 @@ def require_permiso(permiso: Permiso | str) -> AuthSession:
     s = get_auth_session()
     if s is None or not s.authenticated:
         raise AuthorizationError("Sesión no autenticada.")
+    if _permiso_bloqueado_por_terminal(s, permiso):
+        raise AuthorizationError("No autorizado para esta operación.")
     if not tiene_permiso(s.role, permiso):
         raise AuthorizationError("No autorizado para esta operación.")
     return s
@@ -293,8 +299,6 @@ def iniciar_terminal_inventario() -> AuthSession:
         actor_type=ACTOR_TYPE_TERMINAL,
         actor_id=TERMINAL_INVENTARIO_ACTOR_ID,
         actor_label=TERMINAL_INVENTARIO_LABEL,
-        # Rol administración para ACCEDER_INVENTARIO; la UI del terminal
-        # no expone CONSULTAR_COSTES ni Configuración.
         role=ROL_ADMINISTRACION,
         session_id=_new_session_id(),
         login_at=_now_iso(),
