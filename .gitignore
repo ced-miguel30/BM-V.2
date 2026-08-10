@@ -12,6 +12,7 @@ htmlcov/
 
 # Local test output
 unittest_*.txt
+tests/browser/_artifacts/
 
 # Local environments
 .venv/
