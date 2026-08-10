@@ -82,12 +82,19 @@ python run_browser_tests.py
 - Sin merma, anulaciones, histórico detallado, ni menús administrativos.
 - Sin Terminal Inventario / Administración / dashboard / compras.
 - UX táctil operativa; branding definitivo pendiente.
-- La búsqueda en UI puede re-renderizar el árbol (mejora P2).
+- Búsqueda: actualización localizada del catálogo (sin reconstruir el `TextField`); foco/cursor conservados en tipado.
+
+## Consolidación UX (buscador)
+
+- Causa previa: `on_change` → `refresh()` reconstruía toda la pantalla.
+- Corrección: `set_busqueda` + `update_catalog_only()` (mismas instancias de campo y columna de resultados).
+- Tests: `tests/test_flet_ux_consolidacion.py`.
 
 ## Validación
 
 - **Técnica:** gates verdes (ver `docs/pre_flet_readiness.md`).
 - **Manual:** Terminal Restaurante **APROBADA** (resultado: funciona; sin incidencias reportadas).
+- Consolidación UX buscador: **aprobada técnicamente** — pendiente revalidación manual del tipado.
 
 ## Alcance excluido
 

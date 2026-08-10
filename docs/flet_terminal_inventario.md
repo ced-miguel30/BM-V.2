@@ -75,10 +75,17 @@ python run_browser_tests.py
 ## Limitaciones
 
 - Crear responsables de merma requiere Administración (fuera de este terminal).
-- Mensajes de éxito de merma pueden sanitizarse si el backend incluye texto económico.
 - Branding definitivo pendiente.
+
+## Consolidación UX (feedback merma)
+
+- Causa previa: el backend devolvía texto con coste/€; `sanitize_mensaje` lo sustituía por un mensaje genérico.
+- Corrección: `map_merma_registro_feedback` construye el éxito desde campos operativos tipados (`MermaLineaOperativa`) capturados antes de vaciar la cesta.
+- Distingue éxito, validación, denegado, cesta vacía e idempotencia; no expone economía ni rutas/excepciones internas.
+- Tests: `tests/test_flet_ux_consolidacion.py`.
 
 ## Validación
 
-- **Técnica:** gates verdes (B5, 943 tests, smokes, demo canónico).
+- **Técnica:** gates verdes (B5, suite canónica, smokes, demo canónico).
 - **Manual:** Terminal Inventario **APROBADA** (resultado: funciona; Alertas, Caducidad, Merma y Ajustes validados; sin incidencias reportadas).
+- Consolidación UX merma: **aprobada técnicamente** — pendiente revalidación manual del mensaje post-registro.
