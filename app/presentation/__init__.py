@@ -1,1 +1,1 @@
-"""Paquete de presentación Streamlit (adaptadores de UI)."""
+"""Paquete de presentación (Streamlit + Flet)."""
