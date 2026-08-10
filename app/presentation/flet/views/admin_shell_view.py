@@ -125,7 +125,7 @@ def build_admin_shell(
             bgcolor=ft.Colors.AMBER_50,
             padding=12,
             border_radius=8,
-            border=ft.border.all(1, ft.Colors.AMBER_700),
+            border=ft.Border.all(1, ft.Colors.AMBER_700),
             content=ft.Column(
                 spacing=8,
                 controls=[
