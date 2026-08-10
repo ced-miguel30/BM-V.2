@@ -64,6 +64,7 @@ class TerminalInventarioPresenter:
         self._confirmando = False
         self._ajuste_preview: AjustePreviewVM | None = None
         self._ajuste_draft: dict | None = None
+        self._responsable_seleccionado: str | None = None
         assert_inventario_sin_economia(AlertaVM, LoteCaducidadVM, MermaLineaVM, AjustePreviewVM)
 
     def entrar(self) -> InventarioScreenVM:
@@ -86,6 +87,7 @@ class TerminalInventarioPresenter:
         self._feedback = FeedbackVM(ok=True, mensaje="Sesión cerrada.")
         self._confirmando = False
         self._ajuste_preview = None
+        self._responsable_seleccionado = None
         return self.screen()
 
     def seleccionar_espacio(self, espacio_id: str) -> InventarioScreenVM:
@@ -95,11 +97,32 @@ class TerminalInventarioPresenter:
         if not session_bridge.puede_usar_terminal_inventario():
             self._feedback = map_error_recuperable("Sesión no autorizada.")
             return self.screen()
+        # Evitar reutilizar un responsable al volver a Merma desde otra pestaña.
+        if espacio_id != self._espacio:
+            self._responsable_seleccionado = None
         self._espacio = espacio_id
         self._ajuste_preview = None
         self._feedback = FeedbackVM(ok=True, mensaje=f"Espacio: {_ETIQUETAS[espacio_id]}")
         if espacio_id == "alertas":
             alert_service.sincronizar_alertas()
+        return self.screen()
+
+    def seleccionar_responsable(self, responsable_id: str | None) -> InventarioScreenVM:
+        if not session_bridge.puede_usar_terminal_inventario():
+            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            return self.screen()
+        rid = (responsable_id or "").strip() or None
+        if rid is None:
+            self._responsable_seleccionado = None
+            return self.screen()
+        activos = {r.id for r in merma_service.listar_responsables_merma(solo_activos=True)}
+        if rid not in activos:
+            self._responsable_seleccionado = None
+            self._feedback = map_error_recuperable(
+                "Seleccione un responsable activo.", codigo="VALIDACION"
+            )
+            return self.screen()
+        self._responsable_seleccionado = rid
         return self.screen()
 
     # --- Alertas ------------------------------------------------------------
@@ -132,7 +155,7 @@ class TerminalInventarioPresenter:
         resp_id, resp_nombre = self._resolver_responsable(responsable_id)
         if not resp_id:
             self._feedback = map_error_recuperable(
-                "No hay responsables de merma activos. Configúrelos en Administración."
+                "Selecciona un responsable.", codigo="VALIDACION"
             )
             return self.screen()
         r = caducidad_service.registrar_salida_caducidad(
@@ -168,7 +191,7 @@ class TerminalInventarioPresenter:
         resp_id, resp_nombre = self._resolver_responsable(responsable_id)
         if not resp_id:
             self._feedback = map_error_recuperable(
-                "No hay responsables de merma activos."
+                "Selecciona un responsable.", codigo="VALIDACION"
             )
             return self.screen()
         r = merma_service.anadir_a_cesta_merma(
@@ -214,6 +237,7 @@ class TerminalInventarioPresenter:
                 lote_id=i.lote_id,
                 motivo=i.motivo,
                 servicio=merma_service.etiqueta_servicio_merma(i.tipo_servicio_snapshot),
+                responsable=i.responsable_nombre or "",
             )
             for i in cesta
         )
@@ -223,6 +247,7 @@ class TerminalInventarioPresenter:
             r = merma_service.registrar_merma(fecha or date.today())
             if r.ok:
                 rotate_idempotency_token(_IDEMP_MERMA)
+                self._responsable_seleccionado = None
                 self._feedback = map_merma_registro_feedback(
                     ok=True, lineas=lineas_ops
                 )
@@ -361,6 +386,7 @@ class TerminalInventarioPresenter:
                 MermaOpcionVM(t.value, TURNO_MERMA_LABEL[t]) for t in TurnoMerma
             ),
             responsables_merma=self._responsables_vm(),
+            responsable_seleccionado=self._responsable_efectivo(),
             lotes_ajuste=lotes_aj,
             motivos_ajuste=tuple(m.value for m in MotivoAjuste),
             ajuste_preview=self._ajuste_preview,
@@ -371,15 +397,27 @@ class TerminalInventarioPresenter:
         return vm
 
     def _resolver_responsable(self, responsable_id: str | None) -> tuple[str | None, str | None]:
-        activos = merma_service.listar_responsables_merma(solo_activos=True)
-        if not activos:
+        """Resuelve responsable explícito; nunca auto-selecciona el primero."""
+        rid = (responsable_id or self._responsable_seleccionado or "").strip() or None
+        if not rid:
             return None, None
-        if responsable_id:
-            for r in activos:
-                if r.id == responsable_id:
-                    return r.id, r.nombre
-        r0 = activos[0]
-        return r0.id, r0.nombre
+        activos = merma_service.listar_responsables_merma(solo_activos=True)
+        for r in activos:
+            if r.id == rid:
+                return r.id, r.nombre
+        # Selección obsoleta (desactivado / eliminado del catálogo activo).
+        self._responsable_seleccionado = None
+        return None, None
+
+    def _responsable_efectivo(self) -> str | None:
+        rid = self._responsable_seleccionado
+        if not rid:
+            return None
+        activos = {r.id for r in merma_service.listar_responsables_merma(solo_activos=True)}
+        if rid not in activos:
+            self._responsable_seleccionado = None
+            return None
+        return rid
 
     def _responsables_vm(self) -> tuple[MermaOpcionVM, ...]:
         if not session_bridge.current_session_vm().authenticated:

@@ -44,6 +44,7 @@ class TerminalInventarioShell:
                 on_alerta_estado=self._on_alerta,
                 on_caducidad_a_merma=self._on_caducidad,
                 on_anadir_merma=self._on_anadir_merma,
+                on_seleccionar_responsable=self._on_responsable,
                 on_vaciar_merma=self._on_vaciar_merma,
                 on_confirmar_merma=self._on_confirmar_merma,
                 on_preview_ajuste=self._on_preview_ajuste,
@@ -75,6 +76,10 @@ class TerminalInventarioShell:
 
     def _on_anadir_merma(self, lid: str, cant: float, motivo: str) -> None:
         self.presenter.anadir_merma(lid, cant, motivo)
+        self.refresh()
+
+    def _on_responsable(self, rid: str | None) -> None:
+        self.presenter.seleccionar_responsable(rid)
         self.refresh()
 
     def _on_vaciar_merma(self) -> None:

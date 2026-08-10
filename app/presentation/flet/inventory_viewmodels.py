@@ -98,6 +98,7 @@ class InventarioScreenVM:
     servicios_merma: tuple[MermaOpcionVM, ...]
     turnos_merma: tuple[MermaOpcionVM, ...]
     responsables_merma: tuple[MermaOpcionVM, ...]
+    responsable_seleccionado: str | None
     lotes_ajuste: tuple[LoteAjusteVM, ...]
     motivos_ajuste: tuple[str, ...]
     ajuste_preview: AjustePreviewVM | None

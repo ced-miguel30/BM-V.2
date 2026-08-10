@@ -28,6 +28,7 @@ class MermaLineaOperativa:
     lote_id: str = ""
     motivo: str = ""
     servicio: str = ""
+    responsable: str = ""
 
 
 def sanitize_mensaje(mensaje: str) -> str:
@@ -171,7 +172,9 @@ def map_merma_registro_feedback(
         trozo = f"{ln.nombre} {ln.cantidad:g} {ln.unidad}".strip()
         if ln.lote_id:
             trozo += f" (lote {ln.lote_id})"
-        detalle = " · ".join(p for p in (ln.motivo, ln.servicio) if p)
+        detalle = " · ".join(
+            p for p in (ln.motivo, ln.servicio, ln.responsable) if p
+        )
         if detalle:
             trozo += f" — {detalle}"
         partes.append(trozo)

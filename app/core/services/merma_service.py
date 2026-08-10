@@ -558,6 +558,7 @@ def registrar_merma(
     if fecha > context.clock.today():
         return ResultadoOperacion(False, "No puede registrar mermas en fechas futuras.")
 
+    data = context.data()
     for item in cesta:
         if item.tipo_servicio_snapshot not in ORIGEN_SERVICIO_MERMA_VALORES:
             return ResultadoOperacion(
@@ -574,8 +575,21 @@ def registrar_merma(
                 False,
                 "Hay líneas sin responsable. Quite y vuelva a añadirlas.",
             )
+        activo = next(
+            (
+                r
+                for r in data.responsables_merma
+                if r.id == item.responsable_id and r.activo
+            ),
+            None,
+        )
+        if not activo:
+            return ResultadoOperacion(
+                False,
+                "Hay un responsable inactivo en la cesta. "
+                "Seleccione otro activo, vacíe la cesta si hace falta y vuelva a añadir.",
+            )
 
-    data = context.data()
     lineas: list[LineaMerma] = []
 
     # Validación acumulada por lote (varias líneas del mismo lote).

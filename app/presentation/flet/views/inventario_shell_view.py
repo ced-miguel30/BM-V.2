@@ -51,6 +51,7 @@ def build_inventario_shell(
     on_alerta_estado: Callable[[str, str], None],
     on_caducidad_a_merma: Callable[[str, float], None],
     on_anadir_merma: Callable[[str, float, str], None],
+    on_seleccionar_responsable: Callable[[str | None], None],
     on_vaciar_merma: Callable[[], None],
     on_confirmar_merma: Callable[[], None],
     on_preview_ajuste: Callable[[str, float, str], None],
@@ -118,10 +119,14 @@ def build_inventario_shell(
     if screen.espacio_activo == "alertas":
         body = _alertas_body(screen, on_alerta_estado)
     elif screen.espacio_activo == "caducidad":
-        body = _caducidad_body(screen, on_caducidad_a_merma)
+        body = _caducidad_body(screen, on_caducidad_a_merma, on_seleccionar_responsable)
     elif screen.espacio_activo == "merma":
         body = _merma_body(
-            screen, on_anadir_merma, on_vaciar_merma, on_confirmar_merma
+            screen,
+            on_anadir_merma,
+            on_seleccionar_responsable,
+            on_vaciar_merma,
+            on_confirmar_merma,
         )
     else:
         body = _ajustes_body(screen, on_preview_ajuste, on_confirmar_ajuste)
@@ -183,14 +188,54 @@ def _alertas_body(screen: InventarioScreenVM, on_estado) -> ft.Control:
     return ft.Column(scroll=ft.ScrollMode.AUTO, expand=True, spacing=8, controls=rows)
 
 
-def _caducidad_body(screen: InventarioScreenVM, on_enviar) -> ft.Control:
-    if not screen.lotes_caducidad:
+def _responsable_dropdown(
+    screen: InventarioScreenVM,
+    on_seleccionar: Callable[[str | None], None],
+) -> ft.Control:
+    if not screen.responsables_merma:
         return ft.Text(
-            "No hay lotes próximos a caducar ni vencidos.",
-            italic=True,
-            color=ft.Colors.OUTLINE,
+            "No hay responsables activos. Configúrelos en Administración.",
+            color=ft.Colors.RED_700,
+            size=13,
         )
-    rows: list[ft.Control] = []
+    return ft.Dropdown(
+        label="Responsable",
+        hint_text="Selecciona un responsable",
+        value=screen.responsable_seleccionado,
+        options=[
+            ft.DropdownOption(key=r.id, text=r.etiqueta)
+            for r in screen.responsables_merma
+        ],
+        on_select=lambda e: on_seleccionar(getattr(e.control, "value", None)),
+        expand=True,
+    )
+
+
+def _caducidad_body(
+    screen: InventarioScreenVM,
+    on_enviar,
+    on_seleccionar_responsable: Callable[[str | None], None],
+) -> ft.Control:
+    if not screen.lotes_caducidad:
+        return ft.Column(
+            spacing=8,
+            controls=[
+                _responsable_dropdown(screen, on_seleccionar_responsable),
+                ft.Text(
+                    "No hay lotes próximos a caducar ni vencidos.",
+                    italic=True,
+                    color=ft.Colors.OUTLINE,
+                ),
+            ],
+        )
+    rows: list[ft.Control] = [
+        _responsable_dropdown(screen, on_seleccionar_responsable),
+        ft.Text(
+            "El responsable debe elegirse antes de enviar a merma.",
+            size=12,
+            color=ft.Colors.OUTLINE,
+        ),
+    ]
     for l in screen.lotes_caducidad:
         badge = "VENCIDO" if l.estado == "vencido" else "PRÓXIMO"
         rows.append(
@@ -228,9 +273,13 @@ def _caducidad_body(screen: InventarioScreenVM, on_enviar) -> ft.Control:
     return ft.Column(scroll=ft.ScrollMode.AUTO, expand=True, spacing=8, controls=rows)
 
 
-def _merma_body(screen, on_anadir, on_vaciar, on_confirmar) -> ft.Control:
-    lotes = screen.lotes_ajuste  # reutilizar listado operativo de lotes con stock vía ajustes
-    # Preferir lotes de merma: si vacíos en este espacio, mostrar cesta + mensaje
+def _merma_body(
+    screen,
+    on_anadir,
+    on_seleccionar_responsable,
+    on_vaciar,
+    on_confirmar,
+) -> ft.Control:
     add_hint = ft.Text(
         "Añada líneas desde Caducidad o use el selector de lote abajo.",
         size=12,
@@ -250,6 +299,7 @@ def _merma_body(screen, on_anadir, on_vaciar, on_confirmar) -> ft.Control:
         value=screen.motivos_merma[0] if screen.motivos_merma else None,
         expand=True,
     )
+    resp_dd = _responsable_dropdown(screen, on_seleccionar_responsable)
 
     def _add(_e):
         if not lote_dd.value:
@@ -267,7 +317,8 @@ def _merma_body(screen, on_anadir, on_vaciar, on_confirmar) -> ft.Control:
         for ln in screen.cesta_merma:
             cesta_rows.append(
                 ft.Text(
-                    f"{ln.nombre}: {ln.cantidad:g} {ln.unidad} · {ln.motivo} · {ln.servicio}",
+                    f"{ln.nombre}: {ln.cantidad:g} {ln.unidad} · {ln.motivo} · "
+                    f"{ln.servicio} · resp. {ln.responsable or '—'}",
                     size=13,
                 )
             )
@@ -286,6 +337,7 @@ def _merma_body(screen, on_anadir, on_vaciar, on_confirmar) -> ft.Control:
         spacing=10,
         controls=[
             add_hint,
+            resp_dd,
             ft.Row(controls=[lote_dd]),
             ft.Row(controls=[qty, motivo, ft.FilledTonalButton("Añadir", on_click=_add)]),
             ft.Divider(),
