@@ -7,12 +7,12 @@
 | Terminal Restaurante | **APROBADA** (técnica + manual) |
 | Terminal Inventario | **APROBADA** (técnica + manual) |
 | Consolidación UX Flet | **APROBADA** (técnica + manual) |
-| Administración operativa Flet | **APROBADA TÉCNICAMENTE** — pendiente validación manual |
+| Administración operativa Flet | **APROBADA** (técnica + manual) |
 
 | Campo | Valor |
 |-------|--------|
 | Composition Flet | `configure_for_flet()` (única) |
-| UI Streamlit | Referencia intacta |
+| UI Streamlit | Referencia intacta (Settings amplio) |
 | Arranque Restaurante | `python -m app.presentation.flet.main` |
 | Arranque Inventario | `python -m app.presentation.flet.main_inventario` |
 | Arranque Administración | `python -m app.presentation.flet.main_administracion` |
@@ -21,24 +21,30 @@
 
 `deny_terminal=True` bloquea actores `terminal` excepto allowlist Inventario operativa.
 `ACCEDER_CONFIGURACION` exige usuario Dir/Adm (`terminal_id=None`). Terminales no mutan responsables.
+Merma Flet exige responsable **explícito** (sin autofill).
 
 ## Backlog Flet
 
 ### Resuelto
 - Re-render buscador Restaurante.
 - Feedback operativo merma tipado.
+- Responsable obligatorio en Merma Inventario.
+- Listado Admin legible (contraste / vacío / Activo-Inactivo).
 
 ### Pueden esperar
-- Branding / tipografía definitiva.
+- Branding / tipografía definitiva (las tres superficies Flet).
 - Persistencia opcional de cestas no confirmadas.
 - Skip E2E Streamlit Desayuno (selector).
 - Traslados / recuentos / stock admin.
-- Empaquetado `.exe`.
+- Empaquetado `.exe` / instalador.
 - Resto de Settings Streamlit (usuarios, catálogos, backups, zona peligro…).
+- Launcher / navegación entre terminales Flet.
 
-## Siguiente bloque (no iniciado automáticamente)
+## Siguiente bloque (recomendado, no iniciado)
 
-Validación **manual** de Administración operativa; ampliations Admin solo tras aprobación.
+**D — Streamlit para Admin amplio + navegación mínima entre terminales Flet**,
+o, si la experiencia táctil debe estabilizarse antes de empaquetar: **A — consolidación visual conjunta acotada**.
+Ver entrega de cierre de Administración operativa.
 
 ## Docs
 

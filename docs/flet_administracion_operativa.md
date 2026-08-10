@@ -2,7 +2,9 @@
 
 ## Estado
 
-**APROBADA TÉCNICAMENTE** — pendiente de validación manual.
+**APROBADA** técnica y manualmente.
+
+Cierre P1 responsable obligatorio y listado legible: validados manualmente (**sin incidencias**).
 
 Streamlit permanece como interfaz administrativa de referencia completa.
 
@@ -93,9 +95,11 @@ python run_browser_tests.py
 
 ## Checklist manual breve
 
+Resultado: **funciona** — sin incidencias reportadas tras la corrección P1.
+
 1. Login Dir/Adm OK; Rest denegado.
 2. Crear responsable → aparece en listado.
-3. Inventario merma puede usarlo.
+3. Inventario merma: selector vacío; rechazo sin responsable; registro con responsable explícito.
 4. Desactivar → ya no seleccionable en nuevas operaciones.
-5. Renombrar → histórico previo conserva snapshot.
+5. Histórico / snapshots conservados; sin economía.
 6. Logout.
