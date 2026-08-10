@@ -29,6 +29,16 @@ def build_app_handler():
 
         return main
 
+    if terminal in ("administracion", "admin", "administración"):
+        from app.presentation.flet.app_shell_administracion import (
+            attach_terminal_administracion,
+        )
+
+        def main(page) -> None:
+            attach_terminal_administracion(page)
+
+        return main
+
     from app.presentation.flet.app_shell import attach_terminal
 
     def main(page) -> None:
