@@ -1,18 +1,35 @@
-# Pre-Flet readiness — BM-V.2 (primera vertical Flet implementada)
+# Pre-Flet readiness — BM-V.2
 
-Documento actualizado tras implementar **Terminal Restaurante** en Flet.
+## Estado
 
-## Estado de referencia
+**Terminal Restaurante (primera vertical Flet): APROBADA** — técnica + validación manual.
 
-- Rama: `main`
-- Persistencia: JSON vía `AppDataStore` (composition root) + adjuntos
-- UI Streamlit (referencia): `app/main.py` → `configure_for_streamlit()`
-- UI Flet (piloto): `python -m app.presentation.flet.main` → `configure_for_flet()`
-- Núcleo: `app/core/services/*`, `app/core/application/*`, `app/core/models/*`
-- Adaptadores Streamlit: `app/presentation/streamlit/adapters.py`
-- Presentación Flet: `app/presentation/flet/*`
+| Campo | Valor |
+|-------|--------|
+| HEAD / origin/main | `a31aacd…` (baseline vertical + docs previos) |
+| Persistencia | JSON vía `AppDataStore` (sin cambio) |
+| UI Streamlit | Referencia intacta (`configure_for_streamlit`) |
+| UI Flet | `python -m app.presentation.flet.main` → `configure_for_flet()` |
+| Siguiente vertical | Terminal Inventario — **planificado, no implementado** |
 
-## Arquitectura funcional actual
+## Gates de Terminal Restaurante
+
+| Gate | Resultado |
+|------|-----------|
+| Tests Flet | 23 OK |
+| `python run_tests.py` | 920 OK |
+| `python run_browser_tests.py` | 13 OK, 1 skipped |
+| Smoke Streamlit / Flet | OK |
+| Demo canónico | Intacto |
+| Sin backend paralelo | OK |
+| Sin economía en viewmodels | OK |
+| Autorización / idempotencia / persistencia | OK |
+| Validación manual | **funciona** (sin incidencias P0–P3 reportadas) |
+
+Detalle: `docs/flet_terminal_restaurante.md`.
+Plan siguiente: `docs/flet_terminal_inventario_plan.md`.
+
+## Arquitectura
 
 ```
 UI Streamlit ─┐
@@ -20,71 +37,30 @@ UI Streamlit ─┐
 UI Flet ──────┘        ↘ inventory_batch (FIFO) → movimientos
 ```
 
-Composition: `app/bootstrap.py` (`configure_for_streamlit` / `configure_for_tests` / `configure_for_flet`).
-
-## Primera vertical — resultado de gates
-
-| Gate | Resultado |
-|------|-----------|
-| Composición Flet sin Streamlit | OK |
-| Presenter auth / cesta / confirmación | OK |
-| Idempotencia / persistencia temporal | OK |
-| Seguridad económica (VM + usecase) | OK |
-| Guard arquitectónico Flet | OK |
-| `python run_tests.py` | Verde tras vertical |
-| `python run_browser_tests.py` | Verde (1 skip E2E Streamlit previo) |
-| Demo canónico | Intacto |
-| Streamlit arranque | Intacto como interfaz de referencia |
-
-Ver detalle operativo: `docs/flet_terminal_restaurante.md`.
-
-## Módulos reutilizables (sin Streamlit)
-
-Todos los de `app/core/services` (tras extracción de cestas).
-Puertos: `AppDataStore`, `BasketStore`, `AuthSessionStore`, `IdempotencyStore`.
-
-## Dependencias directas de Streamlit (solo presentación Streamlit)
-
-- `app/presentation/streamlit/adapters.py`
-- `app/pages/*`, `app/ui/*`
-- Shim documentado: `app/core/storage/session_store.py` (delega en bootstrap)
-
-## session_state (solo adaptadores Streamlit / UI Streamlit)
-
-| Clave | Store |
-|-------|-------|
-| `bm_data` | StreamlitAppDataStore |
-| `bm_auth_session` | StreamlitAuthSessionStore |
-| `bm_cesta_*` / merma | StreamlitBasketStore |
-| `*_clave_idempotencia` | StreamlitIdempotencyStore |
-| nav / espacio | solo UI |
-
-Flet usa stores en memoria inyectados por `configure_for_flet()` (sin `session_state`).
-
-## Decisiones de dominio (sin cambio)
-
-Otros consumos = PRODUCTO_DIRECTO; caducidad = merma EXPIRACION; ajustes compensatorios;
-coste_general = 4 buckets; bebidas transversales aparte.
+Composition: `configure_for_streamlit` / `configure_for_tests` / `configure_for_flet`.
 
 ## Autorización
 
-Terminal Inventario deniega economía en `require_permiso` / `session_tiene_permiso` por `terminal_id`.
-Terminal Restaurante Flet: `ACCEDER_TERMINAL_RESTAURANTE` / `ACCEDER_REGISTRO`; sin `CONSULTAR_COSTES`.
+- Terminal Restaurante: `ACCEDER_TERMINAL_RESTAURANTE` / `ACCEDER_REGISTRO`; sin `CONSULTAR_COSTES`.
+- Terminal Inventario: deniega economía/config/gestor/compras por `terminal_id` en `session_tiene_permiso` / `require_permiso`.
 
-## Backlog Flet (P2/P3 — no corregir en Streamlit ahora)
+## Backlog Flet (P2/P3 — no tocar Streamlit)
 
-- Selector/localización E2E «Confirmar registro» Desayuno (skip browser actual).
-- Evitar re-render completo del TextField de búsqueda en cada tecla.
-- Branding / tipografía definitiva del terminal.
-- Persistencia opcional de cesta no confirmada entre reinicios (hoy: no).
-- Merma, anulaciones, histórico y resto de verticales.
-- Empaquetado desktop / instalador (fuera de alcance actual).
+### Conviene corregir antes o al inicio de Inventario
+- Relajar o especializar `require_usecase(..., deny_terminal=True)` para que el actor `terminal_inventario` pueda mutar ajustes/alertas si entran en el alcance (hoy bloquea *cualquier* `actor_type=="terminal"`). Tratar como **precondición de dominio de la 2ª vertical**, no bug de Restaurante.
+- Evitar re-render completo del `TextField` de búsqueda en cada tecla (Restaurante).
+
+### Pueden esperar
+- Selector E2E Streamlit «Confirmar registro» Desayuno (skip browser; deuda Streamlit/E2E, no Flet Restaurante).
+- Branding / tipografía definitiva.
+- Persistencia opcional de cestas no confirmadas entre reinicios.
+- Merma/anulaciones/histórico en Restaurante; empaquetado `.exe`.
+- Traslados / recuentos / stock admin completo (fuera del shell actual de Inventario).
 
 ## Docs relacionados
 
-- `docs/architecture_boundaries.md`
-- `docs/flet_backend_contracts.md`
 - `docs/flet_terminal_restaurante.md`
-- `docs/streamlit_manual_regression.md`
-- `docs/persistence_decision.md`
+- `docs/flet_terminal_inventario_plan.md`
+- `docs/flet_backend_contracts.md`
+- `docs/architecture_boundaries.md`
 - `docs/browser_e2e.md`

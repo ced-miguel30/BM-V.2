@@ -84,6 +84,12 @@ python run_browser_tests.py
 - UX táctil operativa; branding definitivo pendiente.
 - La búsqueda en UI puede re-renderizar el árbol (mejora P2).
 
+## Validación
+
+- **Técnica:** gates verdes (ver `docs/pre_flet_readiness.md`).
+- **Manual:** Terminal Restaurante **APROBADA** (resultado: funciona; sin incidencias reportadas).
+
 ## Alcance excluido
 
 Terminal Inventario, Administración, SQLite, API, instalador `.exe`, migración completa desde Streamlit.
+Plan de la siguiente vertical: `docs/flet_terminal_inventario_plan.md`.
