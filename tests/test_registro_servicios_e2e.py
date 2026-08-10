@@ -119,6 +119,10 @@ class TestE2ETortillaCafeZumo(unittest.TestCase):
         for p in self._patches:
             p.start()
             self.addCleanup(p.stop)
+        from tests.streamlit_store_harness import cleanup_container, fresh_memory_container
+
+        fresh_memory_container()
+        self.addCleanup(cleanup_container)
 
     def tearDown(self) -> None:
         self.assertEqual(DEMO_FILE.read_bytes(), self.demo_before)

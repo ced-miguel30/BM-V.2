@@ -78,6 +78,10 @@ class TestEscaladoRecetaFase8(unittest.TestCase):
         ]
         for p in self._patches:
             p.start()
+        from tests.streamlit_store_harness import cleanup_container, fresh_memory_container
+
+        fresh_memory_container()
+        self.addCleanup(cleanup_container)
 
     def tearDown(self) -> None:
         for p in reversed(self._patches):

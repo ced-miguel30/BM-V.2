@@ -140,6 +140,10 @@ class TestF20CompleteAuth(unittest.TestCase):
         clear_test_session()
         self.addCleanup(self._st.stop)
         self.addCleanup(restore_harness_session)
+        from tests.streamlit_store_harness import cleanup_container, use_patched_streamlit_stores
+
+        use_patched_streamlit_stores()
+        self.addCleanup(cleanup_container)
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.base_docs = Path(self.tmp.name) / "documentos"

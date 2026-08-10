@@ -142,6 +142,10 @@ class TestRegistroDesayunoOperativo(unittest.TestCase):
         for p in self._patches:
             p.start()
             self.addCleanup(p.stop)
+        from tests.streamlit_store_harness import cleanup_container, fresh_memory_container
+
+        fresh_memory_container()
+        self.addCleanup(cleanup_container)
 
     def tearDown(self) -> None:
         self.assertEqual(DEMO_FILE.read_bytes(), self.demo_before)
@@ -265,6 +269,9 @@ class TestRegistroDesayunoOperativo(unittest.TestCase):
         for p in self._patches:
             p.start()
             self.addCleanup(p.stop)
+        from tests.streamlit_store_harness import fresh_memory_container
+
+        fresh_memory_container()
 
         snap_lotes = [(l.id, l.cantidad_restante) for l in self.data.lotes]
         self.assertTrue(desayuno_service.anadir_receta_a_cesta("r1", 4.0).ok)

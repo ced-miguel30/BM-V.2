@@ -119,19 +119,24 @@ class TestCestaPrefijosAislados(unittest.TestCase):
             # Re-bind session_state used inside MotorCesta methods
             import streamlit as st
             st.session_state = fake_st.session_state
+            from tests.streamlit_store_harness import cleanup_container, use_patched_streamlit_stores
 
-            with patch("app.core.services.cesta_service.get_data", return_value=_datos_stock()):
-                r1 = cesta_a.anadir_a_cesta("p01", 1.0)
-                r2 = cesta_b.anadir_a_cesta("p02", 2.0)
-                self.assertTrue(r1.ok)
-                self.assertTrue(r2.ok)
-                self.assertEqual(len(cesta_a.get_cesta()), 1)
-                self.assertEqual(len(cesta_b.get_cesta()), 1)
-                self.assertEqual(cesta_a.get_cesta()[0].producto_id, "p01")
-                self.assertEqual(cesta_b.get_cesta()[0].producto_id, "p02")
-                self.assertIn("bm_cesta_comida", state)
-                self.assertIn("bm_cesta_cena", state)
-                self.assertNotEqual(state["bm_cesta_comida"], state["bm_cesta_cena"])
+            use_patched_streamlit_stores()
+            try:
+                with patch("app.core.services.cesta_service.get_data", return_value=_datos_stock()):
+                    r1 = cesta_a.anadir_a_cesta("p01", 1.0)
+                    r2 = cesta_b.anadir_a_cesta("p02", 2.0)
+                    self.assertTrue(r1.ok)
+                    self.assertTrue(r2.ok)
+                    self.assertEqual(len(cesta_a.get_cesta()), 1)
+                    self.assertEqual(len(cesta_b.get_cesta()), 1)
+                    self.assertEqual(cesta_a.get_cesta()[0].producto_id, "p01")
+                    self.assertEqual(cesta_b.get_cesta()[0].producto_id, "p02")
+                    self.assertIn("bm_cesta_comida", state)
+                    self.assertIn("bm_cesta_cena", state)
+                    self.assertNotEqual(state["bm_cesta_comida"], state["bm_cesta_cena"])
+            finally:
+                cleanup_container()
 
 
 class TestAllowListRecetas(unittest.TestCase):
@@ -172,6 +177,10 @@ class TestAllowListRecetas(unittest.TestCase):
         self.st_patch.start()
         import streamlit as st
         st.session_state = fake_st.session_state
+        from tests.streamlit_store_harness import cleanup_container, use_patched_streamlit_stores
+
+        use_patched_streamlit_stores()
+        self.addCleanup(cleanup_container)
 
     def tearDown(self) -> None:
         self.patcher.stop()

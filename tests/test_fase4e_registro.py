@@ -72,6 +72,10 @@ class TestFase4ERegistro(unittest.TestCase):
         self._session: dict = {}
         self._st = mock.patch("streamlit.session_state", self._session)
         self._st.start()
+        from tests.streamlit_store_harness import cleanup_container, use_patched_streamlit_stores
+
+        use_patched_streamlit_stores()
+        self.addCleanup(cleanup_container)
 
     def tearDown(self) -> None:
         self._st.stop()

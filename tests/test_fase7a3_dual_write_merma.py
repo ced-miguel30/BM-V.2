@@ -134,6 +134,10 @@ class TestFase7A3DualWriteMerma(unittest.TestCase):
             "app.core.services.alert_service.sincronizar_alertas"
         )
         self._alert.start()
+        from tests.streamlit_store_harness import cleanup_container, use_patched_streamlit_stores
+
+        use_patched_streamlit_stores()
+        self.addCleanup(cleanup_container)
 
     def tearDown(self) -> None:
         self._alert.stop()

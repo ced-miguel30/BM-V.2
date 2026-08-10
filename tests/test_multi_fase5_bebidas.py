@@ -104,6 +104,10 @@ class TestBebidasRegistro(unittest.TestCase):
             p.start()
         import streamlit as st
         st.session_state = fake_st.session_state
+        from tests.streamlit_store_harness import cleanup_container, use_patched_streamlit_stores
+
+        use_patched_streamlit_stores()
+        self.addCleanup(cleanup_container)
 
         bebida_service.servicio = crear_servicio(
             "bebidas", "bebidas",

@@ -187,6 +187,10 @@ class TestCestaConUnidadDePresentacion(unittest.TestCase):
         self._patcher_cesta.start()
         self._session_patcher = patch("streamlit.session_state", {})
         self._session_patcher.start()
+        from tests.streamlit_store_harness import cleanup_container, fresh_memory_container
+
+        fresh_memory_container()
+        self.addCleanup(cleanup_container)
 
     def tearDown(self) -> None:
         self._session_patcher.stop()

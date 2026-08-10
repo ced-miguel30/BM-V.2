@@ -128,31 +128,37 @@ class TestF17BootstrapLogin(unittest.TestCase):
             "nav_section": "Configuración",
         }
         with patch("streamlit.session_state", fake_state):
-            set_test_session(
-                session_for(
-                    role="direccion",
-                    actor_id="u_dir_e2e",
-                    label="Dir",
-                    session_id="s-dir",
-                )
-            )
-            # Forzar override off para probar invalidate vía streamlit mock
-            from app.core.auth import session as sess_mod
+            from tests.streamlit_store_harness import cleanup_container, use_patched_streamlit_stores
 
-            sess_mod._TEST_OVERRIDE = False
-            save_auth_session(
-                session_for(
-                    role="direccion",
-                    actor_id="u_dir_e2e",
-                    label="Dir",
-                    session_id="s-dir",
+            use_patched_streamlit_stores()
+            try:
+                set_test_session(
+                    session_for(
+                        role="direccion",
+                        actor_id="u_dir_e2e",
+                        label="Dir",
+                        session_id="s-dir",
+                    )
                 )
-            )
-            logout()
-            self.assertNotIn("settings_danger_token", fake_state)
-            self.assertNotIn("nav_section", fake_state)
-            # Restaurar modo test
-            clear_test_session()
+                # Forzar override off para probar invalidate vía streamlit mock
+                from app.core.auth import session as sess_mod
+
+                sess_mod._TEST_OVERRIDE = False
+                save_auth_session(
+                    session_for(
+                        role="direccion",
+                        actor_id="u_dir_e2e",
+                        label="Dir",
+                        session_id="s-dir",
+                    )
+                )
+                logout()
+                self.assertNotIn("settings_danger_token", fake_state)
+                self.assertNotIn("nav_section", fake_state)
+                # Restaurar modo test
+                clear_test_session()
+            finally:
+                cleanup_container()
 
         # Cadena de identidades
         self.env.as_direccion()
@@ -324,6 +330,10 @@ class TestF17TerminalFlujos(unittest.TestCase):
         self._st = patch("streamlit.session_state", self._session)
         self._st.start()
         self.addCleanup(self._st.stop)
+        from tests.streamlit_store_harness import cleanup_container, use_patched_streamlit_stores
+
+        use_patched_streamlit_stores()
+        self.addCleanup(cleanup_container)
 
     def test_18_19_20_terminal_consumo_actor(self) -> None:
         self.assertFalse(tiene_permiso("restaurante", Permiso.CONSULTAR_COSTES))
