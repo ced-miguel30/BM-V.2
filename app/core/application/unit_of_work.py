@@ -29,15 +29,19 @@ class InMemoryUnitOfWork:
 
 
 class JsonSessionUnitOfWork:
-    """Adaptador temporal: delega en session_store (sin eliminarlo)."""
+    """UoW sobre el AppDataStore del composition root.
+
+    El nombre histórico se conserva; ya no implica Streamlit por sí mismo.
+    """
 
     def get_data(self) -> AppData:
-        from app.core.storage.session_store import get_data
+        from app.bootstrap import get_container
 
-        return get_data()
+        return get_container().app_data_store.get()
 
     def commit(self, data: AppData | None = None) -> AppData:
-        from app.core.storage.session_store import get_data, persist_data
+        from app.bootstrap import get_container
 
-        payload = data if data is not None else get_data()
-        return persist_data(payload)
+        store = get_container().app_data_store
+        payload = data if data is not None else store.get()
+        return store.persist(payload)

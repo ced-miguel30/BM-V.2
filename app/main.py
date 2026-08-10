@@ -82,6 +82,9 @@ def _procesar_exportaciones_semanales_pendientes() -> None:
 
 
 def main() -> None:
+    from app.bootstrap import configure_for_streamlit
+
+    configure_for_streamlit()
     st.set_page_config(
         page_title=f"{APP_NAME} · {APP_VERSION}",
         page_icon="☕",
