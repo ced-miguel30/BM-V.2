@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import uuid
 from datetime import date, datetime, time
 
 import streamlit as st
@@ -72,14 +71,15 @@ def _avisos_coste_incompleto(plan_stock) -> list[str]:
 
 
 def _token_idempotencia(key_prefix: str) -> str:
-    tok_key = f"{key_prefix}_clave_idempotencia"
-    if tok_key not in st.session_state or not st.session_state[tok_key]:
-        st.session_state[tok_key] = str(uuid.uuid4())
-    return st.session_state[tok_key]
+    from app.core.application.idempotency import current_idempotency_token
+
+    return current_idempotency_token(key_prefix)
 
 
 def _rotar_token_idempotencia(key_prefix: str) -> None:
-    st.session_state[f"{key_prefix}_clave_idempotencia"] = str(uuid.uuid4())
+    from app.core.application.idempotency import rotate_idempotency_token
+
+    rotate_idempotency_token(key_prefix)
 
 
 def _render_detalle(servicio, registro) -> None:
