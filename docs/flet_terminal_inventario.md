@@ -77,3 +77,8 @@ python run_browser_tests.py
 - Crear responsables de merma requiere Administración (fuera de este terminal).
 - Mensajes de éxito de merma pueden sanitizarse si el backend incluye texto económico.
 - Branding definitivo pendiente.
+
+## Validación
+
+- **Técnica:** gates verdes (B5, 943 tests, smokes, demo canónico).
+- **Manual:** Terminal Inventario **APROBADA** (resultado: funciona; Alertas, Caducidad, Merma y Ajustes validados; sin incidencias reportadas).
