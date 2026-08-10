@@ -59,6 +59,56 @@ def map_error_recuperable(mensaje: str, codigo: str | None = None) -> FeedbackVM
     )
 
 
+def map_admin_operacion_feedback(
+    *,
+    ok: bool,
+    mensaje_backend: str = "",
+    codigo: str | None = None,
+) -> FeedbackVM:
+    """Feedback administrativo tipificado (sin economía ni fugas internas)."""
+    texto = (mensaje_backend or "").strip()
+    if not ok:
+        low = texto.lower()
+        if "autoriz" in low or "permiso" in low or "no autorizado" in low:
+            return FeedbackVM(
+                ok=False,
+                mensaje=_mensaje_error_operativo(texto, "Permiso denegado."),
+                codigo=codigo or "DENEGADO",
+            )
+        if "ya existe" in low or "duplic" in low:
+            return FeedbackVM(
+                ok=False,
+                mensaje=_mensaje_error_operativo(texto, "Nombre duplicado."),
+                codigo=codigo or "DUPLICADO",
+            )
+        if "indique" in low or "vacío" in low or "vacio" in low or "encontrado" in low:
+            return FeedbackVM(
+                ok=False,
+                mensaje=_mensaje_error_operativo(texto, "Datos no válidos."),
+                codigo=codigo or "VALIDACION",
+            )
+        if "ya está" in low:
+            return FeedbackVM(
+                ok=False,
+                mensaje=_mensaje_error_operativo(
+                    texto, "Operación ya aplicada (sin cambios)."
+                ),
+                codigo=codigo or "IDEMPOTENTE",
+            )
+        return FeedbackVM(
+            ok=False,
+            mensaje=_mensaje_error_operativo(texto, "No se pudo completar."),
+            codigo=codigo,
+        )
+    return FeedbackVM(
+        ok=True,
+        mensaje=_mensaje_error_operativo(texto, "Operación completada.")
+        if _INTERNAL_LEAK_RE.search(texto)
+        else (sanitize_mensaje(texto) or "Operación completada."),
+        codigo=codigo,
+    )
+
+
 def _mensaje_error_operativo(texto: str, fallback: str) -> str:
     """Mensaje de error usable; sin economía ni fugas internas."""
     text = (texto or "").strip()
