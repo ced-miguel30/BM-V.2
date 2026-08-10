@@ -106,6 +106,76 @@ class TestArchitectureBoundaries(unittest.TestCase):
         self.assertIn("Shim", text)
         self.assertIn("get_container", text)
 
+    def test_flet_presentation_no_streamlit_pages_session_state(self) -> None:
+        flet_root = APP / "presentation" / "flet"
+        if not flet_root.exists():
+            self.skipTest("capa Flet no presente")
+        for path in _py_files(flet_root):
+            imports = _imports_of(path)
+            text = path.read_text(encoding="utf-8")
+            self.assertNotIn("streamlit", imports)
+            self.assertFalse(any(i.startswith("streamlit") for i in imports))
+            self.assertFalse(
+                any(i == "app.pages" or i.startswith("app.pages.") for i in imports),
+                f"{path.relative_to(ROOT)} importa app.pages",
+            )
+            self.assertNotIn("session_state", text)
+            # Vistas / presenter no escriben JSON (código, no docstring de arranque)
+            if "views" in path.parts or "presenters" in path.parts:
+                self.assertNotIn("save_demo_files", text)
+                self.assertNotIn("json.dump", text)
+                tree = ast.parse(text, filename=str(path))
+                for node in ast.walk(tree):
+                    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+                        continue
+                    if isinstance(node, ast.Attribute) and node.attr == "dump":
+                        self.fail(f"{path.relative_to(ROOT)} usa json.dump")
+
+    def test_core_does_not_import_flet_presentation(self) -> None:
+        for folder in ("models", "application", "services", "auth", "storage"):
+            root = APP / "core" / folder
+            if not root.exists():
+                continue
+            for path in _py_files(root):
+                imports = _imports_of(path)
+                self.assertFalse(
+                    any(
+                        i == "app.presentation.flet"
+                        or i.startswith("app.presentation.flet.")
+                        for i in imports
+                    ),
+                    f"{path.relative_to(ROOT)} importa presentación Flet",
+                )
+                self.assertNotIn("flet", imports)
+
+    def test_flet_presenter_has_no_domain_calculations(self) -> None:
+        path = (
+            APP
+            / "presentation"
+            / "flet"
+            / "presenters"
+            / "terminal_restaurante_presenter.py"
+        )
+        if not path.exists():
+            self.skipTest("presenter Flet no presente")
+        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+        names: set[str] = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Name):
+                names.add(node.id)
+            elif isinstance(node, ast.Attribute):
+                names.add(node.attr)
+            elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
+                names.add(node.func.id)
+        for forbidden in (
+            "planificar_descuento",
+            "calcular_coste",
+            "calcular_coste_linea",
+            "coste_total_cesta",
+            "aplicar_descuento",
+        ):
+            self.assertNotIn(forbidden, names)
+
 
 if __name__ == "__main__":
     unittest.main()
