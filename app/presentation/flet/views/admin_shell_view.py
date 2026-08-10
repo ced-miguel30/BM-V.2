@@ -157,19 +157,30 @@ def build_admin_shell(
         label="Buscar",
         value=screen.filtro,
         prefix_icon=ft.Icons.SEARCH,
-        on_change=lambda e: on_filtro(e.control.value or ""),
+        hint_text="Filtrar por nombre o id",
+        on_submit=lambda e: on_filtro(e.control.value or ""),
         expand=True,
+    )
+    filtrar_btn = ft.OutlinedButton(
+        "Filtrar",
+        on_click=lambda _e: on_filtro(filtro_tf.value or ""),
     )
 
     lista: list[ft.Control] = []
     if not screen.responsables:
         lista.append(
-            ft.Text(
-                "No hay responsables con ese filtro."
-                if screen.filtro
-                else "No hay responsables. Cree el primero.",
-                color=ft.Colors.OUTLINE,
-                italic=True,
+            ft.Container(
+                bgcolor=ft.Colors.SURFACE,
+                padding=16,
+                border=ft.Border.all(1, ft.Colors.OUTLINE_VARIANT),
+                border_radius=8,
+                content=ft.Text(
+                    "No hay responsables con ese filtro."
+                    if screen.filtro
+                    else "No hay responsables. Cree el primero.",
+                    color=ft.Colors.ON_SURFACE,
+                    size=14,
+                ),
             )
         )
     else:
@@ -209,8 +220,14 @@ def build_admin_shell(
                     ),
                 ]
             ),
-            filtro_tf,
+            ft.Row(controls=[filtro_tf, filtrar_btn]),
             pending_box,
+            ft.Text(
+                f"{len(screen.responsables)} en listado"
+                + (f" (filtro: {screen.filtro})" if screen.filtro else ""),
+                size=12,
+                color=ft.Colors.OUTLINE,
+            ),
             *lista,
             motivos_info,
         ],
@@ -235,9 +252,15 @@ def _responsable_row(
     on_desactivar: Callable[[str], None],
     on_reactivar: Callable[[str], None],
 ) -> ft.Control:
-    rename_tf = ft.TextField(value=r.nombre, dense=True, width=220, disabled=disabled)
+    rename_tf = ft.TextField(
+        label="Nuevo nombre",
+        value=r.nombre,
+        width=240,
+        disabled=disabled,
+    )
     estado = "Activo" if r.activo else "Inactivo"
-    color = ft.Colors.GREEN_100 if r.activo else ft.Colors.GREY_200
+    chip_bg = ft.Colors.TEAL_700 if r.activo else ft.Colors.BLUE_GREY_600
+    row_bg = ft.Colors.WHITE if r.activo else ft.Colors.BLUE_GREY_50
     acciones: list[ft.Control] = [
         ft.OutlinedButton(
             "Renombrar",
@@ -265,22 +288,30 @@ def _responsable_row(
             )
         )
     return ft.Container(
-        bgcolor=color,
-        padding=12,
+        bgcolor=row_bg,
+        padding=14,
         border_radius=8,
-        content=ft.Row(
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-            wrap=True,
+        border=ft.Border.all(1, ft.Colors.BLUE_GREY_300),
+        content=ft.Column(
+            spacing=8,
+            tight=True,
             controls=[
-                ft.Column(
-                    spacing=2,
-                    expand=True,
+                ft.Row(
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     controls=[
-                        ft.Text(r.nombre, weight=ft.FontWeight.BOLD),
-                        ft.Text(f"{r.id} · {estado}", size=12),
-                        rename_tf,
+                        ft.Text(r.nombre, size=16, weight=ft.FontWeight.BOLD),
+                        ft.Container(
+                            bgcolor=chip_bg,
+                            padding=ft.Padding.symmetric(horizontal=10, vertical=4),
+                            border_radius=12,
+                            content=ft.Text(
+                                estado, color=ft.Colors.WHITE, size=12, weight=ft.FontWeight.W_600
+                            ),
+                        ),
                     ],
                 ),
+                ft.Text(f"Id: {r.id}", size=12, color=ft.Colors.ON_SURFACE_VARIANT),
+                rename_tf,
                 ft.Row(controls=acciones),
             ],
         ),
