@@ -94,7 +94,7 @@ python run_browser_tests.py
 
 - **Técnica:** gates verdes (ver `docs/pre_flet_readiness.md`).
 - **Manual:** Terminal Restaurante **APROBADA** (resultado: funciona; sin incidencias reportadas).
-- Consolidación UX buscador: **aprobada técnicamente** — pendiente revalidación manual del tipado.
+- Consolidación UX buscador: **APROBADA** técnica y manualmente (sin incidencias).
 
 ## Alcance excluido
 

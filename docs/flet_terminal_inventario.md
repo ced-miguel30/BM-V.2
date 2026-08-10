@@ -88,4 +88,4 @@ python run_browser_tests.py
 
 - **Técnica:** gates verdes (B5, suite canónica, smokes, demo canónico).
 - **Manual:** Terminal Inventario **APROBADA** (resultado: funciona; Alertas, Caducidad, Merma y Ajustes validados; sin incidencias reportadas).
-- Consolidación UX merma: **aprobada técnicamente** — pendiente revalidación manual del mensaje post-registro.
+- Consolidación UX feedback merma: **APROBADA** técnica y manualmente (sin incidencias).
