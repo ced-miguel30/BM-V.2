@@ -74,7 +74,7 @@ python run_browser_tests.py
 
 ## Limitaciones
 
-- Crear responsables de merma requiere Administración (fuera de este terminal).
+- Crear responsables de merma: **Administración operativa Flet** (`main_administracion`) o Settings Streamlit.
 - Branding definitivo pendiente.
 
 ## Consolidación UX (feedback merma)

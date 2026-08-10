@@ -1,8 +1,8 @@
 # Plan — Administración Flet (piloto mínimo)
 
-**Estado:** plan aprobado para preparación; **no implementado.**  
-**Precondición:** Terminal Restaurante, Terminal Inventario y consolidación UX Flet **APROBADAS** (técnica + manual).  
-**Streamlit** sigue siendo la interfaz de referencia.  
+**Estado:** implementado (piloto); ver `docs/flet_administracion_operativa.md`.
+**Precondición:** Terminal Restaurante, Terminal Inventario y consolidación UX Flet **APROBADAS** (técnica + manual).
+**Streamlit** sigue siendo la interfaz de referencia.
 **Composition:** reutilizar `configure_for_flet()` (sin backend paralelo).
 
 ## Objetivo
@@ -35,7 +35,7 @@ APIs en `merma_service.py`:
 - `desactivar_responsable_merma(id)`
 - `reactivar_responsable_merma(id)`
 
-Mutadores: `Permiso.ACCEDER_CONFIGURACION` + `deny_terminal=True`.  
+Mutadores: `Permiso.ACCEDER_CONFIGURACION` + `deny_terminal=True`.
 Persistencia: `AppData.responsables_merma` vía UoW / JSON existente. Soft-delete; renombre no reescribe histórico.
 
 Auth Admin: `autenticar_usuario` → `actor_type="usuario"`, `terminal_id=None` (no reutilizar `iniciar_terminal_*`).

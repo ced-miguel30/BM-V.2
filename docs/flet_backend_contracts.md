@@ -43,6 +43,7 @@ Borradores: `MotorCesta` + `BasketStore`; cesta merma `bm_cesta_merma`; tokens d
 - Frontera: `require_usecase` / `require_permiso` (no solo UI).
 - Inventario por `terminal_id`: deniega economía/config/gestor/compras.
 - Entrada Flet: `session_bridge.enter_terminal_restaurante` / `enter_terminal_inventario`.
+- Admin operativa: `session_bridge.login_administracion(login, password)` → usuario con `ACCEDER_CONFIGURACION` (`terminal_id=None`). Mutaciones de responsables vía `merma_service` + `deny_terminal=True`.
 
 ## Qué no copiar de Streamlit
 
