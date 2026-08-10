@@ -109,6 +109,7 @@ class TestInventarioOperaciones(_InvHarness):
         vencidos = [l for l in s.lotes_caducidad if l.lote_id == "bl_exp"]
         self.assertTrue(vencidos)
         lot = vencidos[0]
+        p.seleccionar_responsable("brm1")
         s = p.enviar_caducidad_a_merma(lot.lote_id, min(1.0, lot.cantidad_restante))
         self.assertTrue(s.feedback.ok, s.feedback.mensaje if s.feedback else "")
         self.assertFalse(s.cesta_merma_vacia)
@@ -121,10 +122,12 @@ class TestInventarioOperaciones(_InvHarness):
         pan1 = next(l for l in after.lotes if l.id == "bl_exp").cantidad_restante
         self.assertLess(pan1, pan0)
         self.assertTrue(s.cesta_merma_vacia)
+        self.assertIsNone(s.responsable_seleccionado)
 
     def test_merma_error_recuperable_conserva_cesta(self) -> None:
         p = self._p()
         p.seleccionar_espacio("merma")
+        p.seleccionar_responsable("brm1")
         s = p.anadir_merma("bl_agua", 1.0, MotivoMerma.MERMA.value)
         self.assertTrue(s.feedback.ok)
         # Vaciar stock del lote tras añadir → fallo al confirmar

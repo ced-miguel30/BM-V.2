@@ -188,12 +188,15 @@ class TestFeedbackMermaUX(_UxHarness):
         p = TerminalInventarioPresenter()
         p.entrar()
         p.seleccionar_espacio("merma")
+        p.seleccionar_responsable("brm1")
         p.anadir_merma("bl_pan", 1.0, MotivoMerma.MERMA.value)
         s = p.confirmar_merma(fecha=date.today())
         self.assertTrue(s.feedback.ok, s.feedback.mensaje if s.feedback else "")
         msg = s.feedback.mensaje
         self.assertIn("Pan", msg)
         self.assertIn("bl_pan", msg)
+        self.assertIn("Cocina UI", msg)
+        self.assertIsNone(s.responsable_seleccionado)
         self.assertIsNone(_ECON.search(msg))
         self.assertNotIn("Consulte el módulo de costes", msg)
 
