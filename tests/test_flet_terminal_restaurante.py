@@ -40,6 +40,7 @@ from app.presentation.flet.viewmodels import (
     SessionVM,
     TerminalScreenVM,
 )
+from tests.auth_harness import restore_harness_session
 from tests.browser.fixtures_minimos import build_browser_fixture, write_browser_fixture
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -61,6 +62,7 @@ class _FletHarness(unittest.TestCase):
         reset_container()
         clear_test_session()
         set_demo_file_override(None)
+        restore_harness_session()
         self._tmp.cleanup()
         self.assertEqual(sha256_demo_file(DEMO_FILE), DEMO_CONTENT_SHA256_CANONICO)
 
@@ -335,12 +337,14 @@ class TestFletArranque(unittest.TestCase):
         import flet as ft
         from app.bootstrap import configure_for_flet, reset_container
         from app.presentation.flet.app_shell import attach_terminal
+        from tests.auth_harness import restore_harness_session
 
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "datos_hotel.json"
             write_browser_fixture(path)
             reset_container()
             set_demo_file_override(None)
+            clear_test_session()
             configure_for_flet(data_path=path)
 
             def handler(page: ft.Page) -> None:
@@ -350,6 +354,7 @@ class TestFletArranque(unittest.TestCase):
             self.assertIsNotNone(app)
             reset_container()
             set_demo_file_override(None)
+            restore_harness_session()
         self.assertEqual(sha256_demo_file(DEMO_FILE), DEMO_CONTENT_SHA256_CANONICO)
 
 
