@@ -88,8 +88,8 @@ python run_browser_tests.py
 
 - No es un port de Settings Streamlit.
 - Filtro de busqueda reconstruye la lista (aceptable; volumen bajo).
+- Selector de responsable en UI de Inventario: **obligatorio y vacío al entrar**; no auto-elige el primero. Tras merma exitosa o cambio de pestaña se limpia.
 - Branding definitivo pendiente.
-- Selector de responsable en UI de Inventario sigue cayendo al primer activo si no se cablea (contrato existente).
 
 ## Checklist manual breve
 
