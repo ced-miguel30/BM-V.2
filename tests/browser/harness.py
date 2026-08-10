@@ -66,6 +66,7 @@ class BrowserE2ECase(unittest.TestCase):
         env = os.environ.copy()
         env["BM_TEST_ISOLATION"] = "1"
         env["BM_DEMO_FILE"] = str(cls.json_path.resolve())
+        env["BM_SKIP_WEEKLY_EXPORT"] = "1"
         # Evitar que el proceso herede un override in-process accidental
         env.pop("STREAMLIT_SERVER_PORT", None)
         log_f = open(cls._log_path, "w", encoding="utf-8", errors="replace")

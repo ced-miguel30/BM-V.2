@@ -42,6 +42,12 @@ def _procesar_exportaciones_semanales_pendientes() -> None:
     """Exporta automáticamente a Excel cualquier semana ya cerrada (lunes a
     domingo) que todavía no se haya exportado. Idempotente: se puede llamar en
     cada arranque sin generar archivos ni actividades duplicadas."""
+    import os
+
+    if os.environ.get("BM_SKIP_WEEKLY_EXPORT", "").strip().lower() in (
+        "1", "true", "yes",
+    ):
+        return
     ahora = datetime.now()
     procesar_pendientes(
         desayuno_service.configuracion_exportacion(), ahora,
