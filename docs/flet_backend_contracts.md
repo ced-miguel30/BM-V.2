@@ -1,6 +1,6 @@
 # Contratos de backend para UI Flet
 
-Describe qué debe llamar Flet. La primera vertical (Terminal Restaurante) ya consume estos contratos.
+Describe qué debe llamar Flet. Verticales: Terminal Restaurante y Terminal Inventario.
 
 ## Composition root
 
@@ -15,54 +15,39 @@ Puertos: `AppDataStore`, `BasketStore`, `AuthSessionStore`, `IdempotencyStore`, 
 
 Stores Flet: `FileBackedAppDataStore` + `MemoryBasketStore` + `MemoryAuthSessionStore` + `MemoryIdempotencyStore`.
 
+## deny_terminal (B5)
+
+`require_usecase(..., deny_terminal=True)` bloquea `actor_type=terminal` salvo:
+
+- `terminal_id == terminal_inventario` **y**
+- permiso ∈ {`ACCEDER_INVENTARIO`, `ACCEDER_TERMINAL_INVENTARIO`}.
+
+Así Terminal Inventario puede ejecutar ajustes/alertas; Restaurante y terminales genéricos no.  
+Compras/config/gestor/costes siguen denegados por bloqueo de `terminal_id` en sesión.
+
 ## Casos de uso / servicios reutilizables (entrypoints)
 
-Mutación (ya con `require_usecase` donde aplica):
+Mutación:
 
-- Registro Terminal Restaurante (piloto Flet):
-  - `desayuno_service.desayuno_registro` (Desayuno; storage `desayunos[]`)
-  - `comida_service.servicio` / `cena_service.servicio` / `bebida_service.servicio`
-- Merma / caducidad: `merma_service`, `caducidad_service` (workbench → `MotivoMerma.EXPIRACION`)
-- Anulaciones: `anulacion_registro_service`, `anulacion_merma_service`, `anulacion_compra_service`, documentos
-- Inventario: `ajuste_service`, `stock_service`, `traslado_service`, `recuento_service`
-- Compras/docs: `compra_registro_service`, `albaran_service`, `factura_service`, …
-- Catálogo: `receta_service.listar_recetas`, productos vía `productos_catalogo` del servicio
+- Terminal Restaurante: `desayuno_registro`, `comida/cena/bebida_service.servicio`
+- Terminal Inventario: `alert_service`, `caducidad_service`, `merma_service`, `ajuste_service`
+- Anulaciones / traslados / recuentos / compras: existen en núcleo; fuera del shell Flet Inventario actual
 - Continuidad: `backup_service`, `restore_backup_service`
 
-Consulta:
+Consulta: analitica/costes/dashboard exigen `CONSULTAR_COSTES`.
 
-- `historial_operativo_service`
-- `analitica_consumo_service`, `costes_service`, `dashboard_service` (**exigen CONSULTAR_COSTES**)
-- `alert_service`, exportaciones
-
-Borradores:
-
-- `MotorCesta` + `BasketStore`
-- Cesta merma vía `BasketStore` (`bm_cesta_merma`)
-- `current_idempotency_token` / `rotate_idempotency_token`
+Borradores: `MotorCesta` + `BasketStore`; cesta merma `bm_cesta_merma`; tokens de idempotencia.
 
 ## Autorización
 
-- No basta ocultar UI: `require_usecase` / `require_permiso`.
-- Terminal Inventario (`terminal_id=terminal_inventario`): deniega `CONSULTAR_COSTES`, config, gestor, compras aunque el rol base sea administración.
-- Restaurante: sin `CONSULTAR_COSTES` en matriz (sin cambio de matriz).
-- Actor en operaciones: `AppContext.actor` / snapshots de auditoría.
-- Entrada Flet: `iniciar_terminal_restaurante()` + `save_auth_session` vía `session_bridge`.
+- Frontera: `require_usecase` / `require_permiso` (no solo UI).
+- Inventario por `terminal_id`: deniega economía/config/gestor/compras.
+- Entrada Flet: `session_bridge.enter_terminal_restaurante` / `enter_terminal_inventario`.
 
 ## Qué no copiar de Streamlit
 
-- Widgets, `st.rerun`, mensajes `st.success/error`
-- Claves de navegación `nav_*`
-- Adaptadores en `app/presentation/streamlit/`
-- Cálculos FIFO o doble conteo en la capa visual
-
-## DTOs
-
-Resultados `ok`/`mensaje` existentes; viewmodels Flet sin campos económicos.
-Entidades de `app/core/models`. No duplicar entidades solo para Flet.
+Widgets, `session_state`, adaptadores Streamlit, columnas de coste, FIFO en la vista.
 
 ## Persistencia
 
-Sigue JSON vía `AppDataStore`. Ver `docs/persistence_decision.md`.
-Cesta Flet: memoria de proceso (no se conserva tras reinicio).
-Registros confirmados: sí persisten en el JSON configurado.
+JSON vía `AppDataStore`. Cestas Flet en memoria. Confirmaciones sí persisten.
