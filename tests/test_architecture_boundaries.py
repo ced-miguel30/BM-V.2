@@ -149,32 +149,39 @@ class TestArchitectureBoundaries(unittest.TestCase):
                 self.assertNotIn("flet", imports)
 
     def test_flet_presenter_has_no_domain_calculations(self) -> None:
-        path = (
-            APP
-            / "presentation"
-            / "flet"
-            / "presenters"
-            / "terminal_restaurante_presenter.py"
-        )
-        if not path.exists():
-            self.skipTest("presenter Flet no presente")
-        tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-        names: set[str] = set()
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Name):
-                names.add(node.id)
-            elif isinstance(node, ast.Attribute):
-                names.add(node.attr)
-            elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name):
-                names.add(node.func.id)
-        for forbidden in (
-            "planificar_descuento",
-            "calcular_coste",
-            "calcular_coste_linea",
-            "coste_total_cesta",
-            "aplicar_descuento",
+        for name in (
+            "terminal_restaurante_presenter.py",
+            "terminal_inventario_presenter.py",
         ):
-            self.assertNotIn(forbidden, names)
+            path = APP / "presentation" / "flet" / "presenters" / name
+            if not path.exists():
+                continue
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            names: set[str] = set()
+            for node in ast.walk(tree):
+                if isinstance(node, ast.Name):
+                    names.add(node.id)
+                elif isinstance(node, ast.Attribute):
+                    names.add(node.attr)
+            for forbidden in (
+                "planificar_descuento",
+                "calcular_coste",
+                "calcular_coste_linea",
+                "coste_total_cesta",
+                "coste_total_cesta_merma",
+                "aplicar_descuento",
+            ):
+                self.assertNotIn(forbidden, names, msg=name)
+
+    def test_flet_restaurante_inventario_views_not_coupled(self) -> None:
+        rest = APP / "presentation" / "flet" / "views" / "registro_servicio_view.py"
+        inv = APP / "presentation" / "flet" / "views" / "inventario_shell_view.py"
+        if rest.exists():
+            imports = _imports_of(rest)
+            self.assertFalse(any("inventario" in i for i in imports))
+        if inv.exists():
+            imports = _imports_of(inv)
+            self.assertFalse(any("registro_servicio" in i or "login_terminal" in i for i in imports))
 
 
 if __name__ == "__main__":
