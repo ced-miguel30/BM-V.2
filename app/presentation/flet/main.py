@@ -17,9 +17,19 @@ import sys
 def build_app_handler():
     """Construye el handler ``main(page)`` (útil en tests/smoke)."""
     from app.bootstrap import configure_for_flet
-    from app.presentation.flet.app_shell import attach_terminal
 
+    terminal = (os.environ.get("BM_FLET_TERMINAL") or "restaurante").strip().lower()
     configure_for_flet()
+
+    if terminal in ("inventario", "inventory"):
+        from app.presentation.flet.app_shell_inventario import attach_terminal_inventario
+
+        def main(page) -> None:
+            attach_terminal_inventario(page)
+
+        return main
+
+    from app.presentation.flet.app_shell import attach_terminal
 
     def main(page) -> None:
         attach_terminal(page)
