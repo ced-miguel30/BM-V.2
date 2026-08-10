@@ -38,7 +38,12 @@ from app.presentation.flet.inventory_viewmodels import (
     MermaOpcionVM,
     assert_inventario_sin_economia,
 )
-from app.presentation.flet.mappers import map_error_recuperable, map_resultado
+from app.presentation.flet.mappers import (
+    MermaLineaOperativa,
+    map_error_recuperable,
+    map_merma_registro_feedback,
+    map_resultado,
+)
 from app.presentation.flet.viewmodels import FeedbackVM
 
 _ETIQUETAS = {
@@ -191,19 +196,43 @@ class TerminalInventarioPresenter:
             )
             return self.screen()
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable(
+                "Sesión no autorizada.", codigo="DENEGADO"
+            )
             return self.screen()
-        if not merma_service.get_cesta_merma():
-            self._feedback = map_error_recuperable("La cesta de merma está vacía.")
+        cesta = merma_service.get_cesta_merma()
+        if not cesta:
+            self._feedback = map_merma_registro_feedback(
+                ok=False, mensaje_backend="La cesta está vacía."
+            )
             return self.screen()
+        lineas_ops = tuple(
+            MermaLineaOperativa(
+                nombre=i.nombre,
+                cantidad=float(i.cantidad),
+                unidad=i.unidad,
+                lote_id=i.lote_id,
+                motivo=i.motivo,
+                servicio=merma_service.etiqueta_servicio_merma(i.tipo_servicio_snapshot),
+            )
+            for i in cesta
+        )
         self._confirmando = True
         try:
-            # Token de UI para rotar tras éxito (merma backend no usa clave aún).
             _ = current_idempotency_token(_IDEMP_MERMA)
             r = merma_service.registrar_merma(fecha or date.today())
             if r.ok:
                 rotate_idempotency_token(_IDEMP_MERMA)
-            self._feedback = map_resultado(r.ok, r.mensaje)
+                self._feedback = map_merma_registro_feedback(
+                    ok=True, lineas=lineas_ops
+                )
+            else:
+                self._feedback = map_merma_registro_feedback(
+                    ok=False,
+                    mensaje_backend=r.mensaje,
+                    codigo=getattr(r, "codigo", None),
+                    lineas=lineas_ops,
+                )
         finally:
             self._confirmando = False
         return self.screen()
