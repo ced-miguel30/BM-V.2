@@ -57,9 +57,20 @@ def set_demo_file_override(path: Path | str | None) -> None:
 
 
 def get_demo_file() -> Path:
-    """Ruta efectiva del JSON de datos (override de test o DEMO_FILE)."""
+    """Ruta efectiva del JSON de datos.
+
+    Prioridad:
+    1. Override in-process (``set_demo_file_override``).
+    2. Variable de entorno ``BM_DEMO_FILE`` (subprocess Streamlit / browser E2E).
+    3. ``DEMO_FILE`` canónico.
+    """
     if _demo_file_override is not None:
         return _demo_file_override
+    import os
+
+    env_path = (os.environ.get("BM_DEMO_FILE") or "").strip()
+    if env_path:
+        return Path(env_path).resolve()
     return DEMO_FILE
 
 
