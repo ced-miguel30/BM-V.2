@@ -7,6 +7,7 @@ solo el contenedor de composición activo.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 from app.core.application.adapters.memory_stores import (
     FileBackedAppDataStore,
@@ -97,6 +98,38 @@ def configure_for_tests(
         from app.data.mock_data import crear_datos_mock
 
         store = MemoryAppDataStore(data if data is not None else crear_datos_mock())
+    container = AppContainer(
+        app_data_store=store,
+        basket_store=MemoryBasketStore(),
+        auth_session_store=MemoryAuthSessionStore(),
+        idempotency_store=MemoryIdempotencyStore(),
+        clock=clock or SystemClock(),
+    )
+    set_container(container)
+    return container
+
+
+def configure_for_flet(
+    *,
+    data_path: str | Path | None = None,
+    data: AppData | None = None,
+    clock: Clock | None = None,
+) -> AppContainer:
+    """Composición Flet: JSON file-backed + stores en memoria. Sin Streamlit.
+
+    ``data_path`` inyecta almacén temporal (tests) vía ``set_demo_file_override``.
+    Sin ``data_path`` usa el JSON efectivo (``BM_DEMO_FILE`` o demo canónico).
+    Una sola fuente de AppData por proceso; Flet no escribe JSON directamente.
+    """
+    from app.core.storage.demo_files import set_demo_file_override
+
+    if data_path is not None:
+        set_demo_file_override(Path(data_path))
+
+    store = FileBackedAppDataStore(data)
+    if data is not None and data_path is not None:
+        store.persist(data)
+
     container = AppContainer(
         app_data_store=store,
         basket_store=MemoryBasketStore(),
