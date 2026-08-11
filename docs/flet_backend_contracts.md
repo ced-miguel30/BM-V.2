@@ -44,6 +44,7 @@ Borradores: `MotorCesta` + `BasketStore`; cesta merma `bm_cesta_merma`; tokens d
 - Inventario por `terminal_id`: deniega economía/config/gestor/compras.
 - Entrada Flet: `session_bridge.enter_terminal_restaurante` / `enter_terminal_inventario`.
 - Admin operativa: `session_bridge.login_administracion(login, password)` → usuario con `ACCEDER_CONFIGURACION` (`terminal_id=None`). Mutaciones de responsables vía `merma_service` + `deny_terminal=True`.
+- Launcher: `attach_launcher` / `main_launcher` — selección de destino **sin** autenticar; hace `logout` antes de montar el shell del destino. `BM_FLET_TERMINAL=launcher|restaurante|inventario|administracion`.
 
 ## Qué no copiar de Streamlit
 

@@ -16,6 +16,7 @@
 | Arranque Restaurante | `python -m app.presentation.flet.main` |
 | Arranque Inventario | `python -m app.presentation.flet.main_inventario` |
 | Arranque Administración | `python -m app.presentation.flet.main_administracion` |
+| Arranque launcher | `python -m app.presentation.flet.main_launcher` |
 
 ## Autorización B5 / Admin
 
@@ -30,6 +31,7 @@ Merma Flet exige responsable **explícito** (sin autofill).
 - Feedback operativo merma tipado.
 - Responsable obligatorio en Merma Inventario.
 - Listado Admin legible (contraste / vacío / Activo-Inactivo).
+- Launcher Flet mínimo (técnico; pendiente validación manual).
 
 ### Pueden esperar
 - Branding / tipografía definitiva (las tres superficies Flet).
@@ -38,18 +40,18 @@ Merma Flet exige responsable **explícito** (sin autofill).
 - Traslados / recuentos / stock admin.
 - Empaquetado `.exe` / instalador.
 - Resto de Settings Streamlit (usuarios, catálogos, backups, zona peligro…).
-- Launcher / navegación entre terminales Flet.
+- Volver al launcher sin reiniciar el proceso.
 
 ## Siguiente bloque (recomendado, no iniciado)
 
-**D — Streamlit para Admin amplio + navegación mínima entre terminales Flet**,
-o, si la experiencia táctil debe estabilizarse antes de empaquetar: **A — consolidación visual conjunta acotada**.
-Ver entrega de cierre de Administración operativa.
+Planificación de **empaquetado / despliegue local** (sin construir `.exe` todavía),
+tras validación manual del launcher Flet.
 
 ## Docs
 
 - `docs/flet_terminal_restaurante.md`
 - `docs/flet_terminal_inventario.md`
 - `docs/flet_administracion_operativa.md`
+- `docs/flet_launcher.md`
 - `docs/flet_terminal_administracion_plan.md`
 - `docs/flet_backend_contracts.md`
