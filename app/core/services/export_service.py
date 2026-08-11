@@ -3,6 +3,7 @@
 from datetime import date, datetime
 from io import BytesIO
 from pathlib import Path
+import os
 
 import pandas as pd
 
@@ -11,15 +12,37 @@ from app.core.services.excel_format import formatear_libro
 from app.core.services.formatting import formato_fecha, formato_fecha_hora
 from app.core.services.kpi_service import resumen_kpis
 from app.core.services.settings_service import nombre_hotel_sidebar
+from app.core.storage.instance_paths import assert_hotel_not_writing_repo_exports, get_exports_root
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
-EXPORTS_DIR = PROJECT_ROOT / "exports"
+
+def _exports_dir() -> Path:
+    return get_exports_root(for_write=True)
+
+
+def __getattr__(name: str):
+    if name == "EXPORTS_DIR":
+        return get_exports_root(for_write=False)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def _guardar_en_exports(nombre: str, contenido: bytes) -> Path:
-    EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
-    ruta = EXPORTS_DIR / nombre
-    ruta.write_bytes(contenido)
+    exports = _exports_dir()
+    exports.mkdir(parents=True, exist_ok=True)
+    assert_hotel_not_writing_repo_exports(exports)
+    safe = Path(nombre).name
+    ruta = exports / safe
+    if ruta.exists():
+        stem, suf = ruta.stem, ruta.suffix
+        n = 1
+        while True:
+            cand = exports / f"{stem}_{n}{suf}"
+            if not cand.exists():
+                ruta = cand
+                break
+            n += 1
+    tmp = ruta.with_suffix(ruta.suffix + f".tmp.{os.getpid()}")
+    tmp.write_bytes(contenido)
+    os.replace(str(tmp), str(ruta))
     return ruta
 
 

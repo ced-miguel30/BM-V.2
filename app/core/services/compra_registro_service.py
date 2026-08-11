@@ -694,7 +694,15 @@ def confirmar_compra(
     path = Path(json_path).resolve()
     store: LocalArchivoStorage | None = None
     if adjuntos:
-        root = Path(storage_root) if storage_root else (path.parent.parent / "documentos_storage")
+        if storage_root:
+            root = Path(storage_root)
+        else:
+            from app.core.storage.instance_paths import get_documentos_root, is_hotel_profile
+
+            if is_hotel_profile():
+                root = get_documentos_root(for_write=True)
+            else:
+                root = path.parent.parent / "documentos_storage"
         store = LocalArchivoStorage(root)
 
     batch = PublishBatch()
@@ -744,10 +752,20 @@ def confirmar_compra(
                     arch_id = next_id(
                         "adoc", [a.id for a in working.archivos_documentales]
                     )
-                    try:
-                        rel = h.final_path.relative_to(path.parent.parent).as_posix()
-                    except ValueError:
-                        rel = str(h.final_path)
+                    from app.core.storage.instance_paths import (
+                        is_hotel_profile,
+                        logical_documentos_rel,
+                    )
+
+                    if is_hotel_profile() and h.storage_key:
+                        rel = logical_documentos_rel(
+                            h.storage_key, h.nombre_original_seguro
+                        )
+                    else:
+                        try:
+                            rel = h.final_path.relative_to(path.parent.parent).as_posix()
+                        except ValueError:
+                            rel = str(h.final_path)
                     meta = ArchivoDocumental(
                         id=arch_id,
                         nombre_original=h.nombre_original_seguro,

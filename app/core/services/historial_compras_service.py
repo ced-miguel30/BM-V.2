@@ -13,9 +13,23 @@ from app.core.services.data_service import get_repository
 from app.core.services.excel_format import formatear_libro
 from app.core.services.formatting import formato_fecha, formato_moneda
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
-HISTORIAL_DIR = PROJECT_ROOT / "exports" / "historial_compras"
-META_FILE = HISTORIAL_DIR / "_meta.json"
+from app.core.storage.demo_files import PROJECT_ROOT
+from app.core.storage.instance_paths import get_exports_root
+
+def _historial_dir() -> Path:
+    return get_exports_root(for_write=True) / "historial_compras"
+
+
+def _meta_file() -> Path:
+    return _historial_dir() / "_meta.json"
+
+
+def __getattr__(name: str):
+    if name == "HISTORIAL_DIR":
+        return _historial_dir()
+    if name == "META_FILE":
+        return _meta_file()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def _ultimo_lunes(fecha: date) -> date:
@@ -23,14 +37,16 @@ def _ultimo_lunes(fecha: date) -> date:
 
 
 def _leer_meta() -> dict:
-    if not META_FILE.exists():
+    path = _meta_file()
+    if not path.exists():
         return {}
-    return json.loads(META_FILE.read_text(encoding="utf-8"))
+    return json.loads(path.read_text(encoding="utf-8"))
 
 
 def _guardar_meta(meta: dict) -> None:
-    HISTORIAL_DIR.mkdir(parents=True, exist_ok=True)
-    META_FILE.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    d = _historial_dir()
+    d.mkdir(parents=True, exist_ok=True)
+    _meta_file().write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
 
 def ultimo_archivo_semanal() -> date | None:
@@ -144,8 +160,9 @@ def archivar_historial_semanal() -> Path | None:
         f"Snapshot automático del lunes {formato_fecha(lunes)}",
     )
 
-    HISTORIAL_DIR.mkdir(parents=True, exist_ok=True)
-    ruta = HISTORIAL_DIR / nombre
+    d = _historial_dir()
+    d.mkdir(parents=True, exist_ok=True)
+    ruta = d / nombre
     ruta.write_bytes(contenido)
 
     meta = _leer_meta()
@@ -175,6 +192,7 @@ def exportar_historial_hasta(fecha_hasta: date, orden: str, es_bebida: bool = Fa
     )
     sufijo = "bebidas" if es_bebida else "productos"
     nombre = f"historial_compras_{sufijo}_hasta_{fecha_hasta.isoformat()}.xlsx"
-    HISTORIAL_DIR.mkdir(parents=True, exist_ok=True)
-    (HISTORIAL_DIR / nombre).write_bytes(contenido)
+    d = _historial_dir()
+    d.mkdir(parents=True, exist_ok=True)
+    (d / nombre).write_bytes(contenido)
     return contenido, nombre

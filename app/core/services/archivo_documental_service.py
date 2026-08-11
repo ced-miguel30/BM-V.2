@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import mimetypes
+import os
 import re
 from dataclasses import dataclass
 from datetime import datetime
@@ -18,10 +19,13 @@ from pathlib import Path
 from app.core.application.context import AppContext
 from app.core.application.id_generator import next_id
 from app.core.models import AppData, ArchivoDocumental
-from app.core.storage.demo_files import PROJECT_ROOT
+from app.core.storage.instance_paths import (
+    get_documentos_root,
+    logical_documentos_rel,
+    resolve_adjunto_path,
+)
 from app.core.storage.session_store import get_data, persist_data
 
-DOCUMENTOS_DIR = PROJECT_ROOT / "data" / "documentos"
 MAX_BYTES = 25 * 1024 * 1024  # 25 MiB
 
 
@@ -79,7 +83,8 @@ def _mime(nombre: str, mime_hint: str | None) -> str:
 
 
 def ruta_absoluta(archivo: ArchivoDocumental) -> Path:
-    return PROJECT_ROOT / archivo.ruta_relativa
+    """Resuelve el path físico (instancia en hotel; compat lectura histórica)."""
+    return resolve_adjunto_path(archivo.ruta_relativa, for_write=False)
 
 
 def listar_archivos(
@@ -156,7 +161,7 @@ def registrar_archivo(
             )
 
     arch_id = next_id("adoc", [a.id for a in data.archivos_documentales])
-    root = base_dir if base_dir is not None else DOCUMENTOS_DIR
+    root = Path(base_dir) if base_dir is not None else get_documentos_root(for_write=True)
     carpeta = root / arch_id
     carpeta.mkdir(parents=True, exist_ok=True)
     destino = carpeta / nombre
@@ -165,17 +170,21 @@ def registrar_archivo(
             False, "Conflicto: el destino ya existe (inmutabilidad)."
         )
 
-    destino.write_bytes(contenido)
+    # Escritura: temp + replace cuando es posible
+    tmp = destino.with_suffix(destino.suffix + f".tmp.{os.getpid()}")
+    try:
+        tmp.write_bytes(contenido)
+        os.replace(str(tmp), str(destino))
+    except OSError as exc:
+        tmp.unlink(missing_ok=True)
+        return ResultadoArchivo(False, f"No se pudo escribir el adjunto: {exc}")
     # Verificar integridad inmediata
     leido = destino.read_bytes()
     if sha256_bytes(leido) != digest:
         destino.unlink(missing_ok=True)
         return ResultadoArchivo(False, "Fallo de verificación SHA-256 tras escribir.")
 
-    try:
-        rel = destino.relative_to(PROJECT_ROOT).as_posix()
-    except ValueError:
-        rel = str(destino)
+    rel = logical_documentos_rel(arch_id, nombre)
 
     creado = c.clock.now() if getattr(c, "clock", None) else datetime.now()
     actor_id = getattr(getattr(c, "actor", None), "id", None)

@@ -23,7 +23,7 @@ class ArchivoDocumental:
     mime_type: str
     tamanio_bytes: int
     sha256: str
-    ruta_relativa: str  # relativa a PROJECT_ROOT (p.ej. data/documentos/…)
+    ruta_relativa: str  # lógica: data/documentos/{id}/{nombre} (nunca path absoluto)
     usuario_id: str | None = None
     creado_en: datetime | None = None
     documento_id: str | None = None  # enlace futuro a cabecera documental

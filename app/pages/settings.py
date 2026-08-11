@@ -7,7 +7,7 @@ import streamlit as st
 
 from app.core.services import actividad_service
 from app.core.services.data_service import get_repository
-from app.core.services.export_service import EXPORTS_DIR, exportar_informe_cliente
+from app.core.services.export_service import exportar_informe_cliente
 from app.core.services.exportacion_semanal_service import exportar_semana_actual, limite_semana
 from app.core.services.formatting import formato_fecha_hora
 from app.core.services.settings_service import (
@@ -661,7 +661,9 @@ def _render_exportacion() -> None:
             st.session_state["settings_dl_cliente"] = (contenido, nombre)
             st.rerun()
 
-    st.caption(f"Carpeta de exportaciones: `{EXPORTS_DIR}`")
+    from app.core.storage.instance_paths import get_exports_root
+
+    st.caption(f"Carpeta de exportaciones: `{get_exports_root(for_write=False)}`")
 
 
 def _render_datos_demo() -> None:

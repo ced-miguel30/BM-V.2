@@ -16,10 +16,22 @@ from app.core.application.context import AppContext
 from app.core.application.id_generator import next_id
 from app.core.models import Actividad, AppData, ArchivoDocumental, Documento
 from app.core.services.text_search import coincide_busqueda
-from app.core.storage.demo_files import PROJECT_ROOT
 from app.core.storage.session_store import get_data, persist_data
+from app.core.storage.instance_paths import get_exports_root
 
-EXPORTS_DIR = PROJECT_ROOT / "exports" / "documentos"
+
+def _exports_documentos_dir() -> Path:
+    return get_exports_root(for_write=True) / "documentos"
+
+
+def __getattr__(name: str):
+    if name == "EXPORTS_DIR":
+        return _exports_documentos_dir()
+    if name == "PROJECT_ROOT":
+        from app.core.storage.demo_files import PROJECT_ROOT as _pr
+
+        return _pr
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 @dataclass
@@ -265,12 +277,13 @@ def exportar_documentos_csv(
     nombre = f"documentos_{stamp}.csv"
     ruta: Path | None = None
     if guardar:
-        EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
-        ruta = EXPORTS_DIR / nombre
+        exports = _exports_documentos_dir()
+        exports.mkdir(parents=True, exist_ok=True)
+        ruta = exports / nombre
         # No sobrescribir
         if ruta.exists():
             nombre = f"documentos_{stamp}_{datetime.now().strftime('%f')}.csv"
-            ruta = EXPORTS_DIR / nombre
+            ruta = exports / nombre
         ruta.write_bytes(contenido)
         if registrar_actividad:
             data.actividades.insert(

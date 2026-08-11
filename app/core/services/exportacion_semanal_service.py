@@ -39,10 +39,26 @@ from app.core.services.excel_bloques import (
     nombre_hoja_dia,
 )
 from app.core.storage.session_store import get_data, persist_data
+from app.core.storage.instance_paths import get_exports_root
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
-EXPORTS_DIR = PROJECT_ROOT / "exports" / "semanal"
-META_FILE = EXPORTS_DIR / "_meta_exportaciones.json"
+
+
+def _exports_semanal_dir() -> Path:
+    return get_exports_root(for_write=True) / "semanal"
+
+
+def _meta_file() -> Path:
+    return _exports_semanal_dir() / "_meta_exportaciones.json"
+
+
+def __getattr__(name: str):
+    """Compat: ``EXPORTS_DIR`` / ``META_FILE`` resuelven en tiempo de acceso."""
+    if name == "EXPORTS_DIR":
+        return _exports_semanal_dir()
+    if name == "META_FILE":
+        return _meta_file()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 @dataclass(frozen=True)
@@ -122,7 +138,7 @@ def rango_manual_actual(ahora: datetime) -> tuple[date, datetime]:
 
 
 def _carpeta_modulo(config: ConfiguracionExportacionModulo, carpeta_exports: Path | None) -> Path:
-    base = carpeta_exports or EXPORTS_DIR
+    base = carpeta_exports or _exports_semanal_dir()
     return config.carpeta or (base / config.tipo)
 
 
@@ -141,7 +157,7 @@ def _guardar_meta(archivo_meta: Path, meta: dict) -> None:
 
 
 def ultima_semana_exportada(tipo: str, *, archivo_meta: Path | None = None) -> date | None:
-    meta = _leer_meta(archivo_meta or META_FILE)
+    meta = _leer_meta(archivo_meta or _meta_file())
     valor = meta.get(tipo, {}).get("ultima_semana_exportada")
     return date.fromisoformat(valor) if valor else None
 
@@ -153,7 +169,7 @@ def _marcar_semana_exportada(
     *,
     archivo_meta: Path | None = None,
 ) -> None:
-    ruta_meta = archivo_meta or META_FILE
+    ruta_meta = archivo_meta or _meta_file()
     meta = _leer_meta(ruta_meta)
     entrada = meta.setdefault(tipo, {})
     entrada["ultima_semana_exportada"] = lunes.isoformat()
