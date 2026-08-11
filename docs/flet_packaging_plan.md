@@ -1,6 +1,7 @@
 # Plan — empaquetado y despliegue local (sin construir `.exe`)
 
-**Estado:** planificación únicamente. **No** hay instalador ni ejecutable en este repositorio.
+**Estado:** P1 de despliegue local **implementada** (Python administrado + scripts).
+Ver `docs/deploy_local_p1.md`. **No** hay instalador ni ejecutable en este repositorio.
 **Precondición:** launcher Flet **APROBADO** (técnica + manual). Streamlit sigue siendo Settings amplio.
 
 ## Objetivo de la primera instalación controlada
@@ -102,8 +103,8 @@ Motivos: el launcher ya unifica Flet; el riesgo real del hotel es **datos y oper
 
 | Fase | Contenido | Entregable | Stop si… |
 |------|-----------|------------|----------|
-| P1 | Inventario paths, variables, usuarios Windows | Doc de instalación C | Paths ambiguos |
-| P2 | Scripts/shortcuts + carpeta datos + backup | Paquete “instalación Python” | Backup no reversible |
+| P1 | Inventario paths, variables, scripts Windows, backup ops | `docs/deploy_local_p1.md` + `deploy/` | Paths ambiguos / G0–G5 |
+| P2 | Atajos revisados + hardening backup operativo | Paquete “instalación Python” | Backup no reversible |
 | P3 | Piloto hotel 1–2 semanas | Informe operativo | P0/P1 o concurrencia |
 | P4 | Decisión A (exe) vs permanecer en C | ADR breve | AV/firma bloquean sin remedio |
 | P5 | Solo si P4=A: prototipo exe **firmado** + prueba limpia | Artefacto piloto | Fallo G0–G5 |
