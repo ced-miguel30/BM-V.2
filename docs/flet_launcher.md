@@ -2,7 +2,9 @@
 
 ## Estado
 
-**APROBADO TÉCNICAMENTE** — pendiente de validación manual.
+**APROBADO** técnica y manualmente.
+
+Validación manual: **sin incidencias**.
 
 No sustituye Streamlit ni las verticales existentes.
 

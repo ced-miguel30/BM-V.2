@@ -8,6 +8,7 @@
 | Terminal Inventario | **APROBADA** (técnica + manual) |
 | Consolidación UX Flet | **APROBADA** (técnica + manual) |
 | Administración operativa Flet | **APROBADA** (técnica + manual) |
+| Launcher Flet | **APROBADO** (técnica + manual) |
 
 | Campo | Valor |
 |-------|--------|
@@ -31,21 +32,21 @@ Merma Flet exige responsable **explícito** (sin autofill).
 - Feedback operativo merma tipado.
 - Responsable obligatorio en Merma Inventario.
 - Listado Admin legible (contraste / vacío / Activo-Inactivo).
-- Launcher Flet mínimo (técnico; pendiente validación manual).
+- Launcher Flet mínimo (**APROBADO** técnica + manual).
 
 ### Pueden esperar
 - Branding / tipografía definitiva (las tres superficies Flet).
 - Persistencia opcional de cestas no confirmadas.
 - Skip E2E Streamlit Desayuno (selector).
 - Traslados / recuentos / stock admin.
-- Empaquetado `.exe` / instalador.
+- Empaquetado `.exe` / instalador (plan: `docs/flet_packaging_plan.md`; **no** construido).
 - Resto de Settings Streamlit (usuarios, catálogos, backups, zona peligro…).
 - Volver al launcher sin reiniciar el proceso.
 
 ## Siguiente bloque (recomendado, no iniciado)
 
-Planificación de **empaquetado / despliegue local** (sin construir `.exe` todavía),
-tras validación manual del launcher Flet.
+**Planificación técnica de despliegue local** según `docs/flet_packaging_plan.md`
+(sin construir `.exe` hasta autorización explícita).
 
 ## Docs
 
@@ -53,5 +54,6 @@ tras validación manual del launcher Flet.
 - `docs/flet_terminal_inventario.md`
 - `docs/flet_administracion_operativa.md`
 - `docs/flet_launcher.md`
+- `docs/flet_packaging_plan.md`
 - `docs/flet_terminal_administracion_plan.md`
 - `docs/flet_backend_contracts.md`
