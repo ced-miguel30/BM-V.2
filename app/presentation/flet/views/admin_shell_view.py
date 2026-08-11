@@ -11,7 +11,9 @@ from app.presentation.flet.admin_viewmodels import (
     ADMIN_SECCIONES,
     AdminScreenVM,
     BackupItemVM,
+    CompraLineaVM,
     ProductoAdminVM,
+    ProveedorAdminVM,
     RecetaAdminVM,
     ResponsableMermaVM,
     UsuarioAdminVM,
@@ -53,7 +55,7 @@ def build_login_admin(
         ),
         ft.Text(
             "Maestros operativos: productos, recetas, usuarios, responsables, "
-            "inventario inicial y backup.",
+            "proveedores, compras, inventario inicial y backup.",
             size=14,
             color=ft.Colors.ON_SURFACE_VARIANT,
             text_align=ft.TextAlign.CENTER,
@@ -74,7 +76,7 @@ def build_login_admin(
         controls.append(volver)
     controls.append(
         ft.Text(
-            "Sin Streamlit para operación diaria. Costes/compras siguen fuera de alcance.",
+            "Sin Streamlit para operación diaria. Costes avanzados siguen fuera de alcance.",
             size=12,
             color=ft.Colors.OUTLINE,
             text_align=ft.TextAlign.CENTER,
@@ -122,6 +124,16 @@ def build_admin_shell(
     on_restablecer_password: Callable[[str, str], None],
     # inventario / backup / config
     on_registrar_lote: Callable[..., None],
+    on_crear_proveedor: Callable[..., None],
+    on_editar_proveedor: Callable[..., None],
+    on_desactivar_proveedor: Callable[[str], None],
+    on_reactivar_proveedor: Callable[[str], None],
+    on_set_compra_cabecera: Callable[[str, str], None],
+    on_añadir_linea_compra: Callable[..., None],
+    on_quitar_linea_compra: Callable[[int], None],
+    on_guardar_borrador_compra: Callable[[], None],
+    on_confirmar_compra: Callable[[], None],
+    on_limpiar_borrador_compra: Callable[[], None],
     on_generar_backup: Callable[[], None],
     on_inspeccionar_backup: Callable[[str], None],
     on_proponer_restaurar: Callable[[str, str], None],
@@ -214,6 +226,16 @@ def build_admin_shell(
         on_reactivar_usuario=on_reactivar_usuario,
         on_restablecer_password=on_restablecer_password,
         on_registrar_lote=on_registrar_lote,
+        on_crear_proveedor=on_crear_proveedor,
+        on_editar_proveedor=on_editar_proveedor,
+        on_desactivar_proveedor=on_desactivar_proveedor,
+        on_reactivar_proveedor=on_reactivar_proveedor,
+        on_set_compra_cabecera=on_set_compra_cabecera,
+        on_añadir_linea_compra=on_añadir_linea_compra,
+        on_quitar_linea_compra=on_quitar_linea_compra,
+        on_guardar_borrador_compra=on_guardar_borrador_compra,
+        on_confirmar_compra=on_confirmar_compra,
+        on_limpiar_borrador_compra=on_limpiar_borrador_compra,
         on_generar_backup=on_generar_backup,
         on_inspeccionar_backup=on_inspeccionar_backup,
         on_proponer_restaurar=on_proponer_restaurar,
@@ -296,6 +318,10 @@ def _panel_for_seccion(screen: AdminScreenVM, **cbs) -> ft.Control:
         return _panel_usuarios(screen, **cbs)
     if sec == "responsables":
         return _panel_responsables(screen, **cbs)
+    if sec == "proveedores":
+        return _panel_proveedores(screen, **cbs)
+    if sec == "compras":
+        return _panel_compras(screen, **cbs)
     if sec == "inventario_inicial":
         return _panel_inventario(screen, **cbs)
     if sec == "backup":
@@ -319,7 +345,7 @@ def _panel_inicio(screen: AdminScreenVM) -> ft.Control:
             ft.Text(
                 f"Productos: {len(screen.productos)} · Recetas: {len(screen.recetas)} · "
                 f"Usuarios: {len(screen.usuarios)} · Responsables: {len(screen.responsables)} · "
-                f"Backups: {len(screen.backups)}",
+                f"Proveedores: {len(screen.proveedores)} · Backups: {len(screen.backups)}",
                 size=13,
             ),
         ],
@@ -811,6 +837,287 @@ def _responsable_row(
                 ft.Text(f"Id: {r.id}", size=12, color=ft.Colors.ON_SURFACE_VARIANT),
                 rename_tf,
                 ft.Row(controls=acciones),
+            ],
+        ),
+    )
+
+
+def _panel_proveedores(screen: AdminScreenVM, **cbs) -> ft.Control:
+    on_filtro = cbs["on_filtro"]
+    on_crear = cbs["on_crear_proveedor"]
+    on_editar = cbs["on_editar_proveedor"]
+    on_des = cbs["on_desactivar_proveedor"]
+    on_rea = cbs["on_reactivar_proveedor"]
+    nombre = ft.TextField(label="Nombre fiscal", expand=True)
+    codigo = ft.TextField(label="Código", width=140)
+    comercial = ft.TextField(label="Nombre comercial", expand=True)
+    nif = ft.TextField(label="NIF/CIF", width=140)
+
+    def _crear(_e=None) -> None:
+        on_crear(
+            nombre.value or "",
+            codigo.value or "",
+            comercial.value or "",
+            nif.value or "",
+        )
+
+    lista = [
+        _proveedor_row(
+            p,
+            disabled=screen.mutando or screen.pending is not None,
+            on_editar=on_editar,
+            on_desactivar=on_des,
+            on_reactivar=on_rea,
+        )
+        for p in screen.proveedores
+    ]
+    if not lista:
+        lista = [ft.Text("No hay proveedores.", color=ft.Colors.OUTLINE)]
+
+    return ft.Column(
+        spacing=12,
+        controls=[
+            ft.Text("Proveedores", size=18, weight=ft.FontWeight.BOLD),
+            ft.Row(controls=[nombre, codigo]),
+            ft.Row(
+                controls=[
+                    comercial,
+                    nif,
+                    ft.FilledButton("Crear", disabled=screen.mutando, on_click=_crear),
+                ]
+            ),
+            _filtro_row(screen, on_filtro),
+            *lista,
+        ],
+    )
+
+
+def _proveedor_row(
+    p: ProveedorAdminVM,
+    *,
+    disabled: bool,
+    on_editar: Callable[..., None],
+    on_desactivar: Callable[[str], None],
+    on_reactivar: Callable[[str], None],
+) -> ft.Control:
+    nombre_tf = ft.TextField(
+        label="Nombre fiscal",
+        value=p.nombre_fiscal,
+        expand=True,
+        disabled=disabled,
+    )
+    codigo_tf = ft.TextField(
+        label="Código",
+        value=p.codigo,
+        width=120,
+        disabled=disabled,
+    )
+    estado = "Activo" if p.activo else "Inactivo"
+    chip_bg = ft.Colors.TEAL_700 if p.activo else ft.Colors.BLUE_GREY_600
+    acciones: list[ft.Control] = [
+        ft.OutlinedButton(
+            "Guardar",
+            disabled=disabled,
+            on_click=lambda _e, pid=p.id, nf=nombre_tf, cf=codigo_tf: on_editar(
+                pid, nf.value or "", cf.value or ""
+            ),
+        ),
+    ]
+    if p.activo:
+        acciones.append(
+            ft.TextButton(
+                "Desactivar",
+                disabled=disabled,
+                style=ft.ButtonStyle(color=ft.Colors.RED_700),
+                on_click=lambda _e, pid=p.id: on_desactivar(pid),
+            )
+        )
+    else:
+        acciones.append(
+            ft.TextButton(
+                "Reactivar",
+                disabled=disabled,
+                on_click=lambda _e, pid=p.id: on_reactivar(pid),
+            )
+        )
+    return ft.Container(
+        bgcolor=ft.Colors.WHITE if p.activo else ft.Colors.BLUE_GREY_50,
+        padding=14,
+        border_radius=8,
+        border=ft.Border.all(1, ft.Colors.BLUE_GREY_300),
+        content=ft.Column(
+            spacing=8,
+            tight=True,
+            controls=[
+                ft.Row(
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    controls=[
+                        ft.Text(
+                            p.nombre_comercial or p.nombre_fiscal,
+                            size=16,
+                            weight=ft.FontWeight.BOLD,
+                        ),
+                        ft.Container(
+                            bgcolor=chip_bg,
+                            padding=ft.Padding.symmetric(horizontal=10, vertical=4),
+                            border_radius=12,
+                            content=ft.Text(
+                                estado,
+                                color=ft.Colors.WHITE,
+                                size=12,
+                                weight=ft.FontWeight.W_600,
+                            ),
+                        ),
+                    ],
+                ),
+                ft.Text(
+                    f"Id: {p.id} · NIF: {p.nif_cif or '—'}",
+                    size=12,
+                    color=ft.Colors.ON_SURFACE_VARIANT,
+                ),
+                ft.Row(controls=[nombre_tf, codigo_tf]),
+                ft.Row(controls=acciones),
+            ],
+        ),
+    )
+
+
+def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
+    on_set_cab = cbs["on_set_compra_cabecera"]
+    on_add = cbs["on_añadir_linea_compra"]
+    on_quitar = cbs["on_quitar_linea_compra"]
+    on_guardar = cbs["on_guardar_borrador_compra"]
+    on_confirmar = cbs["on_confirmar_compra"]
+    on_limpiar = cbs["on_limpiar_borrador_compra"]
+
+    activos_prov = [p for p in screen.proveedores if p.activo]
+    activos_prod = [p for p in screen.productos if p.activo]
+    prov = ft.Dropdown(
+        label="Proveedor",
+        options=[
+            ft.dropdown.Option(
+                key=p.id,
+                text=p.nombre_comercial or p.nombre_fiscal,
+            )
+            for p in activos_prov
+        ],
+        value=screen.compra_proveedor_id or None,
+        expand=True,
+    )
+    ref = ft.TextField(
+        label="Referencia externa",
+        value=screen.compra_referencia,
+        width=180,
+    )
+    prod = ft.Dropdown(
+        label="Producto",
+        options=[
+            ft.dropdown.Option(key=p.id, text=f"{p.nombre} ({p.unidad})")
+            for p in activos_prod
+        ],
+        expand=True,
+    )
+    cantidad = ft.TextField(label="Cantidad", width=110, value="1")
+    precio = ft.TextField(label="Precio unitario", width=140, value="0")
+
+    def _aplicar_cab(_e=None) -> None:
+        on_set_cab(prov.value or "", ref.value or "")
+
+    def _add(_e=None) -> None:
+        on_set_cab(prov.value or "", ref.value or "")
+        try:
+            cant = float((cantidad.value or "0").replace(",", "."))
+        except ValueError:
+            cant = 0.0
+        try:
+            prec = float((precio.value or "0").replace(",", "."))
+        except ValueError:
+            prec = 0.0
+        on_add(prod.value or "", cant, prec)
+
+    lineas: list[ft.Control] = []
+    for i, ln in enumerate(screen.compra_lineas):
+        lineas.append(_compra_linea_row(i, ln, on_quitar, disabled=screen.mutando))
+    if not lineas:
+        lineas = [ft.Text("Sin líneas en el borrador.", color=ft.Colors.OUTLINE)]
+
+    doc_info = (
+        f"Borrador guardado: {screen.compra_documento_id}"
+        if screen.compra_documento_id
+        else "Borrador aún no persistido."
+    )
+
+    return ft.Column(
+        spacing=12,
+        controls=[
+            ft.Text("Compras", size=18, weight=ft.FontWeight.BOLD),
+            ft.Text(
+                "Flujo productivo: borrador → confirmar (crea lotes/movimientos).",
+                size=13,
+                color=ft.Colors.ON_SURFACE_VARIANT,
+            ),
+            ft.Row(
+                controls=[
+                    prov,
+                    ref,
+                    ft.OutlinedButton("Aplicar cabecera", on_click=_aplicar_cab),
+                ]
+            ),
+            ft.Row(controls=[prod, cantidad, precio]),
+            ft.Row(
+                controls=[
+                    ft.FilledButton(
+                        "Añadir línea",
+                        disabled=screen.mutando,
+                        on_click=_add,
+                    ),
+                    ft.OutlinedButton(
+                        "Guardar borrador",
+                        disabled=screen.mutando,
+                        on_click=lambda _e: on_guardar(),
+                    ),
+                    ft.FilledButton(
+                        "Confirmar compra",
+                        disabled=screen.mutando,
+                        on_click=lambda _e: on_confirmar(),
+                    ),
+                    ft.TextButton(
+                        "Limpiar",
+                        disabled=screen.mutando,
+                        on_click=lambda _e: on_limpiar(),
+                    ),
+                ]
+            ),
+            ft.Text(doc_info, size=12, color=ft.Colors.OUTLINE),
+            *lineas,
+        ],
+    )
+
+
+def _compra_linea_row(
+    index: int,
+    ln: CompraLineaVM,
+    on_quitar: Callable[[int], None],
+    *,
+    disabled: bool,
+) -> ft.Control:
+    return ft.Container(
+        bgcolor=ft.Colors.WHITE,
+        padding=12,
+        border_radius=8,
+        border=ft.Border.all(1, ft.Colors.BLUE_GREY_300),
+        content=ft.Row(
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            controls=[
+                ft.Text(
+                    f"{ln.nombre} · cant. {ln.cantidad} · p.u. {ln.precio_unitario}",
+                    size=14,
+                ),
+                ft.TextButton(
+                    "Quitar",
+                    disabled=disabled,
+                    on_click=lambda _e, i=index: on_quitar(i),
+                ),
             ],
         ),
     )

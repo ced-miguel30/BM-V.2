@@ -73,6 +73,16 @@ class TerminalAdministracionShell:
                 on_reactivar_usuario=self._on_reactivar_usuario,
                 on_restablecer_password=self._on_restablecer_password,
                 on_registrar_lote=self._on_registrar_lote,
+                on_crear_proveedor=self._on_crear_proveedor,
+                on_editar_proveedor=self._on_editar_proveedor,
+                on_desactivar_proveedor=self._on_desactivar_proveedor,
+                on_reactivar_proveedor=self._on_reactivar_proveedor,
+                on_set_compra_cabecera=self._on_set_compra_cabecera,
+                on_añadir_linea_compra=self._on_añadir_linea_compra,
+                on_quitar_linea_compra=self._on_quitar_linea_compra,
+                on_guardar_borrador_compra=self._on_guardar_borrador_compra,
+                on_confirmar_compra=self._on_confirmar_compra,
+                on_limpiar_borrador_compra=self._on_limpiar_borrador_compra,
                 on_generar_backup=self._on_generar_backup,
                 on_inspeccionar_backup=self._on_inspeccionar_backup,
                 on_proponer_restaurar=self._on_proponer_restaurar,
@@ -210,6 +220,65 @@ class TerminalAdministracionShell:
             marca_proveedor=marca,
             ubicacion_destino_id=ubicacion,
         )
+        self.refresh()
+
+    def _on_crear_proveedor(
+        self,
+        nombre_fiscal: str,
+        codigo: str,
+        nombre_comercial: str,
+        nif_cif: str,
+    ) -> None:
+        self.presenter.crear_proveedor(
+            nombre_fiscal,
+            codigo,
+            nombre_comercial=nombre_comercial,
+            nif_cif=nif_cif,
+        )
+        self.refresh()
+
+    def _on_editar_proveedor(
+        self, proveedor_id: str, nombre_fiscal: str, codigo: str
+    ) -> None:
+        self.presenter.editar_proveedor(
+            proveedor_id,
+            nombre_fiscal=nombre_fiscal,
+            codigo=codigo,
+        )
+        self.refresh()
+
+    def _on_desactivar_proveedor(self, proveedor_id: str) -> None:
+        self.presenter.proponer_desactivar_proveedor(proveedor_id)
+        self.refresh()
+
+    def _on_reactivar_proveedor(self, proveedor_id: str) -> None:
+        self.presenter.proponer_reactivar_proveedor(proveedor_id)
+        self.refresh()
+
+    def _on_set_compra_cabecera(self, proveedor_id: str, referencia: str) -> None:
+        self.presenter.set_compra_cabecera(proveedor_id, referencia)
+        self.refresh()
+
+    def _on_añadir_linea_compra(
+        self, producto_id: str, cantidad: float, precio_unitario: float
+    ) -> None:
+        self.presenter.añadir_linea_compra(producto_id, cantidad, precio_unitario)
+        self.refresh()
+
+    def _on_quitar_linea_compra(self, index: int) -> None:
+        self.presenter.quitar_linea_compra(index)
+        self.refresh()
+
+    def _on_guardar_borrador_compra(self) -> None:
+        self.presenter.guardar_borrador_compra()
+        self.refresh()
+
+    def _on_confirmar_compra(self) -> None:
+        self.presenter.confirmar_compra_borrador()
+        self.refresh()
+
+    def _on_limpiar_borrador_compra(self) -> None:
+        self.presenter.limpiar_borrador_compra()
         self.refresh()
 
     def _on_generar_backup(self) -> None:

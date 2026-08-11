@@ -34,10 +34,12 @@ from app.presentation.flet.admin_viewmodels import (
     BackupItemVM,
     PendingChangeVM,
     ProductoAdminVM,
+    ProveedorAdminVM,
     RecetaAdminVM,
     ResponsableMermaVM,
     UsuarioAdminVM,
     assert_admin_sin_economia,
+    assert_compra_linea_permite_precio_unitario,
     assert_lote_alta_permite_solo_precio_total,
 )
 from app.presentation.flet.viewmodels import CAMPOS_ECONOMICOS_PROHIBIDOS
@@ -286,16 +288,19 @@ class TestAdminArquitectura(_AdminHarness):
             ProductoAdminVM,
             RecetaAdminVM,
             UsuarioAdminVM,
+            ProveedorAdminVM,
             BackupItemVM,
             AdminScreenVM,
         )
         assert_lote_alta_permite_solo_precio_total()
+        assert_compra_linea_permite_precio_unitario()
         for cls in (
             ResponsableMermaVM,
             PendingChangeVM,
             ProductoAdminVM,
             RecetaAdminVM,
             UsuarioAdminVM,
+            ProveedorAdminVM,
             BackupItemVM,
             AdminScreenVM,
         ):

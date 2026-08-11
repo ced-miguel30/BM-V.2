@@ -1,10 +1,12 @@
-"""Presenter Administración operativa — maestros, responsables, backup.
+"""Presenter Administración operativa — maestros, proveedores, compras, backup.
 
-Reutiliza stock/receta/settings/backup/restore/merma. Sin reglas de dominio nuevas.
+Reutiliza stock/receta/settings/backup/restore/merma/proveedor/compra_registro.
+Sin reglas de dominio nuevas.
 """
 
 from __future__ import annotations
 
+import uuid
 from datetime import datetime
 from pathlib import Path
 
@@ -12,32 +14,43 @@ from app.bootstrap import get_container
 from app.core.auth.permissions import Permiso
 from app.core.auth.roles import roles_asignables
 from app.core.auth.session import session_tiene_permiso
-from app.core.models import IngredienteReceta, MotivoMerma
+from app.core.models import IngredienteReceta, MotivoMerma, TipoDocumento
 from app.core.models.enums import (
     CategoriaReceta,
     SERVICIOS_DISPONIBLES_VALORES,
     TIPO_ARTICULO_VALORES,
     UnidadProducto,
 )
-from app.core.services import merma_service, receta_service, settings_service, stock_service
+from app.core.services import (
+    compra_registro_service,
+    merma_service,
+    proveedor_service,
+    receta_service,
+    settings_service,
+    stock_service,
+)
 from app.core.services.backup_service import generar_backup_zip
 from app.core.services.restore_backup_service import (
     inspeccionar_backup,
     restaurar_desde_bytes,
 )
 from app.core.storage.demo_files import get_demo_file
+from app.core.storage.session_store import reload_from_disk
 from app.presentation.flet import session_bridge
 from app.presentation.flet.admin_viewmodels import (
     ADMIN_SECCIONES,
     AdminScreenVM,
     BackupItemVM,
+    CompraLineaVM,
     LoteAltaVM,
     PendingChangeVM,
     ProductoAdminVM,
+    ProveedorAdminVM,
     RecetaAdminVM,
     ResponsableMermaVM,
     UsuarioAdminVM,
     assert_admin_sin_economia,
+    assert_compra_linea_permite_precio_unitario,
     assert_lote_alta_permite_solo_precio_total,
 )
 from app.presentation.flet.mappers import (
@@ -69,16 +82,22 @@ class TerminalAdministracionPresenter:
         self._seccion = "inicio"
         self._lote_alta: LoteAltaVM | None = None
         self._inspeccion_backup = ""
+        self._compra_lineas: list[CompraLineaVM] = []
+        self._compra_proveedor_id = ""
+        self._compra_referencia = ""
+        self._compra_documento_id = ""
         assert_admin_sin_economia(
             ResponsableMermaVM,
             PendingChangeVM,
             ProductoAdminVM,
             RecetaAdminVM,
             UsuarioAdminVM,
+            ProveedorAdminVM,
             BackupItemVM,
             AdminScreenVM,
         )
         assert_lote_alta_permite_solo_precio_total()
+        assert_compra_linea_permite_precio_unitario()
 
     # ── Auth ──────────────────────────────────────────────────────────────
 
@@ -99,6 +118,10 @@ class TerminalAdministracionPresenter:
         self._seccion = "inicio"
         self._lote_alta = None
         self._inspeccion_backup = ""
+        self._compra_lineas = []
+        self._compra_proveedor_id = ""
+        self._compra_referencia = ""
+        self._compra_documento_id = ""
         return self.screen()
 
     def set_seccion(self, seccion: str) -> AdminScreenVM:
@@ -492,6 +515,309 @@ class TerminalAdministracionPresenter:
 
     # ── Inventario inicial ────────────────────────────────────────────────
 
+    # ── Proveedores ───────────────────────────────────────────────────────
+
+    def crear_proveedor(
+        self,
+        nombre_fiscal: str,
+        codigo: str,
+        *,
+        nombre_comercial: str = "",
+        nif_cif: str = "",
+    ) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        self._mutando = True
+        try:
+            r = proveedor_service.crear_proveedor(
+                nombre_fiscal,
+                codigo=codigo,
+                nombre_comercial=nombre_comercial or None,
+                nif_cif=nif_cif or None,
+            )
+            self._feedback = map_admin_operacion_feedback(ok=r.ok, mensaje_backend=r.mensaje)
+            if r.ok:
+                self._seccion = "proveedores"
+        finally:
+            self._mutando = False
+        return self.screen()
+
+    def editar_proveedor(
+        self,
+        proveedor_id: str,
+        *,
+        nombre_fiscal: str | None = None,
+        codigo: str | None = None,
+        nombre_comercial: str | None = None,
+        nif_cif: str | None = None,
+    ) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        self._mutando = True
+        try:
+            r = proveedor_service.editar_proveedor(
+                proveedor_id,
+                nombre_fiscal=nombre_fiscal,
+                codigo=codigo,
+                nombre_comercial=nombre_comercial,
+                nif_cif=nif_cif,
+            )
+            self._feedback = map_admin_operacion_feedback(ok=r.ok, mensaje_backend=r.mensaje)
+        finally:
+            self._mutando = False
+        return self.screen()
+
+    def proponer_desactivar_proveedor(self, proveedor_id: str) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        actual = next(
+            (p for p in proveedor_service.listar_proveedores() if p.id == proveedor_id),
+            None,
+        )
+        if not actual:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Proveedor no encontrado."
+            )
+            return self.screen()
+        nombre = actual.nombre_comercial or actual.nombre_fiscal
+        self._pending = PendingChangeVM(
+            kind="desactivar_proveedor",
+            resumen=f"Desactivar proveedor «{nombre}». No estará disponible en compras nuevas.",
+            proveedor_id=proveedor_id,
+            nombre=nombre,
+        )
+        self._feedback = FeedbackVM(ok=True, mensaje="Confirme la desactivación del proveedor.")
+        return self.screen()
+
+    def proponer_reactivar_proveedor(self, proveedor_id: str) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        actual = next(
+            (p for p in proveedor_service.listar_proveedores() if p.id == proveedor_id),
+            None,
+        )
+        if not actual:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Proveedor no encontrado."
+            )
+            return self.screen()
+        nombre = actual.nombre_comercial or actual.nombre_fiscal
+        self._pending = PendingChangeVM(
+            kind="reactivar_proveedor",
+            resumen=f"Reactivar proveedor «{nombre}».",
+            proveedor_id=proveedor_id,
+            nombre=nombre,
+        )
+        self._feedback = FeedbackVM(ok=True, mensaje="Confirme la reactivación del proveedor.")
+        return self.screen()
+
+    # ── Compras (borrador → confirmar) ────────────────────────────────────
+
+    def set_compra_cabecera(
+        self, proveedor_id: str, referencia: str = ""
+    ) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        self._compra_proveedor_id = (proveedor_id or "").strip()
+        self._compra_referencia = (referencia or "").strip()
+        return self.screen()
+
+    def añadir_linea_compra(
+        self,
+        producto_id: str,
+        cantidad: float,
+        precio_unitario: float,
+    ) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        pid = (producto_id or "").strip()
+        if not pid:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Seleccione un producto."
+            )
+            return self.screen()
+        if cantidad <= 0 or precio_unitario < 0:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False,
+                mensaje_backend="Cantidad debe ser > 0 y precio unitario ≥ 0.",
+            )
+            return self.screen()
+        data = get_container().app_data_store.get()
+        prod = next((p for p in data.productos if p.id == pid), None)
+        if prod is None:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Producto no encontrado."
+            )
+            return self.screen()
+        self._compra_lineas.append(
+            CompraLineaVM(
+                producto_id=pid,
+                nombre=prod.nombre,
+                cantidad=float(cantidad),
+                precio_unitario=float(precio_unitario),
+            )
+        )
+        self._feedback = FeedbackVM(
+            ok=True, mensaje=f"Línea «{prod.nombre}» añadida al borrador."
+        )
+        self._seccion = "compras"
+        return self.screen()
+
+    def quitar_linea_compra(self, index: int) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if index < 0 or index >= len(self._compra_lineas):
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Índice de línea inválido."
+            )
+            return self.screen()
+        quitada = self._compra_lineas.pop(index)
+        self._feedback = FeedbackVM(
+            ok=True, mensaje=f"Línea «{quitada.nombre}» eliminada."
+        )
+        return self.screen()
+
+    def limpiar_borrador_compra(self) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        self._compra_lineas = []
+        self._compra_proveedor_id = ""
+        self._compra_referencia = ""
+        self._compra_documento_id = ""
+        self._feedback = FeedbackVM(ok=True, mensaje="Borrador de compra limpiado.")
+        return self.screen()
+
+    def guardar_borrador_compra(self) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        if not self._compra_proveedor_id:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Seleccione un proveedor."
+            )
+            return self.screen()
+        if not self._compra_lineas:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Añada al menos una línea de compra."
+            )
+            return self.screen()
+        self._mutando = True
+        try:
+            r = self._persistir_borrador_compra()
+            if r.ok and r.documento is not None:
+                self._compra_documento_id = r.documento.id
+                reload_from_disk()
+            self._feedback = map_admin_operacion_feedback(ok=r.ok, mensaje_backend=r.mensaje)
+            self._seccion = "compras"
+        finally:
+            self._mutando = False
+        return self.screen()
+
+    def confirmar_compra_borrador(self) -> AdminScreenVM:
+        """Guarda borrador si hace falta y confirma (crea lotes/movimientos)."""
+        if not self._gate_admin():
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        if not session_tiene_permiso(Permiso.ACCEDER_COMPRAS_DOCUMENTOS):
+            self._feedback = map_error_recuperable(
+                "Sin permiso de compras/documentos.", codigo="DENEGADO"
+            )
+            return self.screen()
+        self._mutando = True
+        try:
+            if not self._compra_documento_id:
+                if not self._compra_proveedor_id or not self._compra_lineas:
+                    self._feedback = map_admin_operacion_feedback(
+                        ok=False,
+                        mensaje_backend="Indique proveedor y al menos una línea.",
+                    )
+                    return self.screen()
+                r = self._persistir_borrador_compra()
+                if not r.ok or r.documento is None:
+                    self._feedback = map_admin_operacion_feedback(
+                        ok=False, mensaje_backend=r.mensaje
+                    )
+                    return self.screen()
+                self._compra_documento_id = r.documento.id
+                reload_from_disk()
+
+            path = get_demo_file()
+            data = reload_from_disk()
+            doc = next(
+                (d for d in (data.documentos or []) if d.id == self._compra_documento_id),
+                None,
+            )
+            if doc is None:
+                self._feedback = map_admin_operacion_feedback(
+                    ok=False, mensaje_backend="Borrador no encontrado tras guardar."
+                )
+                return self.screen()
+            h = compra_registro_service.construir_hash_documento(doc)
+            token = str(uuid.uuid4())
+            res = compra_registro_service.confirmar_compra(
+                doc.id,
+                confirmacion_id=token,
+                contenido_hash=h,
+                json_path=path,
+            )
+            if res.ok:
+                reload_from_disk()
+                self._compra_lineas = []
+                self._compra_documento_id = ""
+                self._compra_referencia = ""
+                msg = res.mensaje or "Compra confirmada."
+                if res.codigo == compra_registro_service.CONFIRMACION_IDEMPOTENTE:
+                    msg = f"{msg} (idempotente)"
+                self._feedback = FeedbackVM(ok=True, mensaje=msg)
+            else:
+                self._feedback = map_admin_operacion_feedback(
+                    ok=False, mensaje_backend=res.mensaje
+                )
+            self._seccion = "compras"
+        finally:
+            self._mutando = False
+        return self.screen()
+
+    def _persistir_borrador_compra(self):
+        data = get_container().app_data_store.get()
+        lineas_payload: list[dict] = []
+        for ln in self._compra_lineas:
+            prod = next((p for p in data.productos if p.id == ln.producto_id), None)
+            unidad = "Ud"
+            if prod is not None:
+                unidad = (
+                    prod.unidad.value
+                    if hasattr(prod.unidad, "value")
+                    else str(prod.unidad)
+                )
+            lineas_payload.append(
+                {
+                    "producto_id": ln.producto_id,
+                    "client_line_key": str(uuid.uuid4()),
+                    "cantidad_compra": str(ln.cantidad),
+                    "unidad_compra": unidad,
+                    "unidad_inventario": unidad,
+                    "precio_unitario_compra": str(ln.precio_unitario),
+                    "impuesto_porcentaje": "0",
+                }
+            )
+        return compra_registro_service.guardar_borrador_persistente(
+            json_path=get_demo_file(),
+            tipo=TipoDocumento.ALBARAN.value,
+            proveedor_id=self._compra_proveedor_id,
+            referencia_externa=self._compra_referencia or None,
+            lineas=lineas_payload,
+            documento_id=self._compra_documento_id or None,
+        )
+
+    # ── Inventario inicial ────────────────────────────────────────────────
+
     def registrar_lote_inicial(
         self,
         producto_id: str,
@@ -713,6 +1039,10 @@ class TerminalAdministracionPresenter:
             return settings_service.set_usuario_activo(pending.usuario_id, False)
         if pending.kind == "reactivar_usuario":
             return settings_service.set_usuario_activo(pending.usuario_id, True)
+        if pending.kind == "desactivar_proveedor":
+            return proveedor_service.desactivar_proveedor(pending.proveedor_id)
+        if pending.kind == "reactivar_proveedor":
+            return proveedor_service.reactivar_proveedor(pending.proveedor_id)
         if pending.kind == "restaurar_backup":
             if not session_tiene_permiso(Permiso.RESTAURAR_BACKUP):
                 return settings_service.ResultadoOperacion(
@@ -744,6 +1074,7 @@ class TerminalAdministracionPresenter:
         productos: tuple[ProductoAdminVM, ...] = ()
         recetas: tuple[RecetaAdminVM, ...] = ()
         usuarios: tuple[UsuarioAdminVM, ...] = ()
+        proveedores: tuple[ProveedorAdminVM, ...] = ()
         backups: tuple[BackupItemVM, ...] = ()
         hotel_nombre = ""
         hotel_moneda = "EUR"
@@ -823,6 +1154,27 @@ class TerminalAdministracionPresenter:
                 )
             usuarios = tuple(lista_u)
 
+            lista_prov = []
+            for prv in proveedor_service.listar_proveedores(solo_activos=False):
+                if self._seccion == "proveedores" and q:
+                    blob = (
+                        f"{prv.nombre_fiscal} {prv.nombre_comercial or ''} "
+                        f"{prv.codigo or ''} {prv.nif_cif or ''}"
+                    ).lower()
+                    if q not in blob and q not in prv.id.lower():
+                        continue
+                lista_prov.append(
+                    ProveedorAdminVM(
+                        id=prv.id,
+                        nombre_fiscal=prv.nombre_fiscal,
+                        nombre_comercial=prv.nombre_comercial or "",
+                        codigo=getattr(prv, "codigo", None) or "",
+                        nif_cif=prv.nif_cif or "",
+                        activo=bool(prv.activo),
+                    )
+                )
+            proveedores = tuple(lista_prov)
+
             backups = self._listar_backups()
 
         return AdminScreenVM(
@@ -832,6 +1184,11 @@ class TerminalAdministracionPresenter:
             productos=productos,
             recetas=recetas,
             usuarios=usuarios,
+            proveedores=proveedores,
+            compra_lineas=tuple(self._compra_lineas) if auth else (),
+            compra_proveedor_id=self._compra_proveedor_id if auth else "",
+            compra_referencia=self._compra_referencia if auth else "",
+            compra_documento_id=self._compra_documento_id if auth else "",
             backups=backups,
             unidades=tuple(u.value for u in UnidadProducto),
             categorias_receta=tuple(c.value for c in CategoriaReceta),

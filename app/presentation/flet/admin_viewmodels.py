@@ -1,6 +1,6 @@
-"""Viewmodels Administración operativa Flet — maestros + backup.
+"""Viewmodels Administración operativa Flet — maestros + backup + compras.
 
-Sin economía salvo ``LoteAltaVM.precio_total`` (inventario inicial / registrar_lote).
+Sin economía salvo ``LoteAltaVM.precio_total`` e ``CompraLineaVM.precio_unitario``.
 """
 
 from __future__ import annotations
@@ -19,6 +19,8 @@ ADMIN_SECCIONES: tuple[str, ...] = (
     "recetas",
     "usuarios",
     "responsables",
+    "proveedores",
+    "compras",
     "inventario_inicial",
     "backup",
     "configuracion",
@@ -30,6 +32,8 @@ ADMIN_SECCION_LABEL: dict[str, str] = {
     "recetas": "Recetas",
     "usuarios": "Usuarios",
     "responsables": "Responsables merma",
+    "proveedores": "Proveedores",
+    "compras": "Compras",
     "inventario_inicial": "Inventario inicial",
     "backup": "Backup",
     "configuracion": "Configuración",
@@ -77,6 +81,26 @@ class UsuarioAdminVM:
 
 
 @dataclass(frozen=True)
+class ProveedorAdminVM:
+    id: str
+    nombre_fiscal: str
+    nombre_comercial: str
+    codigo: str
+    nif_cif: str
+    activo: bool
+
+
+@dataclass(frozen=True)
+class CompraLineaVM:
+    """Línea de borrador de compra. Único VM compra con precio_unitario."""
+
+    producto_id: str
+    nombre: str
+    cantidad: float
+    precio_unitario: float
+
+
+@dataclass(frozen=True)
 class BackupItemVM:
     nombre: str
     ruta: str
@@ -107,6 +131,7 @@ class PendingChangeVM:
     producto_id: str = ""
     receta_id: str = ""
     usuario_id: str = ""
+    proveedor_id: str = ""
     backup_nombre: str = ""
     backup_ruta: str = ""
     rol: str = ""
@@ -123,6 +148,11 @@ class AdminScreenVM:
     productos: tuple[ProductoAdminVM, ...] = ()
     recetas: tuple[RecetaAdminVM, ...] = ()
     usuarios: tuple[UsuarioAdminVM, ...] = ()
+    proveedores: tuple[ProveedorAdminVM, ...] = ()
+    compra_lineas: tuple[CompraLineaVM, ...] = ()
+    compra_proveedor_id: str = ""
+    compra_referencia: str = ""
+    compra_documento_id: str = ""
     backups: tuple[BackupItemVM, ...] = ()
     unidades: tuple[str, ...] = ()
     categorias_receta: tuple[str, ...] = ()
@@ -144,7 +174,7 @@ class AdminScreenVM:
 
 
 def assert_admin_sin_economia(*tipos: type) -> None:
-    """Falla si un VM declara campos económicos prohibidos (no usar con LoteAltaVM)."""
+    """Falla si un VM declara campos económicos prohibidos (no usar con LoteAltaVM/CompraLineaVM)."""
     for cls in tipos:
         nombres = {f.name.lower() for f in fields(cls)}
         for prohibido in CAMPOS_ECONOMICOS_PROHIBIDOS:
@@ -168,3 +198,19 @@ def assert_lote_alta_permite_solo_precio_total() -> None:
             if len(prohibido) > 2 and prohibido in n and n != "precio_total"
         ]
         assert not matches, f"LoteAltaVM substring económico {prohibido} en {matches}"
+
+
+def assert_compra_linea_permite_precio_unitario() -> None:
+    """CompraLineaVM puede tener precio_unitario; ningún otro campo económico."""
+    nombres = {f.name.lower() for f in fields(CompraLineaVM)}
+    assert "precio_unitario" in nombres
+    for prohibido in CAMPOS_ECONOMICOS_PROHIBIDOS:
+        if prohibido == "precio_unitario":
+            continue
+        assert prohibido not in nombres, f"CompraLineaVM campo económico {prohibido}"
+        matches = [
+            n
+            for n in nombres
+            if len(prohibido) > 2 and prohibido in n and n != "precio_unitario"
+        ]
+        assert not matches, f"CompraLineaVM substring económico {prohibido} en {matches}"

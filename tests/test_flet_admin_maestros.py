@@ -25,10 +25,12 @@ from app.presentation.flet.admin_viewmodels import (
     LoteAltaVM,
     PendingChangeVM,
     ProductoAdminVM,
+    ProveedorAdminVM,
     RecetaAdminVM,
     ResponsableMermaVM,
     UsuarioAdminVM,
     assert_admin_sin_economia,
+    assert_compra_linea_permite_precio_unitario,
     assert_lote_alta_permite_solo_precio_total,
 )
 from app.presentation.flet.presenters.terminal_administracion_presenter import (
@@ -212,10 +214,12 @@ class TestAdminArquitecturaMaestros(_MaestrosHarness):
             ProductoAdminVM,
             RecetaAdminVM,
             UsuarioAdminVM,
+            ProveedorAdminVM,
             BackupItemVM,
             AdminScreenVM,
         )
         assert_lote_alta_permite_solo_precio_total()
+        assert_compra_linea_permite_precio_unitario()
         from dataclasses import fields
 
         self.assertIn("precio_total", {f.name for f in fields(LoteAltaVM)})
