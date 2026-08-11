@@ -4,7 +4,7 @@
 
 | Vertical | Estado |
 |----------|--------|
-| Terminal Restaurante | **APROBADA** (técnica + manual) |
+| Terminal Restaurante | **APROBADA** (técnica + manual; incluye historial + anulación Flet) |
 | Terminal Inventario | **APROBADA** (técnica + manual) |
 | Consolidación UX Flet | **APROBADA** (técnica + manual) |
 | Administración operativa Flet | **APROBADA** (técnica + manual) |
@@ -30,7 +30,7 @@
 `ACCEDER_CONFIGURACION` exige usuario Dir/Adm (`terminal_id=None`). Terminales no mutan responsables.
 Merma Flet exige responsable **explícito** (sin autofill).
 
-UI Flet de historial/anulación en Restaurante: **pendiente** (RBAC de dominio ya alineado).
+UI Flet de historial/anulación en Restaurante: **implementada** (presenter + vista + tests).
 
 ## Backlog Flet
 
@@ -45,20 +45,22 @@ UI Flet de historial/anulación en Restaurante: **pendiente** (RBAC de dominio y
 - Recuentos en Flet Inventario (preview memoria + borrador 7B.6 + confirmación; sin anulación de confirmados).
 - RBAC: `terminal_restaurante` puede anular registros operativos (`ACCEDER_REGISTRO` +
   `allowed_terminals` acotado; sin abrir Inventario ni otros `deny_terminal`).
+- Historial + anulación en UI Flet Restaurante (sanitización económica; límite UI 25;
+  confirmación + motivo; anti doble clic local).
 
 ### Pueden esperar
 - Branding / tipografía definitiva (las tres superficies Flet).
 - Persistencia opcional de cestas no confirmadas.
 - Skip E2E Streamlit Desayuno (selector).
-- Historial + anulación en UI Flet Restaurante (dominio RBAC ya listo).
 - Anulación de traslados / CRUD ubicaciones / anulación de recuentos confirmados en Flet.
 - Empaquetado `.exe` / instalador (**no** construido; P2 en `docs/deploy_local_p2.md`).
 - Resto de Settings Streamlit (usuarios, catálogos, backups UI, zona peligro…).
 - Piloto físico Windows del despliegue C (checklist P2).
 
-## Siguiente bloque (recomendado, no iniciado)
+## Siguiente bloque (recomendación)
 
-**Flet Restaurante: historial operativo + anulación** (capa presentación; dominio listo).
+Cerrar P3 operativo del piloto Flet o abordar branding / empaquetado según prioridad de despliegue.
+Admin / Inventario: no ampliar salvo decisión explícita.
 
 ## Docs
 

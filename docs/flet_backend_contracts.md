@@ -49,7 +49,15 @@ Así:
 Registro operativo (`desayuno_registro` / `ServicioRegistro.registrar`) sigue con
 `ACCEDER_REGISTRO` **sin** `deny_terminal` (sin cambio).
 
-La UI Flet de historial/anulación **sigue pendiente**; este contrato solo desbloquea el dominio.
+La UI Flet de historial/anulación del Terminal Restaurante consume este contrato:
+
+- Historial: `desayuno_registro.historial_ordenado` / `comida|cena|bebida_service.servicio.historial_ordenado`.
+- Anulabilidad: `puede_anular_registro(data, registro, *, tipo=None) → ResultadoPuedeAnular`.
+- Anulación: `anular_desayuno` / `anular_servicio` (wrappers de `anular_registro`).
+- Presenter Flet obtiene `AppData` solo vía `get_container().app_data_store.get()` para
+  `puede_anular_registro` y lookup; la vista no toca datos productivos.
+- Límite de historial (25) es solo de presentación.
+- `_anulando` / `_confirmando` son anti doble clic local, no idempotencia persistente.
 
 Atomicidad de anulación: commit único; rollback en memoria ante error; motivo obligatorio;
 reposición de lotes exactos vía `consumos_lote`; sin idempotencia persistente (segunda

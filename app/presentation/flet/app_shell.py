@@ -46,16 +46,18 @@ class TerminalRestauranteShell:
         """Reconstrucción completa (servicio, cesta, login, confirmación…)."""
         screen = self.presenter.screen()
         narrow = (self.page.width or 900) < 720
+        on_volver = (
+            self._on_volver_wrapped if self._on_volver_al_menu is not None else None
+        )
         if not screen.session.authenticated:
             self._search_field = None
             self._catalog_results = None
             self._last_refresh_kind = "login"
             self._root.content = build_login_view(
                 on_enter=self._on_enter,
-                on_volver_menu=self._on_volver_al_menu,
+                on_volver_menu=on_volver,
             )
         else:
-            # Nuevo TextField solo en rebuilds mayores (no en búsqueda tipada).
             content, search, catalog = build_registro_view(
                 screen,
                 on_select_servicio=self._on_servicio,
@@ -70,7 +72,11 @@ class TerminalRestauranteShell:
                 on_confirm=self._on_confirm,
                 on_huespedes=self._on_huespedes,
                 on_logout=self._on_logout,
-                on_volver_menu=self._on_volver_al_menu,
+                on_volver_menu=on_volver,
+                on_iniciar_anulacion=self._on_iniciar_anulacion,
+                on_set_motivo_anulacion=self._on_set_motivo,
+                on_cancelar_anulacion=self._on_cancelar_anulacion,
+                on_confirmar_anulacion=self._on_confirmar_anulacion,
                 narrow=narrow,
                 search_field=None,
                 catalog_results=None,
@@ -93,7 +99,6 @@ class TerminalRestauranteShell:
             on_add_producto=self._on_add_producto,
         )
         self._last_refresh_kind = "catalog"
-        # Actualiza el árbol existente (no reconstruye el TextField).
         self.page.update()
 
     def _on_enter(self) -> None:
@@ -103,6 +108,11 @@ class TerminalRestauranteShell:
     def _on_logout(self) -> None:
         self.presenter.logout()
         self.refresh()
+
+    def _on_volver_wrapped(self) -> None:
+        self.presenter.preparar_salida()
+        if self._on_volver_al_menu is not None:
+            self._on_volver_al_menu()
 
     def _on_servicio(self, sid: str) -> None:
         self.presenter.seleccionar_servicio(sid)
@@ -148,6 +158,22 @@ class TerminalRestauranteShell:
 
     def _on_huespedes(self, n: int) -> None:
         self.presenter.set_num_huespedes(n)
+        self.refresh()
+
+    def _on_iniciar_anulacion(self, rid: str) -> None:
+        self.presenter.iniciar_anulacion(rid)
+        self.refresh()
+
+    def _on_set_motivo(self, motivo: str) -> None:
+        self.presenter.set_motivo_anulacion(motivo)
+        self.refresh()
+
+    def _on_cancelar_anulacion(self) -> None:
+        self.presenter.cancelar_anulacion()
+        self.refresh()
+
+    def _on_confirmar_anulacion(self) -> None:
+        self.presenter.confirmar_anulacion()
         self.refresh()
 
 

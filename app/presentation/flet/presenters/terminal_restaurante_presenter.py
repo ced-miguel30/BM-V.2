@@ -6,14 +6,16 @@ Sin cálculos de dominio en esta capa. Sin información económica.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, time
 
+from app.bootstrap import get_container
 from app.core.application.idempotency import (
     current_idempotency_token,
     rotate_idempotency_token,
 )
 from app.core.auth.permissions import AuthorizationError, Permiso
 from app.core.auth.session import session_tiene_permiso
+from app.core.services import anulacion_registro_service as anul
 from app.core.services import bebida_service, cena_service, comida_service
 from app.core.services.desayuno_service import desayuno_registro
 from app.core.services.receta_service import listar_recetas
@@ -21,10 +23,12 @@ from app.core.services.text_search import coincide_busqueda
 from app.presentation.flet import session_bridge
 from app.presentation.flet.mappers import map_error_recuperable, map_resultado
 from app.presentation.flet.viewmodels import (
+    AnulacionPendienteVM,
     BasketLineVM,
     BasketVM,
     CatalogItemVM,
     FeedbackVM,
+    HistorialRegistroVM,
     ServicioVM,
     TerminalScreenVM,
     assert_sin_campos_economicos,
@@ -36,6 +40,9 @@ SERVICIOS: tuple[tuple[str, str], ...] = (
     ("cena", "Cena"),
     ("bebidas", "Bebidas independientes"),
 )
+
+# Límite solo de presentación; el servicio no pagina.
+_HISTORIAL_LIMITE = 25
 
 
 @dataclass
@@ -72,10 +79,14 @@ class TerminalRestaurantePresenter:
         self._busqueda: str = ""
         self._feedback: FeedbackVM | None = None
         self._confirmando: bool = False
+        self._anulando: bool = False
         self._num_huespedes: int = 30
+        self._anulacion_pendiente: AnulacionPendienteVM | None = None
         assert_sin_campos_economicos(CatalogItemVM)
         assert_sin_campos_economicos(BasketLineVM)
         assert_sin_campos_economicos(BasketVM)
+        assert_sin_campos_economicos(HistorialRegistroVM)
+        assert_sin_campos_economicos(AnulacionPendienteVM)
 
     def entrar(self) -> TerminalScreenVM:
         session, fb = session_bridge.enter_terminal_restaurante()
@@ -95,7 +106,15 @@ class TerminalRestaurantePresenter:
         self._servicio_id = None
         self._feedback = FeedbackVM(ok=True, mensaje="Sesión cerrada.")
         self._confirmando = False
+        self._anulando = False
+        self._anulacion_pendiente = None
         return self.screen()
+
+    def preparar_salida(self) -> None:
+        """Antes de Volver al menú: limpia UI; no anula ni confirma."""
+        self._anulacion_pendiente = None
+        self._confirmando = False
+        self._anulando = False
 
     def seleccionar_servicio(self, servicio_id: str) -> TerminalScreenVM:
         if servicio_id not in _binds():
@@ -106,6 +125,7 @@ class TerminalRestaurantePresenter:
             return self.screen()
         self._servicio_id = servicio_id
         self._busqueda = ""
+        self._anulacion_pendiente = None
         self._feedback = FeedbackVM(
             ok=True, mensaje=f"Servicio activo: {_binds()[servicio_id].etiqueta}"
         )
@@ -185,9 +205,9 @@ class TerminalRestaurantePresenter:
         return self.screen()
 
     def confirmar(self, *, fecha: date | None = None) -> TerminalScreenVM:
-        if self._confirmando:
+        if self._confirmando or self._anulando:
             self._feedback = map_error_recuperable(
-                "Confirmación en curso. Espere un momento.", codigo="CONFIRMANDO"
+                "Operación en curso. Espere un momento.", codigo="CONFIRMANDO"
             )
             return self.screen()
         bind = self._require_bind()
@@ -229,6 +249,110 @@ class TerminalRestaurantePresenter:
             self._confirmando = False
         return self.screen()
 
+    # --- Historial / anulación ---------------------------------------------
+
+    def iniciar_anulacion(self, registro_id: str) -> TerminalScreenVM:
+        if self._confirmando or self._anulando:
+            self._feedback = map_error_recuperable(
+                "Operación en curso.", codigo="CONFIRMANDO"
+            )
+            return self.screen()
+        bind = self._require_bind()
+        if bind is None:
+            return self.screen()
+        if not session_tiene_permiso(Permiso.ACCEDER_REGISTRO):
+            self._feedback = map_error_recuperable("No autorizado para anular.")
+            return self.screen()
+        data = get_container().app_data_store.get()
+        tipo = self._tipo_registro_bind(bind)
+        registro = self._buscar_registro(data, registro_id, tipo)
+        if registro is None:
+            self._feedback = map_error_recuperable("Registro no encontrado.")
+            self._anulacion_pendiente = None
+            return self.screen()
+        puede = anul.puede_anular_registro(data, registro, tipo=tipo)
+        vm_item = self._historial_item_vm(data, registro, tipo, bind.etiqueta)
+        if not puede.ok:
+            self._anulacion_pendiente = None
+            motivo = " ".join(puede.motivos_bloqueo) or "No anulable."
+            self._feedback = map_error_recuperable(motivo, codigo="NO_ANULABLE")
+            return self.screen()
+        self._anulacion_pendiente = AnulacionPendienteVM(
+            registro_id=registro_id,
+            tipo_registro=tipo,
+            etiqueta_corta=vm_item.etiqueta_corta,
+            resumen=vm_item.resumen,
+            motivo="",
+        )
+        self._feedback = FeedbackVM(
+            ok=True,
+            mensaje="Confirme la anulación e indique el motivo.",
+        )
+        return self.screen()
+
+    def set_motivo_anulacion(self, motivo: str) -> TerminalScreenVM:
+        if self._anulacion_pendiente is None:
+            return self.screen()
+        p = self._anulacion_pendiente
+        self._anulacion_pendiente = AnulacionPendienteVM(
+            registro_id=p.registro_id,
+            tipo_registro=p.tipo_registro,
+            etiqueta_corta=p.etiqueta_corta,
+            resumen=p.resumen,
+            motivo=(motivo or "").strip(),
+        )
+        return self.screen()
+
+    def cancelar_anulacion(self) -> TerminalScreenVM:
+        self._anulacion_pendiente = None
+        self._feedback = FeedbackVM(ok=True, mensaje="Anulación cancelada.")
+        return self.screen()
+
+    def confirmar_anulacion(self) -> TerminalScreenVM:
+        if self._anulando or self._confirmando:
+            self._feedback = map_error_recuperable(
+                "Anulación en curso.", codigo="ANULANDO"
+            )
+            return self.screen()
+        if not session_bridge.puede_usar_terminal():
+            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            return self.screen()
+        if not session_tiene_permiso(Permiso.ACCEDER_REGISTRO):
+            self._feedback = map_error_recuperable("No autorizado para anular.")
+            return self.screen()
+        pend = self._anulacion_pendiente
+        if pend is None:
+            self._feedback = map_error_recuperable(
+                "Seleccione un registro y confirme la anulación."
+            )
+            return self.screen()
+        motivo = (pend.motivo or "").strip()
+        if not motivo:
+            self._feedback = map_error_recuperable(
+                "El motivo de anulación es obligatorio.", codigo="VALIDACION"
+            )
+            return self.screen()
+
+        self._anulando = True
+        try:
+            if pend.tipo_registro == anul.TIPO_DESAYUNO:
+                r = anul.anular_desayuno(pend.registro_id, motivo)
+            else:
+                r = anul.anular_servicio(pend.registro_id, motivo)
+            if r.ok:
+                self._anulacion_pendiente = None
+                self._feedback = map_resultado(True, r.mensaje)
+            else:
+                self._feedback = map_resultado(False, r.mensaje)
+        except Exception as exc:  # noqa: BLE001 — feedback operativo, sin falso éxito
+            self._feedback = map_error_recuperable(
+                str(exc) or "Error al anular el registro.",
+                codigo="ERROR",
+            )
+        finally:
+            self._anulando = False
+        return self.screen()
+
     def intentar_consulta_economica(self) -> FeedbackVM:
         from app.core.services import costes_service
 
@@ -259,12 +383,14 @@ class TerminalRestaurantePresenter:
         )
         catalogo: tuple[CatalogItemVM, ...] = ()
         cesta: BasketVM | None = None
+        historial: tuple[HistorialRegistroVM, ...] = ()
         requiere_h = False
         if session.authenticated and self._servicio_id:
             bind = _binds()[self._servicio_id]
             requiere_h = bind.requiere_huespedes
             catalogo = self._catalogo(bind)
             cesta = self._cesta_vm(bind)
+            historial = self._historial_vm(bind)
         vm = TerminalScreenVM(
             session=session,
             servicios=servicios,
@@ -276,6 +402,9 @@ class TerminalRestaurantePresenter:
             num_huespedes=self._num_huespedes,
             requiere_huespedes=requiere_h,
             busqueda=self._busqueda,
+            historial=historial,
+            anulacion_pendiente=self._anulacion_pendiente,
+            anulando=self._anulando,
         )
         assert_sin_campos_economicos(vm)
         return vm
@@ -288,6 +417,74 @@ class TerminalRestaurantePresenter:
             self._feedback = map_error_recuperable("Seleccione un servicio.")
             return None
         return _binds()[self._servicio_id]
+
+    def _tipo_registro_bind(self, bind: _ServicioBind) -> str:
+        return anul.TIPO_DESAYUNO if bind.id == "desayuno" else anul.TIPO_SERVICIO
+
+    def _buscar_registro(self, data, registro_id: str, tipo: str):
+        if tipo == anul.TIPO_DESAYUNO:
+            return next((d for d in data.desayunos if d.id == registro_id), None)
+        return next((r for r in data.registros_servicio if r.id == registro_id), None)
+
+    def _historial_vm(self, bind: _ServicioBind) -> tuple[HistorialRegistroVM, ...]:
+        data = get_container().app_data_store.get()
+        tipo = self._tipo_registro_bind(bind)
+        regs = list(bind.api.historial_ordenado())
+        out: list[HistorialRegistroVM] = []
+        for reg in regs[:_HISTORIAL_LIMITE]:
+            out.append(self._historial_item_vm(data, reg, tipo, bind.etiqueta))
+        return tuple(out)
+
+    def _historial_item_vm(
+        self, data, registro, tipo: str, servicio_etiqueta: str
+    ) -> HistorialRegistroVM:
+        anulado = anul.registro_esta_anulado(registro)
+        fecha = registro.fecha.isoformat() if getattr(registro, "fecha", None) else ""
+        hora_v = getattr(registro, "hora", None)
+        hora = (
+            hora_v.strftime("%H:%M")
+            if isinstance(hora_v, time)
+            else (str(hora_v)[:5] if hora_v else "")
+        )
+        n_rec = len(getattr(registro, "registros_recetas", None) or [])
+        n_prod = len(
+            [
+                ln
+                for ln in (getattr(registro, "lineas_detalle", None) or [])
+                if getattr(ln, "cantidad", 0) > 0
+            ]
+        )
+        hues = getattr(registro, "num_huespedes", 0) or 0
+        partes = [f"{n_rec} receta(s)" if n_rec else "", f"{n_prod} línea(s)"]
+        if tipo == anul.TIPO_DESAYUNO and hues:
+            partes.insert(0, f"{hues} huésped(es)")
+        resumen = " · ".join(p for p in partes if p) or "Sin detalle operativo"
+        etiqueta = f"{servicio_etiqueta} · {fecha}" + (f" {hora}" if hora else "")
+        if anulado:
+            estado = "anulado"
+            puede = False
+            motivo = "Registro ya anulado."
+        else:
+            puede_r = anul.puede_anular_registro(data, registro, tipo=tipo)
+            if puede_r.ok:
+                estado = "activo"
+                puede = True
+                motivo = ""
+            else:
+                estado = "no_anulable"
+                puede = False
+                motivo = " ".join(puede_r.motivos_bloqueo)
+        return HistorialRegistroVM(
+            registro_id=registro.id,
+            tipo_registro=tipo,
+            etiqueta_corta=etiqueta,
+            fecha=fecha,
+            hora=hora,
+            resumen=resumen,
+            estado=estado,
+            puede_anular=puede,
+            motivo_bloqueo=motivo,
+        )
 
     def _catalogo(self, bind: _ServicioBind) -> tuple[CatalogItemVM, ...]:
         items: list[CatalogItemVM] = []

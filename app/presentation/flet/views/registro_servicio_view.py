@@ -45,6 +45,10 @@ def build_registro_view(
     on_huespedes: Callable[[int], None],
     on_logout: Callable[[], None],
     on_volver_menu: Callable[[], None] | None = None,
+    on_iniciar_anulacion: Callable[[str], None] | None = None,
+    on_set_motivo_anulacion: Callable[[str], None] | None = None,
+    on_cancelar_anulacion: Callable[[], None] | None = None,
+    on_confirmar_anulacion: Callable[[], None] | None = None,
     narrow: bool = False,
     search_field: ft.TextField | None = None,
     catalog_results: ft.Column | None = None,
@@ -54,6 +58,10 @@ def build_registro_view(
     Devuelve ``(root, search_field, catalog_results)`` para actualizar solo
     el listado sin reconstruir el TextField (conserva foco y cursor).
     """
+    on_iniciar_anulacion = on_iniciar_anulacion or (lambda _rid: None)
+    on_set_motivo_anulacion = on_set_motivo_anulacion or (lambda _m: None)
+    on_cancelar_anulacion = on_cancelar_anulacion or (lambda: None)
+    on_confirmar_anulacion = on_confirmar_anulacion or (lambda: None)
     activo = next((s for s in screen.servicios if s.activo), None)
     etiqueta_activo = activo.etiqueta if activo else "—"
 
@@ -199,6 +207,7 @@ def build_registro_view(
         "Confirmar registro",
         icon=ft.Icons.CHECK_CIRCLE,
         disabled=screen.confirmando
+        or screen.anulando
         or screen.cesta is None
         or screen.cesta.vacia,
         style=ft.ButtonStyle(
@@ -208,7 +217,7 @@ def build_registro_view(
         on_click=lambda _e: on_confirm(),
     )
     basket_controls.append(confirm_btn)
-    if screen.confirmando:
+    if screen.confirmando or screen.anulando:
         basket_controls.append(ft.ProgressRing(width=24, height=24))
 
     basket_col = ft.Container(
@@ -219,22 +228,40 @@ def build_registro_view(
         content=ft.Column(spacing=8, scroll=ft.ScrollMode.AUTO, controls=basket_controls),
     )
 
+    historial_box = _historial_section(
+        screen,
+        on_iniciar_anulacion=on_iniciar_anulacion,
+        on_set_motivo_anulacion=on_set_motivo_anulacion,
+        on_cancelar_anulacion=on_cancelar_anulacion,
+        on_confirmar_anulacion=on_confirmar_anulacion,
+    )
+
     if narrow:
         body = ft.Column(
             expand=True,
+            scroll=ft.ScrollMode.AUTO,
             controls=[
                 ft.Container(content=catalog_col, expand=True),
                 ft.Divider(),
                 basket_col,
+                ft.Divider(),
+                historial_box,
             ],
         )
     else:
-        body = ft.Row(
+        body = ft.Column(
             expand=True,
-            vertical_alignment=ft.CrossAxisAlignment.START,
             controls=[
-                ft.Container(content=catalog_col, expand=True),
-                basket_col,
+                ft.Row(
+                    expand=True,
+                    vertical_alignment=ft.CrossAxisAlignment.START,
+                    controls=[
+                        ft.Container(content=catalog_col, expand=True),
+                        basket_col,
+                    ],
+                ),
+                ft.Divider(),
+                historial_box,
             ],
         )
 
@@ -244,6 +271,143 @@ def build_registro_view(
         controls=[header, selector, feedback, ft.Container(content=body, expand=True)],
     )
     return root, search_field, catalog_results
+
+
+def _estado_label(estado: str) -> str:
+    return {
+        "activo": "Activo",
+        "anulado": "Anulado",
+        "no_anulable": "No anulable",
+    }.get(estado, estado)
+
+
+def _historial_section(
+    screen: TerminalScreenVM,
+    *,
+    on_iniciar_anulacion: Callable[[str], None],
+    on_set_motivo_anulacion: Callable[[str], None],
+    on_cancelar_anulacion: Callable[[], None],
+    on_confirmar_anulacion: Callable[[], None],
+) -> ft.Control:
+    bloqueado = screen.confirmando or screen.anulando
+    controls: list[ft.Control] = [
+        ft.Text("Historial reciente", size=18, weight=ft.FontWeight.BOLD),
+        ft.Text(
+            "Solo datos operativos. Sin economía ni valoración.",
+            size=11,
+            color=ft.Colors.ON_SURFACE_VARIANT,
+        ),
+    ]
+    if screen.anulacion_pendiente:
+        p = screen.anulacion_pendiente
+        motivo_tf = ft.TextField(
+            label="Motivo de anulación (obligatorio)",
+            value=p.motivo,
+            expand=True,
+            disabled=bloqueado,
+            on_blur=lambda e: on_set_motivo_anulacion(
+                getattr(e.control, "value", "") or ""
+            ),
+        )
+        controls.append(
+            ft.Container(
+                bgcolor=ft.Colors.AMBER_50,
+                padding=12,
+                border_radius=8,
+                content=ft.Column(
+                    spacing=8,
+                    controls=[
+                        ft.Text(
+                            "Confirmar anulación",
+                            weight=ft.FontWeight.BOLD,
+                        ),
+                        ft.Text(p.etiqueta_corta, size=13),
+                        ft.Text(p.resumen, size=12),
+                        motivo_tf,
+                        ft.Row(
+                            controls=[
+                                ft.FilledButton(
+                                    "Confirmar anulación",
+                                    disabled=bloqueado,
+                                    bgcolor=ft.Colors.RED_700,
+                                    on_click=lambda _e: (
+                                        on_set_motivo_anulacion(motivo_tf.value or ""),
+                                        on_confirmar_anulacion(),
+                                    )[-1],
+                                ),
+                                ft.TextButton(
+                                    "Cancelar",
+                                    disabled=bloqueado,
+                                    on_click=lambda _e: on_cancelar_anulacion(),
+                                ),
+                            ]
+                        ),
+                    ],
+                ),
+            )
+        )
+    if not screen.historial:
+        controls.append(
+            ft.Text(
+                "Sin registros recientes en este servicio.",
+                color=ft.Colors.OUTLINE,
+                italic=True,
+                size=12,
+            )
+        )
+    else:
+        for item in screen.historial:
+            fila: list[ft.Control] = [
+                ft.Column(
+                    spacing=2,
+                    expand=True,
+                    controls=[
+                        ft.Text(item.etiqueta_corta, weight=ft.FontWeight.W_500, size=13),
+                        ft.Text(item.resumen, size=12),
+                        ft.Text(
+                            _estado_label(item.estado)
+                            + (
+                                f" — {item.motivo_bloqueo}"
+                                if item.estado == "no_anulable" and item.motivo_bloqueo
+                                else ""
+                            ),
+                            size=11,
+                            color=(
+                                ft.Colors.GREEN_800
+                                if item.estado == "activo"
+                                else (
+                                    ft.Colors.OUTLINE
+                                    if item.estado == "anulado"
+                                    else ft.Colors.AMBER_900
+                                )
+                            ),
+                        ),
+                    ],
+                ),
+            ]
+            if item.puede_anular and item.estado == "activo":
+                fila.append(
+                    ft.TextButton(
+                        "Anular",
+                        disabled=bloqueado or screen.anulacion_pendiente is not None,
+                        on_click=lambda _e, rid=item.registro_id: on_iniciar_anulacion(
+                            rid
+                        ),
+                    )
+                )
+            controls.append(
+                ft.Container(
+                    padding=8,
+                    border=ft.Border(
+                        bottom=ft.BorderSide(1, ft.Colors.OUTLINE_VARIANT)
+                    ),
+                    content=ft.Row(
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        controls=fila,
+                    ),
+                )
+            )
+    return ft.Column(spacing=8, controls=controls)
 
 
 def _catalog_tile(

@@ -74,6 +74,36 @@ class FeedbackVM:
 
 
 @dataclass(frozen=True)
+class HistorialRegistroVM:
+    """Registro operativo sanitizado (sin economía).
+
+    ``registro_id`` y ``tipo_registro`` son internos para anulación; la vista
+    no debe mostrar el ID técnico completo.
+    """
+
+    registro_id: str
+    tipo_registro: str  # "desayuno" | "servicio"
+    etiqueta_corta: str
+    fecha: str
+    hora: str
+    resumen: str
+    estado: str  # activo | anulado | no_anulable
+    puede_anular: bool
+    motivo_bloqueo: str = ""
+
+
+@dataclass(frozen=True)
+class AnulacionPendienteVM:
+    """Confirmación de anulación en memoria (sin mutar aún)."""
+
+    registro_id: str
+    tipo_registro: str
+    etiqueta_corta: str
+    resumen: str
+    motivo: str = ""
+
+
+@dataclass(frozen=True)
 class TerminalScreenVM:
     session: SessionVM
     servicios: tuple[ServicioVM, ...]
@@ -85,6 +115,9 @@ class TerminalScreenVM:
     num_huespedes: int
     requiere_huespedes: bool
     busqueda: str
+    historial: tuple[HistorialRegistroVM, ...] = ()
+    anulacion_pendiente: AnulacionPendienteVM | None = None
+    anulando: bool = False
 
 
 def assert_sin_campos_economicos(obj: object) -> None:
