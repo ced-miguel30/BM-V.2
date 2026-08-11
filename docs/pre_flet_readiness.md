@@ -39,15 +39,15 @@ Merma Flet exige responsable **explícito** (sin autofill).
 - Persistencia opcional de cestas no confirmadas.
 - Skip E2E Streamlit Desayuno (selector).
 - Traslados / recuentos / stock admin.
-- Empaquetado `.exe` / instalador (**no** construido; P1 scripts en `docs/deploy_local_p1.md`).
+- Empaquetado `.exe` / instalador (**no** construido; P2 en `docs/deploy_local_p2.md`).
 - Resto de Settings Streamlit (usuarios, catálogos, backups UI, zona peligro…).
 - Volver al launcher sin reiniciar el proceso.
-- Prueba en equipo limpio del despliegue C (checklist en `deploy_local_p1.md`).
+- Piloto físico Windows del despliegue C (checklist P2).
 
 ## Siguiente bloque (recomendado, no iniciado)
 
-**P2 / piloto controlado** según `docs/deploy_local_p1.md` y este plan
-(prueba en equipo limpio → piloto hotel; **sin** construir `.exe` hasta autorización).
+**Piloto físico Windows** según checklist en `docs/deploy_local_p2.md`
+(sin construir `.exe` hasta autorización tras piloto estable).
 
 ## Docs
 
@@ -57,5 +57,6 @@ Merma Flet exige responsable **explícito** (sin autofill).
 - `docs/flet_launcher.md`
 - `docs/flet_packaging_plan.md`
 - `docs/deploy_local_p1.md`
+- `docs/deploy_local_p2.md`
 - `docs/flet_terminal_administracion_plan.md`
 - `docs/flet_backend_contracts.md`
