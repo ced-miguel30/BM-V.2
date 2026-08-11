@@ -80,6 +80,7 @@ class DeployConfig:
     allow_ops: bool
     flet_view: str
     skip_weekly_export: bool
+    temp_dir: Path | None = None
 
     @property
     def is_hotel(self) -> bool:
@@ -167,11 +168,24 @@ def load_deploy_config(*, apply_config_file: bool = True) -> DeployConfig:
     if instance_root is not None:
         backups = instance_root / "backups"
         logs = instance_root / "logs"
+        exports = instance_root / "exports"
+        documentos = instance_root / "data" / "documentos"
+        temp = instance_root / "temp"
     else:
         # Dev / sin instancia: carpetas locales revisables bajo deploy/local (no Git).
         local = PROJECT_ROOT / "deploy" / "local"
         backups = local / "backups"
         logs = local / "logs"
+        exports = PROJECT_ROOT / "exports"
+        documentos = PROJECT_ROOT / "data" / "documentos"
+        temp = local / "temp"
+
+    if profile == PROFILE_HOTEL and instance_root is None:
+        # BM_DEMO_FILE puede apuntar fuera; adjuntos/exports aún exigen instancia.
+        raise DeployConfigError(
+            f"Perfil hotel exige {ENV_INSTANCE_ROOT} para externalizar "
+            "adjuntos, exports, backups y logs."
+        )
 
     return DeployConfig(
         profile=profile,
@@ -180,20 +194,30 @@ def load_deploy_config(*, apply_config_file: bool = True) -> DeployConfig:
         data_file=data_file,
         backups_dir=backups.resolve(),
         logs_dir=logs.resolve(),
-        exports_dir=(PROJECT_ROOT / "exports").resolve(),
-        documentos_dir=(PROJECT_ROOT / "data" / "documentos").resolve(),
+        exports_dir=exports.resolve(),
+        documentos_dir=documentos.resolve(),
         demo_file=DEMO_FILE.resolve(),
         allow_ops=_truthy(os.environ.get(ENV_ALLOW_OPS)),
         flet_view=(os.environ.get(ENV_FLET_VIEW) or "desktop").strip().lower() or "desktop",
         skip_weekly_export=_truthy(os.environ.get(ENV_SKIP_WEEKLY)),
+        temp_dir=temp.resolve(),
     )
 
 
 def ensure_instance_dirs(cfg: DeployConfig) -> None:
     """Crea carpetas de instancia con errores claros si faltan permisos."""
-    targets = [cfg.backups_dir, cfg.logs_dir, cfg.data_file.parent]
+    targets = [
+        cfg.backups_dir,
+        cfg.logs_dir,
+        cfg.data_file.parent,
+        cfg.exports_dir,
+        cfg.documentos_dir,
+    ]
+    if cfg.temp_dir is not None:
+        targets.append(cfg.temp_dir)
     if cfg.instance_root is not None:
         targets.append(cfg.instance_root)
+        targets.append(cfg.instance_root / "data")
     for d in targets:
         try:
             d.mkdir(parents=True, exist_ok=True)
@@ -210,6 +234,18 @@ def ensure_instance_dirs(cfg: DeployConfig) -> None:
         raise DeployConfigError(
             f"Permiso de escritura insuficiente en {cfg.logs_dir}: {exc}"
         ) from exc
+    if cfg.is_hotel:
+        # Guard: no usar mutables del repo
+        repo_docs = (PROJECT_ROOT / "data" / "documentos").resolve()
+        repo_exports = (PROJECT_ROOT / "exports").resolve()
+        if cfg.documentos_dir.resolve() == repo_docs:
+            raise DeployConfigError(
+                "Perfil hotel: documentos_dir no puede ser el del repositorio."
+            )
+        if cfg.exports_dir.resolve() == repo_exports:
+            raise DeployConfigError(
+                "Perfil hotel: exports_dir no puede ser el del repositorio."
+            )
 
 
 def assert_hotel_data_ready(cfg: DeployConfig, *, require_exists: bool) -> None:
