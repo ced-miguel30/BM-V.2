@@ -94,6 +94,7 @@ class TerminalAdministracionShell:
                 on_crear_ubicacion=self._on_crear_ubicacion,
                 on_ejecutar_destructiva=self._on_ejecutar_destructiva,
                 on_exportar_documentos=self._on_exportar_documentos,
+                on_proponer_anular_documento=self._on_proponer_anular_documento,
                 on_confirmar=self._on_confirmar,
                 on_cancelar=self._on_cancelar,
             )
@@ -332,6 +333,10 @@ class TerminalAdministracionShell:
 
     def _on_exportar_documentos(self) -> None:
         self.presenter.exportar_documentos_csv()
+        self.refresh()
+
+    def _on_proponer_anular_documento(self, documento_id: str, motivo: str) -> None:
+        self.presenter.proponer_anular_documento(documento_id, motivo)
         self.refresh()
 
     def _on_confirmar(self) -> None:

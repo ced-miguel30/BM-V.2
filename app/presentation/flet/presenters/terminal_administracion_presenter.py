@@ -36,6 +36,7 @@ from app.core.services import (
     settings_service,
     stock_service,
 )
+from app.core.services import anulacion_documento_service as anul_doc
 from app.core.services.backup_service import generar_backup_zip
 from app.core.services.restore_backup_service import (
     inspeccionar_backup,
@@ -1158,7 +1159,7 @@ class TerminalAdministracionPresenter:
             self._mutando = False
         return self.screen()
 
-    # ── Documentos export ─────────────────────────────────────────────────
+    # ── Documentos export / anulación ─────────────────────────────────────
 
     def exportar_documentos_csv(self) -> AdminScreenVM:
         if not self._gate_admin():
@@ -1179,6 +1180,28 @@ class TerminalAdministracionPresenter:
                 )
         finally:
             self._mutando = False
+        return self.screen()
+
+    def proponer_anular_documento(self, documento_id: str, motivo: str) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        texto = (motivo or "").strip()
+        if not texto:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Indique el motivo de anulación."
+            )
+            return self.screen()
+        doc = next((d for d in self.screen().documentos if d.id == documento_id), None)
+        etiqueta = f"{doc.tipo} {doc.referencia or doc.id}" if doc else documento_id
+        self._pending = PendingChangeVM(
+            kind="anular_documento",
+            resumen=f"Anular documento «{etiqueta}». Motivo: {texto}",
+            nombre=texto,
+            confirmacion=documento_id,
+        )
+        self._feedback = FeedbackVM(
+            ok=True, mensaje="Confirme la anulación del documento."
+        )
         return self.screen()
 
     # ── Confirmación pendiente ────────────────────────────────────────────
@@ -1264,6 +1287,15 @@ class TerminalAdministracionPresenter:
             return settings_service.ResultadoOperacion(
                 resultado.ok, resultado.mensaje or ("Restaurado." if resultado.ok else "Falló.")
             )
+        if pending.kind == "anular_documento":
+            r = anul_doc.anular_documento_confirmado(
+                pending.confirmacion,
+                motivo=pending.nombre,
+                json_path=get_demo_file(),
+            )
+            if r.ok:
+                get_container().app_data_store.reload_from_disk()
+            return settings_service.ResultadoOperacion(r.ok, r.mensaje)
         return None
 
     # ── Screen ────────────────────────────────────────────────────────────

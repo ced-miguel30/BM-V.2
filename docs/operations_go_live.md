@@ -80,6 +80,8 @@ deploy\windows\build_exe.cmd
 
 ## Documentación relacionada
 
+- `docs/operations_multi_pc.md` — tres ordenadores + carpeta compartida
+- `docs/shared_storage.md` — locks y revisión
 - `docs/flet_administracion_operativa.md`
 - `docs/flet_terminal_restaurante.md`
 - `docs/flet_terminal_inventario.md`

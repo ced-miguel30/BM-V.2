@@ -164,6 +164,7 @@ def build_admin_shell(
     on_crear_ubicacion: Callable[[str, str], None],
     on_ejecutar_destructiva: Callable[[str, str, bool], None],
     on_exportar_documentos: Callable[[], None],
+    on_proponer_anular_documento: Callable[[str, str], None] | None = None,
     on_confirmar: Callable[[], None],
     on_cancelar: Callable[[], None],
     on_volver_menu: Callable[[], None] | None = None,
@@ -270,6 +271,7 @@ def build_admin_shell(
         on_crear_ubicacion=on_crear_ubicacion,
         on_ejecutar_destructiva=on_ejecutar_destructiva,
         on_exportar_documentos=on_exportar_documentos,
+        on_proponer_anular_documento=on_proponer_anular_documento,
     )
 
     body = ft.Row(
@@ -1051,23 +1053,50 @@ def _panel_documentos(screen: AdminScreenVM, **cbs) -> ft.Control:
     on_export = cbs.get("on_exportar_documentos")
     filas = []
     for d in screen.documentos:
+        motivo_tf = ft.TextField(
+            label="Motivo anulación",
+            dense=True,
+            width=220,
+            disabled=screen.mutando or d.estado.lower() in ("anulado", "anulada"),
+        )
         filas.append(
             ft.Container(
                 padding=8,
                 border=ft.Border(bottom=ft.BorderSide(1, ft.Colors.OUTLINE_VARIANT)),
-                content=ft.Column(
-                    spacing=2,
+                content=ft.Row(
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
-                        ft.Text(
-                            f"{d.tipo} · {d.estado} · {d.n_lineas} línea(s)",
-                            weight=ft.FontWeight.W_600,
-                            size=13,
+                        ft.Column(
+                            spacing=2,
+                            expand=True,
+                            controls=[
+                                ft.Text(
+                                    f"{d.tipo} · {d.estado} · {d.n_lineas} línea(s)",
+                                    weight=ft.FontWeight.W_600,
+                                    size=13,
+                                ),
+                                ft.Text(
+                                    f"{d.fecha} · {d.proveedor or 'Sin proveedor'}"
+                                    + (f" · ref. {d.referencia}" if d.referencia else ""),
+                                    size=12,
+                                    color=ft.Colors.ON_SURFACE_VARIANT,
+                                ),
+                            ],
                         ),
-                        ft.Text(
-                            f"{d.fecha} · {d.proveedor or 'Sin proveedor'}"
-                            + (f" · ref. {d.referencia}" if d.referencia else ""),
-                            size=12,
-                            color=ft.Colors.ON_SURFACE_VARIANT,
+                        motivo_tf,
+                        ft.TextButton(
+                            "Anular",
+                            disabled=screen.mutando
+                            or d.estado.lower() in ("anulado", "anulada")
+                            or cbs.get("on_proponer_anular_documento") is None,
+                            on_click=lambda _e, did=d.id, tf=motivo_tf: (
+                                cbs["on_proponer_anular_documento"](
+                                    did, tf.value or ""
+                                )
+                                if cbs.get("on_proponer_anular_documento")
+                                else None
+                            ),
                         ),
                     ],
                 ),

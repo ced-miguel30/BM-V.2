@@ -376,6 +376,11 @@ class TerminalRestaurantePresenter:
             return FeedbackVM(ok=False, mensaje=f"Denegado: {msg}")
 
     def screen(self) -> TerminalScreenVM:
+        # Multiclinte: recargar si otro PC avanzó la revisión.
+        try:
+            get_container().app_data_store.refresh_if_stale()
+        except Exception:  # noqa: BLE001
+            pass
         session = session_bridge.current_session_vm()
         servicios = tuple(
             ServicioVM(id=sid, etiqueta=etq, activo=(sid == self._servicio_id))

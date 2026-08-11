@@ -134,10 +134,8 @@ El Terminal Restaurante ya usa el mismo `FileBackedAppDataStore` coordinado.
 Cuando se añada un 4º PC de cocina: misma instalación local + misma UNC; no hace
 falta reescribir Flet.
 
-## Comprobaciones físicas en el hotel (solo humanas)
+## Multiordenador
 
-1. Crear el share real y permisos NTFS.
-2. Instalar en PC1–PC3.
-3. Configurar la UNC real en cada cliente.
-4. Repetir la prueba concurrente mínima.
-5. Backup vacío + carga de datos reales.
+Ver `docs/operations_multi_pc.md` (UNC, locks, tres PCs).
+Ver `docs/shared_storage.md` (revisión + `.bm_shared.lock`).
+
