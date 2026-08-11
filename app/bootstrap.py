@@ -122,9 +122,17 @@ def configure_for_flet(
     Una sola fuente de AppData por proceso; Flet no escribe JSON directamente.
     """
     from app.core.storage.demo_files import set_demo_file_override
+    from app.core.storage.instance_paths import set_documentos_root_override
 
     if data_path is not None:
-        set_demo_file_override(Path(data_path))
+        path = Path(data_path)
+        set_demo_file_override(path)
+        # Adjuntos junto al JSON de instancia (tests / temp / shared root)
+        docs_root = path.parent / "documentos"
+        docs_root.mkdir(parents=True, exist_ok=True)
+        set_documentos_root_override(docs_root)
+    else:
+        set_documentos_root_override(None)
 
     store = FileBackedAppDataStore(data)
     if data is not None and data_path is not None:
@@ -143,4 +151,9 @@ def configure_for_flet(
 
 def reset_container() -> None:
     """Elimina el contenedor activo (siguiente get_container lazy-init)."""
+    from app.core.storage.demo_files import set_demo_file_override
+    from app.core.storage.instance_paths import set_documentos_root_override
+
+    set_documentos_root_override(None)
+    set_demo_file_override(None)
     set_container(None)

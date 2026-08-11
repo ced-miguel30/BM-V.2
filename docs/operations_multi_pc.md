@@ -79,6 +79,22 @@ Copiar la carpeta `dist\BM-Launcher\` a cada PC. No almacenar datos dentro.
 Si el servidor no está disponible: mensaje claro; **no** se crea copia local
 alternativa de los datos.
 
+## Documentos en Flet (sin Streamlit)
+
+En **Compras**: elegir tipo Albarán o Factura → líneas → confirmar.
+
+En **Documentos**:
+
+- filtrar / exportar CSV;
+- anular (con motivo + confirmación);
+- rectificativa económica (sin stock);
+- rectificativa con impacto de stock;
+- adjuntar desde ruta local y abrir adjuntos.
+
+La conciliación multi-albarán compleja permanece disponible vía servicios;
+el flujo diario de compra/factura/anulación/rectificación cubre la operativa
+normal en Flet.
+
 ## Prueba concurrente (mínima)
 
 1. PC1 crea un producto.

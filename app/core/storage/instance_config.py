@@ -154,8 +154,16 @@ def apply_shared_root(path: Path | str) -> Path:
 
     os.environ[ENV_INSTANCE_ROOT] = str(root)
     os.environ[ENV_DEMO_FILE] = str(data_file)
+    # Perfil hotel: adjuntos bajo shared_root/data/documentos
+    os.environ.setdefault("BM_DEPLOY_PROFILE", "hotel")
+    if (os.environ.get("BM_DEPLOY_PROFILE") or "").strip().lower() != "hotel":
+        os.environ["BM_DEPLOY_PROFILE"] = "hotel"
+    (root / "data" / "documentos").mkdir(parents=True, exist_ok=True)
+    (root / "backups").mkdir(parents=True, exist_ok=True)
     # Limpia override in-process si existiera, para que get_demo_file vea el env
     from app.core.storage.demo_files import set_demo_file_override
+    from app.core.storage.instance_paths import set_documentos_root_override
 
     set_demo_file_override(None)
+    set_documentos_root_override(None)
     return root

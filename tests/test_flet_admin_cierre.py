@@ -208,7 +208,7 @@ class TestAdminDocumentosWorkflow(_CierreHarness):
     def test_adjunto_y_rectificativa_economica(self) -> None:
         p = self._login_dir()
         doc_id = self._seed_compra_confirmada(p)
-        contenido = b"%PDF-1.4 fake adjunto"
+        contenido = b"%PDF-1.4 fake adjunto " + os.urandom(16)
         s = p.adjuntar_archivo_documento(doc_id, "albaran.pdf", contenido)
         self.assertTrue(s.feedback and s.feedback.ok, s.feedback.mensaje if s.feedback else "")
         self.assertTrue(any(a.documento_id == doc_id for a in s.archivos))
