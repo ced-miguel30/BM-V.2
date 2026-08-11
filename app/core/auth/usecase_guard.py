@@ -6,6 +6,8 @@ La autorización deriva exclusivamente de AuthSession válida (F16).
 
 from __future__ import annotations
 
+from collections.abc import Collection
+
 from app.core.auth.permissions import AuthorizationError, Permiso
 from app.core.auth.session import (
     TERMINAL_INVENTARIO_ID,
@@ -28,7 +30,12 @@ _PERMISOS_PERMITIDOS_TERMINAL_INVENTARIO_CON_DENY = frozenset({
 })
 
 
-def _deny_terminal_blocks(session: AuthSession, permiso: Permiso | str) -> bool:
+def _deny_terminal_blocks(
+    session: AuthSession,
+    permiso: Permiso | str,
+    *,
+    allowed_terminals: Collection[str] | None = None,
+) -> bool:
     """True si deny_terminal debe rechazar esta sesion para el permiso."""
     if session.actor_type != "terminal":
         return False
@@ -38,6 +45,10 @@ def _deny_terminal_blocks(session: AuthSession, permiso: Permiso | str) -> bool:
         and p in _PERMISOS_PERMITIDOS_TERMINAL_INVENTARIO_CON_DENY
     ):
         return False
+    # Excepción explícita por llamada (p. ej. anulación Restaurante).
+    # No altera el comportamiento por defecto cuando allowed_terminals es None/vacío.
+    if allowed_terminals and session.terminal_id in allowed_terminals:
+        return False
     return True
 
 
@@ -45,16 +56,25 @@ def require_usecase(
     permiso: Permiso | str,
     *,
     deny_terminal: bool = False,
+    allowed_terminals: Collection[str] | None = None,
 ) -> AuthSession:
     """Exige AuthSession autenticada con el permiso indicado.
 
-    ``deny_terminal`` bloquea actores terminal salvo Terminal Inventario cuando
-    el permiso es de inventario operativo (ACCEDER_INVENTARIO /
-    ACCEDER_TERMINAL_INVENTARIO). Compras, config, gestor y costes siguen
-    denegados por la matriz de ``terminal_id``.
+    ``deny_terminal`` bloquea actores terminal salvo:
+
+    - Terminal Inventario cuando el permiso es de inventario operativo
+      (ACCEDER_INVENTARIO / ACCEDER_TERMINAL_INVENTARIO); o
+    - un ``terminal_id`` listado explícitamente en ``allowed_terminals``
+      para **esta** llamada (el permiso sigue siendo obligatorio).
+
+    Sin ``allowed_terminals``, el comportamiento es idéntico al histórico.
+    Compras, config, gestor y costes siguen denegados por la matriz de
+    ``terminal_id`` / permisos de rol.
     """
     session = require_permiso(permiso)
-    if deny_terminal and _deny_terminal_blocks(session, permiso):
+    if deny_terminal and _deny_terminal_blocks(
+        session, permiso, allowed_terminals=allowed_terminals
+    ):
         raise UseCaseDenied("Terminal no autorizado para esta operación.")
     return session
 
@@ -63,10 +83,15 @@ def usecase_deny_message(
     permiso: Permiso | str,
     *,
     deny_terminal: bool = False,
+    allowed_terminals: Collection[str] | None = None,
 ) -> str | None:
     """None si autorizado; mensaje de error si no (para ResultadoOperacion)."""
     try:
-        require_usecase(permiso, deny_terminal=deny_terminal)
-        return None
+        require_usecase(
+            permiso,
+            deny_terminal=deny_terminal,
+            allowed_terminals=allowed_terminals,
+        )
     except AuthorizationError as exc:
         return getattr(exc, "mensaje", None) or str(exc) or "No autorizado."
+    return None

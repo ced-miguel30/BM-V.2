@@ -20,10 +20,40 @@ Stores Flet: `FileBackedAppDataStore` + `MemoryBasketStore` + `MemoryAuthSession
 `require_usecase(..., deny_terminal=True)` bloquea `actor_type=terminal` salvo:
 
 - `terminal_id == terminal_inventario` **y**
-- permiso ∈ {`ACCEDER_INVENTARIO`, `ACCEDER_TERMINAL_INVENTARIO`}.
+- permiso ∈ {`ACCEDER_INVENTARIO`, `ACCEDER_TERMINAL_INVENTARIO`}; **o**
+- un `terminal_id` pasado explícitamente en `allowed_terminals` **para esa llamada**
+  (el permiso exigido sigue siendo obligatorio).
 
-Así Terminal Inventario puede ejecutar ajustes/alertas; Restaurante y terminales genéricos no.  
-Compras/config/gestor/costes siguen denegados por bloqueo de `terminal_id` en sesión.
+Sin `allowed_terminals`, el comportamiento por defecto es idéntico al histórico:
+Inventario operativo sí; Restaurante y terminales genéricos no (salvo la excepción
+acotada abajo). Compras/config/gestor/costes siguen denegados por matriz de rol /
+`terminal_id`.
+
+### Anulación de registros (Restaurante)
+
+`anulacion_registro_service.anular_registro` conserva `deny_terminal=True` y añade:
+
+`allowed_terminals={TERMINAL_ID_DEFAULT}` (`terminal_restaurante`).
+
+Así:
+
+| Actor | Condición | Anular desayuno/servicio |
+|-------|-----------|--------------------------|
+| Usuario Dir/Adm (u otros con `ACCEDER_REGISTRO`) | permiso OK | Sí |
+| `terminal_restaurante` | `ACCEDER_REGISTRO` + allowlist de la llamada | Sí |
+| `terminal_restaurante` sin `ACCEDER_REGISTRO` | — | No |
+| Otro terminal (aunque tenga `ACCEDER_REGISTRO`) | no en allowlist | No |
+| `terminal_inventario` | no en allowlist de anulación | No |
+| Cualquier terminal en otros `deny_terminal=True` sin allowlist | — | No (p. ej. ajustes/compras/config) |
+
+Registro operativo (`desayuno_registro` / `ServicioRegistro.registrar`) sigue con
+`ACCEDER_REGISTRO` **sin** `deny_terminal` (sin cambio).
+
+La UI Flet de historial/anulación **sigue pendiente**; este contrato solo desbloquea el dominio.
+
+Atomicidad de anulación: commit único; rollback en memoria ante error; motivo obligatorio;
+reposición de lotes exactos vía `consumos_lote`; sin idempotencia persistente (segunda
+anulación → rechazo); históricos sin trazabilidad → no anulables.
 
 ## Casos de uso / servicios reutilizables (entrypoints)
 

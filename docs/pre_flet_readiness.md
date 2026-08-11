@@ -21,9 +21,16 @@
 
 ## Autorización B5 / Admin
 
-`deny_terminal=True` bloquea actores `terminal` excepto allowlist Inventario operativa.
+`deny_terminal=True` bloquea actores `terminal` excepto:
+
+- allowlist Inventario operativa (`ACCEDER_INVENTARIO` / `ACCEDER_TERMINAL_INVENTARIO`);
+- excepciones **explícitas por llamada** vía `allowed_terminals` (hoy: anulación de
+  registros con `terminal_restaurante` + `ACCEDER_REGISTRO`).
+
 `ACCEDER_CONFIGURACION` exige usuario Dir/Adm (`terminal_id=None`). Terminales no mutan responsables.
 Merma Flet exige responsable **explícito** (sin autofill).
+
+UI Flet de historial/anulación en Restaurante: **pendiente** (RBAC de dominio ya alineado).
 
 ## Backlog Flet
 
@@ -36,11 +43,14 @@ Merma Flet exige responsable **explícito** (sin autofill).
 - Volver al launcher desde verticales abiertas vía launcher (misma Page; logout; sin reiniciar proceso).
 - Stock por ubicación + Traslados en Flet Inventario (consulta + preview/confirm).
 - Recuentos en Flet Inventario (preview memoria + borrador 7B.6 + confirmación; sin anulación de confirmados).
+- RBAC: `terminal_restaurante` puede anular registros operativos (`ACCEDER_REGISTRO` +
+  `allowed_terminals` acotado; sin abrir Inventario ni otros `deny_terminal`).
 
 ### Pueden esperar
 - Branding / tipografía definitiva (las tres superficies Flet).
 - Persistencia opcional de cestas no confirmadas.
 - Skip E2E Streamlit Desayuno (selector).
+- Historial + anulación en UI Flet Restaurante (dominio RBAC ya listo).
 - Anulación de traslados / CRUD ubicaciones / anulación de recuentos confirmados en Flet.
 - Empaquetado `.exe` / instalador (**no** construido; P2 en `docs/deploy_local_p2.md`).
 - Resto de Settings Streamlit (usuarios, catálogos, backups UI, zona peligro…).
@@ -48,8 +58,7 @@ Merma Flet exige responsable **explícito** (sin autofill).
 
 ## Siguiente bloque (recomendado, no iniciado)
 
-**Piloto físico Windows** según checklist en `docs/deploy_local_p2.md`
-(sin construir `.exe` hasta autorización tras piloto estable).
+**Flet Restaurante: historial operativo + anulación** (capa presentación; dominio listo).
 
 ## Docs
 

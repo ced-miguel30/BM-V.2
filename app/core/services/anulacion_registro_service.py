@@ -283,9 +283,17 @@ def anular_registro(
 ) -> ResultadoAnulacion:
     """Anula y repone stock. Todo o nada. Idempotente si ya anulado."""
     from app.core.auth.permissions import Permiso
+    from app.core.auth.session import TERMINAL_ID_DEFAULT
     from app.core.auth.usecase_guard import usecase_deny_message
 
-    denied = usecase_deny_message(Permiso.ACCEDER_REGISTRO, deny_terminal=True)
+    # deny_terminal se mantiene. Solo terminal_restaurante (además de usuarios
+    # con ACCEDER_REGISTRO) puede anular registros operativos. No concede
+    # inventario ni abre otros casos con deny_terminal.
+    denied = usecase_deny_message(
+        Permiso.ACCEDER_REGISTRO,
+        deny_terminal=True,
+        allowed_terminals=frozenset({TERMINAL_ID_DEFAULT}),
+    )
     if denied:
         return ResultadoAnulacion(False, denied)
 
