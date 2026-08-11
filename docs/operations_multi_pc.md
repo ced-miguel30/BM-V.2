@@ -91,9 +91,8 @@ En **Documentos**:
 - rectificativa con impacto de stock;
 - adjuntar desde ruta local y abrir adjuntos.
 
-La conciliación multi-albarán compleja permanece disponible vía servicios;
-el flujo diario de compra/factura/anulación/rectificación cubre la operativa
-normal en Flet.
+La conciliación de factura con un albarán confirmado está disponible en Compras
+(selector de albarán → empareja líneas por producto al confirmar).
 
 ## Prueba concurrente (mínima)
 

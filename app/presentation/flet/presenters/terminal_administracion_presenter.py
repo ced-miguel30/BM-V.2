@@ -115,6 +115,7 @@ class TerminalAdministracionPresenter:
         self._compra_referencia = ""
         self._compra_documento_id = ""
         self._compra_tipo = TipoDocumento.ALBARAN.value
+        self._compra_albaran_id = ""
         assert_admin_sin_economia(
             ResponsableMermaVM,
             PendingChangeVM,
@@ -672,6 +673,14 @@ class TerminalAdministracionPresenter:
             )
             return self.screen()
         self._compra_tipo = t
+        if t != TipoDocumento.FACTURA.value:
+            self._compra_albaran_id = ""
+        return self.screen()
+
+    def set_compra_albaran_conciliacion(self, albaran_id: str) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        self._compra_albaran_id = (albaran_id or "").strip()
         return self.screen()
 
     def añadir_linea_compra(
@@ -737,6 +746,7 @@ class TerminalAdministracionPresenter:
         self._compra_referencia = ""
         self._compra_documento_id = ""
         self._compra_tipo = TipoDocumento.ALBARAN.value
+        self._compra_albaran_id = ""
         self._feedback = FeedbackVM(ok=True, mensaje="Borrador de compra limpiado.")
         return self.screen()
 
@@ -807,19 +817,23 @@ class TerminalAdministracionPresenter:
                     ok=False, mensaje_backend="Borrador no encontrado tras guardar."
                 )
                 return self.screen()
-            h = compra_registro_service.construir_hash_documento(doc)
+            h = compra_registro_service.construir_hash_documento(
+                doc, self._conciliaciones_propuestas(doc)
+            )
             token = str(uuid.uuid4())
             res = compra_registro_service.confirmar_compra(
                 doc.id,
                 confirmacion_id=token,
                 contenido_hash=h,
                 json_path=path,
+                conciliaciones_propuestas=self._conciliaciones_propuestas(doc) or None,
             )
             if res.ok:
                 reload_from_disk()
                 self._compra_lineas = []
                 self._compra_documento_id = ""
                 self._compra_referencia = ""
+                self._compra_albaran_id = ""
                 msg = res.mensaje or "Compra confirmada."
                 if res.codigo == compra_registro_service.CONFIRMACION_IDEMPOTENTE:
                     msg = f"{msg} (idempotente)"
@@ -832,6 +846,43 @@ class TerminalAdministracionPresenter:
         finally:
             self._mutando = False
         return self.screen()
+
+    def _conciliaciones_propuestas(self, doc) -> list[dict]:
+        """Conciliación 1:1 por producto contra un albarán confirmado (factura)."""
+        if (self._compra_tipo or "") != TipoDocumento.FACTURA.value:
+            return []
+        alb_id = (self._compra_albaran_id or "").strip()
+        if not alb_id:
+            return []
+        data = get_container().app_data_store.get()
+        alb = next((d for d in (data.documentos or []) if d.id == alb_id), None)
+        if alb is None:
+            return []
+        props: list[dict] = []
+        usadas: set[str] = set()
+        for ln in doc.lineas or []:
+            clk = getattr(ln, "client_line_key", None) or ln.id
+            match = None
+            for alb_ln in alb.lineas or []:
+                if alb_ln.id in usadas:
+                    continue
+                if alb_ln.producto_id == ln.producto_id:
+                    match = alb_ln
+                    break
+            if match is None:
+                continue
+            usadas.add(match.id)
+            qty = getattr(ln, "cantidad_compra", None)
+            if qty is None:
+                qty = ln.cantidad
+            props.append(
+                {
+                    "linea_factura_client_key": str(clk),
+                    "linea_albaran_id": match.id,
+                    "cantidad_conciliada": str(qty),
+                }
+            )
+        return props
 
     def _persistir_borrador_compra(self):
         data = get_container().app_data_store.get()
@@ -1501,6 +1552,7 @@ class TerminalAdministracionPresenter:
         proveedores: tuple[ProveedorAdminVM, ...] = ()
         documentos: tuple[DocumentoAdminVM, ...] = ()
         archivos: tuple[ArchivoAdminVM, ...] = ()
+        albaranes_conciliables: tuple[DocumentoAdminVM, ...] = ()
         backups: tuple[BackupItemVM, ...] = ()
         departamentos: tuple[CatalogoItemVM, ...] = ()
         categorias: tuple[CatalogoItemVM, ...] = ()
@@ -1686,6 +1738,32 @@ class TerminalAdministracionPresenter:
                 )
             documentos = tuple(lista_docs)
 
+            albs: list[DocumentoAdminVM] = []
+            for d in docs:
+                tipo = getattr(d.tipo, "value", None) or str(d.tipo or "")
+                estado = getattr(d.estado, "value", None) or str(d.estado or "")
+                if tipo.lower() != "albaran" or estado.lower() != "confirmado":
+                    continue
+                fecha = (
+                    d.fecha_documento.isoformat()
+                    if getattr(d, "fecha_documento", None)
+                    else ""
+                )
+                prov = getattr(d, "proveedor_nombre_snapshot", None) or d.proveedor_id or ""
+                ref = getattr(d, "referencia", None) or getattr(d, "numero", None) or ""
+                albs.append(
+                    DocumentoAdminVM(
+                        id=d.id,
+                        tipo=tipo,
+                        estado=estado,
+                        fecha=fecha,
+                        proveedor=str(prov),
+                        referencia=str(ref),
+                        n_lineas=len(getattr(d, "lineas", None) or []),
+                    )
+                )
+            albaranes_conciliables = tuple(albs[:50])
+
             lista_arch: list[ArchivoAdminVM] = []
             for a in getattr(data, "archivos_documentales", None) or []:
                 if not getattr(a, "activo", True):
@@ -1773,8 +1851,10 @@ class TerminalAdministracionPresenter:
             compra_referencia=self._compra_referencia if auth else "",
             compra_documento_id=self._compra_documento_id if auth else "",
             compra_tipo=self._compra_tipo if auth else "albaran",
+            compra_albaran_id=self._compra_albaran_id if auth else "",
             documentos=documentos,
             archivos=archivos,
+            albaranes_conciliables=albaranes_conciliables,
             backups=backups,
             unidades=tuple(u.value for u in UnidadProducto),
             categorias_receta=tuple(c.value for c in CategoriaReceta),

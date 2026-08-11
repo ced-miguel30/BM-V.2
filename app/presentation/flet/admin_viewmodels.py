@@ -218,8 +218,10 @@ class AdminScreenVM:
     compra_referencia: str = ""
     compra_documento_id: str = ""
     compra_tipo: str = "albaran"
+    compra_albaran_id: str = ""
     documentos: tuple[DocumentoAdminVM, ...] = ()
     archivos: tuple[ArchivoAdminVM, ...] = ()
+    albaranes_conciliables: tuple[DocumentoAdminVM, ...] = ()
     backups: tuple[BackupItemVM, ...] = ()
     unidades: tuple[str, ...] = ()
     categorias_receta: tuple[str, ...] = ()

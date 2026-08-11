@@ -83,6 +83,7 @@ class TerminalAdministracionShell:
                 on_guardar_borrador_compra=self._on_guardar_borrador_compra,
                 on_confirmar_compra=self._on_confirmar_compra,
                 on_limpiar_borrador_compra=self._on_limpiar_borrador_compra,
+                on_set_compra_albaran=self._on_set_compra_albaran,
                 on_generar_backup=self._on_generar_backup,
                 on_inspeccionar_backup=self._on_inspeccionar_backup,
                 on_proponer_restaurar=self._on_proponer_restaurar,
@@ -293,6 +294,10 @@ class TerminalAdministracionShell:
 
     def _on_limpiar_borrador_compra(self) -> None:
         self.presenter.limpiar_borrador_compra()
+        self.refresh()
+
+    def _on_set_compra_albaran(self, albaran_id: str) -> None:
+        self.presenter.set_compra_albaran_conciliacion(albaran_id)
         self.refresh()
 
     def _on_generar_backup(self) -> None:

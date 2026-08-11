@@ -164,6 +164,7 @@ def build_admin_shell(
     on_crear_ubicacion: Callable[[str, str], None],
     on_ejecutar_destructiva: Callable[[str, str, bool], None],
     on_exportar_documentos: Callable[[], None],
+    on_set_compra_albaran: Callable[[str], None] | None = None,
     on_proponer_anular_documento: Callable[[str, str], None] | None = None,
     on_proponer_rectificativa_economica: Callable[[str, str], None] | None = None,
     on_proponer_rectificativa_stock: Callable[[str, str], None] | None = None,
@@ -264,6 +265,7 @@ def build_admin_shell(
         on_guardar_borrador_compra=on_guardar_borrador_compra,
         on_confirmar_compra=on_confirmar_compra,
         on_limpiar_borrador_compra=on_limpiar_borrador_compra,
+        on_set_compra_albaran=on_set_compra_albaran,
         on_generar_backup=on_generar_backup,
         on_inspeccionar_backup=on_inspeccionar_backup,
         on_proponer_restaurar=on_proponer_restaurar,
@@ -1307,6 +1309,21 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
         else "Borrador aún no persistido."
     )
     tipo_lbl = "factura" if (screen.compra_tipo or "") == "factura" else "albarán"
+    alb_dd = ft.Dropdown(
+        label="Albarán a conciliar (factura)",
+        options=[
+            ft.dropdown.Option(
+                key=a.id,
+                text=f"{a.referencia or a.id} · {a.proveedor}",
+            )
+            for a in screen.albaranes_conciliables
+        ],
+        value=screen.compra_albaran_id or None,
+        width=320,
+        visible=(screen.compra_tipo or "") == "factura",
+        on_change=lambda e: cbs.get("on_set_compra_albaran")
+        and cbs["on_set_compra_albaran"](e.control.value or ""),
+    )
 
     return ft.Column(
         spacing=12,
@@ -1314,7 +1331,8 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
             ft.Text("Compras / Documentos", size=18, weight=ft.FontWeight.BOLD),
             ft.Text(
                 f"Flujo productivo ({tipo_lbl}): borrador → confirmar "
-                "(crea lotes/movimientos en albarán; factura según dominio).",
+                "(crea lotes/movimientos en albarán; factura según dominio). "
+                "En factura, opcional: enlazar un albarán confirmado para conciliar por producto.",
                 size=13,
                 color=ft.Colors.ON_SURFACE_VARIANT,
             ),
@@ -1326,6 +1344,7 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
                     ft.OutlinedButton("Aplicar cabecera", on_click=_aplicar_cab),
                 ]
             ),
+            alb_dd,
             ft.Row(controls=[prod, cantidad, precio]),
             ft.Row(
                 controls=[
