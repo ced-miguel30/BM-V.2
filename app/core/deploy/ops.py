@@ -134,7 +134,8 @@ def restore_ops_backup(
             contenido,
             nombre_backup=path.name,
             destino_json=cfg.data_file,
-            project_root=cfg.project_root,
+            # None → restore elige instancia en hotel (no el clon del repo).
+            project_root=cfg.instance_root if cfg.is_hotel else cfg.project_root,
             recargar_sesion=False,
         )
         if not result.ok:

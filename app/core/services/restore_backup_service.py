@@ -249,6 +249,43 @@ def inspeccionar_backup(
         return InspeccionBackup(False, f"Inspección fallida: {exc}")
 
 
+def _restore_fs_root(
+    *,
+    project_root: Path | None,
+    destino_json: Path,
+) -> Path:
+    """Raíz de restauración de adjuntos: instancia en hotel, si no PROJECT_ROOT."""
+    from app.core.storage.instance_paths import instance_root, is_hotel_profile
+
+    if project_root is not None:
+        return Path(project_root).resolve()
+    if is_hotel_profile():
+        inst = instance_root()
+        if inst is None:
+            raise RuntimeError(
+                "Perfil hotel: BM_INSTANCE_ROOT requerido para restaurar adjuntos."
+            )
+        return inst.resolve()
+    return PROJECT_ROOT.resolve()
+
+
+def _assert_restore_destino_en_instancia(destino: Path) -> str | None:
+    from app.core.storage.instance_paths import instance_root, is_hotel_profile
+
+    if not is_hotel_profile():
+        return None
+    inst = instance_root()
+    if inst is None:
+        return "Perfil hotel: BM_INSTANCE_ROOT requerido para restore."
+    try:
+        destino.resolve().relative_to(inst.resolve())
+    except ValueError:
+        return (
+            f"Restore rechazado: destino {destino} fuera de BM_INSTANCE_ROOT ({inst})."
+        )
+    return None
+
+
 def _dir_backups_preventivos(destino_json: Path) -> Path:
     return destino_json.parent / "backups" / "pre_restore"
 
@@ -291,8 +328,32 @@ def restaurar_desde_bytes(
     """Restaura un backup validado sobre el almacén activo (o override de test)."""
     op_id = str(uuid.uuid4())
     dest = (destino_json or get_demo_file()).resolve()
-    root = (project_root or PROJECT_ROOT).resolve()
     ahora = datetime.now().isoformat(timespec="seconds")
+
+    try:
+        root = _restore_fs_root(project_root=project_root, destino_json=dest)
+    except RuntimeError as exc:
+        return ResultadoRestauracion(
+            False,
+            RESTORE_RECHAZADO,
+            str(exc),
+            op_id,
+            backup_nombre=nombre_backup,
+            fecha=ahora,
+            error="instance_required",
+        )
+
+    fuera = _assert_restore_destino_en_instancia(dest)
+    if fuera:
+        return ResultadoRestauracion(
+            False,
+            RESTORE_RECHAZADO,
+            fuera,
+            op_id,
+            backup_nombre=nombre_backup,
+            fecha=ahora,
+            error="fuera_de_instancia",
+        )
 
     try:
         from app.core.auth.permissions import Permiso

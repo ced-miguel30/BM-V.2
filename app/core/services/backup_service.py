@@ -19,18 +19,20 @@ from pathlib import Path
 
 from app.core.models import AppData
 from app.core.storage.demo_files import DEMO_FILE, PROJECT_ROOT, get_demo_file
+from app.core.storage.instance_paths import (
+    DOCUMENTOS_PREFIX,
+    resolve_adjunto_path,
+)
 from app.data.serializers import appdata_to_dict
 from app.ui.theme import APP_NAME, APP_VERSION
 
 SCHEMA_VERSION = 2
 APPDATA_ARCNAME = "appdata.json"
 MANIFEST_NAME = "manifest.json"
-DOCUMENTOS_PREFIX = "data/documentos/"
 
-_META_CANDIDATOS: tuple[Path, ...] = (
-    PROJECT_ROOT / "exports" / "semanal" / "_meta_exportaciones.json",
-    PROJECT_ROOT / "exports" / "historial_compras" / "_meta.json",
-)
+# Política P2: los exports son regenerables → NO se incluyen en el backup
+# canónico por defecto (opción B). Solo JSON + adjuntos + manifiesto.
+INCLUDE_EXPORTS_IN_BACKUP_DEFAULT = False
 
 
 @dataclass(frozen=True)
@@ -63,7 +65,7 @@ def _entry(archivo: str, origen: str, bruto: bytes) -> dict:
 
 
 def _adjuntos_referenciados(data: AppData) -> list[tuple[str, Path, bytes]]:
-    """Adjuntos en disco referenciados por AppData (solo bajo data/documentos/)."""
+    """Adjuntos en disco referenciados por AppData (prefijo lógico data/documentos/)."""
     out: list[tuple[str, Path, bytes]] = []
     vistos: set[str] = set()
     for arch in getattr(data, "archivos_documentales", []) or []:
@@ -74,14 +76,23 @@ def _adjuntos_referenciados(data: AppData) -> list[tuple[str, Path, bytes]]:
             continue
         if ".." in Path(rel).parts:
             continue
-        abs_path = (PROJECT_ROOT / rel).resolve()
+        abs_path: Path | None = None
         try:
-            abs_path.relative_to((PROJECT_ROOT / "data" / "documentos").resolve())
-        except ValueError:
-            continue
-        if not abs_path.is_file():
-            continue
-        if abs_path.is_symlink():
+            candidate = resolve_adjunto_path(rel, for_write=False)
+            if candidate.is_file() and not candidate.is_symlink():
+                abs_path = candidate
+        except Exception:  # noqa: BLE001
+            abs_path = None
+        if abs_path is None:
+            # Compat: tests que parchean PROJECT_ROOT de este módulo
+            candidate = (PROJECT_ROOT / rel).resolve()
+            try:
+                candidate.relative_to((PROJECT_ROOT / "data" / "documentos").resolve())
+            except ValueError:
+                continue
+            if candidate.is_file() and not candidate.is_symlink():
+                abs_path = candidate
+        if abs_path is None:
             continue
         bruto = abs_path.read_bytes()
         vistos.add(rel)
@@ -101,8 +112,13 @@ def generar_backup_zip(
     *,
     kind: str = "manual",
     include_disk_snapshot: bool = True,
+    include_exports: bool = INCLUDE_EXPORTS_IN_BACKUP_DEFAULT,
 ) -> ResultadoBackup:
-    """Genera un ZIP restaurable (schema v2) en memoria."""
+    """Genera un ZIP restaurable (schema v2) en memoria.
+
+    Por defecto **no** incluye exports (regenerables). Incluye JSON (memoria +
+    snapshot opcional) y adjuntos referenciados bajo ``data/documentos/``.
+    """
     # Preventivos C2/C3: el caso de uso padre ya autorizó; no re-exigir export.
     # kind=ops: solo scripts de despliegue con BM_DEPLOY_ALLOW_OPS=1.
     if kind not in ("pre_restore", "pre_reset", "ops"):
@@ -139,7 +155,6 @@ def generar_backup_zip(
             disk = get_demo_file()
             if disk.is_file() and not disk.is_symlink():
                 bruto = disk.read_bytes()
-                # Nombre estable relativo al proyecto cuando es el demo canónico
                 if disk.resolve() == DEMO_FILE.resolve():
                     nombre = _arcname_relativo(DEMO_FILE)
                 else:
@@ -151,18 +166,27 @@ def generar_backup_zip(
             zf.writestr(rel, bruto)
             incluidos.append(_entry(rel, "adjunto", bruto))
 
-        for meta_path in _META_CANDIDATOS:
-            if not meta_path.is_file() or meta_path.is_symlink():
-                continue
-            try:
-                nombre = meta_path.resolve().relative_to(PROJECT_ROOT.resolve()).as_posix()
-            except ValueError:
-                continue
-            if ".." in Path(nombre).parts:
-                continue
-            bruto = meta_path.read_bytes()
-            zf.writestr(nombre, bruto)
-            incluidos.append(_entry(nombre, "disco", bruto))
+        if include_exports:
+            # Opt-in explícito: metas bajo exports de la raíz de exports efectiva.
+            from app.core.storage.instance_paths import get_exports_root
+
+            exports_root = get_exports_root(for_write=False)
+            for meta_path in (
+                exports_root / "semanal" / "_meta_exportaciones.json",
+                exports_root / "historial_compras" / "_meta.json",
+            ):
+                if not meta_path.is_file() or meta_path.is_symlink():
+                    continue
+                try:
+                    nombre = meta_path.resolve().relative_to(exports_root.resolve()).as_posix()
+                    nombre = f"exports/{nombre}"
+                except ValueError:
+                    continue
+                if ".." in Path(nombre).parts:
+                    continue
+                bruto = meta_path.read_bytes()
+                zf.writestr(nombre, bruto)
+                incluidos.append(_entry(nombre, "export_meta", bruto))
 
         manifest = {
             "schema_version": SCHEMA_VERSION,
@@ -171,10 +195,12 @@ def generar_backup_zip(
             "version": APP_VERSION,
             "origen": "backup_ui" if kind == "manual" else kind,
             "kind": kind,
+            "include_exports": bool(include_exports),
             "nota": (
                 "Backup restaurable schema v2. "
                 "Restaurar solo mediante restore_backup_service. "
-                f"Payload canónico: {APPDATA_ARCNAME}."
+                f"Payload canónico: {APPDATA_ARCNAME}. "
+                "Exports excluidos por defecto (regenerables)."
             ),
             "archivos": incluidos,
         }
