@@ -21,6 +21,7 @@ ADMIN_SECCIONES: tuple[str, ...] = (
     "responsables",
     "proveedores",
     "compras",
+    "documentos",
     "inventario_inicial",
     "backup",
     "configuracion",
@@ -34,6 +35,7 @@ ADMIN_SECCION_LABEL: dict[str, str] = {
     "responsables": "Responsables merma",
     "proveedores": "Proveedores",
     "compras": "Compras",
+    "documentos": "Documentos",
     "inventario_inicial": "Inventario inicial",
     "backup": "Backup",
     "configuracion": "Configuración",
@@ -101,6 +103,18 @@ class CompraLineaVM:
 
 
 @dataclass(frozen=True)
+class DocumentoAdminVM:
+    """Resumen operativo de documento (sin importes en la lista)."""
+
+    id: str
+    tipo: str
+    estado: str
+    fecha: str
+    proveedor: str
+    referencia: str = ""
+
+
+@dataclass(frozen=True)
 class BackupItemVM:
     nombre: str
     ruta: str
@@ -153,6 +167,7 @@ class AdminScreenVM:
     compra_proveedor_id: str = ""
     compra_referencia: str = ""
     compra_documento_id: str = ""
+    documentos: tuple[DocumentoAdminVM, ...] = ()
     backups: tuple[BackupItemVM, ...] = ()
     unidades: tuple[str, ...] = ()
     categorias_receta: tuple[str, ...] = ()

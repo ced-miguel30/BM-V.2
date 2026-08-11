@@ -23,6 +23,13 @@ env/
 deploy/config.env
 deploy/local/
 
+# Empaquetado PyInstaller (artefactos locales; no versionar)
+build/
+dist/
+*.egg-info/
+packaging/*.toc
+packaging/warn-*.txt
+
 # IDE / OS
 .vscode/
 .idea/

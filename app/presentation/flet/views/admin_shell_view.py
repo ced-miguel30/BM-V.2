@@ -322,6 +322,8 @@ def _panel_for_seccion(screen: AdminScreenVM, **cbs) -> ft.Control:
         return _panel_proveedores(screen, **cbs)
     if sec == "compras":
         return _panel_compras(screen, **cbs)
+    if sec == "documentos":
+        return _panel_documentos(screen, **cbs)
     if sec == "inventario_inicial":
         return _panel_inventario(screen, **cbs)
     if sec == "backup":
@@ -979,6 +981,57 @@ def _proveedor_row(
                 ft.Row(controls=acciones),
             ],
         ),
+    )
+
+
+def _panel_documentos(screen: AdminScreenVM, **cbs) -> ft.Control:
+    on_filtro = cbs["on_filtro"]
+    filas = []
+    for d in screen.documentos:
+        filas.append(
+            ft.Container(
+                padding=8,
+                border=ft.Border(bottom=ft.BorderSide(1, ft.Colors.OUTLINE_VARIANT)),
+                content=ft.Column(
+                    spacing=2,
+                    controls=[
+                        ft.Text(
+                            f"{d.tipo} · {d.estado}",
+                            weight=ft.FontWeight.W_600,
+                            size=13,
+                        ),
+                        ft.Text(
+                            f"{d.fecha} · {d.proveedor or 'Sin proveedor'}"
+                            + (f" · ref. {d.referencia}" if d.referencia else ""),
+                            size=12,
+                            color=ft.Colors.ON_SURFACE_VARIANT,
+                        ),
+                    ],
+                ),
+            )
+        )
+    if not filas:
+        filas = [
+            ft.Text(
+                "No hay documentos (o sin permiso de consulta).",
+                color=ft.Colors.OUTLINE,
+                italic=True,
+            )
+        ]
+    return ft.Column(
+        spacing=10,
+        scroll=ft.ScrollMode.AUTO,
+        expand=True,
+        controls=[
+            ft.Text("Documentos", size=20, weight=ft.FontWeight.BOLD),
+            ft.TextField(
+                label="Filtrar",
+                value=screen.filtro,
+                on_submit=lambda e: on_filtro(e.control.value or ""),
+                on_blur=lambda e: on_filtro(e.control.value or ""),
+            ),
+            *filas,
+        ],
     )
 
 

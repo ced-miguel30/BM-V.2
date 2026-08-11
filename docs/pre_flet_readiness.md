@@ -4,20 +4,22 @@
 
 | Vertical | Estado |
 |----------|--------|
-| Terminal Restaurante | **APROBADA** (técnica + manual; incluye historial + anulación Flet) |
+| Terminal Restaurante | **APROBADA** (técnica + historial/anulación) |
 | Terminal Inventario | **APROBADA** (técnica + manual) |
 | Consolidación UX Flet | **APROBADA** (técnica + manual) |
-| Administración operativa Flet | **APROBADA** (técnica + manual); maestros ampliados (productos/recetas/usuarios/backup) |
+| Administración operativa Flet | **APROBADA** — maestros, compras, docs, backup |
 | Launcher Flet | **APROBADO** (técnica + manual) |
+| Empaquetado PyInstaller | **Prototipo** (`dist/BM-Launcher`, no en Git) |
 
 | Campo | Valor |
 |-------|--------|
 | Composition Flet | `configure_for_flet()` (única) |
-| UI Streamlit | Referencia intacta (Settings amplio) |
+| UI Streamlit | Referencia / compatibilidad |
 | Arranque Restaurante | `python -m app.presentation.flet.main` |
 | Arranque Inventario | `python -m app.presentation.flet.main_inventario` |
 | Arranque Administración | `python -m app.presentation.flet.main_administracion` |
 | Arranque launcher | `python -m app.presentation.flet.main_launcher` |
+| Go-live | `docs/operations_go_live.md` |
 
 ## Autorización B5 / Admin
 
@@ -27,49 +29,37 @@
 - excepciones **explícitas por llamada** vía `allowed_terminals` (hoy: anulación de
   registros con `terminal_restaurante` + `ACCEDER_REGISTRO`).
 
-`ACCEDER_CONFIGURACION` exige usuario Dir/Adm (`terminal_id=None`). Terminales no mutan responsables.
-Merma Flet exige responsable **explícito** (sin autofill).
-
-UI Flet de historial/anulación en Restaurante: **implementada** (presenter + vista + tests).
+`ACCEDER_CONFIGURACION` exige usuario Dir/Adm (`terminal_id=None`).
 
 ## Backlog Flet
 
 ### Resuelto
-- Re-render buscador Restaurante.
-- Feedback operativo merma tipado.
-- Responsable obligatorio en Merma Inventario.
-- Listado Admin legible (contraste / vacío / Activo-Inactivo).
-- Launcher Flet mínimo (**APROBADO** técnica + manual).
-- Volver al launcher desde verticales abiertas vía launcher (misma Page; logout; sin reiniciar proceso).
-- Stock por ubicación + Traslados en Flet Inventario (consulta + preview/confirm).
-- Recuentos en Flet Inventario (preview memoria + borrador 7B.6 + confirmación; sin anulación de confirmados).
-- RBAC: `terminal_restaurante` puede anular registros operativos (`ACCEDER_REGISTRO` +
-  `allowed_terminals` acotado; sin abrir Inventario ni otros `deny_terminal`).
-- Historial + anulación en UI Flet Restaurante (sanitización económica; límite UI 25;
-  confirmación + motivo; anti doble clic local).
+- Restaurante completo (registro + historial + anulación, sin economía).
+- Inventario operativo (alertas, merma, stock, traslados, recuentos, ajustes).
+- Admin Flet: productos, recetas, usuarios, responsables, proveedores, compras,
+  documentos (consulta), inventario inicial, backup/restore, configuración.
+- Launcher + volver al menú.
+- P3 integrada automática (`tests/test_flet_p3_integrada.py`).
+- PyInstaller onedir + runtime hook a `%LOCALAPPDATA%\BM-V2-local`.
 
 ### Pueden esperar
-- Branding / tipografía definitiva (las tres superficies Flet).
-- Persistencia opcional de cestas no confirmadas.
-- Skip E2E Streamlit Desayuno (selector).
-- Anulación de traslados / CRUD ubicaciones / anulación de recuentos confirmados en Flet.
-- Empaquetado `.exe` / instalador (**no** construido; P2 en `docs/deploy_local_p2.md`).
-- Resto de Settings Streamlit (catálogos avanzados, zona peligro, logo…).
-- Piloto físico Windows del despliegue C (checklist P2).
+- Branding definitivo.
+- Dashboard ejecutivo Flet / zona de peligro completa.
+- Firma Authenticode / MSI.
+- Piloto físico hotel.
+- Anulación de traslados / recuentos confirmados en Flet.
 
-## Siguiente bloque (recomendación)
+## Siguiente bloque
 
-Cerrar P3 operativo del piloto Flet o abordar branding / empaquetado según prioridad de despliegue.
-Admin Flet ya cubre maestros diarios; Inventario: no ampliar salvo decisión explícita.
+**Cargar productos y recetas reales** según `docs/operations_go_live.md`.
 
 ## Docs
 
+- `docs/operations_go_live.md`
+- `docs/flet_administracion_operativa.md`
 - `docs/flet_terminal_restaurante.md`
 - `docs/flet_terminal_inventario.md`
-- `docs/flet_administracion_operativa.md`
 - `docs/flet_launcher.md`
 - `docs/flet_packaging_plan.md`
-- `docs/deploy_local_p1.md`
-- `docs/deploy_local_p2.md`
-- `docs/flet_terminal_administracion_plan.md`
+- `docs/deploy_local_p1.md` / `p2.md`
 - `docs/flet_backend_contracts.md`

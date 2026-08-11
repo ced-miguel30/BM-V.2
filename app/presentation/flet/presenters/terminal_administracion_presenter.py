@@ -23,6 +23,7 @@ from app.core.models.enums import (
 )
 from app.core.services import (
     compra_registro_service,
+    documento_consulta_service,
     merma_service,
     proveedor_service,
     receta_service,
@@ -42,6 +43,7 @@ from app.presentation.flet.admin_viewmodels import (
     AdminScreenVM,
     BackupItemVM,
     CompraLineaVM,
+    DocumentoAdminVM,
     LoteAltaVM,
     PendingChangeVM,
     ProductoAdminVM,
@@ -1075,6 +1077,7 @@ class TerminalAdministracionPresenter:
         recetas: tuple[RecetaAdminVM, ...] = ()
         usuarios: tuple[UsuarioAdminVM, ...] = ()
         proveedores: tuple[ProveedorAdminVM, ...] = ()
+        documentos: tuple[DocumentoAdminVM, ...] = ()
         backups: tuple[BackupItemVM, ...] = ()
         hotel_nombre = ""
         hotel_moneda = "EUR"
@@ -1175,6 +1178,37 @@ class TerminalAdministracionPresenter:
                 )
             proveedores = tuple(lista_prov)
 
+            lista_docs: list[DocumentoAdminVM] = []
+            try:
+                docs = documento_consulta_service.buscar_documentos()
+            except Exception:  # noqa: BLE001 — sin permiso / vacío
+                docs = []
+            for d in docs[:100]:
+                tipo = getattr(d.tipo, "value", None) or str(d.tipo or "")
+                estado = getattr(d.estado, "value", None) or str(d.estado or "")
+                fecha = (
+                    d.fecha_documento.isoformat()
+                    if getattr(d, "fecha_documento", None)
+                    else ""
+                )
+                prov = getattr(d, "proveedor_nombre_snapshot", None) or d.proveedor_id or ""
+                ref = getattr(d, "referencia", None) or getattr(d, "numero", None) or ""
+                if self._seccion == "documentos" and q:
+                    blob = f"{d.id} {tipo} {estado} {prov} {ref}".lower()
+                    if q not in blob:
+                        continue
+                lista_docs.append(
+                    DocumentoAdminVM(
+                        id=d.id,
+                        tipo=tipo,
+                        estado=estado,
+                        fecha=fecha,
+                        proveedor=str(prov),
+                        referencia=str(ref),
+                    )
+                )
+            documentos = tuple(lista_docs)
+
             backups = self._listar_backups()
 
         return AdminScreenVM(
@@ -1189,6 +1223,7 @@ class TerminalAdministracionPresenter:
             compra_proveedor_id=self._compra_proveedor_id if auth else "",
             compra_referencia=self._compra_referencia if auth else "",
             compra_documento_id=self._compra_documento_id if auth else "",
+            documentos=documentos,
             backups=backups,
             unidades=tuple(u.value for u in UnidadProducto),
             categorias_receta=tuple(c.value for c in CategoriaReceta),

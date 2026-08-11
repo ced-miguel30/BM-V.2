@@ -1,8 +1,25 @@
-# Plan — empaquetado y despliegue local (sin construir `.exe`)
+# Plan — empaquetado y despliegue local
 
-**Estado:** P2 de despliegue local **implementada** (instancia completa + release Python).
-Ver `docs/deploy_local_p2.md`. **No** hay instalador ni ejecutable.
-**Precondición:** launcher Flet **APROBADO**; P1 **APROBADA** técnicamente. Piloto físico pendiente.
+**Estado:** estrategia **C** (Python administrado) en producción documental P1/P2;
+prototipo **A** (PyInstaller onedir) disponible en `packaging/` + `deploy/windows/build_exe.cmd`.
+
+## Artefacto A (prototipo)
+
+```powershell
+deploy\windows\build_exe.cmd
+# → dist\BM-Launcher\BM-Launcher.exe
+```
+
+- Runtime hook: `%LOCALAPPDATA%\BM-V2-local` (no usa `BM-V2-pilot`).
+- No commitear `dist/` ni `build/`.
+- Firma Authenticode / AV: pendiente de piloto.
+
+Ver `docs/operations_go_live.md`.
+
+---
+
+# Plan histórico (sin construir `.exe` inicialmente)
+
 
 ## Objetivo de la primera instalación controlada
 
