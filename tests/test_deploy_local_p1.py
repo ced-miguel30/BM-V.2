@@ -218,7 +218,9 @@ class DeployP1TestCase(unittest.TestCase):
 
     def test_missing_folder_errors(self) -> None:
         os.environ["BM_DEPLOY_PROFILE"] = "hotel"
-        ghost = self.root / "missing root" / "data" / "datos_hotel.json"
+        ghost_root = self.root / "missing root"
+        os.environ["BM_INSTANCE_ROOT"] = str(ghost_root)
+        ghost = ghost_root / "data" / "datos_hotel.json"
         os.environ["BM_DEMO_FILE"] = str(ghost)
         cfg = deploy_config.load_deploy_config(apply_config_file=False)
         with self.assertRaises(deploy_config.DeployConfigError):

@@ -20,6 +20,7 @@ from app.core.application.context import build_app_context
 from app.core.application.unit_of_work import InMemoryUnitOfWork
 from app.core.models import AppData
 from app.core.services import archivo_documental_service as ads
+from app.core.storage.instance_paths import set_documentos_root_override
 from app.data.serializers import appdata_to_dict, dict_to_appdata
 from app.ui.theme import APP_VERSION
 
@@ -29,6 +30,8 @@ def _ctx(data: AppData):
 
 
 class TestFase9ArchivosDocumentales(unittest.TestCase):
+    def tearDown(self) -> None:
+        set_documentos_root_override(None)
     def test_01_json_antiguo(self) -> None:
         data = dict_to_appdata({"productos": []})
         self.assertEqual(data.archivos_documentales, [])
@@ -38,6 +41,7 @@ class TestFase9ArchivosDocumentales(unittest.TestCase):
         ctx = _ctx(data)
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
+            set_documentos_root_override(base)
             r = ads.registrar_archivo(
                 b"hola mundo documental",
                 "albaran_demo.pdf",
@@ -59,6 +63,7 @@ class TestFase9ArchivosDocumentales(unittest.TestCase):
         ctx = _ctx(data)
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
+            set_documentos_root_override(base)
             r1 = ads.registrar_archivo(b"AAA", "doc.txt", ctx=ctx, base_dir=base)
             self.assertTrue(r1.ok)
             # mismo contenido → rechazo por hash
@@ -71,6 +76,7 @@ class TestFase9ArchivosDocumentales(unittest.TestCase):
         ctx = _ctx(data)
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
+            set_documentos_root_override(base)
             r = ads.registrar_archivo(b"contenido", "x.bin", ctx=ctx, base_dir=base)
             path = ads.ruta_absoluta(r.archivo)
             self.assertTrue(path.is_file())
@@ -84,6 +90,7 @@ class TestFase9ArchivosDocumentales(unittest.TestCase):
         ctx = _ctx(data)
         with tempfile.TemporaryDirectory() as tmp:
             base = Path(tmp)
+            set_documentos_root_override(base)
             r = ads.registrar_archivo(b"original", "y.txt", ctx=ctx, base_dir=base)
             path = ads.ruta_absoluta(r.archivo)
             path.write_bytes(b"alterado")
@@ -94,6 +101,7 @@ class TestFase9ArchivosDocumentales(unittest.TestCase):
         data = AppData()
         ctx = _ctx(data)
         with tempfile.TemporaryDirectory() as tmp:
+            set_documentos_root_override(Path(tmp))
             ads.registrar_archivo(
                 b"meta", "z.pdf", notas="prueba", ctx=ctx, base_dir=Path(tmp)
             )
@@ -105,6 +113,7 @@ class TestFase9ArchivosDocumentales(unittest.TestCase):
         data = AppData()
         ctx = _ctx(data)
         with tempfile.TemporaryDirectory() as tmp:
+            set_documentos_root_override(Path(tmp))
             r = ads.registrar_archivo(b"x", "a.pdf", ctx=ctx, base_dir=Path(tmp))
             e = ads.enlazar_documento(r.archivo.id, "doc_futuro_01", ctx=ctx)
             self.assertTrue(e.ok)
@@ -115,6 +124,7 @@ class TestFase9ArchivosDocumentales(unittest.TestCase):
         ctx = _ctx(data)
         payload = b"bytes-originales"
         with tempfile.TemporaryDirectory() as tmp:
+            set_documentos_root_override(Path(tmp))
             r = ads.registrar_archivo(payload, "r.bin", ctx=ctx, base_dir=Path(tmp))
             bruto, err = ads.leer_bytes(r.archivo.id, ctx=ctx)
             self.assertEqual(err, "")
