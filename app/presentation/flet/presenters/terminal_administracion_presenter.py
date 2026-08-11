@@ -1,18 +1,44 @@
-"""Presenter Administración operativa — responsables de merma.
+"""Presenter Administración operativa — maestros, responsables, backup.
 
-Reutiliza merma_service. Sin economía, sin JSON directo, sin reglas de dominio.
+Reutiliza stock/receta/settings/backup/restore/merma. Sin reglas de dominio nuevas.
 """
 
 from __future__ import annotations
 
-from app.core.models import MotivoMerma
-from app.core.services import merma_service
+from datetime import datetime
+from pathlib import Path
+
+from app.bootstrap import get_container
+from app.core.auth.permissions import Permiso
+from app.core.auth.roles import roles_asignables
+from app.core.auth.session import session_tiene_permiso
+from app.core.models import IngredienteReceta, MotivoMerma
+from app.core.models.enums import (
+    CategoriaReceta,
+    SERVICIOS_DISPONIBLES_VALORES,
+    TIPO_ARTICULO_VALORES,
+    UnidadProducto,
+)
+from app.core.services import merma_service, receta_service, settings_service, stock_service
+from app.core.services.backup_service import generar_backup_zip
+from app.core.services.restore_backup_service import (
+    inspeccionar_backup,
+    restaurar_desde_bytes,
+)
+from app.core.storage.demo_files import get_demo_file
 from app.presentation.flet import session_bridge
 from app.presentation.flet.admin_viewmodels import (
+    ADMIN_SECCIONES,
     AdminScreenVM,
+    BackupItemVM,
+    LoteAltaVM,
     PendingChangeVM,
+    ProductoAdminVM,
+    RecetaAdminVM,
     ResponsableMermaVM,
+    UsuarioAdminVM,
     assert_admin_sin_economia,
+    assert_lote_alta_permite_solo_precio_total,
 )
 from app.presentation.flet.mappers import (
     map_admin_operacion_feedback,
@@ -21,18 +47,46 @@ from app.presentation.flet.mappers import (
 from app.presentation.flet.viewmodels import FeedbackVM
 
 
+def _backups_dir() -> Path:
+    data_file = get_demo_file()
+    try:
+        base = data_file.parent
+    except Exception:  # noqa: BLE001
+        import tempfile
+
+        base = Path(tempfile.gettempdir()) / "bm_backups"
+    dest = base / "backups"
+    dest.mkdir(parents=True, exist_ok=True)
+    return dest
+
+
 class TerminalAdministracionPresenter:
     def __init__(self) -> None:
         self._feedback: FeedbackVM | None = None
         self._filtro = ""
         self._pending: PendingChangeVM | None = None
         self._mutando = False
-        assert_admin_sin_economia(ResponsableMermaVM, PendingChangeVM, AdminScreenVM)
+        self._seccion = "inicio"
+        self._lote_alta: LoteAltaVM | None = None
+        self._inspeccion_backup = ""
+        assert_admin_sin_economia(
+            ResponsableMermaVM,
+            PendingChangeVM,
+            ProductoAdminVM,
+            RecetaAdminVM,
+            UsuarioAdminVM,
+            BackupItemVM,
+            AdminScreenVM,
+        )
+        assert_lote_alta_permite_solo_precio_total()
+
+    # ── Auth ──────────────────────────────────────────────────────────────
 
     def login(self, login: str, password: str) -> AdminScreenVM:
         session, fb = session_bridge.login_administracion(login, password)
         self._feedback = fb
         self._pending = None
+        self._seccion = "inicio"
         if session.authenticated and fb is None:
             self._feedback = FeedbackVM(ok=True, mensaje="Sesión administrativa iniciada.")
         return self.screen()
@@ -42,11 +96,21 @@ class TerminalAdministracionPresenter:
         self._feedback = FeedbackVM(ok=True, mensaje="Sesión cerrada.")
         self._pending = None
         self._mutando = False
+        self._seccion = "inicio"
+        self._lote_alta = None
+        self._inspeccion_backup = ""
+        return self.screen()
+
+    def set_seccion(self, seccion: str) -> AdminScreenVM:
+        if seccion in ADMIN_SECCIONES:
+            self._seccion = seccion
         return self.screen()
 
     def set_filtro(self, texto: str) -> AdminScreenVM:
         self._filtro = (texto or "").strip()
         return self.screen()
+
+    # ── Responsables (piloto existente) ───────────────────────────────────
 
     def proponer_creacion(self, nombre: str) -> AdminScreenVM:
         if not session_bridge.puede_usar_administracion():
@@ -129,9 +193,7 @@ class TerminalAdministracionPresenter:
             responsable_id=responsable_id,
             nombre=actual.nombre,
         )
-        self._feedback = FeedbackVM(
-            ok=True, mensaje="Confirme la desactivación."
-        )
+        self._feedback = FeedbackVM(ok=True, mensaje="Confirme la desactivación.")
         return self.screen()
 
     def proponer_reactivacion(self, responsable_id: str) -> AdminScreenVM:
@@ -155,10 +217,442 @@ class TerminalAdministracionPresenter:
             responsable_id=responsable_id,
             nombre=actual.nombre,
         )
+        self._feedback = FeedbackVM(ok=True, mensaje="Confirme la reactivación.")
+        return self.screen()
+
+    # ── Productos ─────────────────────────────────────────────────────────
+
+    def crear_producto(
+        self,
+        nombre: str,
+        unidad: str,
+        stock_minimo: float | None,
+        codigo: str,
+        tipo_articulo: str,
+        *,
+        es_bebida: bool = False,
+        servicios_disponibles: list[str] | None = None,
+    ) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        self._mutando = True
+        try:
+            r = stock_service.crear_producto(
+                nombre,
+                unidad,
+                stock_minimo,
+                codigo=codigo,
+                tipo_articulo=tipo_articulo,
+                es_bebida=es_bebida,
+                servicios_disponibles=servicios_disponibles,
+            )
+            self._feedback = map_admin_operacion_feedback(ok=r.ok, mensaje_backend=r.mensaje)
+            if r.ok:
+                self._seccion = "productos"
+        finally:
+            self._mutando = False
+        return self.screen()
+
+    def proponer_desactivar_producto(self, producto_id: str) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        prod = next(
+            (p for p in get_container().app_data_store.get().productos if p.id == producto_id),
+            None,
+        )
+        if not prod:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Producto no encontrado."
+            )
+            return self.screen()
+        self._pending = PendingChangeVM(
+            kind="desactivar_producto",
+            resumen=(
+                f"Desactivar producto «{prod.nombre}». "
+                "No aparecerá en compras ni recetas nuevas."
+            ),
+            producto_id=producto_id,
+            nombre=prod.nombre,
+        )
+        self._feedback = FeedbackVM(ok=True, mensaje="Confirme la desactivación del producto.")
+        return self.screen()
+
+    def proponer_reactivar_producto(self, producto_id: str) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        prod = next(
+            (p for p in get_container().app_data_store.get().productos if p.id == producto_id),
+            None,
+        )
+        if not prod:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Producto no encontrado."
+            )
+            return self.screen()
+        self._pending = PendingChangeVM(
+            kind="reactivar_producto",
+            resumen=f"Reactivar producto «{prod.nombre}».",
+            producto_id=producto_id,
+            nombre=prod.nombre,
+        )
+        self._feedback = FeedbackVM(ok=True, mensaje="Confirme la reactivación del producto.")
+        return self.screen()
+
+    # ── Recetas ───────────────────────────────────────────────────────────
+
+    def crear_receta(
+        self,
+        nombre: str,
+        ingredientes: list[tuple[str, float]],
+        categoria: str,
+        porciones_estandar: float | None,
+        *,
+        servicios_disponibles: list[str] | None = None,
+    ) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        ings: list[IngredienteReceta] = []
+        for pid, cant in ingredientes:
+            pid_n = (pid or "").strip()
+            if not pid_n or cant <= 0:
+                continue
+            ings.append(IngredienteReceta(pid_n, float(cant)))
+        if not ings:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Indique al menos un ingrediente válido."
+            )
+            return self.screen()
+        self._mutando = True
+        try:
+            r = receta_service.crear_receta(
+                nombre,
+                ings,
+                categoria,
+                servicios_disponibles=servicios_disponibles,
+                porciones_estandar=porciones_estandar,
+            )
+            self._feedback = map_admin_operacion_feedback(ok=r.ok, mensaje_backend=r.mensaje)
+            if r.ok:
+                self._seccion = "recetas"
+        finally:
+            self._mutando = False
+        return self.screen()
+
+    def proponer_desactivar_receta(self, receta_id: str) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        rec = receta_service.obtener_receta(receta_id)
+        if not rec:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Receta no encontrada."
+            )
+            return self.screen()
+        self._pending = PendingChangeVM(
+            kind="desactivar_receta",
+            resumen=f"Desactivar receta «{rec.nombre}». No aparecerá en registros nuevos.",
+            receta_id=receta_id,
+            nombre=rec.nombre,
+        )
+        self._feedback = FeedbackVM(ok=True, mensaje="Confirme la desactivación de la receta.")
+        return self.screen()
+
+    def proponer_reactivar_receta(self, receta_id: str) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        rec = receta_service.obtener_receta(receta_id)
+        if not rec:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Receta no encontrada."
+            )
+            return self.screen()
+        self._pending = PendingChangeVM(
+            kind="reactivar_receta",
+            resumen=f"Reactivar receta «{rec.nombre}».",
+            receta_id=receta_id,
+            nombre=rec.nombre,
+        )
+        self._feedback = FeedbackVM(ok=True, mensaje="Confirme la reactivación de la receta.")
+        return self.screen()
+
+    # ── Usuarios ──────────────────────────────────────────────────────────
+
+    def crear_usuario(
+        self,
+        nombre: str,
+        rol: str,
+        *,
+        login: str = "",
+        password: str = "",
+    ) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if not session_tiene_permiso(Permiso.GESTIONAR_USUARIOS):
+            self._feedback = map_error_recuperable(
+                "Sin permiso para gestionar usuarios.", codigo="DENEGADO"
+            )
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        self._mutando = True
+        try:
+            r = settings_service.crear_usuario(
+                nombre, rol, login=login, password=password
+            )
+            self._feedback = map_admin_operacion_feedback(ok=r.ok, mensaje_backend=r.mensaje)
+            if r.ok:
+                self._seccion = "usuarios"
+        finally:
+            self._mutando = False
+        return self.screen()
+
+    def editar_usuario(self, usuario_id: str, nuevo_nombre: str) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        self._mutando = True
+        try:
+            r = settings_service.editar_usuario(usuario_id, nuevo_nombre)
+            self._feedback = map_admin_operacion_feedback(ok=r.ok, mensaje_backend=r.mensaje)
+        finally:
+            self._mutando = False
+        return self.screen()
+
+    def cambiar_rol_usuario(self, usuario_id: str, nuevo_rol: str) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        self._mutando = True
+        try:
+            r = settings_service.cambiar_rol_usuario(usuario_id, nuevo_rol)
+            self._feedback = map_admin_operacion_feedback(ok=r.ok, mensaje_backend=r.mensaje)
+        finally:
+            self._mutando = False
+        return self.screen()
+
+    def proponer_desactivar_usuario(self, usuario_id: str) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        user = next(
+            (u for u in get_container().app_data_store.get().usuarios if u.id == usuario_id),
+            None,
+        )
+        if not user:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Usuario no encontrado."
+            )
+            return self.screen()
+        self._pending = PendingChangeVM(
+            kind="desactivar_usuario",
+            resumen=f"Desactivar usuario «{user.nombre}» ({user.login}).",
+            usuario_id=usuario_id,
+            nombre=user.nombre,
+        )
+        self._feedback = FeedbackVM(ok=True, mensaje="Confirme la desactivación del usuario.")
+        return self.screen()
+
+    def proponer_reactivar_usuario(self, usuario_id: str) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        user = next(
+            (u for u in get_container().app_data_store.get().usuarios if u.id == usuario_id),
+            None,
+        )
+        if not user:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Usuario no encontrado."
+            )
+            return self.screen()
+        self._pending = PendingChangeVM(
+            kind="reactivar_usuario",
+            resumen=f"Reactivar usuario «{user.nombre}» ({user.login}).",
+            usuario_id=usuario_id,
+            nombre=user.nombre,
+        )
+        self._feedback = FeedbackVM(ok=True, mensaje="Confirme la reactivación del usuario.")
+        return self.screen()
+
+    def restablecer_password(self, usuario_id: str, nueva_password: str) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        self._mutando = True
+        try:
+            r = settings_service.restablecer_password(usuario_id, nueva_password)
+            self._feedback = map_admin_operacion_feedback(ok=r.ok, mensaje_backend=r.mensaje)
+        finally:
+            self._mutando = False
+        return self.screen()
+
+    # ── Inventario inicial ────────────────────────────────────────────────
+
+    def registrar_lote_inicial(
+        self,
+        producto_id: str,
+        cantidad: float,
+        precio_total: float,
+        *,
+        marca_proveedor: str = "",
+        ubicacion_destino_id: str = "",
+    ) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        data = get_container().app_data_store.get()
+        prod = next((p for p in data.productos if p.id == producto_id), None)
+        nombre = prod.nombre if prod else producto_id
+        self._lote_alta = LoteAltaVM(
+            producto_id=producto_id,
+            producto_nombre=nombre,
+            cantidad=cantidad,
+            precio_total=precio_total,
+            marca_proveedor=marca_proveedor or "",
+            ubicacion_destino_id=ubicacion_destino_id or "",
+        )
+        self._mutando = True
+        try:
+            r = stock_service.registrar_lote(
+                producto_id,
+                precio_total,
+                cantidad,
+                marca_proveedor=marca_proveedor or None,
+                ubicacion_destino_id=ubicacion_destino_id or None,
+            )
+            # Feedback operativo: evitar fuga de «precio» vía sanitize genérico.
+            if r.ok:
+                self._feedback = FeedbackVM(
+                    ok=True, mensaje=f"Lote inicial de «{nombre}» registrado."
+                )
+                self._lote_alta = None
+            else:
+                msg = r.mensaje or "No se pudo registrar el lote."
+                low = msg.lower()
+                if "precio" in low or "importe" in low:
+                    msg = "Indique cantidad e importe de lote válidos (> 0)."
+                self._feedback = FeedbackVM(ok=False, mensaje=msg, codigo="VALIDACION")
+        finally:
+            self._mutando = False
+        return self.screen()
+
+    # ── Backup ────────────────────────────────────────────────────────────
+
+    def generar_backup(self) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if not session_tiene_permiso(Permiso.EXPORTAR_BACKUP):
+            self._feedback = map_error_recuperable(
+                "Sin permiso para exportar backup.", codigo="DENEGADO"
+            )
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        self._mutando = True
+        try:
+            data = get_container().app_data_store.get()
+            resultado = generar_backup_zip(data)
+            dest = _backups_dir() / resultado.nombre_archivo
+            dest.write_bytes(resultado.contenido)
+            self._feedback = FeedbackVM(
+                ok=True,
+                mensaje=f"Backup generado: {resultado.nombre_archivo}",
+            )
+            self._seccion = "backup"
+        except Exception as exc:  # noqa: BLE001
+            msg = getattr(exc, "mensaje", None) or str(exc) or "Error al generar backup."
+            self._feedback = map_error_recuperable(msg, codigo="BACKUP")
+        finally:
+            self._mutando = False
+        return self.screen()
+
+    def inspeccionar_backup_archivo(self, ruta: str) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if not session_tiene_permiso(Permiso.RESTAURAR_BACKUP):
+            self._feedback = map_error_recuperable(
+                "Solo Dirección puede inspeccionar/restaurar backups.",
+                codigo="DENEGADO",
+            )
+            return self.screen()
+        path = Path(ruta)
+        if not path.is_file():
+            self._feedback = map_error_recuperable("Archivo de backup no encontrado.")
+            return self.screen()
+        try:
+            insp = inspeccionar_backup(path.read_bytes(), nombre=path.name)
+            if insp.ok:
+                self._inspeccion_backup = (
+                    f"OK · {path.name} · schema {getattr(insp, 'schema_version', '?')} · "
+                    f"{insp.mensaje or 'válido'}"
+                )
+                self._feedback = FeedbackVM(ok=True, mensaje="Backup válido.")
+            else:
+                self._inspeccion_backup = f"Rechazado · {path.name}: {insp.mensaje}"
+                self._feedback = FeedbackVM(
+                    ok=False, mensaje=insp.mensaje or "Backup no válido.", codigo="BACKUP"
+                )
+        except Exception as exc:  # noqa: BLE001
+            self._inspeccion_backup = ""
+            self._feedback = map_error_recuperable(str(exc), codigo="BACKUP")
+        return self.screen()
+
+    def proponer_restaurar_backup(self, ruta: str, confirmacion: str) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if not session_tiene_permiso(Permiso.RESTAURAR_BACKUP):
+            self._feedback = map_error_recuperable(
+                "Solo Dirección puede restaurar backups.", codigo="DENEGADO"
+            )
+            return self.screen()
+        path = Path(ruta)
+        if not path.is_file():
+            self._feedback = map_error_recuperable("Archivo de backup no encontrado.")
+            return self.screen()
+        token = (confirmacion or "").strip().upper()
+        if token != "RESTAURAR":
+            self._feedback = map_admin_operacion_feedback(
+                ok=False,
+                mensaje_backend="Indique la confirmación RESTAURAR para continuar.",
+            )
+            return self.screen()
+        self._pending = PendingChangeVM(
+            kind="restaurar_backup",
+            resumen=(
+                f"RESTAURAR desde «{path.name}». "
+                "Sustituye los datos operativos actuales. Esta acción es irreversible "
+                "sin un backup previo."
+            ),
+            backup_nombre=path.name,
+            backup_ruta=str(path),
+            confirmacion="RESTAURAR",
+        )
         self._feedback = FeedbackVM(
-            ok=True, mensaje="Confirme la reactivación."
+            ok=True, mensaje="Confirme la restauración del backup."
         )
         return self.screen()
+
+    # ── Configuración ─────────────────────────────────────────────────────
+
+    def guardar_hotel(self, nombre: str, moneda_key: str = "EUR") -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        self._mutando = True
+        try:
+            r = settings_service.guardar_configuracion(nombre, moneda_key or "EUR")
+            self._feedback = map_admin_operacion_feedback(ok=r.ok, mensaje_backend=r.mensaje)
+        finally:
+            self._mutando = False
+        return self.screen()
+
+    # ── Confirmación pendiente ────────────────────────────────────────────
 
     def cancelar_pendiente(self) -> AdminScreenVM:
         self._pending = None
@@ -183,17 +677,8 @@ class TerminalAdministracionPresenter:
             return self.screen()
         self._mutando = True
         try:
-            if pending.kind == "crear":
-                r = merma_service.crear_responsable_merma(pending.nombre)
-            elif pending.kind == "renombrar":
-                r = merma_service.renombrar_responsable_merma(
-                    pending.responsable_id, pending.nombre
-                )
-            elif pending.kind == "desactivar":
-                r = merma_service.desactivar_responsable_merma(pending.responsable_id)
-            elif pending.kind == "reactivar":
-                r = merma_service.reactivar_responsable_merma(pending.responsable_id)
-            else:
+            r = self._ejecutar_pendiente(pending)
+            if r is None:
                 self._feedback = map_error_recuperable("Operación no reconocida.")
                 return self.screen()
             self._feedback = map_admin_operacion_feedback(
@@ -205,25 +690,198 @@ class TerminalAdministracionPresenter:
             self._mutando = False
         return self.screen()
 
+    def _ejecutar_pendiente(self, pending: PendingChangeVM):
+        if pending.kind == "crear":
+            return merma_service.crear_responsable_merma(pending.nombre)
+        if pending.kind == "renombrar":
+            return merma_service.renombrar_responsable_merma(
+                pending.responsable_id, pending.nombre
+            )
+        if pending.kind == "desactivar":
+            return merma_service.desactivar_responsable_merma(pending.responsable_id)
+        if pending.kind == "reactivar":
+            return merma_service.reactivar_responsable_merma(pending.responsable_id)
+        if pending.kind == "desactivar_producto":
+            return stock_service.desactivar_producto(pending.producto_id)
+        if pending.kind == "reactivar_producto":
+            return stock_service.reactivar_producto(pending.producto_id)
+        if pending.kind == "desactivar_receta":
+            return receta_service.desactivar_receta(pending.receta_id)
+        if pending.kind == "reactivar_receta":
+            return receta_service.reactivar_receta(pending.receta_id)
+        if pending.kind == "desactivar_usuario":
+            return settings_service.set_usuario_activo(pending.usuario_id, False)
+        if pending.kind == "reactivar_usuario":
+            return settings_service.set_usuario_activo(pending.usuario_id, True)
+        if pending.kind == "restaurar_backup":
+            if not session_tiene_permiso(Permiso.RESTAURAR_BACKUP):
+                return settings_service.ResultadoOperacion(
+                    False, "Solo Dirección puede restaurar backups."
+                )
+            path = Path(pending.backup_ruta)
+            if not path.is_file():
+                return settings_service.ResultadoOperacion(
+                    False, "Archivo de backup no encontrado."
+                )
+            resultado = restaurar_desde_bytes(
+                path.read_bytes(),
+                nombre_backup=pending.backup_nombre or path.name,
+                recargar_sesion=True,
+            )
+            return settings_service.ResultadoOperacion(
+                resultado.ok, resultado.mensaje or ("Restaurado." if resultado.ok else "Falló.")
+            )
+        return None
+
+    # ── Screen ────────────────────────────────────────────────────────────
+
     def screen(self) -> AdminScreenVM:
         sess = session_bridge.current_session_vm()
-        items: tuple[ResponsableMermaVM, ...] = ()
-        if sess.authenticated and session_bridge.puede_usar_administracion():
-            q = self._filtro.lower()
-            lista = []
+        auth = sess.authenticated and session_bridge.puede_usar_administracion()
+        q = self._filtro.lower()
+
+        responsables: tuple[ResponsableMermaVM, ...] = ()
+        productos: tuple[ProductoAdminVM, ...] = ()
+        recetas: tuple[RecetaAdminVM, ...] = ()
+        usuarios: tuple[UsuarioAdminVM, ...] = ()
+        backups: tuple[BackupItemVM, ...] = ()
+        hotel_nombre = ""
+        hotel_moneda = "EUR"
+
+        if auth:
+            data = get_container().app_data_store.get()
+            if data.configuracion:
+                hotel_nombre = data.configuracion.nombre_establecimiento or ""
+                hotel_moneda = data.configuracion.moneda or "EUR"
+
+            lista_r = []
             for r in merma_service.listar_responsables_merma(solo_activos=False):
                 if q and q not in r.nombre.lower() and q not in r.id.lower():
                     continue
-                lista.append(
+                lista_r.append(
                     ResponsableMermaVM(id=r.id, nombre=r.nombre, activo=r.activo)
                 )
-            items = tuple(lista)
+            responsables = tuple(lista_r)
+
+            lista_p = []
+            for p in data.productos:
+                codigo = getattr(p, "codigo", None) or ""
+                if self._seccion == "productos" and q:
+                    if q not in p.nombre.lower() and q not in codigo.lower() and q not in p.id.lower():
+                        continue
+                tipo = getattr(p, "tipo_articulo", None)
+                tipo_s = getattr(tipo, "value", None) or (str(tipo) if tipo else "")
+                lista_p.append(
+                    ProductoAdminVM(
+                        id=p.id,
+                        nombre=p.nombre,
+                        codigo=codigo,
+                        unidad=p.unidad.value if hasattr(p.unidad, "value") else str(p.unidad),
+                        stock_minimo=float(p.stock_minimo or 0),
+                        tipo_articulo=tipo_s,
+                        es_bebida=bool(getattr(p, "es_bebida", False)),
+                        activo=bool(getattr(p, "activo", True)),
+                        servicios=tuple(getattr(p, "servicios_disponibles", None) or ()),
+                    )
+                )
+            productos = tuple(lista_p)
+
+            lista_rec = []
+            for r in receta_service.listar_recetas(solo_activas=False):
+                if self._seccion == "recetas" and q:
+                    if q not in r.nombre.lower() and q not in r.id.lower():
+                        continue
+                cat = r.categoria.value if hasattr(r.categoria, "value") else str(r.categoria)
+                lista_rec.append(
+                    RecetaAdminVM(
+                        id=r.id,
+                        nombre=r.nombre,
+                        categoria=cat,
+                        porciones_estandar=getattr(r, "porciones_estandar", None),
+                        n_ingredientes=len(r.ingredientes or []),
+                        activo=bool(getattr(r, "activo", True)),
+                        servicios=tuple(getattr(r, "servicios_disponibles", None) or ()),
+                    )
+                )
+            recetas = tuple(lista_rec)
+
+            lista_u = []
+            for u in data.usuarios:
+                if self._seccion == "usuarios" and q:
+                    blob = f"{u.nombre} {u.login} {u.rol}".lower()
+                    if q not in blob:
+                        continue
+                rol = u.rol.value if hasattr(u.rol, "value") else str(u.rol)
+                lista_u.append(
+                    UsuarioAdminVM(
+                        id=u.id,
+                        nombre=u.nombre,
+                        login=getattr(u, "login", "") or "",
+                        rol=rol,
+                        activo=bool(u.activo),
+                    )
+                )
+            usuarios = tuple(lista_u)
+
+            backups = self._listar_backups()
+
         return AdminScreenVM(
             session=sess,
-            responsables=items,
+            responsables=responsables,
+            seccion=self._seccion if auth else "inicio",
+            productos=productos,
+            recetas=recetas,
+            usuarios=usuarios,
+            backups=backups,
+            unidades=tuple(u.value for u in UnidadProducto),
+            categorias_receta=tuple(c.value for c in CategoriaReceta),
+            servicios_disponibles=tuple(sorted(SERVICIOS_DISPONIBLES_VALORES)),
+            tipos_articulo=tuple(sorted(TIPO_ARTICULO_VALORES)),
+            roles_asignables=tuple(roles_asignables(incluye_direccion=True)),
+            hotel_nombre=hotel_nombre,
+            hotel_moneda=hotel_moneda,
+            lote_alta=self._lote_alta,
             filtro=self._filtro,
             feedback=self._feedback,
             pending=self._pending,
             mutando=self._mutando,
             motivos_fijos=tuple(m.value for m in MotivoMerma),
+            puede_gestionar_usuarios=auth and session_tiene_permiso(Permiso.GESTIONAR_USUARIOS),
+            puede_exportar_backup=auth and session_tiene_permiso(Permiso.EXPORTAR_BACKUP),
+            puede_restaurar_backup=auth and session_tiene_permiso(Permiso.RESTAURAR_BACKUP),
+            inspeccion_backup=self._inspeccion_backup if auth else "",
         )
+
+    def _listar_backups(self) -> tuple[BackupItemVM, ...]:
+        items: list[BackupItemVM] = []
+        try:
+            folder = _backups_dir()
+            for path in sorted(folder.glob("*.zip"), key=lambda p: p.stat().st_mtime, reverse=True):
+                st = path.stat()
+                items.append(
+                    BackupItemVM(
+                        nombre=path.name,
+                        ruta=str(path),
+                        tamano_bytes=int(st.st_size),
+                        modificado=datetime.fromtimestamp(st.st_mtime).isoformat(
+                            timespec="seconds"
+                        ),
+                    )
+                )
+        except Exception:  # noqa: BLE001
+            return ()
+        return tuple(items)
+
+    def _gate_admin(self) -> bool:
+        if session_bridge.puede_usar_administracion():
+            return True
+        self._feedback = map_error_recuperable(
+            "Sesión no autorizada.", codigo="DENEGADO"
+        )
+        return False
+
+    def _busy(self) -> AdminScreenVM:
+        self._feedback = map_error_recuperable(
+            "Operación en curso.", codigo="CONFIRMANDO"
+        )
+        return self.screen()

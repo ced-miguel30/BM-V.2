@@ -1,4 +1,4 @@
-"""Shell Flet de Administración operativa."""
+"""Shell Flet de Administración operativa (maestros + backup)."""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ class TerminalAdministracionShell:
 
     def mount(self) -> None:
         page = self.page
-        page.title = "BM — Administración operativa"
+        page.title = "BM — Administración"
         page.theme_mode = ft.ThemeMode.LIGHT
         page.padding = 0
         page.bgcolor = ft.Colors.GREY_100
@@ -54,11 +54,29 @@ class TerminalAdministracionShell:
                 screen,
                 on_logout=self._on_logout,
                 on_volver_menu=self._on_volver_al_menu,
+                on_seccion=self._on_seccion,
                 on_filtro=self._on_filtro,
-                on_proponer_crear=self._on_crear,
+                on_proponer_crear=self._on_crear_responsable,
                 on_proponer_renombrar=self._on_renombrar,
                 on_proponer_desactivar=self._on_desactivar,
                 on_proponer_reactivar=self._on_reactivar,
+                on_crear_producto=self._on_crear_producto,
+                on_desactivar_producto=self._on_desactivar_producto,
+                on_reactivar_producto=self._on_reactivar_producto,
+                on_crear_receta=self._on_crear_receta,
+                on_desactivar_receta=self._on_desactivar_receta,
+                on_reactivar_receta=self._on_reactivar_receta,
+                on_crear_usuario=self._on_crear_usuario,
+                on_editar_usuario=self._on_editar_usuario,
+                on_cambiar_rol=self._on_cambiar_rol,
+                on_desactivar_usuario=self._on_desactivar_usuario,
+                on_reactivar_usuario=self._on_reactivar_usuario,
+                on_restablecer_password=self._on_restablecer_password,
+                on_registrar_lote=self._on_registrar_lote,
+                on_generar_backup=self._on_generar_backup,
+                on_inspeccionar_backup=self._on_inspeccionar_backup,
+                on_proponer_restaurar=self._on_proponer_restaurar,
+                on_guardar_hotel=self._on_guardar_hotel,
                 on_confirmar=self._on_confirmar,
                 on_cancelar=self._on_cancelar,
             )
@@ -73,11 +91,15 @@ class TerminalAdministracionShell:
         self.presenter.logout()
         self.refresh()
 
+    def _on_seccion(self, seccion: str) -> None:
+        self.presenter.set_seccion(seccion)
+        self.refresh()
+
     def _on_filtro(self, texto: str) -> None:
         self.presenter.set_filtro(texto)
         self.refresh()
 
-    def _on_crear(self, nombre: str) -> None:
+    def _on_crear_responsable(self, nombre: str) -> None:
         self.presenter.proponer_creacion(nombre)
         self.refresh()
 
@@ -91,6 +113,119 @@ class TerminalAdministracionShell:
 
     def _on_reactivar(self, rid: str) -> None:
         self.presenter.proponer_reactivacion(rid)
+        self.refresh()
+
+    def _on_crear_producto(
+        self,
+        nombre: str,
+        unidad: str,
+        stock_minimo: float | None,
+        codigo: str,
+        tipo_articulo: str,
+        es_bebida: bool,
+        servicios: list[str],
+    ) -> None:
+        self.presenter.crear_producto(
+            nombre,
+            unidad,
+            stock_minimo,
+            codigo,
+            tipo_articulo,
+            es_bebida=es_bebida,
+            servicios_disponibles=servicios,
+        )
+        self.refresh()
+
+    def _on_desactivar_producto(self, pid: str) -> None:
+        self.presenter.proponer_desactivar_producto(pid)
+        self.refresh()
+
+    def _on_reactivar_producto(self, pid: str) -> None:
+        self.presenter.proponer_reactivar_producto(pid)
+        self.refresh()
+
+    def _on_crear_receta(
+        self,
+        nombre: str,
+        ingredientes: list[tuple[str, float]],
+        categoria: str,
+        porciones: float | None,
+        servicios: list[str],
+    ) -> None:
+        self.presenter.crear_receta(
+            nombre,
+            ingredientes,
+            categoria,
+            porciones,
+            servicios_disponibles=servicios,
+        )
+        self.refresh()
+
+    def _on_desactivar_receta(self, rid: str) -> None:
+        self.presenter.proponer_desactivar_receta(rid)
+        self.refresh()
+
+    def _on_reactivar_receta(self, rid: str) -> None:
+        self.presenter.proponer_reactivar_receta(rid)
+        self.refresh()
+
+    def _on_crear_usuario(
+        self, nombre: str, rol: str, login: str, password: str
+    ) -> None:
+        self.presenter.crear_usuario(nombre, rol, login=login, password=password)
+        self.refresh()
+
+    def _on_editar_usuario(self, uid: str, nombre: str) -> None:
+        self.presenter.editar_usuario(uid, nombre)
+        self.refresh()
+
+    def _on_cambiar_rol(self, uid: str, rol: str) -> None:
+        self.presenter.cambiar_rol_usuario(uid, rol)
+        self.refresh()
+
+    def _on_desactivar_usuario(self, uid: str) -> None:
+        self.presenter.proponer_desactivar_usuario(uid)
+        self.refresh()
+
+    def _on_reactivar_usuario(self, uid: str) -> None:
+        self.presenter.proponer_reactivar_usuario(uid)
+        self.refresh()
+
+    def _on_restablecer_password(self, uid: str, password: str) -> None:
+        self.presenter.restablecer_password(uid, password)
+        self.refresh()
+
+    def _on_registrar_lote(
+        self,
+        producto_id: str,
+        cantidad: float,
+        precio_total: float,
+        marca: str,
+        ubicacion: str,
+    ) -> None:
+        self.presenter.registrar_lote_inicial(
+            producto_id,
+            cantidad,
+            precio_total,
+            marca_proveedor=marca,
+            ubicacion_destino_id=ubicacion,
+        )
+        self.refresh()
+
+    def _on_generar_backup(self) -> None:
+        self.presenter.generar_backup()
+        self.refresh()
+
+    def _on_inspeccionar_backup(self, ruta: str) -> None:
+        self.presenter.inspeccionar_backup_archivo(ruta)
+        self.refresh()
+
+    def _on_proponer_restaurar(self, ruta: str, confirmacion: str) -> None:
+        self.presenter.proponer_restaurar_backup(ruta, confirmacion)
+        self.refresh()
+
+    def _on_guardar_hotel(self, nombre: str, moneda: str) -> None:
+        self.presenter.guardar_hotel(nombre, moneda)
         self.refresh()
 
     def _on_confirmar(self) -> None:

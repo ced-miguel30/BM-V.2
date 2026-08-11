@@ -7,7 +7,7 @@
 | Terminal Restaurante | **APROBADA** (técnica + manual; incluye historial + anulación Flet) |
 | Terminal Inventario | **APROBADA** (técnica + manual) |
 | Consolidación UX Flet | **APROBADA** (técnica + manual) |
-| Administración operativa Flet | **APROBADA** (técnica + manual) |
+| Administración operativa Flet | **APROBADA** (técnica + manual); maestros ampliados (productos/recetas/usuarios/backup) |
 | Launcher Flet | **APROBADO** (técnica + manual) |
 
 | Campo | Valor |
@@ -54,13 +54,13 @@ UI Flet de historial/anulación en Restaurante: **implementada** (presenter + vi
 - Skip E2E Streamlit Desayuno (selector).
 - Anulación de traslados / CRUD ubicaciones / anulación de recuentos confirmados en Flet.
 - Empaquetado `.exe` / instalador (**no** construido; P2 en `docs/deploy_local_p2.md`).
-- Resto de Settings Streamlit (usuarios, catálogos, backups UI, zona peligro…).
+- Resto de Settings Streamlit (catálogos avanzados, zona peligro, logo…).
 - Piloto físico Windows del despliegue C (checklist P2).
 
 ## Siguiente bloque (recomendación)
 
 Cerrar P3 operativo del piloto Flet o abordar branding / empaquetado según prioridad de despliegue.
-Admin / Inventario: no ampliar salvo decisión explícita.
+Admin Flet ya cubre maestros diarios; Inventario: no ampliar salvo decisión explícita.
 
 ## Docs
 

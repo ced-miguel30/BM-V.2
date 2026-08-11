@@ -1,4 +1,4 @@
-"""Entrada Flet — Administración operativa (responsables de merma).
+"""Entrada Flet — Administración operativa (maestros + backup).
 
 Uso:
   python -m app.presentation.flet.main_administracion

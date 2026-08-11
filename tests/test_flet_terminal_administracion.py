@@ -31,9 +31,14 @@ from app.core.storage.demo_files import (
 )
 from app.presentation.flet.admin_viewmodels import (
     AdminScreenVM,
+    BackupItemVM,
     PendingChangeVM,
+    ProductoAdminVM,
+    RecetaAdminVM,
     ResponsableMermaVM,
+    UsuarioAdminVM,
     assert_admin_sin_economia,
+    assert_lote_alta_permite_solo_precio_total,
 )
 from app.presentation.flet.viewmodels import CAMPOS_ECONOMICOS_PROHIBIDOS
 from app.presentation.flet.presenters.terminal_administracion_presenter import (
@@ -275,8 +280,25 @@ class TestAdminIntegracion(_AdminHarness):
 
 class TestAdminArquitectura(_AdminHarness):
     def test_viewmodels_sin_economia(self) -> None:
-        assert_admin_sin_economia(ResponsableMermaVM, PendingChangeVM, AdminScreenVM)
-        for cls in (ResponsableMermaVM, PendingChangeVM, AdminScreenVM):
+        assert_admin_sin_economia(
+            ResponsableMermaVM,
+            PendingChangeVM,
+            ProductoAdminVM,
+            RecetaAdminVM,
+            UsuarioAdminVM,
+            BackupItemVM,
+            AdminScreenVM,
+        )
+        assert_lote_alta_permite_solo_precio_total()
+        for cls in (
+            ResponsableMermaVM,
+            PendingChangeVM,
+            ProductoAdminVM,
+            RecetaAdminVM,
+            UsuarioAdminVM,
+            BackupItemVM,
+            AdminScreenVM,
+        ):
             for f in fields(cls):
                 self.assertNotIn(f.name.lower(), CAMPOS_ECONOMICOS_PROHIBIDOS)
 
