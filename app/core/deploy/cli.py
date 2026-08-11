@@ -257,7 +257,50 @@ def build_parser() -> argparse.ArgumentParser:
     rel.add_argument("--force-dead", action="store_true")
     sub.add_parser("run-launcher", help="Arranca launcher Flet (escritor único)")
     sub.add_parser("run-streamlit", help="Arranca Streamlit (escritor único)")
+    mig = sub.add_parser(
+        "migrate-adjuntos",
+        help="Preview/copia adjuntos repo→instancia (no borra origen)",
+    )
+    mig.add_argument(
+        "--apply",
+        action="store_true",
+        help="Ejecuta la copia (por defecto solo previsualiza)",
+    )
+    br = sub.add_parser(
+        "build-release",
+        help="Construye carpeta de release Python (sin .exe ni datos)",
+    )
+    br.add_argument("destino")
+    br.add_argument("--overwrite", action="store_true")
     return p
+
+
+def cmd_migrate(args: argparse.Namespace) -> int:
+    from app.core.deploy.migrate_adjuntos import ejecutar_migracion_adjuntos
+
+    cfg = load_deploy_config()
+    ensure_instance_dirs(cfg)
+    _, handlers = _setup_logging(cfg.logs_dir, "migrate_adjuntos")
+    try:
+        plan = ejecutar_migracion_adjuntos(cfg, apply=bool(args.apply))
+        mode = "APPLY" if args.apply else "PREVIEW"
+        print(f"OK migrate-adjuntos mode={mode} items={len(plan)}")
+        for item in plan[:50]:
+            flag = "SKIP_EXISTS" if item.existe_destino and args.apply else "COPY"
+            print(f"  {flag} {item.rel}")
+        if len(plan) > 50:
+            print(f"  ... +{len(plan) - 50} más")
+        return 0
+    finally:
+        _close_logging(handlers)
+
+
+def cmd_build_release(args: argparse.Namespace) -> int:
+    from app.core.deploy.release import build_release_folder
+
+    dest = build_release_folder(Path(args.destino), overwrite=bool(args.overwrite))
+    print(f"OK release={dest}")
+    return 0
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -280,6 +323,10 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_run_launcher(args)
         if args.command == "run-streamlit":
             return cmd_run_streamlit(args)
+        if args.command == "migrate-adjuntos":
+            return cmd_migrate(args)
+        if args.command == "build-release":
+            return cmd_build_release(args)
         parser.error(f"Comando desconocido: {args.command}")
         return 2
     except (DeployConfigError, WriterLockError) as exc:
