@@ -5,14 +5,18 @@ from __future__ import annotations
 from typing import Any
 
 from app.core.models import AppData
-from app.core.storage.demo_files import load_demo_files, save_demo_files
+from app.core.storage.demo_files import load_demo_files
+from app.core.storage.shared_coordinator import (
+    SharedRevisionConflict,
+    coordinated_save,
+)
 
 APP_DATA_SESSION_KEY = "bm_data"
 AUTH_SESSION_KEY = "bm_auth_session"
 
 
 class StreamlitAppDataStore:
-    """AppData espejado en session_state + disco JSON."""
+    """AppData espejado en session_state + disco JSON (coordinado)."""
 
     def get(self) -> AppData:
         import streamlit as st
@@ -24,9 +28,21 @@ class StreamlitAppDataStore:
     def persist(self, data: AppData) -> AppData:
         import streamlit as st
 
-        save_demo_files(data)
-        st.session_state[APP_DATA_SESSION_KEY] = data
-        return data
+        expected = getattr(data, "revision", None)
+        try:
+            saved = coordinated_save(
+                data,
+                operation="persist_streamlit",
+                expected_revision=expected if expected is not None else None,
+            )
+        except SharedRevisionConflict:
+            self.reload_from_disk()
+            raise SharedRevisionConflict(
+                "Conflicto de revisión: otro cliente actualizó los datos. "
+                "Se recargó desde disco; reintente."
+            ) from None
+        st.session_state[APP_DATA_SESSION_KEY] = saved
+        return saved
 
     def reload_from_disk(self) -> AppData:
         import streamlit as st
