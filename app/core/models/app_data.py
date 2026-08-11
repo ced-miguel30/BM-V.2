@@ -56,3 +56,4 @@ class AppData:
     )
     configuracion: ConfiguracionHotel | None = None
     usuario_actual_id: str = ""
+    revision: int = 0

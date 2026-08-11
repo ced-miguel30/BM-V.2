@@ -5,7 +5,12 @@ from __future__ import annotations
 from typing import Any
 
 from app.core.models import AppData
-from app.core.storage.demo_files import load_demo_files, save_demo_files
+from app.core.storage.demo_files import get_demo_file, load_demo_files
+from app.core.storage.shared_coordinator import (
+    SharedRevisionConflict,
+    coordinated_save,
+    read_disk_revision,
+)
 
 
 class FileBackedAppDataStore:
@@ -19,14 +24,42 @@ class FileBackedAppDataStore:
             self._data = load_demo_files()
         return self._data
 
+    def get_revision(self) -> int:
+        data = self.get()
+        return int(getattr(data, "revision", 0) or 0)
+
     def persist(self, data: AppData) -> AppData:
-        save_demo_files(data)
-        self._data = data
-        return data
+        expected = getattr(data, "revision", None)
+        try:
+            saved = coordinated_save(
+                data,
+                operation="persist",
+                expected_revision=expected if expected is not None else None,
+            )
+        except SharedRevisionConflict:
+            self.reload_from_disk()
+            raise SharedRevisionConflict(
+                "Conflicto de revisión al persistir: otro proceso actualizó "
+                "el JSON compartido. Se recargó desde disco; reintente la operación."
+            ) from None
+        self._data = saved
+        return saved
 
     def reload_from_disk(self) -> AppData:
         self._data = load_demo_files()
         return self._data
+
+    def refresh_if_stale(self) -> AppData:
+        """Recarga si la revisión en disco es mayor que la de memoria."""
+        current = self.get()
+        mem_rev = int(getattr(current, "revision", 0) or 0)
+        try:
+            disk_rev = read_disk_revision(get_demo_file())
+        except Exception:
+            return self.reload_from_disk()
+        if disk_rev > mem_rev:
+            return self.reload_from_disk()
+        return current
 
 
 class MemoryAppDataStore:
@@ -38,11 +71,17 @@ class MemoryAppDataStore:
     def get(self) -> AppData:
         return self._data
 
+    def get_revision(self) -> int:
+        return int(getattr(self._data, "revision", 0) or 0)
+
     def persist(self, data: AppData) -> AppData:
         self._data = data
         return data
 
     def reload_from_disk(self) -> AppData:
+        return self._data
+
+    def refresh_if_stale(self) -> AppData:
         return self._data
 
 

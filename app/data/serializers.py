@@ -919,7 +919,11 @@ def _detalle_from_dict(raw: dict) -> LineaDetalleOrigen:
 
 def appdata_to_dict(data: AppData) -> dict:
     return {
-        "meta": {"usuario_actual_id": data.usuario_actual_id, "origen": "demo"},
+        "meta": {
+            "usuario_actual_id": data.usuario_actual_id,
+            "origen": "demo",
+            "revision": int(getattr(data, "revision", 0) or 0),
+        },
         "productos": [
             {
                 "id": p.id,
@@ -1579,6 +1583,7 @@ def dict_to_appdata(payload: dict) -> AppData:
             for a in payload.get("actividades", [])
         ],
         usuario_actual_id=payload.get("meta", {}).get("usuario_actual_id", ""),
+        revision=int((payload.get("meta") or {}).get("revision", 0) or 0),
     )
 
 
