@@ -22,7 +22,7 @@ def build_login_inventario(
     controls: list[ft.Control] = [
         ft.Text("Terminal Inventario", size=36, weight=ft.FontWeight.BOLD),
         ft.Text(
-            "Alertas, caducidad, merma y ajustes operativos.",
+            "Alertas, caducidad, merma, stock por ubicación, traslados y ajustes.",
             size=16,
             color=ft.Colors.ON_SURFACE_VARIANT,
             text_align=ft.TextAlign.CENTER,
@@ -71,6 +71,16 @@ def build_inventario_shell(
     on_confirmar_merma: Callable[[], None],
     on_preview_ajuste: Callable[[str, float, str], None],
     on_confirmar_ajuste: Callable[[], None],
+    on_stock_busqueda: Callable[[str], None] | None = None,
+    on_stock_filtro_ubicacion: Callable[[str | None], None] | None = None,
+    on_traslado_producto: Callable[[str | None], None] | None = None,
+    on_traslado_lote: Callable[[str | None], None] | None = None,
+    on_traslado_origen: Callable[[str | None], None] | None = None,
+    on_traslado_destino: Callable[[str | None], None] | None = None,
+    on_traslado_cantidad: Callable[[str], None] | None = None,
+    on_preview_traslado: Callable[[], None] | None = None,
+    on_confirmar_traslado: Callable[[], None] | None = None,
+    on_cancelar_traslado: Callable[[], None] | None = None,
     narrow: bool = False,
 ) -> ft.Control:
     header = ft.Container(
@@ -141,6 +151,24 @@ def build_inventario_shell(
             on_seleccionar_responsable,
             on_vaciar_merma,
             on_confirmar_merma,
+        )
+    elif screen.espacio_activo == "stock":
+        body = _stock_body(
+            screen,
+            on_busqueda=on_stock_busqueda or (lambda _t: None),
+            on_filtro=on_stock_filtro_ubicacion or (lambda _u: None),
+        )
+    elif screen.espacio_activo == "traslados":
+        body = _traslados_body(
+            screen,
+            on_producto=on_traslado_producto or (lambda _p: None),
+            on_lote=on_traslado_lote or (lambda _l: None),
+            on_origen=on_traslado_origen or (lambda _o: None),
+            on_destino=on_traslado_destino or (lambda _d: None),
+            on_cantidad=on_traslado_cantidad or (lambda _c: None),
+            on_preview=on_preview_traslado or (lambda: None),
+            on_confirm=on_confirmar_traslado or (lambda: None),
+            on_cancel=on_cancelar_traslado or (lambda: None),
         )
     else:
         body = _ajustes_body(screen, on_preview_ajuste, on_confirmar_ajuste)
@@ -356,6 +384,251 @@ def _merma_body(
             ft.Row(controls=[qty, motivo, ft.FilledTonalButton("Añadir", on_click=_add)]),
             ft.Divider(),
             *cesta_rows,
+        ],
+    )
+
+
+def _stock_body(
+    screen: InventarioScreenVM,
+    *,
+    on_busqueda: Callable[[str], None],
+    on_filtro: Callable[[str | None], None],
+) -> ft.Control:
+    search = ft.TextField(
+        label="Buscar producto o lote",
+        value=screen.stock_busqueda,
+        expand=True,
+        on_submit=lambda e: on_busqueda(getattr(e.control, "value", "") or ""),
+    )
+    filtro = ft.Dropdown(
+        label="Ubicación",
+        value=screen.stock_filtro_ubicacion or "__todas__",
+        options=[
+            ft.DropdownOption(key=u.id, text=u.etiqueta) for u in screen.stock_ubicaciones
+        ],
+        on_select=lambda e: on_filtro(getattr(e.control, "value", None)),
+        width=260,
+    )
+    if not screen.stock_filas:
+        lista: ft.Control = ft.Text(
+            "No hay saldos por ubicación para mostrar. "
+            "Los lotes sin movimientos de ubicación aparecen solo sin filtro "
+            "como cobertura «Sin movimientos».",
+            italic=True,
+            color=ft.Colors.OUTLINE,
+        )
+    else:
+        rows: list[ft.Control] = []
+        for r in screen.stock_filas:
+            badge = ""
+            if r.es_historico_sin_ubicacion:
+                badge = " · histórico sin ubicación"
+            elif r.cobertura and "parcial" in r.cobertura.lower():
+                badge = " · cobertura parcial"
+            rows.append(
+                ft.Container(
+                    bgcolor=ft.Colors.BLUE_GREY_50,
+                    padding=10,
+                    border_radius=8,
+                    content=ft.Column(
+                        spacing=2,
+                        controls=[
+                            ft.Text(
+                                f"{r.producto_nombre} · lote {r.lote_id}",
+                                weight=ft.FontWeight.BOLD,
+                                size=14,
+                            ),
+                            ft.Text(
+                                f"{r.ubicacion_etiqueta}: {r.saldo:g} {r.unidad}"
+                                f"{badge}",
+                                size=13,
+                            ),
+                            ft.Text(r.cobertura, size=11, color=ft.Colors.OUTLINE),
+                        ],
+                    ),
+                )
+            )
+        lista = ft.Column(scroll=ft.ScrollMode.AUTO, expand=True, spacing=6, controls=rows)
+    return ft.Column(
+        expand=True,
+        spacing=10,
+        controls=[
+            ft.Text("Stock por ubicación (solo lectura)", weight=ft.FontWeight.BOLD),
+            ft.Row(
+                controls=[
+                    search,
+                    ft.FilledTonalButton(
+                        "Buscar",
+                        on_click=lambda _e: on_busqueda(search.value or ""),
+                    ),
+                    filtro,
+                ]
+            ),
+            lista,
+        ],
+    )
+
+
+def _traslados_body(
+    screen: InventarioScreenVM,
+    *,
+    on_producto: Callable[[str | None], None],
+    on_lote: Callable[[str | None], None],
+    on_origen: Callable[[str | None], None],
+    on_destino: Callable[[str | None], None],
+    on_cantidad: Callable[[str], None],
+    on_preview: Callable[[], None],
+    on_confirm: Callable[[], None],
+    on_cancel: Callable[[], None],
+) -> ft.Control:
+    prod_dd = ft.Dropdown(
+        label="Producto",
+        value=screen.traslado_producto_id,
+        options=[
+            ft.DropdownOption(key=o.id, text=o.etiqueta) for o in screen.traslado_productos
+        ],
+        on_select=lambda e: on_producto(getattr(e.control, "value", None)),
+        expand=True,
+    )
+    lote_dd = ft.Dropdown(
+        label="Lote",
+        value=screen.traslado_lote_id,
+        options=[
+            ft.DropdownOption(key=o.id, text=o.etiqueta) for o in screen.traslado_lotes
+        ],
+        on_select=lambda e: on_lote(getattr(e.control, "value", None)),
+        expand=True,
+        disabled=not screen.traslado_productos or not screen.traslado_producto_id,
+    )
+    origen_dd = ft.Dropdown(
+        label="Origen",
+        value=screen.traslado_origen_id,
+        options=[
+            ft.DropdownOption(key=o.id, text=o.etiqueta) for o in screen.traslado_origenes
+        ],
+        on_select=lambda e: on_origen(getattr(e.control, "value", None)),
+        expand=True,
+        disabled=not screen.traslado_lote_id,
+    )
+    destino_dd = ft.Dropdown(
+        label="Destino",
+        value=screen.traslado_destino_id,
+        options=[
+            ft.DropdownOption(key=o.id, text=o.etiqueta) for o in screen.traslado_destinos
+        ],
+        on_select=lambda e: on_destino(getattr(e.control, "value", None)),
+        expand=True,
+        disabled=not screen.traslado_origen_id,
+    )
+    qty = ft.TextField(
+        label="Cantidad",
+        value=screen.traslado_cantidad,
+        width=140,
+        on_blur=lambda e: on_cantidad(getattr(e.control, "value", "") or ""),
+    )
+    disp_txt = (
+        f"Disponible en origen: {screen.traslado_disponible:g}"
+        if screen.traslado_disponible is not None
+        else "Disponible en origen: —"
+    )
+    preview_box: list[ft.Control] = []
+    if screen.traslado_preview:
+        p = screen.traslado_preview
+        adv = [ft.Text(p.advertencia, color=ft.Colors.AMBER_900, size=12)] if p.advertencia else []
+        preview_box = [
+            ft.Container(
+                bgcolor=ft.Colors.BLUE_50,
+                padding=12,
+                border_radius=8,
+                content=ft.Column(
+                    spacing=4,
+                    controls=[
+                        ft.Text("Resumen del traslado", weight=ft.FontWeight.BOLD),
+                        ft.Text(
+                            f"{p.producto_nombre} · lote {p.lote_id}: "
+                            f"{p.cantidad:g} {p.unidad}"
+                        ),
+                        ft.Text(
+                            f"{p.ubicacion_origen_etiqueta} → {p.ubicacion_destino_etiqueta}"
+                        ),
+                        ft.Text(
+                            f"Disponible origen: {p.disponible_origen:g} {p.unidad}",
+                            size=12,
+                        ),
+                        *adv,
+                    ],
+                ),
+            ),
+            ft.Row(
+                controls=[
+                    ft.FilledButton(
+                        "Confirmar traslado",
+                        disabled=screen.confirmando,
+                        bgcolor=ft.Colors.ORANGE_800,
+                        on_click=lambda _e: on_confirm(),
+                    ),
+                    ft.TextButton(
+                        "Cancelar",
+                        disabled=screen.confirmando,
+                        on_click=lambda _e: on_cancel(),
+                    ),
+                ]
+            ),
+        ]
+    recientes: list[ft.Control] = [
+        ft.Text("Traslados recientes", weight=ft.FontWeight.BOLD, size=14)
+    ]
+    if not screen.traslados_recientes:
+        recientes.append(
+            ft.Text("Sin traslados registrados.", color=ft.Colors.OUTLINE, size=12)
+        )
+    else:
+        for t in screen.traslados_recientes:
+            recientes.append(
+                ft.Text(
+                    f"{t.fecha} · {t.traslado_id} · {t.producto_nombre} "
+                    f"lote {t.lote_id}: {t.cantidad:g} {t.unidad} · "
+                    f"{t.origen_etiqueta} → {t.destino_etiqueta}",
+                    size=12,
+                )
+            )
+
+    def _do_preview(_e) -> None:
+        on_cantidad(qty.value or "")
+        on_preview()
+
+    empty_hint = ft.Container()
+    if not screen.traslado_productos:
+        empty_hint = ft.Text(
+            "No hay lotes con saldo en ubicaciones de catálogo para trasladar.",
+            color=ft.Colors.OUTLINE,
+            italic=True,
+        )
+
+    return ft.Column(
+        expand=True,
+        scroll=ft.ScrollMode.AUTO,
+        spacing=10,
+        controls=[
+            ft.Text("Traslado entre ubicaciones", weight=ft.FontWeight.BOLD),
+            empty_hint,
+            prod_dd,
+            lote_dd,
+            ft.Row(controls=[origen_dd, destino_dd]),
+            ft.Row(
+                controls=[
+                    qty,
+                    ft.Text(disp_txt, size=13),
+                    ft.FilledTonalButton(
+                        "Previsualizar",
+                        disabled=screen.confirmando,
+                        on_click=_do_preview,
+                    ),
+                ]
+            ),
+            *preview_box,
+            ft.Divider(),
+            *recientes,
         ],
     )
 

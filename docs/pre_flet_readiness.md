@@ -34,12 +34,13 @@ Merma Flet exige responsable **explícito** (sin autofill).
 - Listado Admin legible (contraste / vacío / Activo-Inactivo).
 - Launcher Flet mínimo (**APROBADO** técnica + manual).
 - Volver al launcher desde verticales abiertas vía launcher (misma Page; logout; sin reiniciar proceso).
+- Stock por ubicación + Traslados en Flet Inventario (consulta + preview/confirm; sin recuentos).
 
 ### Pueden esperar
 - Branding / tipografía definitiva (las tres superficies Flet).
 - Persistencia opcional de cestas no confirmadas.
 - Skip E2E Streamlit Desayuno (selector).
-- Traslados / recuentos / stock admin.
+- Recuentos / anulación de traslados / CRUD ubicaciones en Flet.
 - Empaquetado `.exe` / instalador (**no** construido; P2 en `docs/deploy_local_p2.md`).
 - Resto de Settings Streamlit (usuarios, catálogos, backups UI, zona peligro…).
 - Piloto físico Windows del despliegue C (checklist P2).

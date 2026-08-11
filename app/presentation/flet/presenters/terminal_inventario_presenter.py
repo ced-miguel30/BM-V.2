@@ -1,4 +1,4 @@
-"""Presenter Terminal Inventario — orquesta alertas, caducidad, merma y ajustes.
+"""Presenter Terminal Inventario — orquesta alertas, caducidad, merma, stock, traslados y ajustes.
 
 Sin cálculos FIFO/stock/coste. Sin información económica en viewmodels.
 """
@@ -7,11 +7,12 @@ from __future__ import annotations
 
 from datetime import date
 
+from app.bootstrap import get_container
 from app.core.application.idempotency import (
     current_idempotency_token,
     rotate_idempotency_token,
 )
-from app.core.auth.permissions import AuthorizationError, Permiso
+from app.core.auth.permissions import AuthorizationError
 from app.core.models import EstadoAlerta, MotivoAjuste, MotivoMerma
 from app.core.models.enums import (
     ORIGEN_SERVICIO_MERMA_LABEL,
@@ -24,10 +25,17 @@ from app.core.services import (
     ajuste_service,
     caducidad_service,
     merma_service,
+    traslado_service,
+)
+from app.core.services.ubicacion_stock_service import (
+    SIN_UBICACION_HISTORICA,
+    saldo_en_ubicacion,
+    saldos_por_ubicacion_lote,
 )
 from app.presentation.flet import session_bridge
 from app.presentation.flet.inventory_viewmodels import (
     ESPACIOS,
+    ETIQUETA_SIN_UBICACION_HISTORICA,
     AlertaVM,
     AjustePreviewVM,
     EspacioVM,
@@ -36,6 +44,10 @@ from app.presentation.flet.inventory_viewmodels import (
     LoteCaducidadVM,
     MermaLineaVM,
     MermaOpcionVM,
+    StockSaldoVM,
+    TrasladoOpcionVM,
+    TrasladoPreviewVM,
+    TrasladoRecienteVM,
     assert_inventario_sin_economia,
 )
 from app.presentation.flet.mappers import (
@@ -50,11 +62,21 @@ _ETIQUETAS = {
     "alertas": "Alertas",
     "caducidad": "Caducidad",
     "merma": "Merma",
+    "stock": "Stock",
+    "traslados": "Traslados",
     "ajustes": "Ajustes",
 }
 
 _IDEMP_AJUSTE = "flet_inv_ajuste"
 _IDEMP_MERMA = "flet_inv_merma"
+_IDEMP_TRASLADO = "flet_inv_traslado"
+
+_COBERTURA_ETIQUETA = {
+    "sin_ubicacion_historica": "Sin ubicación histórica",
+    "cobertura_parcial": "Cobertura parcial",
+    "cobertura_completa": "Cobertura completa",
+    "sin_movimientos": "Sin movimientos de ubicación",
+}
 
 
 class TerminalInventarioPresenter:
@@ -65,7 +87,24 @@ class TerminalInventarioPresenter:
         self._ajuste_preview: AjustePreviewVM | None = None
         self._ajuste_draft: dict | None = None
         self._responsable_seleccionado: str | None = None
-        assert_inventario_sin_economia(AlertaVM, LoteCaducidadVM, MermaLineaVM, AjustePreviewVM)
+        self._stock_busqueda = ""
+        self._stock_filtro_ubicacion: str | None = None
+        self._traslado_producto_id: str | None = None
+        self._traslado_lote_id: str | None = None
+        self._traslado_origen_id: str | None = None
+        self._traslado_destino_id: str | None = None
+        self._traslado_cantidad = ""
+        self._traslado_preview: TrasladoPreviewVM | None = None
+        self._traslado_draft: dict | None = None
+        assert_inventario_sin_economia(
+            AlertaVM,
+            LoteCaducidadVM,
+            MermaLineaVM,
+            AjustePreviewVM,
+            StockSaldoVM,
+            TrasladoPreviewVM,
+            TrasladoRecienteVM,
+        )
 
     def entrar(self) -> InventarioScreenVM:
         session, fb = session_bridge.enter_terminal_inventario()
@@ -74,7 +113,9 @@ class TerminalInventarioPresenter:
             try:
                 alert_service.sincronizar_alertas()
             except Exception as exc:  # noqa: BLE001
-                self._feedback = map_error_recuperable(f"No se pudieron sincronizar alertas: {exc}")
+                self._feedback = map_error_recuperable(
+                    f"No se pudieron sincronizar alertas: {exc}"
+                )
         return self.screen()
 
     def denegar_demo(self, role: str) -> InventarioScreenVM:
@@ -87,7 +128,9 @@ class TerminalInventarioPresenter:
         self._feedback = FeedbackVM(ok=True, mensaje="Sesión cerrada.")
         self._confirmando = False
         self._ajuste_preview = None
+        self._ajuste_draft = None
         self._responsable_seleccionado = None
+        self._limpiar_traslado()
         return self.screen()
 
     def seleccionar_espacio(self, espacio_id: str) -> InventarioScreenVM:
@@ -97,11 +140,13 @@ class TerminalInventarioPresenter:
         if not session_bridge.puede_usar_terminal_inventario():
             self._feedback = map_error_recuperable("Sesión no autorizada.")
             return self.screen()
-        # Evitar reutilizar un responsable al volver a Merma desde otra pestaña.
         if espacio_id != self._espacio:
             self._responsable_seleccionado = None
+            if self._espacio == "traslados":
+                self._limpiar_traslado_preview_only()
         self._espacio = espacio_id
         self._ajuste_preview = None
+        self._ajuste_draft = None
         self._feedback = FeedbackVM(ok=True, mensaje=f"Espacio: {_ETIQUETAS[espacio_id]}")
         if espacio_id == "alertas":
             alert_service.sincronizar_alertas()
@@ -262,6 +307,196 @@ class TerminalInventarioPresenter:
             self._confirmando = False
         return self.screen()
 
+    # --- Stock (lectura) ----------------------------------------------------
+
+    def set_stock_busqueda(self, texto: str) -> InventarioScreenVM:
+        if not session_bridge.puede_usar_terminal_inventario():
+            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            return self.screen()
+        self._stock_busqueda = (texto or "").strip()
+        return self.screen()
+
+    def set_stock_filtro_ubicacion(self, ubicacion_id: str | None) -> InventarioScreenVM:
+        if not session_bridge.puede_usar_terminal_inventario():
+            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            return self.screen()
+        uid = (ubicacion_id or "").strip() or None
+        if uid == "__todas__":
+            uid = None
+        self._stock_filtro_ubicacion = uid
+        return self.screen()
+
+    # --- Traslados ----------------------------------------------------------
+
+    def set_traslado_producto(self, producto_id: str | None) -> InventarioScreenVM:
+        if not session_bridge.puede_usar_terminal_inventario():
+            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            return self.screen()
+        self._traslado_producto_id = (producto_id or "").strip() or None
+        self._traslado_lote_id = None
+        self._traslado_origen_id = None
+        self._traslado_destino_id = None
+        self._limpiar_traslado_preview_only()
+        return self.screen()
+
+    def set_traslado_lote(self, lote_id: str | None) -> InventarioScreenVM:
+        if not session_bridge.puede_usar_terminal_inventario():
+            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            return self.screen()
+        self._traslado_lote_id = (lote_id or "").strip() or None
+        self._traslado_origen_id = None
+        self._traslado_destino_id = None
+        self._limpiar_traslado_preview_only()
+        return self.screen()
+
+    def set_traslado_origen(self, ubicacion_id: str | None) -> InventarioScreenVM:
+        if not session_bridge.puede_usar_terminal_inventario():
+            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            return self.screen()
+        self._traslado_origen_id = (ubicacion_id or "").strip() or None
+        if (
+            self._traslado_destino_id
+            and self._traslado_destino_id == self._traslado_origen_id
+        ):
+            self._traslado_destino_id = None
+        self._limpiar_traslado_preview_only()
+        return self.screen()
+
+    def set_traslado_destino(self, ubicacion_id: str | None) -> InventarioScreenVM:
+        if not session_bridge.puede_usar_terminal_inventario():
+            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            return self.screen()
+        dest = (ubicacion_id or "").strip() or None
+        if dest and dest == self._traslado_origen_id:
+            self._feedback = map_error_recuperable(
+                "Origen y destino deben ser distintos.", codigo="VALIDACION"
+            )
+            return self.screen()
+        self._traslado_destino_id = dest
+        self._limpiar_traslado_preview_only()
+        return self.screen()
+
+    def set_traslado_cantidad(self, cantidad: str) -> InventarioScreenVM:
+        if not session_bridge.puede_usar_terminal_inventario():
+            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            return self.screen()
+        self._traslado_cantidad = (cantidad or "").strip()
+        self._limpiar_traslado_preview_only()
+        return self.screen()
+
+    def previsualizar_traslado(self) -> InventarioScreenVM:
+        if not session_bridge.puede_usar_terminal_inventario():
+            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            return self.screen()
+        if not (
+            self._traslado_lote_id
+            and self._traslado_origen_id
+            and self._traslado_destino_id
+        ):
+            self._feedback = map_error_recuperable(
+                "Seleccione lote, origen y destino.", codigo="VALIDACION"
+            )
+            return self.screen()
+        if self._traslado_origen_id == self._traslado_destino_id:
+            self._feedback = map_error_recuperable(
+                "Origen y destino deben ser distintos.", codigo="VALIDACION"
+            )
+            return self.screen()
+        try:
+            qty = float(self._traslado_cantidad or "0")
+        except ValueError:
+            self._feedback = map_error_recuperable(
+                "Cantidad no válida.", codigo="VALIDACION"
+            )
+            return self.screen()
+        data = get_container().app_data_store.get()
+        preview = traslado_service.previsualizar_traslado(
+            data,
+            lote_id=self._traslado_lote_id,
+            ubicacion_origen_id=self._traslado_origen_id,
+            ubicacion_destino_id=self._traslado_destino_id,
+            cantidad=qty,
+        )
+        if not preview.ok:
+            self._traslado_preview = None
+            self._traslado_draft = None
+            self._feedback = map_error_recuperable(preview.mensaje)
+            return self.screen()
+        unidad = self._unidad_producto(data, preview.producto_id)
+        self._traslado_preview = TrasladoPreviewVM(
+            producto_id=preview.producto_id,
+            producto_nombre=preview.producto_nombre,
+            lote_id=preview.lote_id,
+            ubicacion_origen_id=preview.ubicacion_origen_id,
+            ubicacion_origen_etiqueta=self._etiqueta_ubicacion(
+                data, preview.ubicacion_origen_id
+            ),
+            ubicacion_destino_id=preview.ubicacion_destino_id,
+            ubicacion_destino_etiqueta=self._etiqueta_ubicacion(
+                data, preview.ubicacion_destino_id
+            ),
+            cantidad=preview.cantidad,
+            disponible_origen=preview.disponible_origen,
+            unidad=unidad,
+            mensaje=preview.mensaje,
+            advertencia=preview.advertencia_destino or "",
+        )
+        self._traslado_draft = {
+            "lote_id": preview.lote_id,
+            "ubicacion_origen_id": preview.ubicacion_origen_id,
+            "ubicacion_destino_id": preview.ubicacion_destino_id,
+            "cantidad": float(preview.cantidad),
+        }
+        assert_inventario_sin_economia(self._traslado_preview)
+        self._feedback = FeedbackVM(
+            ok=True, mensaje="Revise el resumen y confirme el traslado."
+        )
+        return self.screen()
+
+    def cancelar_traslado_preview(self) -> InventarioScreenVM:
+        self._limpiar_traslado_preview_only()
+        self._feedback = FeedbackVM(ok=True, mensaje="Traslado cancelado.")
+        return self.screen()
+
+    def confirmar_traslado(self, *, fecha: date | None = None) -> InventarioScreenVM:
+        if self._confirmando:
+            self._feedback = map_error_recuperable(
+                "Confirmación en curso.", codigo="CONFIRMANDO"
+            )
+            return self.screen()
+        if not session_bridge.puede_usar_terminal_inventario():
+            self._feedback = map_error_recuperable(
+                "Sesión no autorizada.", codigo="DENEGADO"
+            )
+            return self.screen()
+        if not self._traslado_draft or not self._traslado_preview:
+            self._feedback = map_error_recuperable(
+                "Genere primero el resumen del traslado."
+            )
+            return self.screen()
+        self._confirmando = True
+        try:
+            # Scope UI (doble envío). El servicio revalida saldo en confirmar_traslado
+            # y genera un traslado_id nuevo; no admite clave_idempotencia.
+            _ = current_idempotency_token(_IDEMP_TRASLADO)
+            draft = self._traslado_draft
+            r = traslado_service.confirmar_traslado(
+                lote_id=draft["lote_id"],
+                ubicacion_origen_id=draft["ubicacion_origen_id"],
+                ubicacion_destino_id=draft["ubicacion_destino_id"],
+                cantidad=draft["cantidad"],
+                fecha=fecha or date.today(),
+            )
+            if r.ok:
+                rotate_idempotency_token(_IDEMP_TRASLADO)
+                self._limpiar_traslado()
+                self._feedback = map_resultado(True, r.mensaje)
+            else:
+                self._feedback = map_resultado(False, r.mensaje)
+        finally:
+            self._confirmando = False
+        return self.screen()
+
     # --- Ajustes ------------------------------------------------------------
 
     def previsualizar_ajuste(
@@ -282,7 +517,6 @@ class TerminalInventarioPresenter:
             self._ajuste_draft = None
             self._feedback = map_error_recuperable(error or "No se pudo previsualizar.")
             return self.screen()
-        # Mapear SIN precio_total / campos económicos
         self._ajuste_preview = AjustePreviewVM(
             lote_id=preview.lote_id,
             nombre=preview.nombre,
@@ -358,7 +592,16 @@ class TerminalInventarioPresenter:
         cesta: tuple[MermaLineaVM, ...] = ()
         cesta_vacia = True
         lotes_aj: tuple[LoteAjusteVM, ...] = ()
+        stock_filas: tuple[StockSaldoVM, ...] = ()
+        stock_ubis: tuple[TrasladoOpcionVM, ...] = ()
+        tr_prods: tuple[TrasladoOpcionVM, ...] = ()
+        tr_lotes: tuple[TrasladoOpcionVM, ...] = ()
+        tr_orig: tuple[TrasladoOpcionVM, ...] = ()
+        tr_dest: tuple[TrasladoOpcionVM, ...] = ()
+        tr_disp: float | None = None
+        tr_recientes: tuple[TrasladoRecienteVM, ...] = ()
         if session.authenticated:
+            data = get_container().app_data_store.get()
             if self._espacio == "alertas":
                 alertas = self._alertas_vm()
             if self._espacio == "caducidad":
@@ -369,6 +612,19 @@ class TerminalInventarioPresenter:
                 lotes_aj = self._lotes_ajuste_vm()
                 if self._espacio == "ajustes":
                     cesta, cesta_vacia = self._merma_cesta_vm()
+            if self._espacio == "stock":
+                stock_filas = self._stock_filas_vm(data)
+                stock_ubis = self._ubicaciones_filtro_vm(data)
+            if self._espacio == "traslados":
+                tr_prods = self._traslado_productos_vm(data)
+                tr_lotes = self._traslado_lotes_vm(data)
+                tr_orig = self._traslado_origenes_vm(data)
+                tr_dest = self._traslado_destinos_vm(data)
+                if self._traslado_lote_id and self._traslado_origen_id:
+                    tr_disp = saldo_en_ubicacion(
+                        data, self._traslado_lote_id, self._traslado_origen_id
+                    )
+                tr_recientes = self._traslados_recientes_vm(data)
         vm = InventarioScreenVM(
             session=session,
             espacios=espacios,
@@ -390,14 +646,41 @@ class TerminalInventarioPresenter:
             lotes_ajuste=lotes_aj,
             motivos_ajuste=tuple(m.value for m in MotivoAjuste),
             ajuste_preview=self._ajuste_preview,
+            stock_filas=stock_filas,
+            stock_busqueda=self._stock_busqueda,
+            stock_filtro_ubicacion=self._stock_filtro_ubicacion,
+            stock_ubicaciones=stock_ubis,
+            traslado_productos=tr_prods,
+            traslado_lotes=tr_lotes,
+            traslado_origenes=tr_orig,
+            traslado_destinos=tr_dest,
+            traslado_producto_id=self._traslado_producto_id,
+            traslado_lote_id=self._traslado_lote_id,
+            traslado_origen_id=self._traslado_origen_id,
+            traslado_destino_id=self._traslado_destino_id,
+            traslado_cantidad=self._traslado_cantidad,
+            traslado_disponible=tr_disp,
+            traslado_preview=self._traslado_preview,
+            traslados_recientes=tr_recientes,
             feedback=self._feedback,
             confirmando=self._confirmando,
         )
         assert_inventario_sin_economia(vm)
         return vm
 
+    def _limpiar_traslado_preview_only(self) -> None:
+        self._traslado_preview = None
+        self._traslado_draft = None
+
+    def _limpiar_traslado(self) -> None:
+        self._traslado_producto_id = None
+        self._traslado_lote_id = None
+        self._traslado_origen_id = None
+        self._traslado_destino_id = None
+        self._traslado_cantidad = ""
+        self._limpiar_traslado_preview_only()
+
     def _resolver_responsable(self, responsable_id: str | None) -> tuple[str | None, str | None]:
-        """Resuelve responsable explícito; nunca auto-selecciona el primero."""
         rid = (responsable_id or self._responsable_seleccionado or "").strip() or None
         if not rid:
             return None, None
@@ -405,7 +688,6 @@ class TerminalInventarioPresenter:
         for r in activos:
             if r.id == rid:
                 return r.id, r.nombre
-        # Selección obsoleta (desactivado / eliminado del catálogo activo).
         self._responsable_seleccionado = None
         return None, None
 
@@ -428,8 +710,6 @@ class TerminalInventarioPresenter:
         )
 
     def _alertas_vm(self) -> tuple[AlertaVM, ...]:
-        from app.bootstrap import get_container
-
         data = get_container().app_data_store.get()
         items = alert_service.alertas_stock_activas(data)
         out: list[AlertaVM] = []
@@ -496,6 +776,213 @@ class TerminalInventarioPresenter:
                         f"{row['nombre']} · {row['id']} · "
                         f"restante {float(row['restante']):g} {row['unidad']}"
                     ),
+                )
+            )
+        return tuple(out)
+
+    def _mapa_productos(self, data) -> dict[str, object]:
+        return {p.id: p for p in data.productos}
+
+    def _mapa_ubicaciones(self, data) -> dict[str, object]:
+        return {u.id: u for u in (getattr(data, "ubicaciones", None) or [])}
+
+    def _etiqueta_ubicacion(self, data, ubicacion_id: str) -> str:
+        if ubicacion_id == SIN_UBICACION_HISTORICA:
+            return ETIQUETA_SIN_UBICACION_HISTORICA
+        u = self._mapa_ubicaciones(data).get(ubicacion_id)
+        if u is None:
+            return ubicacion_id
+        return getattr(u, "nombre", None) or ubicacion_id
+
+    def _unidad_producto(self, data, producto_id: str) -> str:
+        p = self._mapa_productos(data).get(producto_id)
+        if p is None:
+            return ""
+        u = getattr(p, "unidad", "")
+        return u.value if hasattr(u, "value") else str(u)
+
+    def _ubicaciones_filtro_vm(self, data) -> tuple[TrasladoOpcionVM, ...]:
+        items = [TrasladoOpcionVM("__todas__", "Todas las ubicaciones")]
+        for u in getattr(data, "ubicaciones", None) or []:
+            if getattr(u, "activo", True):
+                items.append(TrasladoOpcionVM(u.id, u.nombre))
+        items.append(
+            TrasladoOpcionVM(SIN_UBICACION_HISTORICA, ETIQUETA_SIN_UBICACION_HISTORICA)
+        )
+        return tuple(items)
+
+    def _stock_filas_vm(self, data) -> tuple[StockSaldoVM, ...]:
+        q = self._stock_busqueda.lower()
+        filtro = self._stock_filtro_ubicacion
+        prods = self._mapa_productos(data)
+        filas: list[StockSaldoVM] = []
+        for lote in data.lotes:
+            if getattr(lote, "anulado", False):
+                continue
+            prod = prods.get(lote.producto_id)
+            nombre = getattr(prod, "nombre", None) or lote.producto_id
+            unidad = self._unidad_producto(data, lote.producto_id)
+            if q and q not in nombre.lower() and q not in lote.id.lower():
+                continue
+            info = saldos_por_ubicacion_lote(data, lote.id)
+            cob = getattr(info.cobertura, "value", str(info.cobertura))
+            cob_lbl = _COBERTURA_ETIQUETA.get(cob, cob)
+            if not info.por_ubicacion:
+                if filtro:
+                    continue
+                # Sin movimientos de ubicación: fila informativa (saldo 0).
+                filas.append(
+                    StockSaldoVM(
+                        producto_id=lote.producto_id,
+                        producto_nombre=nombre,
+                        lote_id=lote.id,
+                        ubicacion_id="",
+                        ubicacion_etiqueta="—",
+                        saldo=0.0,
+                        unidad=unidad,
+                        cobertura=cob_lbl,
+                        es_historico_sin_ubicacion=False,
+                    )
+                )
+                continue
+            for uid, saldo_u in info.por_ubicacion.items():
+                if abs(float(saldo_u.saldo)) < 1e-12:
+                    continue
+                if filtro and uid != filtro:
+                    continue
+                filas.append(
+                    StockSaldoVM(
+                        producto_id=lote.producto_id,
+                        producto_nombre=nombre,
+                        lote_id=lote.id,
+                        ubicacion_id=uid,
+                        ubicacion_etiqueta=self._etiqueta_ubicacion(data, uid),
+                        saldo=float(saldo_u.saldo),
+                        unidad=unidad,
+                        cobertura=cob_lbl,
+                        es_historico_sin_ubicacion=(uid == SIN_UBICACION_HISTORICA),
+                    )
+                )
+        filas.sort(
+            key=lambda r: (
+                r.producto_nombre.lower(),
+                r.lote_id,
+                r.ubicacion_etiqueta.lower(),
+            )
+        )
+        return tuple(filas)
+
+    def _traslado_productos_vm(self, data) -> tuple[TrasladoOpcionVM, ...]:
+        out: list[TrasladoOpcionVM] = []
+        seen: set[str] = set()
+        for lote in data.lotes:
+            if getattr(lote, "anulado", False):
+                continue
+            if lote.producto_id in seen:
+                continue
+            info = saldos_por_ubicacion_lote(data, lote.id)
+            if not any(
+                uid != SIN_UBICACION_HISTORICA and s.saldo > 1e-9
+                for uid, s in info.por_ubicacion.items()
+            ):
+                continue
+            seen.add(lote.producto_id)
+            prod = self._mapa_productos(data).get(lote.producto_id)
+            nombre = getattr(prod, "nombre", None) or lote.producto_id
+            out.append(TrasladoOpcionVM(lote.producto_id, nombre))
+        out.sort(key=lambda o: o.etiqueta.lower())
+        return tuple(out)
+
+    def _traslado_lotes_vm(self, data) -> tuple[TrasladoOpcionVM, ...]:
+        pid = self._traslado_producto_id
+        if not pid:
+            return ()
+        out: list[TrasladoOpcionVM] = []
+        unidad = self._unidad_producto(data, pid)
+        for lote in data.lotes:
+            if lote.producto_id != pid or getattr(lote, "anulado", False):
+                continue
+            info = saldos_por_ubicacion_lote(data, lote.id)
+            disp = sum(
+                s.saldo
+                for uid, s in info.por_ubicacion.items()
+                if uid != SIN_UBICACION_HISTORICA and s.saldo > 1e-9
+            )
+            if disp <= 1e-9:
+                continue
+            out.append(
+                TrasladoOpcionVM(
+                    lote.id,
+                    f"{lote.id} · disponible ubic. {disp:g} {unidad}".strip(),
+                )
+            )
+        return tuple(out)
+
+    def _traslado_origenes_vm(self, data) -> tuple[TrasladoOpcionVM, ...]:
+        lid = self._traslado_lote_id
+        if not lid:
+            return ()
+        info = saldos_por_ubicacion_lote(data, lid)
+        out: list[TrasladoOpcionVM] = []
+        for uid, s in info.por_ubicacion.items():
+            if uid == SIN_UBICACION_HISTORICA or s.saldo <= 1e-9:
+                continue
+            out.append(
+                TrasladoOpcionVM(
+                    uid,
+                    f"{self._etiqueta_ubicacion(data, uid)} · {s.saldo:g}",
+                )
+            )
+        out.sort(key=lambda o: o.etiqueta.lower())
+        return tuple(out)
+
+    def _traslado_destinos_vm(self, data) -> tuple[TrasladoOpcionVM, ...]:
+        origen = self._traslado_origen_id
+        pid = self._traslado_producto_id
+        prod = self._mapa_productos(data).get(pid) if pid else None
+        allowed = list(getattr(prod, "ubicacion_ids", None) or []) if prod else []
+        out: list[TrasladoOpcionVM] = []
+        for u in getattr(data, "ubicaciones", None) or []:
+            if not getattr(u, "activo", True):
+                continue
+            if origen and u.id == origen:
+                continue
+            if allowed and u.id not in allowed:
+                continue
+            out.append(TrasladoOpcionVM(u.id, u.nombre))
+        out.sort(key=lambda o: o.etiqueta.lower())
+        return tuple(out)
+
+    def _traslados_recientes_vm(self, data) -> tuple[TrasladoRecienteVM, ...]:
+        movs = traslado_service.listar_traslados(data)
+        movs_sorted = sorted(
+            movs,
+            key=lambda m: (
+                getattr(m, "fecha", date.min),
+                getattr(m, "id", ""),
+            ),
+            reverse=True,
+        )
+        out: list[TrasladoRecienteVM] = []
+        for m in movs_sorted[:15]:
+            pid = m.producto_id
+            prod = self._mapa_productos(data).get(pid)
+            nombre = getattr(prod, "nombre", None) or pid
+            fecha = m.fecha.isoformat() if getattr(m, "fecha", None) else ""
+            out.append(
+                TrasladoRecienteVM(
+                    traslado_id=m.origen_id or m.id,
+                    producto_nombre=nombre,
+                    lote_id=m.lote_id or "",
+                    origen_etiqueta=self._etiqueta_ubicacion(
+                        data, m.ubicacion_origen_id or ""
+                    ),
+                    destino_etiqueta=self._etiqueta_ubicacion(
+                        data, m.ubicacion_destino_id or ""
+                    ),
+                    cantidad=float(m.cantidad),
+                    unidad=self._unidad_producto(data, pid),
+                    fecha=fecha,
                 )
             )
         return tuple(out)

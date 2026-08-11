@@ -60,6 +60,16 @@ class TerminalInventarioShell:
                 on_confirmar_merma=self._on_confirmar_merma,
                 on_preview_ajuste=self._on_preview_ajuste,
                 on_confirmar_ajuste=self._on_confirmar_ajuste,
+                on_stock_busqueda=self._on_stock_busqueda,
+                on_stock_filtro_ubicacion=self._on_stock_filtro,
+                on_traslado_producto=self._on_tr_producto,
+                on_traslado_lote=self._on_tr_lote,
+                on_traslado_origen=self._on_tr_origen,
+                on_traslado_destino=self._on_tr_destino,
+                on_traslado_cantidad=self._on_tr_cantidad,
+                on_preview_traslado=self._on_tr_preview,
+                on_confirmar_traslado=self._on_tr_confirm,
+                on_cancelar_traslado=self._on_tr_cancel,
                 narrow=narrow,
             )
         self._root.content = content
@@ -107,6 +117,46 @@ class TerminalInventarioShell:
 
     def _on_confirmar_ajuste(self) -> None:
         self.presenter.confirmar_ajuste()
+        self.refresh()
+
+    def _on_stock_busqueda(self, texto: str) -> None:
+        self.presenter.set_stock_busqueda(texto)
+        self.refresh()
+
+    def _on_stock_filtro(self, uid: str | None) -> None:
+        self.presenter.set_stock_filtro_ubicacion(uid)
+        self.refresh()
+
+    def _on_tr_producto(self, pid: str | None) -> None:
+        self.presenter.set_traslado_producto(pid)
+        self.refresh()
+
+    def _on_tr_lote(self, lid: str | None) -> None:
+        self.presenter.set_traslado_lote(lid)
+        self.refresh()
+
+    def _on_tr_origen(self, uid: str | None) -> None:
+        self.presenter.set_traslado_origen(uid)
+        self.refresh()
+
+    def _on_tr_destino(self, uid: str | None) -> None:
+        self.presenter.set_traslado_destino(uid)
+        self.refresh()
+
+    def _on_tr_cantidad(self, cant: str) -> None:
+        self.presenter.set_traslado_cantidad(cant)
+        self.refresh()
+
+    def _on_tr_preview(self) -> None:
+        self.presenter.previsualizar_traslado()
+        self.refresh()
+
+    def _on_tr_confirm(self) -> None:
+        self.presenter.confirmar_traslado()
+        self.refresh()
+
+    def _on_tr_cancel(self) -> None:
+        self.presenter.cancelar_traslado_preview()
         self.refresh()
 
 

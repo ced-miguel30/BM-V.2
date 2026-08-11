@@ -11,7 +11,9 @@ from app.presentation.flet.viewmodels import (
     assert_sin_campos_economicos,
 )
 
-ESPACIOS = ("alertas", "caducidad", "merma", "ajustes")
+ESPACIOS = ("alertas", "caducidad", "merma", "stock", "traslados", "ajustes")
+
+ETIQUETA_SIN_UBICACION_HISTORICA = "Sin ubicación histórica"
 
 
 @dataclass(frozen=True)
@@ -86,6 +88,53 @@ class AjustePreviewVM:
 
 
 @dataclass(frozen=True)
+class StockSaldoVM:
+    producto_id: str
+    producto_nombre: str
+    lote_id: str
+    ubicacion_id: str
+    ubicacion_etiqueta: str
+    saldo: float
+    unidad: str
+    cobertura: str
+    es_historico_sin_ubicacion: bool = False
+
+
+@dataclass(frozen=True)
+class TrasladoOpcionVM:
+    id: str
+    etiqueta: str
+
+
+@dataclass(frozen=True)
+class TrasladoPreviewVM:
+    producto_id: str
+    producto_nombre: str
+    lote_id: str
+    ubicacion_origen_id: str
+    ubicacion_origen_etiqueta: str
+    ubicacion_destino_id: str
+    ubicacion_destino_etiqueta: str
+    cantidad: float
+    disponible_origen: float
+    unidad: str
+    mensaje: str
+    advertencia: str = ""
+
+
+@dataclass(frozen=True)
+class TrasladoRecienteVM:
+    traslado_id: str
+    producto_nombre: str
+    lote_id: str
+    origen_etiqueta: str
+    destino_etiqueta: str
+    cantidad: float
+    unidad: str
+    fecha: str
+
+
+@dataclass(frozen=True)
 class InventarioScreenVM:
     session: SessionVM
     espacios: tuple[EspacioVM, ...]
@@ -102,6 +151,22 @@ class InventarioScreenVM:
     lotes_ajuste: tuple[LoteAjusteVM, ...]
     motivos_ajuste: tuple[str, ...]
     ajuste_preview: AjustePreviewVM | None
+    stock_filas: tuple[StockSaldoVM, ...]
+    stock_busqueda: str
+    stock_filtro_ubicacion: str | None
+    stock_ubicaciones: tuple[TrasladoOpcionVM, ...]
+    traslado_productos: tuple[TrasladoOpcionVM, ...]
+    traslado_lotes: tuple[TrasladoOpcionVM, ...]
+    traslado_origenes: tuple[TrasladoOpcionVM, ...]
+    traslado_destinos: tuple[TrasladoOpcionVM, ...]
+    traslado_producto_id: str | None
+    traslado_lote_id: str | None
+    traslado_origen_id: str | None
+    traslado_destino_id: str | None
+    traslado_cantidad: str
+    traslado_disponible: float | None
+    traslado_preview: TrasladoPreviewVM | None
+    traslados_recientes: tuple[TrasladoRecienteVM, ...]
     feedback: FeedbackVM | None
     confirmando: bool
 

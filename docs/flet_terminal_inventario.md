@@ -4,12 +4,14 @@
 
 Espacios operativos:
 
-1. **Alertas** — listado y cambio de estado  
-2. **Caducidad** — lotes próximos/vencidos → cesta merma (motivo Expiración)  
-3. **Merma** — cesta + confirmación  
-4. **Ajustes** — previsualización + confirmación de cantidad restante  
+1. **Alertas** — listado y cambio de estado
+2. **Caducidad** — lotes próximos/vencidos → cesta merma (motivo Expiración)
+3. **Merma** — cesta + confirmación
+4. **Stock** — consulta de saldos por ubicación / producto / lote (solo lectura; sin economía)
+5. **Traslados** — preview + confirmación entre ubicaciones (servicio 7B.4; un movimiento `traslado`)
+6. **Ajustes** — previsualización + confirmación de cantidad restante
 
-Excluido: traslados, recuentos, stock admin, compras/documentos, dashboard, costes, SQLite, API, `.exe`.
+Excluido: recuentos, anulación de traslados, CRUD de ubicaciones, compras/documentos, dashboard, costes, SQLite, API, `.exe`.
 
 ## Arranque
 
@@ -36,7 +38,7 @@ Alternativa: `BM_FLET_TERMINAL=inventario python -m app.presentation.flet.main`
 ## Arquitectura
 
 ```
-UI Flet Inventario → presenter → alert/caducidad/merma/ajuste services
+UI Flet Inventario → presenter → alert/caducidad/merma/ubicacion_stock/traslado/ajuste services
                    → AppContext / UoW → AppDataStore → JSON
 ```
 
@@ -56,18 +58,18 @@ No importa Streamlit ni `app.pages`. No escribe JSON directamente. No se acopla 
 
 ## Persistencia y reinicio
 
-- Confirmaciones (merma / ajustes / estados de alerta) persisten en el JSON configurado.
+- Confirmaciones (merma / ajustes / traslados / estados de alerta) persisten en el JSON configurado.
 - Cesta de merma no confirmada: memoria de proceso (no sobrevive al cierre).
-- Preview de ajuste: solo en memoria hasta confirmar.
+- Preview de ajuste o traslado: solo en memoria hasta confirmar; se descarta al cambiar de espacio, logout o «Volver al menú».
 
 ## Seguridad económica
 
-Viewmodels sin coste/precio/importe/margen/€. El presenter no llama a `coste_total_cesta_merma` ni expone `precio_total` del preview de ajuste.
+Viewmodels sin coste/precio/importe/margen/€. El presenter no llama a `coste_total_cesta_merma` ni expone `precio_total` / costes del preview de ajuste o traslado.
 
 ## Pruebas
 
 ```bash
-python -m unittest tests.test_b5_terminal_inventario_auth tests.test_flet_terminal_inventario -v
+python -m unittest tests.test_b5_terminal_inventario_auth tests.test_flet_terminal_inventario tests.test_flet_inventario_stock_traslados -v
 python run_tests.py
 python run_browser_tests.py
 ```
