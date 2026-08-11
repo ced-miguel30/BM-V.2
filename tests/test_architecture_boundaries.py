@@ -191,6 +191,44 @@ class TestArchitectureBoundaries(unittest.TestCase):
             self.assertFalse(any("inventario_shell" in i for i in imports))
             self.assertFalse(any("registro_servicio" in i for i in imports))
 
+    def test_flet_launcher_boundaries(self) -> None:
+        flet = APP / "presentation" / "flet"
+        launcher_files = [
+            flet / "launcher_routing.py",
+            flet / "app_shell_launcher.py",
+            flet / "main_launcher.py",
+            flet / "views" / "launcher_view.py",
+        ]
+        for path in launcher_files:
+            if not path.exists():
+                continue
+            imports = _imports_of(path)
+            text = path.read_text(encoding="utf-8")
+            self.assertNotIn("streamlit", imports)
+            self.assertFalse(any(i.startswith("app.pages") for i in imports))
+            self.assertNotIn("save_demo_files", text)
+            # Launcher no implementa reglas de stock/FIFO/coste
+            for forbidden in (
+                "calcular_coste",
+                "planificar_descuento",
+                "registrar_merma",
+                "anadir_a_cesta_merma",
+            ):
+                self.assertNotIn(forbidden, text)
+        # Shells de vertical no importan launcher
+        for name in (
+            "app_shell.py",
+            "app_shell_inventario.py",
+            "app_shell_administracion.py",
+        ):
+            path = flet / name
+            if path.exists():
+                imports = _imports_of(path)
+                self.assertFalse(
+                    any("launcher" in i for i in imports),
+                    msg=name,
+                )
+
 
 if __name__ == "__main__":
     unittest.main()
