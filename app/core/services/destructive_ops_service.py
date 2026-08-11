@@ -28,7 +28,7 @@ from app.core.services.restore_backup_service import (
     inspeccionar_backup,
 )
 from app.core.storage.demo_files import DEMO_FILE, get_demo_file
-from app.core.storage.json_atomic import atomic_write_json
+from app.core.storage.shared_coordinator import coordinated_replace_payload
 from app.data.mock_data import crear_datos_mock
 from app.data.serializers import appdata_to_dict, dict_to_appdata, load_json
 
@@ -154,14 +154,18 @@ def crear_backup_preventivo_pre_reset(
 
 def _escribir_payload_mock(dest: Path, payload: dict) -> None:
     """Punto único de escritura (parcheable en tests de fallo/recuperación)."""
-    atomic_write_json(dest, payload)
+    coordinated_replace_payload(
+        dest, payload, operation="restablecer_mock", timeout=60.0
+    )
 
 
 def _recuperar_desde_pre_reset(pre_path: Path, dest: Path) -> bool:
     try:
         with zipfile.ZipFile(pre_path) as zf:
             pre_payload = json.loads(zf.read(APPDATA_ARCNAME).decode("utf-8"))
-        atomic_write_json(dest, pre_payload)
+        coordinated_replace_payload(
+            dest, pre_payload, operation="restablecer_rollback", timeout=60.0
+        )
         return True
     except Exception:  # noqa: BLE001
         return False

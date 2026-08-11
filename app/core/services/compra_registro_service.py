@@ -682,7 +682,11 @@ def confirmar_compra(
 
     from app.core.models import ArchivoDocumental
     from app.core.storage.archivo_storage import LocalArchivoStorage, PublishBatch
-    from app.core.storage.json_atomic import JsonWriteLock, atomic_write_json
+    from app.core.storage.json_atomic import atomic_write_json
+    from app.core.storage.shared_coordinator import (
+        assert_data_path_usable,
+        shared_write_lock,
+    )
     from app.data.serializers import appdata_to_dict
 
     token = (confirmacion_id or "").strip().lower()
@@ -710,7 +714,8 @@ def confirmar_compra(
     adjuntos_estado = "ok"
 
     try:
-        with JsonWriteLock(path):
+        assert_data_path_usable(path)
+        with shared_write_lock(path, operation="confirmar_compra", timeout=30.0):
             fresh = read_appdata_json(path) if path.exists() else AppData()
             working = copy.deepcopy(fresh)
 
@@ -796,7 +801,9 @@ def confirmar_compra(
                 result.adjuntos_estado = adjuntos_estado
                 return result
 
-            # Persistencia JSON (pasos 10–12) sin re-adquirir lock
+            # Persistencia JSON bajo lock compartido + bump de revisión
+            disk_rev = int(getattr(fresh, "revision", 0) or 0)
+            working.revision = disk_rev + 1
             atomic_write_json(
                 path,
                 appdata_to_dict(working),

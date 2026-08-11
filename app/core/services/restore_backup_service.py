@@ -28,7 +28,11 @@ from app.core.services.backup_service import (
     sha256_bytes,
 )
 from app.core.storage.demo_files import DEMO_FILE, PROJECT_ROOT, get_demo_file
-from app.core.storage.json_atomic import atomic_write_json
+from app.core.storage.shared_coordinator import (
+    SharedPathUnavailable,
+    SharedWriteAborted,
+    coordinated_replace_payload,
+)
 from app.data.serializers import dict_to_appdata, load_json
 from app.data.mock_data import crear_datos_mock
 
@@ -460,10 +464,12 @@ def restaurar_desde_bytes(
             else:
                 restaurados_adj = []
 
-            # JSON atómico al destino
+            # JSON bajo lock compartido + bump de revisión (multi-PC)
             try:
-                atomic_write_json(dest, payload)
-            except Exception as exc:
+                coordinated_replace_payload(
+                    dest, payload, operation="restaurar_backup", timeout=60.0
+                )
+            except (SharedWriteAborted, SharedPathUnavailable, OSError, Exception) as exc:
                 # Intentar recuperar JSON desde preventivo
                 recuperado = False
                 try:
@@ -471,7 +477,12 @@ def restaurar_desde_bytes(
                         pre_payload = json.loads(
                             pz.read(APPDATA_ARCNAME).decode("utf-8")
                         )
-                    atomic_write_json(dest, pre_payload)
+                    coordinated_replace_payload(
+                        dest,
+                        pre_payload,
+                        operation="restaurar_rollback",
+                        timeout=60.0,
+                    )
                     recuperado = True
                 except Exception:  # noqa: BLE001
                     recuperado = False

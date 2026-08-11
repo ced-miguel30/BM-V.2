@@ -377,6 +377,40 @@ class TestSharedStorageCoordinator(unittest.TestCase):
         # Revisión intacta
         self.assertEqual(read_disk_revision(self.json_path), 0)
 
+    def test_transactional_update_bumps_revision(self) -> None:
+        from app.core.services.persistencia_appdata import transactional_update_appdata
+
+        before = read_disk_revision(self.json_path)
+
+        def _mut(data: AppData) -> AppData:
+            data.usuario_actual_id = "tx-bump"
+            return data
+
+        result = transactional_update_appdata(self.json_path, _mut)
+        self.assertEqual(result.state.revision, before + 1)
+        self.assertEqual(read_disk_revision(self.json_path), before + 1)
+        self.assertFalse(lock_path_for(self.json_path).exists())
+        # Peer refresh_if_stale must see the bump
+        store = FileBackedAppDataStore(
+            dict_to_appdata(load_json(self.json_path))
+        )
+        # Simulate stale memory
+        store._data.revision = before  # noqa: SLF001
+        refreshed = store.refresh_if_stale()
+        self.assertEqual(refreshed.revision, before + 1)
+
+    def test_coordinated_replace_bumps_past_incoming(self) -> None:
+        from app.core.storage.shared_coordinator import coordinated_replace_payload
+
+        payload = appdata_to_dict(AppData(revision=0))
+        payload["meta"]["revision"] = 0
+        new_rev = coordinated_replace_payload(
+            self.json_path, payload, operation="test-replace", timeout=10
+        )
+        self.assertGreaterEqual(new_rev, 1)
+        self.assertEqual(read_disk_revision(self.json_path), new_rev)
+        self.assertFalse(lock_path_for(self.json_path).exists())
+
 
 if __name__ == "__main__":
     unittest.main()

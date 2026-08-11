@@ -380,6 +380,111 @@ def read_disk_revision(data_file: Path | str) -> int:
         return 0
 
 
+def _load_appdata_or_empty(data_file: Path) -> AppData:
+    if data_file.is_file():
+        try:
+            return dict_to_appdata(load_json(data_file))
+        except (OSError, json.JSONDecodeError, UnicodeDecodeError) as exc:
+            raise SharedPathUnavailable(
+                f"No se pudo cargar AppData desde {data_file}: {exc}"
+            ) from exc
+    return AppData(revision=0)
+
+
+def _atomic_write_appdata(data_file: Path, data: AppData) -> None:
+    from app.data.serializers import appdata_to_dict, save_json
+
+    save_json(data_file, appdata_to_dict(data))
+
+
+def bump_revision_for_replace(payload: dict[str, Any], data_file: Path | str) -> dict[str, Any]:
+    """Incrementa ``meta.revision`` al sustituir AppData (restore / reset).
+
+    Garantiza que clientes con ``refresh_if_stale`` detecten el cambio aunque
+    el ZIP restaurado traiga una revisión antigua o nula.
+    """
+    path = Path(data_file)
+    try:
+        disk_rev = read_disk_revision(path) if path.is_file() else 0
+    except SharedPathUnavailable:
+        disk_rev = 0
+    data = dict_to_appdata(payload if isinstance(payload, dict) else {})
+    incoming = int(getattr(data, "revision", 0) or 0)
+    data.revision = max(disk_rev, incoming) + 1
+    from app.data.serializers import appdata_to_dict
+
+    return appdata_to_dict(data)
+
+
+def coordinated_replace_payload(
+    data_file: Path | str,
+    payload: dict[str, Any],
+    *,
+    operation: str = "replace",
+    timeout: float = _DEFAULT_TIMEOUT_S,
+) -> int:
+    """Sustituye el JSON bajo lock compartido y revisón incrementada.
+
+    Usado por restauración y operaciones destructivas. Devuelve la nueva revisión.
+    """
+    path = Path(data_file)
+    assert_data_path_usable(path)
+    with shared_write_lock(path, operation=operation, timeout=timeout):
+        bumped = bump_revision_for_replace(payload, path)
+        try:
+            from app.data.serializers import save_json
+
+            save_json(path, bumped)
+        except Exception as exc:  # noqa: BLE001
+            raise SharedWriteAborted(f"Escritura abortada en {path}: {exc}") from exc
+        verified = read_disk_revision(path)
+        expected = int((bumped.get("meta") or {}).get("revision") or 0)
+        if verified != expected:
+            raise SharedWriteAborted(
+                f"Verificación fallida: disco revision={verified}, esperado {expected}"
+            )
+        return verified
+
+
+def coordinated_transactional_update(
+    data_file: Path | str,
+    mutator,
+    *,
+    validate=None,
+    operation: str = "transactional_update",
+    timeout: float = _DEFAULT_TIMEOUT_S,
+) -> AppData:
+    """Lock compartido → leer fresco → mutar → bump revision → escritura atómica.
+
+    Sustituye el antiguo ``JsonWriteLock`` + ``transactional_update`` para
+    mutaciones productivas sobre el JSON compartido.
+    """
+    import copy
+
+    path = Path(data_file)
+    assert_data_path_usable(path)
+    with shared_write_lock(path, operation=operation, timeout=timeout):
+        fresh = _load_appdata_or_empty(path)
+        working = copy.deepcopy(fresh)
+        out = mutator(working)
+        result = working if out is None else out
+        if validate is not None:
+            validate(result)
+        disk_rev = int(getattr(fresh, "revision", 0) or 0)
+        result.revision = disk_rev + 1
+        try:
+            _atomic_write_appdata(path, result)
+        except Exception as exc:  # noqa: BLE001
+            raise SharedWriteAborted(f"Escritura abortada en {path}: {exc}") from exc
+        verified = read_disk_revision(path)
+        if verified != int(result.revision):
+            raise SharedWriteAborted(
+                f"Verificación fallida: disco revision={verified}, "
+                f"esperado {result.revision}"
+            )
+        return result
+
+
 def coordinated_save(
     data: AppData,
     *,
@@ -398,15 +503,7 @@ def coordinated_save(
         data_file, operation=operation, timeout=timeout
     )
     try:
-        if data_file.is_file():
-            try:
-                disk = dict_to_appdata(load_json(data_file))
-            except (OSError, json.JSONDecodeError, UnicodeDecodeError) as exc:
-                raise SharedPathUnavailable(
-                    f"No se pudo cargar AppData desde {data_file}: {exc}"
-                ) from exc
-        else:
-            disk = AppData(revision=0)
+        disk = _load_appdata_or_empty(data_file)
 
         disk_rev = int(getattr(disk, "revision", 0) or 0)
         if expected_revision is not None:

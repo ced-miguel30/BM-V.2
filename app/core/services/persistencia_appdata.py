@@ -1,4 +1,8 @@
-"""Persistencia transaccional de AppData sobre un JSON (capa A2)."""
+"""Persistencia transaccional de AppData sobre un JSON (capa A2).
+
+Todas las mutaciones productivas pasan por el coordinador compartido
+(``.bm_shared.lock`` + ``meta.revision``). No hay fallback local.
+"""
 
 from __future__ import annotations
 
@@ -8,8 +12,14 @@ from pathlib import Path
 from typing import TypeVar
 
 from app.core.models import AppData
-from app.core.storage.json_atomic import TransactionalUpdateResult, transactional_update
-from app.data.serializers import appdata_to_dict, dict_to_appdata
+from app.core.storage.json_atomic import AtomicWriteResult, TransactionalUpdateResult
+from app.core.storage.shared_coordinator import (
+    SharedLockTimeout,
+    SharedPathUnavailable,
+    SharedWriteAborted,
+    coordinated_transactional_update,
+)
+from app.data.serializers import dict_to_appdata
 
 T = TypeVar("T")
 
@@ -26,8 +36,9 @@ def transactional_update_appdata(
     *,
     validate: Callable[[AppData], None] | None = None,
     lock_timeout: float = 30.0,
+    operation: str = "transactional_update",
 ) -> TransactionalUpdateResult:
-    """Lock → leer fresco → deepcopy → mutar → validar → atomic write.
+    """Lock compartido → leer fresco → deepcopy → mutar → validar → atomic write.
 
     Devuelve el nuevo AppData en ``result.state``. No muta instancias previas.
     """
@@ -37,12 +48,27 @@ def transactional_update_appdata(
         out = mutator(working)
         return working if out is None else out
 
-    return transactional_update(
-        destination,
-        mutator=_mutator,
-        reader=read_appdata_json,
-        validate=validate,
-        to_dict=appdata_to_dict,
-        lock_timeout=lock_timeout,
-        default_factory=AppData,
+    try:
+        state = coordinated_transactional_update(
+            destination,
+            _mutator,
+            validate=validate,
+            operation=operation,
+            timeout=lock_timeout,
+        )
+    except SharedLockTimeout as exc:
+        raise TimeoutError(str(exc)) from exc
+    except SharedPathUnavailable:
+        raise
+    except SharedWriteAborted as exc:
+        raise RuntimeError(str(exc)) from exc
+
+    write = AtomicWriteResult(
+        path=destination.resolve(),
+        replaced=True,
+        dir_synced=None,
+        durability_note="shared_coordinator",
+    )
+    return TransactionalUpdateResult(
+        path=destination.resolve(), state=state, write=write
     )

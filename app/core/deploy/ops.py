@@ -15,7 +15,7 @@ from app.core.deploy.config import DeployConfig, DeployConfigError
 from app.core.services import backup_service as bak
 from app.core.services import restore_backup_service as rst
 from app.core.storage.demo_files import DEMO_FILE, get_demo_file, set_demo_file_override
-from app.core.storage.json_atomic import atomic_write_json
+from app.core.storage.shared_coordinator import coordinated_replace_payload
 from app.data.mock_data import crear_datos_mock
 from app.data.serializers import appdata_to_dict, dict_to_appdata, load_json
 
@@ -40,7 +40,12 @@ def seed_productive_if_missing(cfg: DeployConfig) -> Path:
     if cfg.data_file.is_file():
         return cfg.data_file
     data = crear_datos_mock()
-    atomic_write_json(cfg.data_file, appdata_to_dict(data))
+    coordinated_replace_payload(
+        cfg.data_file,
+        appdata_to_dict(data),
+        operation="seed_productive",
+        timeout=30.0,
+    )
     _log.info("seeded_productive path=%s", cfg.data_file)
     return cfg.data_file
 

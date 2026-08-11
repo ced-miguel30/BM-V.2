@@ -54,5 +54,13 @@ canonical repo demo path as a production shared root.
 ## Related modules
 
 - `app/core/storage/shared_coordinator.py`
+  - `coordinated_save` — UoW / `FileBackedAppDataStore.persist`
+  - `coordinated_transactional_update` — compras, anulaciones, migraciones
+  - `coordinated_replace_payload` — restore y zona de peligro
+- `app/core/services/persistencia_appdata.py` (usa el coordinador)
 - `app/core/storage/instance_config.py`
 - `app/core/application/adapters/memory_stores.py` (`FileBackedAppDataStore`)
+
+Legacy `{json}.lock` (`JsonWriteLock`) permanece solo para utilidades de bajo
+nivel / tests A2; **no** debe usarse para mutaciones productivas del AppData
+compartido.
