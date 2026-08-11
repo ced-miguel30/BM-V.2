@@ -16,10 +16,12 @@ import sys
 
 def build_app_handler():
     from app.bootstrap import configure_for_flet
+    from app.core.deploy.runtime import prepare_runtime
     from app.presentation.flet.app_shell_administracion import (
         attach_terminal_administracion,
     )
 
+    prepare_runtime(role="flet_administracion")
     configure_for_flet()
 
     def main(page) -> None:

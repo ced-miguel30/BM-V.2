@@ -22,8 +22,19 @@ import sys
 def build_app_handler():
     """Construye el handler ``main(page)`` (útil en tests/smoke)."""
     from app.bootstrap import configure_for_flet
+    from app.core.deploy.runtime import prepare_runtime
 
     terminal = (os.environ.get("BM_FLET_TERMINAL") or "restaurante").strip().lower()
+    role = {
+        "launcher": "flet_launcher",
+        "menu": "flet_launcher",
+        "inicio": "flet_launcher",
+        "inventario": "flet_inventario",
+        "inventory": "flet_inventario",
+        "administracion": "flet_administracion",
+        "admin": "flet_administracion",
+    }.get(terminal, "flet_restaurante")
+    prepare_runtime(role=role)
     configure_for_flet()
 
     if terminal in ("launcher", "menu", "inicio"):

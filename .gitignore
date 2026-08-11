@@ -19,8 +19,15 @@ tests/browser/_artifacts/
 venv/
 env/
 
+# Deploy local (instancia / config con rutas)
+deploy/config.env
+deploy/local/
+
 # IDE / OS
 .vscode/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Writer locks
+*.bm_writer.lock

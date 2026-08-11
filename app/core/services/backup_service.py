@@ -89,6 +89,13 @@ def _adjuntos_referenciados(data: AppData) -> list[tuple[str, Path, bytes]]:
     return out
 
 
+def _ops_backup_permitido() -> bool:
+    import os
+
+    flag = os.environ.get("BM_DEPLOY_ALLOW_OPS", "").strip().lower()
+    return flag in ("1", "true", "yes", "on")
+
+
 def generar_backup_zip(
     data: AppData,
     *,
@@ -97,11 +104,16 @@ def generar_backup_zip(
 ) -> ResultadoBackup:
     """Genera un ZIP restaurable (schema v2) en memoria."""
     # Preventivos C2/C3: el caso de uso padre ya autorizó; no re-exigir export.
-    if kind not in ("pre_restore", "pre_reset"):
+    # kind=ops: solo scripts de despliegue con BM_DEPLOY_ALLOW_OPS=1.
+    if kind not in ("pre_restore", "pre_reset", "ops"):
         from app.core.auth.permissions import Permiso
         from app.core.auth.usecase_guard import require_usecase
 
         require_usecase(Permiso.EXPORTAR_BACKUP)
+    elif kind == "ops" and not _ops_backup_permitido():
+        raise PermissionError(
+            "Backup ops requiere BM_DEPLOY_ALLOW_OPS=1 (scripts de despliegue)."
+        )
 
     ahora = datetime.now()
     incluidos: list[dict] = []

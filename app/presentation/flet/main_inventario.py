@@ -16,8 +16,10 @@ import sys
 
 def build_app_handler():
     from app.bootstrap import configure_for_flet
+    from app.core.deploy.runtime import prepare_runtime
     from app.presentation.flet.app_shell_inventario import attach_terminal_inventario
 
+    prepare_runtime(role="flet_inventario")
     configure_for_flet()
 
     def main(page) -> None:

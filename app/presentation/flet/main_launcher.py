@@ -19,8 +19,10 @@ import sys
 
 def build_app_handler():
     from app.bootstrap import configure_for_flet
+    from app.core.deploy.runtime import prepare_runtime
     from app.presentation.flet.app_shell_launcher import attach_launcher
 
+    prepare_runtime(role="flet_launcher")
     configure_for_flet()
 
     def main(page) -> None:
