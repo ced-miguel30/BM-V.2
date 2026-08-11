@@ -1,4 +1,5 @@
-"""Presenter Terminal Inventario — orquesta alertas, caducidad, merma, stock, traslados y ajustes.
+"""Presenter Terminal Inventario — orquesta alertas, caducidad, merma, stock,
+traslados, recuentos y ajustes.
 
 Sin cálculos FIFO/stock/coste. Sin información económica en viewmodels.
 """
@@ -25,8 +26,10 @@ from app.core.services import (
     ajuste_service,
     caducidad_service,
     merma_service,
+    recuento_service,
     traslado_service,
 )
+from app.core.models.recuento import EstadoRecuento
 from app.core.services.ubicacion_stock_service import (
     SIN_UBICACION_HISTORICA,
     saldo_en_ubicacion,
@@ -44,6 +47,10 @@ from app.presentation.flet.inventory_viewmodels import (
     LoteCaducidadVM,
     MermaLineaVM,
     MermaOpcionVM,
+    RecuentoLineaVM,
+    RecuentoPendienteVM,
+    RecuentoPreviewVM,
+    RecuentoRecienteVM,
     StockSaldoVM,
     TrasladoOpcionVM,
     TrasladoPreviewVM,
@@ -64,12 +71,14 @@ _ETIQUETAS = {
     "merma": "Merma",
     "stock": "Stock",
     "traslados": "Traslados",
+    "recuentos": "Recuentos",
     "ajustes": "Ajustes",
 }
 
 _IDEMP_AJUSTE = "flet_inv_ajuste"
 _IDEMP_MERMA = "flet_inv_merma"
 _IDEMP_TRASLADO = "flet_inv_traslado"
+_IDEMP_RECUENTO = "flet_inv_recuento"  # solo anti doble clic UI; sin clave de sesión
 
 _COBERTURA_ETIQUETA = {
     "sin_ubicacion_historica": "Sin ubicación histórica",
@@ -96,6 +105,16 @@ class TerminalInventarioPresenter:
         self._traslado_cantidad = ""
         self._traslado_preview: TrasladoPreviewVM | None = None
         self._traslado_draft: dict | None = None
+        self._rc_ubicacion_id: str | None = None
+        self._rc_producto_id: str | None = None
+        self._rc_lote_id: str | None = None
+        self._rc_cantidad = ""
+        self._rc_lineas: list[dict] = []
+        self._rc_preview: RecuentoPreviewVM | None = None
+        self._rc_pendiente_id: str | None = None
+        self._rc_requiere_confirmacion_borrador = False
+        self._rc_aviso_borrador = ""
+        self._rc_motivo: str | None = None
         assert_inventario_sin_economia(
             AlertaVM,
             LoteCaducidadVM,
@@ -104,6 +123,10 @@ class TerminalInventarioPresenter:
             StockSaldoVM,
             TrasladoPreviewVM,
             TrasladoRecienteVM,
+            RecuentoLineaVM,
+            RecuentoPreviewVM,
+            RecuentoPendienteVM,
+            RecuentoRecienteVM,
         )
 
     def entrar(self) -> InventarioScreenVM:
@@ -131,6 +154,8 @@ class TerminalInventarioPresenter:
         self._ajuste_draft = None
         self._responsable_seleccionado = None
         self._limpiar_traslado()
+        # Memoria de recuento; el borrador persistido (si existe) permanece pendiente.
+        self._limpiar_recuento_memoria(conservar_aviso_pendiente=True)
         return self.screen()
 
     def seleccionar_espacio(self, espacio_id: str) -> InventarioScreenVM:
@@ -140,14 +165,19 @@ class TerminalInventarioPresenter:
         if not session_bridge.puede_usar_terminal_inventario():
             self._feedback = map_error_recuperable("Sesión no autorizada.")
             return self.screen()
+        aviso_abandon: FeedbackVM | None = None
         if espacio_id != self._espacio:
             self._responsable_seleccionado = None
             if self._espacio == "traslados":
                 self._limpiar_traslado_preview_only()
+            if self._espacio == "recuentos" and espacio_id != "recuentos":
+                aviso_abandon = self._al_abandonar_recuentos()
         self._espacio = espacio_id
         self._ajuste_preview = None
         self._ajuste_draft = None
-        self._feedback = FeedbackVM(ok=True, mensaje=f"Espacio: {_ETIQUETAS[espacio_id]}")
+        self._feedback = aviso_abandon or FeedbackVM(
+            ok=True, mensaje=f"Espacio: {_ETIQUETAS[espacio_id]}"
+        )
         if espacio_id == "alertas":
             alert_service.sincronizar_alertas()
         return self.screen()
@@ -497,6 +527,436 @@ class TerminalInventarioPresenter:
             self._confirmando = False
         return self.screen()
 
+    # --- Recuentos ----------------------------------------------------------
+
+    def set_recuento_ubicacion(self, ubicacion_id: str | None) -> InventarioScreenVM:
+        if not session_bridge.puede_usar_terminal_inventario():
+            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            return self.screen()
+        uid = (ubicacion_id or "").strip() or None
+        if uid == SIN_UBICACION_HISTORICA:
+            self._feedback = map_error_recuperable(
+                "No se puede contar en «sin ubicación histórica».",
+                codigo="VALIDACION",
+            )
+            return self.screen()
+        self._rc_ubicacion_id = uid
+        self._rc_producto_id = None
+        self._rc_lote_id = None
+        self._rc_cantidad = ""
+        self._rc_lineas = []
+        self._rc_preview = None
+        return self.screen()
+
+    def set_recuento_producto(self, producto_id: str | None) -> InventarioScreenVM:
+        if not session_bridge.puede_usar_terminal_inventario():
+            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            return self.screen()
+        self._rc_producto_id = (producto_id or "").strip() or None
+        self._rc_lote_id = None
+        self._rc_cantidad = ""
+        self._rc_preview = None
+        return self.screen()
+
+    def set_recuento_lote(self, lote_id: str | None) -> InventarioScreenVM:
+        if not session_bridge.puede_usar_terminal_inventario():
+            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            return self.screen()
+        self._rc_lote_id = (lote_id or "").strip() or None
+        self._rc_cantidad = ""
+        self._rc_preview = None
+        return self.screen()
+
+    def set_recuento_cantidad(self, cantidad: str) -> InventarioScreenVM:
+        if not session_bridge.puede_usar_terminal_inventario():
+            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            return self.screen()
+        self._rc_cantidad = (cantidad or "").strip()
+        self._rc_preview = None
+        return self.screen()
+
+    def anadir_linea_recuento(self) -> InventarioScreenVM:
+        if not session_bridge.puede_usar_terminal_inventario():
+            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            return self.screen()
+        if self._rc_pendiente_id and self._rc_requiere_confirmacion_borrador:
+            self._feedback = map_error_recuperable(
+                "Hay un borrador pendiente de confirmación autoritativa.",
+                codigo="VALIDACION",
+            )
+            return self.screen()
+        if not (self._rc_ubicacion_id and self._rc_producto_id and self._rc_lote_id):
+            self._feedback = map_error_recuperable(
+                "Seleccione ubicación, producto y lote.", codigo="VALIDACION"
+            )
+            return self.screen()
+        try:
+            cont = float(self._rc_cantidad or "")
+        except ValueError:
+            self._feedback = map_error_recuperable(
+                "Cantidad contada no válida.", codigo="VALIDACION"
+            )
+            return self.screen()
+        if cont < 0:
+            self._feedback = map_error_recuperable(
+                "No se permiten cantidades negativas.", codigo="VALIDACION"
+            )
+            return self.screen()
+        cont = round(cont, 4)
+        for ln in self._rc_lineas:
+            if ln["lote_id"] == self._rc_lote_id and ln["producto_id"] == self._rc_producto_id:
+                self._feedback = map_error_recuperable(
+                    "Esa combinación producto/lote ya está en el recuento.",
+                    codigo="VALIDACION",
+                )
+                return self.screen()
+        data = get_container().app_data_store.get()
+        lote = next((l for l in data.lotes if l.id == self._rc_lote_id), None)
+        if lote is None or getattr(lote, "anulado", False):
+            self._feedback = map_error_recuperable("Lote inexistente o anulado.")
+            return self.screen()
+        if lote.producto_id != self._rc_producto_id:
+            self._feedback = map_error_recuperable("Producto no coincide con el lote.")
+            return self.screen()
+        esperado = round(saldo_en_ubicacion(data, lote.id, self._rc_ubicacion_id), 4)
+        prod = next((p for p in data.productos if p.id == self._rc_producto_id), None)
+        unidad = self._unidad_producto(data, self._rc_producto_id)
+        nombre = getattr(prod, "nombre", None) or self._rc_producto_id
+        diff = round(cont - esperado, 4)
+        self._rc_lineas.append(
+            {
+                "producto_id": self._rc_producto_id,
+                "producto_nombre": nombre,
+                "lote_id": lote.id,
+                "unidad": unidad,
+                "cantidad_esperada": esperado,
+                "cantidad_contada": cont,
+                "diferencia": diff,
+            }
+        )
+        self._rc_lote_id = None
+        self._rc_cantidad = ""
+        self._rc_preview = None
+        self._feedback = FeedbackVM(ok=True, mensaje="Línea añadida al recuento.")
+        return self.screen()
+
+    def quitar_linea_recuento(self, lote_id: str) -> InventarioScreenVM:
+        if not session_bridge.puede_usar_terminal_inventario():
+            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            return self.screen()
+        self._rc_lineas = [ln for ln in self._rc_lineas if ln["lote_id"] != lote_id]
+        self._rc_preview = None
+        return self.screen()
+
+    def previsualizar_recuento(self) -> InventarioScreenVM:
+        """Preview orientativo en memoria. No llama a crear_borrador."""
+        if not session_bridge.puede_usar_terminal_inventario():
+            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            return self.screen()
+        if self._rc_pendiente_id and self._rc_requiere_confirmacion_borrador:
+            self._feedback = map_error_recuperable(
+                "Confirme o descarte el borrador autoritativo pendiente."
+            )
+            return self.screen()
+        if not self._rc_ubicacion_id or not self._rc_lineas:
+            self._feedback = map_error_recuperable(
+                "Añada al menos una línea de recuento.", codigo="VALIDACION"
+            )
+            return self.screen()
+        data = get_container().app_data_store.get()
+        lineas_vm = tuple(self._linea_vm_from_dict(ln) for ln in self._rc_lineas)
+        self._rc_preview = RecuentoPreviewVM(
+            ubicacion_id=self._rc_ubicacion_id,
+            ubicacion_etiqueta=self._etiqueta_ubicacion(data, self._rc_ubicacion_id),
+            lineas=lineas_vm,
+            mensaje=(
+                "Preview en memoria (orientativo). No reserva stock ni crea borrador. "
+                "El dominio congelará el esperado al crear el borrador."
+            ),
+            en_memoria=True,
+        )
+        assert_inventario_sin_economia(self._rc_preview)
+        self._feedback = FeedbackVM(
+            ok=True, mensaje="Revise el resumen y confirme el recuento."
+        )
+        return self.screen()
+
+    def cancelar_recuento_memoria(self) -> InventarioScreenVM:
+        if self._rc_pendiente_id:
+            self._feedback = map_error_recuperable(
+                f"Hay un borrador persistido ({self._rc_pendiente_id}). "
+                "Confírmelo, descarte expresamente o abandone dejando el pendiente."
+            )
+            return self.screen()
+        self._limpiar_recuento_memoria()
+        self._feedback = FeedbackVM(ok=True, mensaje="Recuento en memoria cancelado.")
+        return self.screen()
+
+    def confirmar_recuento(self, *, fecha: date | None = None) -> InventarioScreenVM:
+        if self._confirmando:
+            self._feedback = map_error_recuperable(
+                "Confirmación en curso.", codigo="CONFIRMANDO"
+            )
+            return self.screen()
+        if not session_bridge.puede_usar_terminal_inventario():
+            self._feedback = map_error_recuperable(
+                "Sesión no autorizada.", codigo="DENEGADO"
+            )
+            return self.screen()
+        if self._rc_requiere_confirmacion_borrador and self._rc_pendiente_id:
+            return self.confirmar_borrador_pendiente(fecha=fecha)
+        if not self._rc_preview or not self._rc_preview.en_memoria:
+            self._feedback = map_error_recuperable(
+                "Genere primero el preview en memoria."
+            )
+            return self.screen()
+        if not self._rc_lineas or not self._rc_ubicacion_id:
+            self._feedback = map_error_recuperable("No hay líneas para confirmar.")
+            return self.screen()
+
+        self._confirmando = True
+        try:
+            _ = current_idempotency_token(_IDEMP_RECUENTO)
+            lineas_tuple = [
+                (ln["lote_id"], ln["producto_id"], float(ln["cantidad_contada"]))
+                for ln in self._rc_lineas
+            ]
+            creado = recuento_service.crear_borrador(
+                ubicacion_id=self._rc_ubicacion_id,
+                lineas=lineas_tuple,
+                fecha=fecha or date.today(),
+                motivo=self._rc_motivo,
+            )
+            if not creado.ok or creado.sesion is None:
+                self._feedback = map_resultado(False, creado.mensaje)
+                return self.screen()
+
+            self._rc_pendiente_id = creado.sesion.id
+            if self._esperados_distintos(creado.sesion):
+                self._cargar_preview_desde_sesion(creado.sesion, en_memoria=False)
+                self._rc_requiere_confirmacion_borrador = True
+                self._rc_aviso_borrador = (
+                    f"Borrador {creado.sesion.id} creado. El esperado del dominio "
+                    "difiere del preview en memoria. Revise los valores autoritativos "
+                    "y confirme de nuevo (aún no se ha ajustado el stock)."
+                )
+                self._feedback = map_error_recuperable(self._rc_aviso_borrador)
+                return self.screen()
+
+            conf = recuento_service.confirmar_recuento(recuento_id=creado.sesion.id)
+            if conf.ok:
+                rotate_idempotency_token(_IDEMP_RECUENTO)
+                self._limpiar_recuento_memoria()
+                self._feedback = map_resultado(True, conf.mensaje)
+            else:
+                self._rc_aviso_borrador = (
+                    f"Confirmación fallida. Stock no ajustado. "
+                    f"Borrador {creado.sesion.id} sigue pendiente: puede reintentar "
+                    "o descartarlo expresamente."
+                )
+                self._feedback = map_resultado(False, f"{conf.mensaje} — {self._rc_aviso_borrador}")
+        finally:
+            self._confirmando = False
+        return self.screen()
+
+    def confirmar_borrador_pendiente(
+        self, *, fecha: date | None = None
+    ) -> InventarioScreenVM:
+        """Confirma un borrador ya persistido (reintento o tras preview obsoleto)."""
+        if self._confirmando:
+            self._feedback = map_error_recuperable(
+                "Confirmación en curso.", codigo="CONFIRMANDO"
+            )
+            return self.screen()
+        if not session_bridge.puede_usar_terminal_inventario():
+            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            return self.screen()
+        rid = self._rc_pendiente_id
+        if not rid:
+            self._feedback = map_error_recuperable("No hay borrador seleccionado.")
+            return self.screen()
+        self._confirmando = True
+        try:
+            _ = current_idempotency_token(_IDEMP_RECUENTO)
+            conf = recuento_service.confirmar_recuento(recuento_id=rid)
+            if conf.ok:
+                rotate_idempotency_token(_IDEMP_RECUENTO)
+                self._limpiar_recuento_memoria()
+                self._feedback = map_resultado(True, conf.mensaje)
+            else:
+                self._rc_aviso_borrador = (
+                    f"Confirmación fallida. Borrador {rid} sigue pendiente."
+                )
+                self._feedback = map_resultado(False, f"{conf.mensaje} — {self._rc_aviso_borrador}")
+        finally:
+            self._confirmando = False
+        return self.screen()
+
+    def descartar_borrador_pendiente(self) -> InventarioScreenVM:
+        """Anula solo BORRADOR del flujo actual (no confirmados)."""
+        if self._confirmando:
+            self._feedback = map_error_recuperable(
+                "Operación en curso.", codigo="CONFIRMANDO"
+            )
+            return self.screen()
+        if not session_bridge.puede_usar_terminal_inventario():
+            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            return self.screen()
+        rid = self._rc_pendiente_id
+        if not rid:
+            self._feedback = map_error_recuperable("No hay borrador que descartar.")
+            return self.screen()
+        self._confirmando = True
+        try:
+            an = recuento_service.anular_recuento(recuento_id=rid)
+            if an.ok:
+                self._limpiar_recuento_memoria()
+                self._feedback = map_resultado(True, an.mensaje)
+            else:
+                self._rc_aviso_borrador = (
+                    f"No se pudo descartar el borrador {rid}. Sigue pendiente."
+                )
+                self._feedback = map_resultado(False, f"{an.mensaje} — {self._rc_aviso_borrador}")
+        finally:
+            self._confirmando = False
+        return self.screen()
+
+    def seleccionar_borrador_pendiente(self, recuento_id: str) -> InventarioScreenVM:
+        if not session_bridge.puede_usar_terminal_inventario():
+            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            return self.screen()
+        data = get_container().app_data_store.get()
+        sesion = next(
+            (
+                r
+                for r in recuento_service.listar_recuentos_pendientes(data)
+                if r.id == recuento_id
+            ),
+            None,
+        )
+        if sesion is None:
+            self._feedback = map_error_recuperable("Borrador no encontrado.")
+            return self.screen()
+        self._cargar_preview_desde_sesion(sesion, en_memoria=False)
+        self._rc_pendiente_id = sesion.id
+        self._rc_requiere_confirmacion_borrador = True
+        self._rc_aviso_borrador = (
+            f"Borrador {sesion.id} cargado. Confirme o descarte expresamente."
+        )
+        self._feedback = FeedbackVM(ok=True, mensaje=self._rc_aviso_borrador)
+        return self.screen()
+
+    def abandonar_recuento_dejando_pendiente(self) -> InventarioScreenVM:
+        """Limpia UI dejando el borrador en pendientes (sin anular)."""
+        rid = self._rc_pendiente_id
+        self._limpiar_recuento_memoria()
+        if rid:
+            self._rc_aviso_borrador = (
+                f"Se abandonó el formulario. El borrador {rid} sigue en Pendientes."
+            )
+            self._feedback = FeedbackVM(ok=True, mensaje=self._rc_aviso_borrador)
+        else:
+            self._feedback = FeedbackVM(ok=True, mensaje="Formulario de recuento limpio.")
+        return self.screen()
+
+    def preparar_salida(self) -> None:
+        """Antes de Volver al menú: limpia memoria; no confirma ni anula borradores."""
+        self._limpiar_traslado()
+        self._al_abandonar_recuentos()
+        self._ajuste_preview = None
+        self._ajuste_draft = None
+        self._confirmando = False
+
+    def _al_abandonar_recuentos(self) -> FeedbackVM | None:
+        if self._rc_pendiente_id:
+            rid = self._rc_pendiente_id
+            self._limpiar_recuento_memoria()
+            msg = (
+                f"Borrador {rid} permanece pendiente (no se confirmó ni anuló). "
+                "Disponible en Pendientes."
+            )
+            self._rc_aviso_borrador = msg
+            return FeedbackVM(ok=True, mensaje=msg)
+        self._limpiar_recuento_memoria()
+        return None
+
+    def _limpiar_recuento_memoria(self, *, conservar_aviso_pendiente: bool = False) -> None:
+        aviso = ""
+        if conservar_aviso_pendiente and self._rc_pendiente_id:
+            aviso = (
+                f"Borrador {self._rc_pendiente_id} sigue pendiente "
+                "(no se confirmó ni anuló al cerrar sesión)."
+            )
+        self._rc_ubicacion_id = None
+        self._rc_producto_id = None
+        self._rc_lote_id = None
+        self._rc_cantidad = ""
+        self._rc_lineas = []
+        self._rc_preview = None
+        self._rc_pendiente_id = None
+        self._rc_requiere_confirmacion_borrador = False
+        self._rc_aviso_borrador = aviso
+        self._rc_motivo = None
+
+    def _esperados_distintos(self, sesion) -> bool:
+        mem = {ln["lote_id"]: round(float(ln["cantidad_esperada"]), 4) for ln in self._rc_lineas}
+        for ln in sesion.lineas:
+            esp = round(float(ln.cantidad_esperada), 4)
+            if ln.lote_id not in mem or abs(mem[ln.lote_id] - esp) > 1e-9:
+                return True
+        return len(mem) != len(sesion.lineas)
+
+    def _cargar_preview_desde_sesion(self, sesion, *, en_memoria: bool) -> None:
+        data = get_container().app_data_store.get()
+        self._rc_ubicacion_id = sesion.ubicacion_id
+        self._rc_lineas = []
+        for ln in sesion.lineas:
+            self._rc_lineas.append(
+                {
+                    "producto_id": ln.producto_id,
+                    "producto_nombre": ln.producto_nombre_snapshot or ln.producto_id,
+                    "lote_id": ln.lote_id,
+                    "unidad": ln.unidad_snapshot or self._unidad_producto(data, ln.producto_id),
+                    "cantidad_esperada": float(ln.cantidad_esperada),
+                    "cantidad_contada": float(ln.cantidad_contada),
+                    "diferencia": float(ln.diferencia),
+                }
+            )
+        textos = recuento_service.preview_confirmacion(sesion)
+        self._rc_preview = RecuentoPreviewVM(
+            ubicacion_id=sesion.ubicacion_id,
+            ubicacion_etiqueta=self._etiqueta_ubicacion(data, sesion.ubicacion_id),
+            lineas=tuple(self._linea_vm_from_dict(ln) for ln in self._rc_lineas),
+            mensaje=" | ".join(textos),
+            en_memoria=en_memoria,
+        )
+
+    def _linea_vm_from_dict(self, ln: dict) -> RecuentoLineaVM:
+        diff = float(ln["diferencia"])
+        if abs(diff) < 1e-9:
+            efecto = "sin_cambio"
+        elif diff > 0:
+            efecto = "entrada"
+        else:
+            efecto = "salida"
+        return RecuentoLineaVM(
+            producto_id=ln["producto_id"],
+            producto_nombre=ln["producto_nombre"],
+            lote_id=ln["lote_id"],
+            unidad=ln["unidad"],
+            cantidad_esperada=float(ln["cantidad_esperada"]),
+            cantidad_contada=float(ln["cantidad_contada"]),
+            diferencia=diff,
+            efecto=efecto,
+        )
+
+    def _efecto_label(self, efecto: str) -> str:
+        return {
+            "sin_cambio": "Sin cambio",
+            "entrada": "Ajuste entrada",
+            "salida": "Ajuste salida",
+        }.get(efecto, efecto)
+
     # --- Ajustes ------------------------------------------------------------
 
     def previsualizar_ajuste(
@@ -600,6 +1060,14 @@ class TerminalInventarioPresenter:
         tr_dest: tuple[TrasladoOpcionVM, ...] = ()
         tr_disp: float | None = None
         tr_recientes: tuple[TrasladoRecienteVM, ...] = ()
+        rc_ubis: tuple[TrasladoOpcionVM, ...] = ()
+        rc_prods: tuple[TrasladoOpcionVM, ...] = ()
+        rc_lotes: tuple[TrasladoOpcionVM, ...] = ()
+        rc_esp: float | None = None
+        rc_unidad = ""
+        rc_lineas: tuple[RecuentoLineaVM, ...] = ()
+        rc_pend: tuple[RecuentoPendienteVM, ...] = ()
+        rc_rec: tuple[RecuentoRecienteVM, ...] = ()
         if session.authenticated:
             data = get_container().app_data_store.get()
             if self._espacio == "alertas":
@@ -625,6 +1093,19 @@ class TerminalInventarioPresenter:
                         data, self._traslado_lote_id, self._traslado_origen_id
                     )
                 tr_recientes = self._traslados_recientes_vm(data)
+            if self._espacio == "recuentos":
+                rc_ubis = self._recuento_ubicaciones_vm(data)
+                rc_prods = self._recuento_productos_vm(data)
+                rc_lotes = self._recuento_lotes_vm(data)
+                if self._rc_lote_id and self._rc_ubicacion_id:
+                    rc_esp = saldo_en_ubicacion(
+                        data, self._rc_lote_id, self._rc_ubicacion_id
+                    )
+                if self._rc_producto_id:
+                    rc_unidad = self._unidad_producto(data, self._rc_producto_id)
+                rc_lineas = tuple(self._linea_vm_from_dict(ln) for ln in self._rc_lineas)
+                rc_pend = self._recuentos_pendientes_vm(data)
+                rc_rec = self._recuentos_recientes_vm(data)
         vm = InventarioScreenVM(
             session=session,
             espacios=espacios,
@@ -662,6 +1143,22 @@ class TerminalInventarioPresenter:
             traslado_disponible=tr_disp,
             traslado_preview=self._traslado_preview,
             traslados_recientes=tr_recientes,
+            recuento_ubicaciones=rc_ubis,
+            recuento_productos=rc_prods,
+            recuento_lotes=rc_lotes,
+            recuento_ubicacion_id=self._rc_ubicacion_id,
+            recuento_producto_id=self._rc_producto_id,
+            recuento_lote_id=self._rc_lote_id,
+            recuento_esperado=rc_esp,
+            recuento_cantidad=self._rc_cantidad,
+            recuento_unidad=rc_unidad,
+            recuento_lineas=rc_lineas,
+            recuento_preview=self._rc_preview,
+            recuento_pendiente_id=self._rc_pendiente_id,
+            recuento_requiere_confirmacion_borrador=self._rc_requiere_confirmacion_borrador,
+            recuento_aviso_borrador=self._rc_aviso_borrador,
+            recuentos_pendientes=rc_pend,
+            recuentos_recientes=rc_rec,
             feedback=self._feedback,
             confirmando=self._confirmando,
         )
@@ -983,6 +1480,97 @@ class TerminalInventarioPresenter:
                     cantidad=float(m.cantidad),
                     unidad=self._unidad_producto(data, pid),
                     fecha=fecha,
+                )
+            )
+        return tuple(out)
+
+    def _recuento_ubicaciones_vm(self, data) -> tuple[TrasladoOpcionVM, ...]:
+        out: list[TrasladoOpcionVM] = []
+        for u in getattr(data, "ubicaciones", None) or []:
+            if getattr(u, "activo", True):
+                out.append(TrasladoOpcionVM(u.id, u.nombre))
+        out.sort(key=lambda o: o.etiqueta.lower())
+        return tuple(out)
+
+    def _recuento_productos_vm(self, data) -> tuple[TrasladoOpcionVM, ...]:
+        """Productos con al menos un lote no anulado (no se ofrecen sin lote)."""
+        if not self._rc_ubicacion_id:
+            return ()
+        out: list[TrasladoOpcionVM] = []
+        seen: set[str] = set()
+        for lote in data.lotes:
+            if getattr(lote, "anulado", False):
+                continue
+            if lote.producto_id in seen:
+                continue
+            seen.add(lote.producto_id)
+            prod = self._mapa_productos(data).get(lote.producto_id)
+            nombre = getattr(prod, "nombre", None) or lote.producto_id
+            out.append(TrasladoOpcionVM(lote.producto_id, nombre))
+        out.sort(key=lambda o: o.etiqueta.lower())
+        return tuple(out)
+
+    def _recuento_lotes_vm(self, data) -> tuple[TrasladoOpcionVM, ...]:
+        pid = self._rc_producto_id
+        uid = self._rc_ubicacion_id
+        if not pid or not uid:
+            return ()
+        unidad = self._unidad_producto(data, pid)
+        out: list[TrasladoOpcionVM] = []
+        for lote in data.lotes:
+            if lote.producto_id != pid or getattr(lote, "anulado", False):
+                continue
+            esp = saldo_en_ubicacion(data, lote.id, uid)
+            out.append(
+                TrasladoOpcionVM(
+                    lote.id,
+                    f"{lote.id} · esperado {esp:g} {unidad}".strip(),
+                )
+            )
+        return tuple(out)
+
+    def _recuentos_pendientes_vm(self, data) -> tuple[RecuentoPendienteVM, ...]:
+        out: list[RecuentoPendienteVM] = []
+        for s in recuento_service.listar_recuentos_pendientes(data):
+            n = len(s.lineas)
+            fecha = s.fecha.isoformat() if getattr(s, "fecha", None) else ""
+            out.append(
+                RecuentoPendienteVM(
+                    recuento_id=s.id,
+                    ubicacion_id=s.ubicacion_id,
+                    ubicacion_etiqueta=self._etiqueta_ubicacion(data, s.ubicacion_id),
+                    resumen=f"{n} línea(s)",
+                    fecha=fecha,
+                )
+            )
+        return tuple(out)
+
+    def _recuentos_recientes_vm(self, data) -> tuple[RecuentoRecienteVM, ...]:
+        items = [
+            r
+            for r in (getattr(data, "recuentos", None) or [])
+            if (r.estado.value if hasattr(r.estado, "value") else str(r.estado))
+            == EstadoRecuento.CONFIRMADO.value
+        ]
+        items.sort(
+            key=lambda r: (
+                getattr(r, "fecha", date.min) or date.min,
+                getattr(r, "id", ""),
+            ),
+            reverse=True,
+        )
+        out: list[RecuentoRecienteVM] = []
+        for s in items[:15]:
+            n = len(s.lineas)
+            fecha = s.fecha.isoformat() if getattr(s, "fecha", None) else ""
+            est = s.estado.value if hasattr(s.estado, "value") else str(s.estado)
+            out.append(
+                RecuentoRecienteVM(
+                    recuento_id=s.id,
+                    ubicacion_etiqueta=self._etiqueta_ubicacion(data, s.ubicacion_id),
+                    resumen=f"{n} línea(s)",
+                    fecha=fecha,
+                    estado=est,
                 )
             )
         return tuple(out)

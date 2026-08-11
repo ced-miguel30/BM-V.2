@@ -41,17 +41,20 @@ class TerminalInventarioShell:
     def refresh(self) -> None:
         screen = self.presenter.screen()
         narrow = (self.page.width or 900) < 720
+        on_volver = (
+            self._on_volver_wrapped if self._on_volver_al_menu is not None else None
+        )
         if not screen.session.authenticated:
             content = build_login_inventario(
                 on_enter=self._on_enter,
-                on_volver_menu=self._on_volver_al_menu,
+                on_volver_menu=on_volver,
             )
         else:
             content = build_inventario_shell(
                 screen,
                 on_espacio=self._on_espacio,
                 on_logout=self._on_logout,
-                on_volver_menu=self._on_volver_al_menu,
+                on_volver_menu=on_volver,
                 on_alerta_estado=self._on_alerta,
                 on_caducidad_a_merma=self._on_caducidad,
                 on_anadir_merma=self._on_anadir_merma,
@@ -70,6 +73,18 @@ class TerminalInventarioShell:
                 on_preview_traslado=self._on_tr_preview,
                 on_confirmar_traslado=self._on_tr_confirm,
                 on_cancelar_traslado=self._on_tr_cancel,
+                on_recuento_ubicacion=self._on_rc_ubicacion,
+                on_recuento_producto=self._on_rc_producto,
+                on_recuento_lote=self._on_rc_lote,
+                on_recuento_cantidad=self._on_rc_cantidad,
+                on_anadir_linea_recuento=self._on_rc_anadir,
+                on_quitar_linea_recuento=self._on_rc_quitar,
+                on_preview_recuento=self._on_rc_preview,
+                on_confirmar_recuento=self._on_rc_confirm,
+                on_cancelar_recuento=self._on_rc_cancel,
+                on_seleccionar_borrador=self._on_rc_sel_borrador,
+                on_descartar_borrador=self._on_rc_descartar,
+                on_abandonar_borrador=self._on_rc_abandonar,
                 narrow=narrow,
             )
         self._root.content = content
@@ -82,6 +97,11 @@ class TerminalInventarioShell:
     def _on_logout(self) -> None:
         self.presenter.logout()
         self.refresh()
+
+    def _on_volver_wrapped(self) -> None:
+        self.presenter.preparar_salida()
+        if self._on_volver_al_menu is not None:
+            self._on_volver_al_menu()
 
     def _on_espacio(self, eid: str) -> None:
         self.presenter.seleccionar_espacio(eid)
@@ -157,6 +177,54 @@ class TerminalInventarioShell:
 
     def _on_tr_cancel(self) -> None:
         self.presenter.cancelar_traslado_preview()
+        self.refresh()
+
+    def _on_rc_ubicacion(self, uid: str | None) -> None:
+        self.presenter.set_recuento_ubicacion(uid)
+        self.refresh()
+
+    def _on_rc_producto(self, pid: str | None) -> None:
+        self.presenter.set_recuento_producto(pid)
+        self.refresh()
+
+    def _on_rc_lote(self, lid: str | None) -> None:
+        self.presenter.set_recuento_lote(lid)
+        self.refresh()
+
+    def _on_rc_cantidad(self, cant: str) -> None:
+        self.presenter.set_recuento_cantidad(cant)
+        self.refresh()
+
+    def _on_rc_anadir(self) -> None:
+        self.presenter.anadir_linea_recuento()
+        self.refresh()
+
+    def _on_rc_quitar(self, lid: str) -> None:
+        self.presenter.quitar_linea_recuento(lid)
+        self.refresh()
+
+    def _on_rc_preview(self) -> None:
+        self.presenter.previsualizar_recuento()
+        self.refresh()
+
+    def _on_rc_confirm(self) -> None:
+        self.presenter.confirmar_recuento()
+        self.refresh()
+
+    def _on_rc_cancel(self) -> None:
+        self.presenter.cancelar_recuento_memoria()
+        self.refresh()
+
+    def _on_rc_sel_borrador(self, rid: str) -> None:
+        self.presenter.seleccionar_borrador_pendiente(rid)
+        self.refresh()
+
+    def _on_rc_descartar(self) -> None:
+        self.presenter.descartar_borrador_pendiente()
+        self.refresh()
+
+    def _on_rc_abandonar(self) -> None:
+        self.presenter.abandonar_recuento_dejando_pendiente()
         self.refresh()
 
 

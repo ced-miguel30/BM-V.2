@@ -30,8 +30,9 @@ Compras/config/gestor/costes siguen denegados por bloqueo de `terminal_id` en se
 Mutación:
 
 - Terminal Restaurante: `desayuno_registro`, `comida/cena/bebida_service.servicio`
-- Terminal Inventario: `alert_service`, `caducidad_service`, `merma_service`, `ajuste_service`, `ubicacion_stock_service` (consulta), `traslado_service` (preview/confirm/listar)
-- Anulaciones / recuentos / compras: existen en núcleo; fuera del shell Flet Inventario actual (anulación de traslados también diferida)
+- Terminal Inventario: `alert_service`, `caducidad_service`, `merma_service`, `ajuste_service`, `ubicacion_stock_service` (consulta), `traslado_service` (preview/confirm/listar), `recuento_service` (crear_borrador / preview_confirmacion / confirmar_recuento / listar_recuentos_pendientes / anular solo BORRADOR desde UI)
+- Anulaciones de traslados / anulación de recuentos **confirmados** / compras: existen en núcleo; fuera del shell Flet Inventario actual
+- Recuentos Flet: preview inicial **solo en memoria** (no llama a `crear_borrador`). Confirmar = `crear_borrador` + comparación de esperado + `confirmar_recuento` (operaciones separadas; sin transacción conjunta). Sin `clave_idempotencia` de sesión; `_confirmando` es anti doble clic local.
 - Continuidad: `backup_service`, `restore_backup_service`
 
 Consulta: analitica/costes/dashboard exigen `CONSULTAR_COSTES`.

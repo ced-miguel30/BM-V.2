@@ -11,7 +11,15 @@ from app.presentation.flet.viewmodels import (
     assert_sin_campos_economicos,
 )
 
-ESPACIOS = ("alertas", "caducidad", "merma", "stock", "traslados", "ajustes")
+ESPACIOS = (
+    "alertas",
+    "caducidad",
+    "merma",
+    "stock",
+    "traslados",
+    "recuentos",
+    "ajustes",
+)
 
 ETIQUETA_SIN_UBICACION_HISTORICA = "Sin ubicación histórica"
 
@@ -135,6 +143,45 @@ class TrasladoRecienteVM:
 
 
 @dataclass(frozen=True)
+class RecuentoLineaVM:
+    producto_id: str
+    producto_nombre: str
+    lote_id: str
+    unidad: str
+    cantidad_esperada: float
+    cantidad_contada: float
+    diferencia: float
+    efecto: str  # sin_cambio | entrada | salida
+
+
+@dataclass(frozen=True)
+class RecuentoPreviewVM:
+    ubicacion_id: str
+    ubicacion_etiqueta: str
+    lineas: tuple[RecuentoLineaVM, ...]
+    mensaje: str
+    en_memoria: bool = True
+
+
+@dataclass(frozen=True)
+class RecuentoPendienteVM:
+    recuento_id: str
+    ubicacion_id: str
+    ubicacion_etiqueta: str
+    resumen: str
+    fecha: str
+
+
+@dataclass(frozen=True)
+class RecuentoRecienteVM:
+    recuento_id: str
+    ubicacion_etiqueta: str
+    resumen: str
+    fecha: str
+    estado: str
+
+
+@dataclass(frozen=True)
 class InventarioScreenVM:
     session: SessionVM
     espacios: tuple[EspacioVM, ...]
@@ -167,6 +214,22 @@ class InventarioScreenVM:
     traslado_disponible: float | None
     traslado_preview: TrasladoPreviewVM | None
     traslados_recientes: tuple[TrasladoRecienteVM, ...]
+    recuento_ubicaciones: tuple[TrasladoOpcionVM, ...]
+    recuento_productos: tuple[TrasladoOpcionVM, ...]
+    recuento_lotes: tuple[TrasladoOpcionVM, ...]
+    recuento_ubicacion_id: str | None
+    recuento_producto_id: str | None
+    recuento_lote_id: str | None
+    recuento_esperado: float | None
+    recuento_cantidad: str
+    recuento_unidad: str
+    recuento_lineas: tuple[RecuentoLineaVM, ...]
+    recuento_preview: RecuentoPreviewVM | None
+    recuento_pendiente_id: str | None
+    recuento_requiere_confirmacion_borrador: bool
+    recuento_aviso_borrador: str
+    recuentos_pendientes: tuple[RecuentoPendienteVM, ...]
+    recuentos_recientes: tuple[RecuentoRecienteVM, ...]
     feedback: FeedbackVM | None
     confirmando: bool
 

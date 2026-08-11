@@ -22,7 +22,8 @@ def build_login_inventario(
     controls: list[ft.Control] = [
         ft.Text("Terminal Inventario", size=36, weight=ft.FontWeight.BOLD),
         ft.Text(
-            "Alertas, caducidad, merma, stock por ubicación, traslados y ajustes.",
+            "Alertas, caducidad, merma, stock por ubicación, traslados, "
+            "recuentos y ajustes.",
             size=16,
             color=ft.Colors.ON_SURFACE_VARIANT,
             text_align=ft.TextAlign.CENTER,
@@ -81,6 +82,18 @@ def build_inventario_shell(
     on_preview_traslado: Callable[[], None] | None = None,
     on_confirmar_traslado: Callable[[], None] | None = None,
     on_cancelar_traslado: Callable[[], None] | None = None,
+    on_recuento_ubicacion: Callable[[str | None], None] | None = None,
+    on_recuento_producto: Callable[[str | None], None] | None = None,
+    on_recuento_lote: Callable[[str | None], None] | None = None,
+    on_recuento_cantidad: Callable[[str], None] | None = None,
+    on_anadir_linea_recuento: Callable[[], None] | None = None,
+    on_quitar_linea_recuento: Callable[[str], None] | None = None,
+    on_preview_recuento: Callable[[], None] | None = None,
+    on_confirmar_recuento: Callable[[], None] | None = None,
+    on_cancelar_recuento: Callable[[], None] | None = None,
+    on_seleccionar_borrador: Callable[[str], None] | None = None,
+    on_descartar_borrador: Callable[[], None] | None = None,
+    on_abandonar_borrador: Callable[[], None] | None = None,
     narrow: bool = False,
 ) -> ft.Control:
     header = ft.Container(
@@ -169,6 +182,22 @@ def build_inventario_shell(
             on_preview=on_preview_traslado or (lambda: None),
             on_confirm=on_confirmar_traslado or (lambda: None),
             on_cancel=on_cancelar_traslado or (lambda: None),
+        )
+    elif screen.espacio_activo == "recuentos":
+        body = _recuentos_body(
+            screen,
+            on_ubicacion=on_recuento_ubicacion or (lambda _u: None),
+            on_producto=on_recuento_producto or (lambda _p: None),
+            on_lote=on_recuento_lote or (lambda _l: None),
+            on_cantidad=on_recuento_cantidad or (lambda _c: None),
+            on_anadir=on_anadir_linea_recuento or (lambda: None),
+            on_quitar=on_quitar_linea_recuento or (lambda _lid: None),
+            on_preview=on_preview_recuento or (lambda: None),
+            on_confirm=on_confirmar_recuento or (lambda: None),
+            on_cancel=on_cancelar_recuento or (lambda: None),
+            on_seleccionar_borrador=on_seleccionar_borrador or (lambda _rid: None),
+            on_descartar=on_descartar_borrador or (lambda: None),
+            on_abandonar=on_abandonar_borrador or (lambda: None),
         )
     else:
         body = _ajustes_body(screen, on_preview_ajuste, on_confirmar_ajuste)
@@ -627,6 +656,281 @@ def _traslados_body(
                 ]
             ),
             *preview_box,
+            ft.Divider(),
+            *recientes,
+        ],
+    )
+
+
+def _efecto_txt(efecto: str) -> str:
+    return {
+        "sin_cambio": "Sin cambio",
+        "entrada": "Entrada (ajuste)",
+        "salida": "Salida (ajuste)",
+    }.get(efecto, efecto)
+
+
+def _recuentos_body(
+    screen: InventarioScreenVM,
+    *,
+    on_ubicacion: Callable[[str | None], None],
+    on_producto: Callable[[str | None], None],
+    on_lote: Callable[[str | None], None],
+    on_cantidad: Callable[[str], None],
+    on_anadir: Callable[[], None],
+    on_quitar: Callable[[str], None],
+    on_preview: Callable[[], None],
+    on_confirm: Callable[[], None],
+    on_cancel: Callable[[], None],
+    on_seleccionar_borrador: Callable[[str], None],
+    on_descartar: Callable[[], None],
+    on_abandonar: Callable[[], None],
+) -> ft.Control:
+    bloqueado = screen.confirmando or screen.recuento_requiere_confirmacion_borrador
+    ubi_dd = ft.Dropdown(
+        label="Ubicación",
+        value=screen.recuento_ubicacion_id,
+        options=[
+            ft.DropdownOption(key=o.id, text=o.etiqueta)
+            for o in screen.recuento_ubicaciones
+        ],
+        on_select=lambda e: on_ubicacion(getattr(e.control, "value", None)),
+        expand=True,
+        disabled=bloqueado,
+    )
+    prod_dd = ft.Dropdown(
+        label="Producto",
+        value=screen.recuento_producto_id,
+        options=[
+            ft.DropdownOption(key=o.id, text=o.etiqueta)
+            for o in screen.recuento_productos
+        ],
+        on_select=lambda e: on_producto(getattr(e.control, "value", None)),
+        expand=True,
+        disabled=bloqueado or not screen.recuento_ubicacion_id,
+    )
+    lote_dd = ft.Dropdown(
+        label="Lote",
+        value=screen.recuento_lote_id,
+        options=[
+            ft.DropdownOption(key=o.id, text=o.etiqueta) for o in screen.recuento_lotes
+        ],
+        on_select=lambda e: on_lote(getattr(e.control, "value", None)),
+        expand=True,
+        disabled=bloqueado or not screen.recuento_producto_id,
+    )
+    qty = ft.TextField(
+        label="Cantidad contada",
+        value=screen.recuento_cantidad,
+        width=160,
+        disabled=bloqueado,
+        on_blur=lambda e: on_cantidad(getattr(e.control, "value", "") or ""),
+    )
+    esp_txt = (
+        f"Esperado: {screen.recuento_esperado:g} {screen.recuento_unidad}".strip()
+        if screen.recuento_esperado is not None
+        else "Esperado: —"
+    )
+
+    lineas_ctrls: list[ft.Control] = [
+        ft.Text("Líneas del recuento", weight=ft.FontWeight.BOLD, size=14)
+    ]
+    if not screen.recuento_lineas:
+        lineas_ctrls.append(
+            ft.Text("Sin líneas.", color=ft.Colors.OUTLINE, size=12, italic=True)
+        )
+    else:
+        for ln in screen.recuento_lineas:
+            lineas_ctrls.append(
+                ft.Row(
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    controls=[
+                        ft.Text(
+                            f"{ln.producto_nombre} · lote {ln.lote_id}: "
+                            f"esp. {ln.cantidad_esperada:g} · cont. {ln.cantidad_contada:g} "
+                            f"{ln.unidad} · Δ {ln.diferencia:+g} · {_efecto_txt(ln.efecto)}",
+                            size=12,
+                            expand=True,
+                        ),
+                        ft.IconButton(
+                            icon=ft.Icons.DELETE_OUTLINE,
+                            disabled=bloqueado,
+                            on_click=lambda _e, lid=ln.lote_id: on_quitar(lid),
+                        ),
+                    ],
+                )
+            )
+
+    aviso: list[ft.Control] = []
+    if screen.recuento_aviso_borrador:
+        aviso.append(
+            ft.Container(
+                bgcolor=ft.Colors.AMBER_50,
+                padding=10,
+                border_radius=8,
+                content=ft.Text(screen.recuento_aviso_borrador, size=13),
+            )
+        )
+    if screen.recuento_pendiente_id:
+        aviso.append(
+            ft.Text(
+                f"Borrador activo: {screen.recuento_pendiente_id}",
+                size=12,
+                weight=ft.FontWeight.BOLD,
+            )
+        )
+
+    preview_box: list[ft.Control] = []
+    if screen.recuento_preview:
+        p = screen.recuento_preview
+        titulo = (
+            "Preview en memoria (orientativo)"
+            if p.en_memoria
+            else "Preview autoritativo del borrador"
+        )
+        filas = [
+            ft.Text(titulo, weight=ft.FontWeight.BOLD),
+            ft.Text(f"Ubicación: {p.ubicacion_etiqueta}"),
+        ]
+        for ln in p.lineas:
+            filas.append(
+                ft.Text(
+                    f"{ln.producto_nombre} · lote {ln.lote_id} · {ln.unidad}: "
+                    f"esperado {ln.cantidad_esperada:g} · contado {ln.cantidad_contada:g} "
+                    f"· Δ {ln.diferencia:+g} · {_efecto_txt(ln.efecto)}",
+                    size=12,
+                )
+            )
+        filas.append(ft.Text(p.mensaje, size=11, color=ft.Colors.ON_SURFACE_VARIANT))
+        preview_box = [
+            ft.Container(
+                bgcolor=ft.Colors.BLUE_50,
+                padding=12,
+                border_radius=8,
+                content=ft.Column(spacing=4, controls=filas),
+            )
+        ]
+
+    acciones: list[ft.Control] = [
+        ft.FilledTonalButton(
+            "Previsualizar",
+            disabled=screen.confirmando or screen.recuento_requiere_confirmacion_borrador,
+            on_click=lambda _e: on_preview(),
+        ),
+        ft.FilledButton(
+            "Confirmar",
+            disabled=screen.confirmando
+            or (
+                screen.recuento_preview is None
+                and not screen.recuento_requiere_confirmacion_borrador
+            ),
+            bgcolor=ft.Colors.ORANGE_800,
+            on_click=lambda _e: on_confirm(),
+        ),
+        ft.TextButton(
+            "Cancelar",
+            disabled=screen.confirmando,
+            on_click=lambda _e: on_cancel(),
+        ),
+    ]
+    if screen.recuento_pendiente_id:
+        acciones.extend(
+            [
+                ft.OutlinedButton(
+                    "Descartar borrador",
+                    disabled=screen.confirmando,
+                    on_click=lambda _e: on_descartar(),
+                ),
+                ft.TextButton(
+                    "Abandonar dejando pendiente",
+                    disabled=screen.confirmando,
+                    on_click=lambda _e: on_abandonar(),
+                ),
+            ]
+        )
+
+    pendientes: list[ft.Control] = [
+        ft.Text("Pendientes (borradores)", weight=ft.FontWeight.BOLD, size=14)
+    ]
+    if not screen.recuentos_pendientes:
+        pendientes.append(
+            ft.Text("Sin borradores pendientes.", color=ft.Colors.OUTLINE, size=12)
+        )
+    else:
+        for b in screen.recuentos_pendientes:
+            pendientes.append(
+                ft.Row(
+                    controls=[
+                        ft.Text(
+                            f"{b.fecha} · {b.recuento_id} · {b.ubicacion_etiqueta} · {b.resumen}",
+                            size=12,
+                            expand=True,
+                        ),
+                        ft.TextButton(
+                            "Cargar",
+                            disabled=screen.confirmando,
+                            on_click=lambda _e, rid=b.recuento_id: on_seleccionar_borrador(
+                                rid
+                            ),
+                        ),
+                    ]
+                )
+            )
+
+    recientes: list[ft.Control] = [
+        ft.Text("Recientes confirmados", weight=ft.FontWeight.BOLD, size=14)
+    ]
+    if not screen.recuentos_recientes:
+        recientes.append(
+            ft.Text("Sin recuentos confirmados.", color=ft.Colors.OUTLINE, size=12)
+        )
+    else:
+        for r in screen.recuentos_recientes:
+            recientes.append(
+                ft.Text(
+                    f"{r.fecha} · {r.recuento_id} · {r.ubicacion_etiqueta} · "
+                    f"{r.resumen} · {r.estado}",
+                    size=12,
+                )
+            )
+
+    def _do_anadir(_e) -> None:
+        on_cantidad(qty.value or "")
+        on_anadir()
+
+    return ft.Column(
+        expand=True,
+        scroll=ft.ScrollMode.AUTO,
+        spacing=10,
+        controls=[
+            ft.Text("Recuento físico por ubicación", weight=ft.FontWeight.BOLD),
+            ft.Text(
+                "Preview en memoria no crea borrador. Confirmar crea borrador y, "
+                "si el esperado no cambió, confirma. No hay transacción conjunta "
+                "crear+confirmar ni idempotencia entre procesos.",
+                size=11,
+                color=ft.Colors.ON_SURFACE_VARIANT,
+            ),
+            *aviso,
+            ubi_dd,
+            prod_dd,
+            lote_dd,
+            ft.Row(
+                controls=[
+                    qty,
+                    ft.Text(esp_txt, size=13),
+                    ft.FilledTonalButton(
+                        "Añadir línea",
+                        disabled=bloqueado,
+                        on_click=_do_anadir,
+                    ),
+                ]
+            ),
+            *lineas_ctrls,
+            ft.Row(wrap=True, controls=acciones),
+            *preview_box,
+            ft.Divider(),
+            *pendientes,
             ft.Divider(),
             *recientes,
         ],

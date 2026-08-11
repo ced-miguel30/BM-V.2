@@ -99,7 +99,7 @@ class TestStockConsulta(_Harness):
     def test_espacios_incluyen_stock_traslados(self) -> None:
         self.assertEqual(
             ESPACIOS,
-            ("alertas", "caducidad", "merma", "stock", "traslados", "ajustes"),
+            ("alertas", "caducidad", "merma", "stock", "traslados", "recuentos", "ajustes"),
         )
         s = self._p().screen()
         ids = [e.id for e in s.espacios]
