@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import flet as ft
 
 from app.presentation.flet.presenters.terminal_inventario_presenter import (
@@ -15,10 +17,15 @@ from app.presentation.flet.views.inventario_shell_view import (
 
 class TerminalInventarioShell:
     def __init__(
-        self, page: ft.Page, presenter: TerminalInventarioPresenter | None = None
+        self,
+        page: ft.Page,
+        presenter: TerminalInventarioPresenter | None = None,
+        *,
+        on_volver_al_menu: Callable[[], None] | None = None,
     ):
         self.page = page
         self.presenter = presenter or TerminalInventarioPresenter()
+        self._on_volver_al_menu = on_volver_al_menu
         self._root = ft.Container(expand=True)
 
     def mount(self) -> None:
@@ -35,12 +42,16 @@ class TerminalInventarioShell:
         screen = self.presenter.screen()
         narrow = (self.page.width or 900) < 720
         if not screen.session.authenticated:
-            content = build_login_inventario(on_enter=self._on_enter)
+            content = build_login_inventario(
+                on_enter=self._on_enter,
+                on_volver_menu=self._on_volver_al_menu,
+            )
         else:
             content = build_inventario_shell(
                 screen,
                 on_espacio=self._on_espacio,
                 on_logout=self._on_logout,
+                on_volver_menu=self._on_volver_al_menu,
                 on_alerta_estado=self._on_alerta,
                 on_caducidad_a_merma=self._on_caducidad,
                 on_anadir_merma=self._on_anadir_merma,

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import flet as ft
 
 from app.presentation.flet.presenters.terminal_administracion_presenter import (
@@ -18,9 +20,12 @@ class TerminalAdministracionShell:
         self,
         page: ft.Page,
         presenter: TerminalAdministracionPresenter | None = None,
+        *,
+        on_volver_al_menu: Callable[[], None] | None = None,
     ):
         self.page = page
         self.presenter = presenter or TerminalAdministracionPresenter()
+        self._on_volver_al_menu = on_volver_al_menu
         self._root = ft.Container(expand=True)
 
     def mount(self) -> None:
@@ -39,11 +44,16 @@ class TerminalAdministracionShell:
             msg = ""
             if screen.feedback and not screen.feedback.ok:
                 msg = screen.feedback.mensaje
-            content = build_login_admin(on_login=self._on_login, feedback_mensaje=msg)
+            content = build_login_admin(
+                on_login=self._on_login,
+                feedback_mensaje=msg,
+                on_volver_menu=self._on_volver_al_menu,
+            )
         else:
             content = build_admin_shell(
                 screen,
                 on_logout=self._on_logout,
+                on_volver_menu=self._on_volver_al_menu,
                 on_filtro=self._on_filtro,
                 on_proponer_crear=self._on_crear,
                 on_proponer_renombrar=self._on_renombrar,

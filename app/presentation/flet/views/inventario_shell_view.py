@@ -8,9 +8,42 @@ import flet as ft
 
 from app.core.models import EstadoAlerta
 from app.presentation.flet.inventory_viewmodels import InventarioScreenVM
+from app.presentation.flet.views.menu_nav import (
+    build_volver_al_menu_button,
+    header_action_row,
+)
 
 
-def build_login_inventario(*, on_enter: Callable[[], None]) -> ft.Control:
+def build_login_inventario(
+    *,
+    on_enter: Callable[[], None],
+    on_volver_menu: Callable[[], None] | None = None,
+) -> ft.Control:
+    controls: list[ft.Control] = [
+        ft.Text("Terminal Inventario", size=36, weight=ft.FontWeight.BOLD),
+        ft.Text(
+            "Alertas, caducidad, merma y ajustes operativos.",
+            size=16,
+            color=ft.Colors.ON_SURFACE_VARIANT,
+            text_align=ft.TextAlign.CENTER,
+        ),
+        ft.FilledButton(
+            "Entrar al terminal",
+            icon=ft.Icons.INVENTORY_2,
+            style=ft.ButtonStyle(padding=20),
+            on_click=lambda _e: on_enter(),
+        ),
+    ]
+    volver = build_volver_al_menu_button(on_volver_menu)
+    if volver is not None:
+        controls.append(volver)
+    controls.append(
+        ft.Text(
+            "Sin costes, compras ni administración.",
+            size=12,
+            color=ft.Colors.OUTLINE,
+        )
+    )
     return ft.Container(
         expand=True,
         alignment=ft.Alignment.CENTER,
@@ -19,26 +52,7 @@ def build_login_inventario(*, on_enter: Callable[[], None]) -> ft.Control:
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             spacing=20,
             tight=True,
-            controls=[
-                ft.Text("Terminal Inventario", size=36, weight=ft.FontWeight.BOLD),
-                ft.Text(
-                    "Alertas, caducidad, merma y ajustes operativos.",
-                    size=16,
-                    color=ft.Colors.ON_SURFACE_VARIANT,
-                    text_align=ft.TextAlign.CENTER,
-                ),
-                ft.FilledButton(
-                    "Entrar al terminal",
-                    icon=ft.Icons.INVENTORY_2,
-                    style=ft.ButtonStyle(padding=20),
-                    on_click=lambda _e: on_enter(),
-                ),
-                ft.Text(
-                    "Sin costes, compras ni administración.",
-                    size=12,
-                    color=ft.Colors.OUTLINE,
-                ),
-            ],
+            controls=controls,
         ),
     )
 
@@ -48,6 +62,7 @@ def build_inventario_shell(
     *,
     on_espacio: Callable[[str], None],
     on_logout: Callable[[], None],
+    on_volver_menu: Callable[[], None] | None = None,
     on_alerta_estado: Callable[[str, str], None],
     on_caducidad_a_merma: Callable[[str, float], None],
     on_anadir_merma: Callable[[str, float, str], None],
@@ -80,11 +95,10 @@ def build_inventario_shell(
                         ),
                     ],
                 ),
-                ft.TextButton(
-                    "Cerrar sesión",
-                    icon=ft.Icons.LOGOUT,
-                    style=ft.ButtonStyle(color=ft.Colors.WHITE),
-                    on_click=lambda _e: on_logout(),
+                header_action_row(
+                    on_logout=on_logout,
+                    on_volver_menu=on_volver_menu,
+                    light=True,
                 ),
             ],
         ),

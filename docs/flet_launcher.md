@@ -40,6 +40,7 @@ python -m app.presentation.flet.main_administracion
 - Muestra tres destinos: Restaurante, Inventario, Administración operativa.
 - **Seleccionar no autentica ni concede permisos**; cada destino conserva su login.
 - Antes de abrir un destino se hace `logout` de cualquier sesión previa (evita reutilizar actor).
+- Desde una vertical abierta vía launcher, **Volver al menú** remonta el launcher en la **misma** Page/proceso: ejecuta logout, limpia la vista y muestra de nuevo los tres destinos. No abre una segunda aplicación.
 - Composition única: `configure_for_flet()`.
 - Indicación: *Configuración y administración completa: aplicación Streamlit.*
 - Comando Streamlit documentado (no se lanza automáticamente): `streamlit run app/main.py`
@@ -54,7 +55,7 @@ python -m app.presentation.flet.main_administracion
 
 ## Limitaciones
 
-- Volver al launcher desde una vertical abierta requiere **reiniciar** la aplicación (ciclo de vida Flet / un solo montaje).
+- Los entrypoints específicos (Restaurante / Inventario / Administración) **no** muestran «Volver al menú»: solo aplica cuando la vertical se montó desde el launcher (callback opcional).
 - No hay dashboard, métricas ni Settings amplio en Flet.
 - Preparación futura a empaquetado: este entrypoint es el candidato a acceso único; **no** se construye `.exe` aquí.
 

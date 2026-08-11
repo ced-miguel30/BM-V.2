@@ -7,12 +7,17 @@ from typing import Callable
 import flet as ft
 
 from app.presentation.flet.admin_viewmodels import AdminScreenVM, ResponsableMermaVM
+from app.presentation.flet.views.menu_nav import (
+    build_volver_al_menu_button,
+    header_action_row,
+)
 
 
 def build_login_admin(
     *,
     on_login: Callable[[str, str], None],
     feedback_mensaje: str = "",
+    on_volver_menu: Callable[[], None] | None = None,
 ) -> ft.Control:
     login_tf = ft.TextField(label="Identificador", autofocus=True, width=320)
     pass_tf = ft.TextField(
@@ -27,6 +32,38 @@ def build_login_admin(
         on_login(login_tf.value or "", pass_tf.value or "")
 
     pass_tf.on_submit = _submit
+    controls: list[ft.Control] = [
+        ft.Text(
+            "Administración operativa",
+            size=32,
+            weight=ft.FontWeight.BOLD,
+        ),
+        ft.Text(
+            "Configuración mínima para las terminales (responsables de merma).",
+            size=14,
+            color=ft.Colors.ON_SURFACE_VARIANT,
+            text_align=ft.TextAlign.CENTER,
+        ),
+        login_tf,
+        pass_tf,
+        ft.FilledButton(
+            "Entrar",
+            icon=ft.Icons.LOGIN,
+            style=ft.ButtonStyle(padding=18),
+            on_click=_submit,
+        ),
+        err,
+    ]
+    volver = build_volver_al_menu_button(on_volver_menu)
+    if volver is not None:
+        controls.append(volver)
+    controls.append(
+        ft.Text(
+            "Sin costes, compras ni zona de peligro.",
+            size=12,
+            color=ft.Colors.OUTLINE,
+        )
+    )
     return ft.Container(
         expand=True,
         alignment=ft.Alignment.CENTER,
@@ -35,33 +72,7 @@ def build_login_admin(
             horizontal_alignment=ft.CrossAxisAlignment.CENTER,
             spacing=16,
             tight=True,
-            controls=[
-                ft.Text(
-                    "Administración operativa",
-                    size=32,
-                    weight=ft.FontWeight.BOLD,
-                ),
-                ft.Text(
-                    "Configuración mínima para las terminales (responsables de merma).",
-                    size=14,
-                    color=ft.Colors.ON_SURFACE_VARIANT,
-                    text_align=ft.TextAlign.CENTER,
-                ),
-                login_tf,
-                pass_tf,
-                ft.FilledButton(
-                    "Entrar",
-                    icon=ft.Icons.LOGIN,
-                    style=ft.ButtonStyle(padding=18),
-                    on_click=_submit,
-                ),
-                err,
-                ft.Text(
-                    "Sin costes, compras ni zona de peligro.",
-                    size=12,
-                    color=ft.Colors.OUTLINE,
-                ),
-            ],
+            controls=controls,
         ),
     )
 
@@ -77,6 +88,7 @@ def build_admin_shell(
     on_proponer_reactivar: Callable[[str], None],
     on_confirmar: Callable[[], None],
     on_cancelar: Callable[[], None],
+    on_volver_menu: Callable[[], None] | None = None,
 ) -> ft.Control:
     header = ft.Container(
         bgcolor=ft.Colors.BLUE_GREY_900,
@@ -100,11 +112,10 @@ def build_admin_shell(
                         ),
                     ],
                 ),
-                ft.TextButton(
-                    "Cerrar sesión",
-                    icon=ft.Icons.LOGOUT,
-                    style=ft.ButtonStyle(color=ft.Colors.WHITE),
-                    on_click=lambda _e: on_logout(),
+                header_action_row(
+                    on_logout=on_logout,
+                    on_volver_menu=on_volver_menu,
+                    light=True,
                 ),
             ],
         ),

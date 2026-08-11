@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import flet as ft
 
 from app.presentation.flet import session_bridge
@@ -24,6 +26,7 @@ class LauncherShell:
         self._cargando = False
         self._error = ""
         self._mounted_destino: str | None = None
+        self._active_shell: object | None = None
 
     def mount(self) -> None:
         page = self.page
@@ -39,13 +42,21 @@ class LauncherShell:
         # Evita reutilizar sesión entre verticales.
         session_bridge.logout_terminal()
         self._mounted_destino = None
+        self._active_shell = None
         self._cargando = False
+        self.page.title = "BM — Launcher Flet"
+        self.page.on_resize = lambda _e: self._safe_refresh()
         self._root.content = build_launcher_view(
             on_select=self._on_select,
             cargando=False,
             error=self._error,
         )
         self.page.update()
+
+    def volver_al_menu(self) -> None:
+        """Transición interna: logout + remonte del launcher (misma Page)."""
+        self._error = ""
+        self.show_launcher()
 
     def _safe_refresh(self) -> None:
         if self._mounted_destino is None and not self._cargando:
@@ -90,21 +101,31 @@ class LauncherShell:
         """Sustituye el contenido del launcher por el shell del destino.
 
         Lazy-import de shells para evitar acoplar verticales entre sí.
+        Pasa callback de retorno sin que las verticales importen este módulo.
         """
+        on_volver: Callable[[], None] = self.volver_al_menu
         if destino == DESTINO_RESTAURANTE:
             from app.presentation.flet.app_shell import TerminalRestauranteShell
 
             self.page.title = "BM — Terminal Restaurante"
-            shell = TerminalRestauranteShell(self.page)
+            shell = TerminalRestauranteShell(
+                self.page, on_volver_al_menu=on_volver
+            )
             shell._root = self._root
+            self._active_shell = shell
+            self.page.on_resize = lambda _e: shell.refresh()
             shell.refresh()
             return
         if destino == DESTINO_INVENTARIO:
             from app.presentation.flet.app_shell_inventario import TerminalInventarioShell
 
             self.page.title = "BM — Terminal Inventario"
-            shell = TerminalInventarioShell(self.page)
+            shell = TerminalInventarioShell(
+                self.page, on_volver_al_menu=on_volver
+            )
             shell._root = self._root
+            self._active_shell = shell
+            self.page.on_resize = lambda _e: shell.refresh()
             shell.refresh()
             return
         if destino == DESTINO_ADMINISTRACION:
@@ -113,8 +134,12 @@ class LauncherShell:
             )
 
             self.page.title = "BM — Administración operativa"
-            shell = TerminalAdministracionShell(self.page)
+            shell = TerminalAdministracionShell(
+                self.page, on_volver_al_menu=on_volver
+            )
             shell._root = self._root
+            self._active_shell = shell
+            self.page.on_resize = lambda _e: shell.refresh()
             shell.refresh()
             return
         raise DestinoDesconocidoError(destino)

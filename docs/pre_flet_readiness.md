@@ -33,6 +33,7 @@ Merma Flet exige responsable **explícito** (sin autofill).
 - Responsable obligatorio en Merma Inventario.
 - Listado Admin legible (contraste / vacío / Activo-Inactivo).
 - Launcher Flet mínimo (**APROBADO** técnica + manual).
+- Volver al launcher desde verticales abiertas vía launcher (misma Page; logout; sin reiniciar proceso).
 
 ### Pueden esperar
 - Branding / tipografía definitiva (las tres superficies Flet).
@@ -41,7 +42,6 @@ Merma Flet exige responsable **explícito** (sin autofill).
 - Traslados / recuentos / stock admin.
 - Empaquetado `.exe` / instalador (**no** construido; P2 en `docs/deploy_local_p2.md`).
 - Resto de Settings Streamlit (usuarios, catálogos, backups UI, zona peligro…).
-- Volver al launcher sin reiniciar el proceso.
 - Piloto físico Windows del despliegue C (checklist P2).
 
 ## Siguiente bloque (recomendado, no iniciado)

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 import flet as ft
 
 from app.presentation.flet.presenters.terminal_restaurante_presenter import (
@@ -15,9 +17,16 @@ from app.presentation.flet.views.registro_servicio_view import (
 
 
 class TerminalRestauranteShell:
-    def __init__(self, page: ft.Page, presenter: TerminalRestaurantePresenter | None = None):
+    def __init__(
+        self,
+        page: ft.Page,
+        presenter: TerminalRestaurantePresenter | None = None,
+        *,
+        on_volver_al_menu: Callable[[], None] | None = None,
+    ):
         self.page = page
         self.presenter = presenter or TerminalRestaurantePresenter()
+        self._on_volver_al_menu = on_volver_al_menu
         self._root = ft.Container(expand=True)
         self._search_field: ft.TextField | None = None
         self._catalog_results: ft.Column | None = None
@@ -41,7 +50,10 @@ class TerminalRestauranteShell:
             self._search_field = None
             self._catalog_results = None
             self._last_refresh_kind = "login"
-            self._root.content = build_login_view(on_enter=self._on_enter)
+            self._root.content = build_login_view(
+                on_enter=self._on_enter,
+                on_volver_menu=self._on_volver_al_menu,
+            )
         else:
             # Nuevo TextField solo en rebuilds mayores (no en búsqueda tipada).
             content, search, catalog = build_registro_view(
@@ -58,6 +70,7 @@ class TerminalRestauranteShell:
                 on_confirm=self._on_confirm,
                 on_huespedes=self._on_huespedes,
                 on_logout=self._on_logout,
+                on_volver_menu=self._on_volver_al_menu,
                 narrow=narrow,
                 search_field=None,
                 catalog_results=None,

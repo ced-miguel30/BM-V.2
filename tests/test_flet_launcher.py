@@ -260,5 +260,135 @@ class TestLauncherArquitectura(_Harness):
         self.assertTrue(page.controls)
 
 
+def _collect_texts(control) -> list[str]:
+    out: list[str] = []
+    if control is None:
+        return out
+    if isinstance(control, str):
+        if control.strip():
+            out.append(control.strip())
+        return out
+    text = getattr(control, "text", None)
+    if isinstance(text, str) and text.strip():
+        out.append(text.strip())
+    if control.__class__.__name__ == "Text":
+        value = getattr(control, "value", None)
+        if isinstance(value, str) and value.strip():
+            out.append(value.strip())
+    content = getattr(control, "content", None)
+    if content is not None:
+        out.extend(_collect_texts(content))
+    controls = getattr(control, "controls", None) or []
+    for c in controls:
+        out.extend(_collect_texts(c))
+    return out
+
+
+def _has_label(control, label: str) -> bool:
+    return any(label == t or label in t for t in _collect_texts(control))
+
+
+class TestVolverAlMenu(_Harness):
+    def _assert_launcher_ui(self, shell: LauncherShell) -> None:
+        self.assertIsNone(shell._mounted_destino)
+        texts = _collect_texts(shell._root.content)
+        joined = " ".join(texts)
+        self.assertIn("Restaurante", joined)
+        self.assertIn("Inventario", joined)
+        self.assertIn("Administración", joined)
+        self.assertIn("Streamlit", joined)
+        self.assertIsNone(_ECON.search(joined))
+        self.assertNotIn("streamlit.runtime", joined.lower())
+
+    def _roundtrip(self, destino: str, authenticate) -> None:
+        page = _FakePage()
+        shell = attach_launcher(page)
+        n_controls = len(page.controls)
+        self._assert_launcher_ui(shell)
+
+        shell._on_select(destino)
+        self.assertEqual(shell._mounted_destino, destino)
+        self.assertIs(shell._root, page.controls[0])
+        active = shell._active_shell
+        self.assertIsNotNone(active)
+        self.assertTrue(_has_label(active._root.content, "Volver al menú"))
+
+        authenticate(active)
+        self.assertTrue(
+            session_bridge.puede_usar_terminal()
+            or session_bridge.puede_usar_terminal_inventario()
+            or session_bridge.puede_usar_administracion()
+        )
+        active.refresh()
+        self.assertTrue(_has_label(active._root.content, "Volver al menú"))
+
+        shell.volver_al_menu()
+        self.assertEqual(len(page.controls), n_controls)
+        self._assert_launcher_ui(shell)
+        sess = get_auth_session()
+        self.assertTrue(sess is None or not sess.authenticated)
+        self.assertFalse(session_bridge.puede_usar_terminal())
+        self.assertFalse(session_bridge.puede_usar_terminal_inventario())
+        self.assertFalse(session_bridge.puede_usar_administracion())
+        self.assertFalse(session_tiene_permiso(Permiso.ACCEDER_CONFIGURACION))
+        self.assertFalse(session_tiene_permiso(Permiso.ACCEDER_INVENTARIO))
+
+        # Reentrar exige auth normal (sin sesión residual)
+        shell._on_select(destino)
+        self.assertEqual(shell._mounted_destino, destino)
+        self.assertFalse(
+            session_bridge.puede_usar_terminal()
+            or session_bridge.puede_usar_terminal_inventario()
+            or session_bridge.puede_usar_administracion()
+        )
+
+    def test_restaurante_volver_launcher(self) -> None:
+        def auth(active) -> None:
+            active.presenter.entrar()
+
+        self._roundtrip(DESTINO_RESTAURANTE, auth)
+
+    def test_inventario_volver_launcher(self) -> None:
+        def auth(active) -> None:
+            active.presenter.entrar()
+
+        self._roundtrip(DESTINO_INVENTARIO, auth)
+
+    def test_administracion_volver_launcher(self) -> None:
+        def auth(active) -> None:
+            active.presenter.login(LOGIN_DIR, PASS_DIR)
+
+        self._roundtrip(DESTINO_ADMINISTRACION, auth)
+
+    def test_volver_ejecuta_logout_explícito(self) -> None:
+        page = _FakePage()
+        shell = attach_launcher(page)
+        shell._on_select(DESTINO_RESTAURANTE)
+        active = shell._active_shell
+        active.presenter.entrar()
+        self.assertTrue(session_bridge.puede_usar_terminal())
+        shell.volver_al_menu()
+        self.assertFalse(session_bridge.puede_usar_terminal())
+        self.assertIsNone(shell._mounted_destino)
+
+    def test_entrypoints_directos_sin_volver_menu(self) -> None:
+        from app.presentation.flet.app_shell import TerminalRestauranteShell
+        from app.presentation.flet.app_shell_administracion import (
+            TerminalAdministracionShell,
+        )
+        from app.presentation.flet.app_shell_inventario import TerminalInventarioShell
+
+        for Shell in (
+            TerminalRestauranteShell,
+            TerminalInventarioShell,
+            TerminalAdministracionShell,
+        ):
+            page = _FakePage()
+            sh = Shell(page)
+            sh.mount()
+            self.assertEqual(len(page.controls), 1)
+            self.assertFalse(_has_label(sh._root.content, "Volver al menú"))
+
+
 if __name__ == "__main__":
     unittest.main()

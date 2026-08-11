@@ -7,6 +7,7 @@ from typing import Callable
 import flet as ft
 
 from app.presentation.flet.viewmodels import CatalogItemVM, TerminalScreenVM
+from app.presentation.flet.views.menu_nav import header_action_row
 
 
 def build_catalog_result_controls(
@@ -43,6 +44,7 @@ def build_registro_view(
     on_confirm: Callable[[], None],
     on_huespedes: Callable[[int], None],
     on_logout: Callable[[], None],
+    on_volver_menu: Callable[[], None] | None = None,
     narrow: bool = False,
     search_field: ft.TextField | None = None,
     catalog_results: ft.Column | None = None,
@@ -77,11 +79,10 @@ def build_registro_view(
                         ),
                     ],
                 ),
-                ft.TextButton(
-                    "Cerrar sesión",
-                    icon=ft.Icons.LOGOUT,
-                    style=ft.ButtonStyle(color=ft.Colors.WHITE),
-                    on_click=lambda _e: on_logout(),
+                header_action_row(
+                    on_logout=on_logout,
+                    on_volver_menu=on_volver_menu,
+                    light=True,
                 ),
             ],
         ),
