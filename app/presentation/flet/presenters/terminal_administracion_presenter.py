@@ -24,6 +24,7 @@ from app.core.models.enums import (
 )
 from app.core.repositories.data_repository import DataRepository
 from app.core.services import (
+    archivo_documental_service,
     caducidad_service,
     catalogo_service,
     compra_registro_service,
@@ -33,6 +34,7 @@ from app.core.services import (
     merma_service,
     proveedor_service,
     receta_service,
+    rectificativa_service,
     settings_service,
     stock_service,
 )
@@ -62,6 +64,7 @@ from app.presentation.flet.admin_viewmodels import (
     ADMIN_SECCIONES,
     ActividadAdminVM,
     AdminScreenVM,
+    ArchivoAdminVM,
     BackupItemVM,
     CatalogoItemVM,
     CompraLineaVM,
@@ -111,6 +114,7 @@ class TerminalAdministracionPresenter:
         self._compra_proveedor_id = ""
         self._compra_referencia = ""
         self._compra_documento_id = ""
+        self._compra_tipo = TipoDocumento.ALBARAN.value
         assert_admin_sin_economia(
             ResponsableMermaVM,
             PendingChangeVM,
@@ -123,6 +127,7 @@ class TerminalAdministracionPresenter:
             ActividadAdminVM,
             DestructivaOpVM,
             DocumentoAdminVM,
+            ArchivoAdminVM,
             AdminScreenVM,
         )
         assert_lote_alta_permite_solo_precio_total()
@@ -647,12 +652,26 @@ class TerminalAdministracionPresenter:
     # ── Compras (borrador → confirmar) ────────────────────────────────────
 
     def set_compra_cabecera(
-        self, proveedor_id: str, referencia: str = ""
+        self, proveedor_id: str, referencia: str = "", tipo: str = ""
     ) -> AdminScreenVM:
         if not self._gate_admin():
             return self.screen()
         self._compra_proveedor_id = (proveedor_id or "").strip()
         self._compra_referencia = (referencia or "").strip()
+        if tipo:
+            self.set_compra_tipo(tipo)
+        return self.screen()
+
+    def set_compra_tipo(self, tipo: str) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        t = (tipo or "").strip().lower()
+        if t not in (TipoDocumento.ALBARAN.value, TipoDocumento.FACTURA.value):
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Tipo debe ser albaran o factura."
+            )
+            return self.screen()
+        self._compra_tipo = t
         return self.screen()
 
     def añadir_linea_compra(
@@ -717,6 +736,7 @@ class TerminalAdministracionPresenter:
         self._compra_proveedor_id = ""
         self._compra_referencia = ""
         self._compra_documento_id = ""
+        self._compra_tipo = TipoDocumento.ALBARAN.value
         self._feedback = FeedbackVM(ok=True, mensaje="Borrador de compra limpiado.")
         return self.screen()
 
@@ -838,7 +858,7 @@ class TerminalAdministracionPresenter:
             )
         return compra_registro_service.guardar_borrador_persistente(
             json_path=get_demo_file(),
-            tipo=TipoDocumento.ALBARAN.value,
+            tipo=self._compra_tipo or TipoDocumento.ALBARAN.value,
             proveedor_id=self._compra_proveedor_id,
             referencia_externa=self._compra_referencia or None,
             lineas=lineas_payload,
@@ -1198,10 +1218,159 @@ class TerminalAdministracionPresenter:
             resumen=f"Anular documento «{etiqueta}». Motivo: {texto}",
             nombre=texto,
             confirmacion=documento_id,
+            documento_id=documento_id,
         )
         self._feedback = FeedbackVM(
             ok=True, mensaje="Confirme la anulación del documento."
         )
+        return self.screen()
+
+    def proponer_rectificativa_economica(
+        self, documento_id: str, motivo: str
+    ) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        texto = (motivo or "").strip()
+        if not texto:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Indique el motivo de la rectificativa."
+            )
+            return self.screen()
+        doc = next((d for d in self.screen().documentos if d.id == documento_id), None)
+        etiqueta = f"{doc.tipo} {doc.referencia or doc.id}" if doc else documento_id
+        self._pending = PendingChangeVM(
+            kind="rectificativa_economica",
+            resumen=(
+                f"Rectificativa económica (sin stock) sobre «{etiqueta}». "
+                f"Motivo: {texto}"
+            ),
+            nombre=texto,
+            documento_id=documento_id,
+            confirmacion=documento_id,
+        )
+        self._feedback = FeedbackVM(
+            ok=True, mensaje="Confirme la rectificativa económica."
+        )
+        return self.screen()
+
+    def proponer_rectificativa_stock(
+        self, documento_id: str, motivo: str
+    ) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        texto = (motivo or "").strip()
+        if not texto:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Indique el motivo de la rectificativa."
+            )
+            return self.screen()
+        doc = next((d for d in self.screen().documentos if d.id == documento_id), None)
+        etiqueta = f"{doc.tipo} {doc.referencia or doc.id}" if doc else documento_id
+        self._pending = PendingChangeVM(
+            kind="rectificativa_stock",
+            resumen=(
+                f"Rectificativa con impacto de stock sobre «{etiqueta}». "
+                f"Motivo: {texto}"
+            ),
+            nombre=texto,
+            documento_id=documento_id,
+            confirmacion=documento_id,
+        )
+        self._feedback = FeedbackVM(
+            ok=True, mensaje="Confirme la rectificativa (revierte stock)."
+        )
+        return self.screen()
+
+    def adjuntar_archivo_documento(
+        self,
+        documento_id: str,
+        nombre_original: str,
+        contenido: bytes,
+        *,
+        mime_type: str | None = None,
+    ) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        did = (documento_id or "").strip()
+        if not did:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Seleccione un documento."
+            )
+            return self.screen()
+        self._mutando = True
+        try:
+            r = archivo_documental_service.registrar_archivo(
+                contenido,
+                nombre_original,
+                mime_type=mime_type,
+                documento_id=did,
+            )
+            if r.ok:
+                get_container().app_data_store.reload_from_disk()
+            self._feedback = map_admin_operacion_feedback(
+                ok=r.ok, mensaje_backend=r.mensaje
+            )
+            self._seccion = "documentos"
+        finally:
+            self._mutando = False
+        return self.screen()
+
+    def adjuntar_archivo_desde_ruta(
+        self, documento_id: str, ruta: str
+    ) -> AdminScreenVM:
+        path = Path((ruta or "").strip())
+        if not path.is_file():
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Ruta de archivo no válida."
+            )
+            return self.screen()
+        try:
+            contenido = path.read_bytes()
+        except OSError as exc:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend=f"No se pudo leer el archivo: {exc}"
+            )
+            return self.screen()
+        return self.adjuntar_archivo_documento(
+            documento_id, path.name, contenido
+        )
+
+    def abrir_adjunto(self, archivo_id: str) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        data = get_container().app_data_store.get()
+        arch = archivo_documental_service.buscar_por_id(data, archivo_id)
+        if arch is None:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Adjunto no encontrado."
+            )
+            return self.screen()
+        path = archivo_documental_service.ruta_absoluta(arch)
+        if not path.is_file():
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend=f"Fichero ausente en disco: {path}"
+            )
+            return self.screen()
+        try:
+            import os
+
+            if os.name == "nt":
+                os.startfile(str(path))  # type: ignore[attr-defined]
+            else:
+                import subprocess
+
+                subprocess.Popen(["xdg-open", str(path)])
+            self._feedback = FeedbackVM(
+                ok=True, mensaje=f"Abriendo adjunto: {path.name}"
+            )
+        except OSError as exc:
+            self._feedback = FeedbackVM(
+                ok=True,
+                mensaje=f"Ruta del adjunto: {path} (no se pudo abrir: {exc})",
+            )
+        self._seccion = "documentos"
         return self.screen()
 
     # ── Confirmación pendiente ────────────────────────────────────────────
@@ -1289,13 +1458,33 @@ class TerminalAdministracionPresenter:
             )
         if pending.kind == "anular_documento":
             r = anul_doc.anular_documento_confirmado(
-                pending.confirmacion,
+                pending.confirmacion or pending.documento_id,
                 motivo=pending.nombre,
                 json_path=get_demo_file(),
             )
             if r.ok:
                 get_container().app_data_store.reload_from_disk()
             return settings_service.ResultadoOperacion(r.ok, r.mensaje)
+        if pending.kind == "rectificativa_economica":
+            r = anul_doc.registrar_rectificativa_economica(
+                documento_rectificado_id=pending.documento_id or pending.confirmacion,
+                motivo=pending.nombre,
+                json_path=get_demo_file(),
+            )
+            if r.ok:
+                get_container().app_data_store.reload_from_disk()
+            return settings_service.ResultadoOperacion(r.ok, r.mensaje)
+        if pending.kind == "rectificativa_stock":
+            crear = rectificativa_service.crear_borrador_rectificativa(
+                pending.documento_id or pending.confirmacion,
+                motivo=pending.nombre,
+            )
+            if not crear.ok or crear.documento is None:
+                return settings_service.ResultadoOperacion(False, crear.mensaje)
+            conf = rectificativa_service.confirmar_rectificativa(crear.documento.id)
+            if conf.ok:
+                get_container().app_data_store.reload_from_disk()
+            return settings_service.ResultadoOperacion(conf.ok, conf.mensaje)
         return None
 
     # ── Screen ────────────────────────────────────────────────────────────
@@ -1311,6 +1500,7 @@ class TerminalAdministracionPresenter:
         usuarios: tuple[UsuarioAdminVM, ...] = ()
         proveedores: tuple[ProveedorAdminVM, ...] = ()
         documentos: tuple[DocumentoAdminVM, ...] = ()
+        archivos: tuple[ArchivoAdminVM, ...] = ()
         backups: tuple[BackupItemVM, ...] = ()
         departamentos: tuple[CatalogoItemVM, ...] = ()
         categorias: tuple[CatalogoItemVM, ...] = ()
@@ -1496,6 +1686,25 @@ class TerminalAdministracionPresenter:
                 )
             documentos = tuple(lista_docs)
 
+            lista_arch: list[ArchivoAdminVM] = []
+            for a in getattr(data, "archivos_documentales", None) or []:
+                if not getattr(a, "activo", True):
+                    continue
+                if self._seccion == "documentos" and q:
+                    blob = f"{a.id} {a.nombre_original} {a.documento_id or ''}".lower()
+                    if q not in blob:
+                        continue
+                lista_arch.append(
+                    ArchivoAdminVM(
+                        id=a.id,
+                        nombre=a.nombre_original or a.id,
+                        documento_id=a.documento_id or "",
+                        activo=bool(a.activo),
+                        tamanio=int(getattr(a, "tamanio_bytes", 0) or 0),
+                    )
+                )
+            archivos = tuple(lista_arch[:100])
+
             departamentos = tuple(
                 CatalogoItemVM(id=d.id, nombre=d.nombre, activo=bool(d.activo))
                 for d in catalogo_service.listar_departamentos(solo_activos=False)
@@ -1563,7 +1772,9 @@ class TerminalAdministracionPresenter:
             compra_proveedor_id=self._compra_proveedor_id if auth else "",
             compra_referencia=self._compra_referencia if auth else "",
             compra_documento_id=self._compra_documento_id if auth else "",
+            compra_tipo=self._compra_tipo if auth else "albaran",
             documentos=documentos,
+            archivos=archivos,
             backups=backups,
             unidades=tuple(u.value for u in UnidadProducto),
             categorias_receta=tuple(c.value for c in CategoriaReceta),

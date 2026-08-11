@@ -95,6 +95,10 @@ class TerminalAdministracionShell:
                 on_ejecutar_destructiva=self._on_ejecutar_destructiva,
                 on_exportar_documentos=self._on_exportar_documentos,
                 on_proponer_anular_documento=self._on_proponer_anular_documento,
+                on_proponer_rectificativa_economica=self._on_proponer_rectificativa_economica,
+                on_proponer_rectificativa_stock=self._on_proponer_rectificativa_stock,
+                on_adjuntar_archivo=self._on_adjuntar_archivo,
+                on_abrir_adjunto=self._on_abrir_adjunto,
                 on_confirmar=self._on_confirmar,
                 on_cancelar=self._on_cancelar,
             )
@@ -263,8 +267,10 @@ class TerminalAdministracionShell:
         self.presenter.proponer_reactivar_proveedor(proveedor_id)
         self.refresh()
 
-    def _on_set_compra_cabecera(self, proveedor_id: str, referencia: str) -> None:
-        self.presenter.set_compra_cabecera(proveedor_id, referencia)
+    def _on_set_compra_cabecera(
+        self, proveedor_id: str, referencia: str, tipo: str = ""
+    ) -> None:
+        self.presenter.set_compra_cabecera(proveedor_id, referencia, tipo)
         self.refresh()
 
     def _on_añadir_linea_compra(
@@ -337,6 +343,26 @@ class TerminalAdministracionShell:
 
     def _on_proponer_anular_documento(self, documento_id: str, motivo: str) -> None:
         self.presenter.proponer_anular_documento(documento_id, motivo)
+        self.refresh()
+
+    def _on_proponer_rectificativa_economica(
+        self, documento_id: str, motivo: str
+    ) -> None:
+        self.presenter.proponer_rectificativa_economica(documento_id, motivo)
+        self.refresh()
+
+    def _on_proponer_rectificativa_stock(
+        self, documento_id: str, motivo: str
+    ) -> None:
+        self.presenter.proponer_rectificativa_stock(documento_id, motivo)
+        self.refresh()
+
+    def _on_adjuntar_archivo(self, documento_id: str, ruta: str) -> None:
+        self.presenter.adjuntar_archivo_desde_ruta(documento_id, ruta)
+        self.refresh()
+
+    def _on_abrir_adjunto(self, archivo_id: str) -> None:
+        self.presenter.abrir_adjunto(archivo_id)
         self.refresh()
 
     def _on_confirmar(self) -> None:

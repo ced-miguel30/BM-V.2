@@ -46,8 +46,8 @@ DESTINOS: tuple[DestinoLauncher, ...] = (
 )
 
 STREAMLIT_ADMIN_HINT = (
-    "Administración operativa: Flet (productos, compras, documentos, backup). "
-    "Streamlit solo para flujos documentales avanzados (facturas/adjuntos/rectificativas)."
+    "Administración operativa en Flet (maestros, compras albarán/factura, "
+    "documentos, adjuntos, rectificativas, backup). Streamlit queda como legado."
 )
 
 

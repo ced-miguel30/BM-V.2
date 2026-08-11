@@ -131,6 +131,15 @@ class DocumentoAdminVM:
 
 
 @dataclass(frozen=True)
+class ArchivoAdminVM:
+    id: str
+    nombre: str
+    documento_id: str = ""
+    activo: bool = True
+    tamanio: int = 0
+
+
+@dataclass(frozen=True)
 class BackupItemVM:
     nombre: str
     ruta: str
@@ -192,6 +201,7 @@ class PendingChangeVM:
     password: str = ""
     login: str = ""
     confirmacion: str = ""
+    documento_id: str = ""
 
 
 @dataclass(frozen=True)
@@ -207,7 +217,9 @@ class AdminScreenVM:
     compra_proveedor_id: str = ""
     compra_referencia: str = ""
     compra_documento_id: str = ""
+    compra_tipo: str = "albaran"
     documentos: tuple[DocumentoAdminVM, ...] = ()
+    archivos: tuple[ArchivoAdminVM, ...] = ()
     backups: tuple[BackupItemVM, ...] = ()
     unidades: tuple[str, ...] = ()
     categorias_receta: tuple[str, ...] = ()

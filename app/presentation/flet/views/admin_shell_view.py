@@ -147,7 +147,7 @@ def build_admin_shell(
     on_editar_proveedor: Callable[..., None],
     on_desactivar_proveedor: Callable[[str], None],
     on_reactivar_proveedor: Callable[[str], None],
-    on_set_compra_cabecera: Callable[[str, str], None],
+    on_set_compra_cabecera: Callable[..., None],
     on_añadir_linea_compra: Callable[..., None],
     on_quitar_linea_compra: Callable[[int], None],
     on_guardar_borrador_compra: Callable[[], None],
@@ -165,8 +165,12 @@ def build_admin_shell(
     on_ejecutar_destructiva: Callable[[str, str, bool], None],
     on_exportar_documentos: Callable[[], None],
     on_proponer_anular_documento: Callable[[str, str], None] | None = None,
-    on_confirmar: Callable[[], None],
-    on_cancelar: Callable[[], None],
+    on_proponer_rectificativa_economica: Callable[[str, str], None] | None = None,
+    on_proponer_rectificativa_stock: Callable[[str, str], None] | None = None,
+    on_adjuntar_archivo: Callable[[str, str], None] | None = None,
+    on_abrir_adjunto: Callable[[str], None] | None = None,
+    on_confirmar: Callable[[], None] = None,  # type: ignore[assignment]
+    on_cancelar: Callable[[], None] = None,  # type: ignore[assignment]
     on_volver_menu: Callable[[], None] | None = None,
 ) -> ft.Control:
     header = ft.Container(
@@ -272,6 +276,10 @@ def build_admin_shell(
         on_ejecutar_destructiva=on_ejecutar_destructiva,
         on_exportar_documentos=on_exportar_documentos,
         on_proponer_anular_documento=on_proponer_anular_documento,
+        on_proponer_rectificativa_economica=on_proponer_rectificativa_economica,
+        on_proponer_rectificativa_stock=on_proponer_rectificativa_stock,
+        on_adjuntar_archivo=on_adjuntar_archivo,
+        on_abrir_adjunto=on_abrir_adjunto,
     )
 
     body = ft.Row(
@@ -1051,52 +1059,92 @@ def _proveedor_row(
 def _panel_documentos(screen: AdminScreenVM, **cbs) -> ft.Control:
     on_filtro = cbs["on_filtro"]
     on_export = cbs.get("on_exportar_documentos")
+    on_anular = cbs.get("on_proponer_anular_documento")
+    on_rect_eco = cbs.get("on_proponer_rectificativa_economica")
+    on_rect_stock = cbs.get("on_proponer_rectificativa_stock")
+    on_adjuntar = cbs.get("on_adjuntar_archivo")
+    on_abrir = cbs.get("on_abrir_adjunto")
+
     filas = []
     for d in screen.documentos:
         motivo_tf = ft.TextField(
-            label="Motivo anulación",
+            label="Motivo",
             dense=True,
-            width=220,
-            disabled=screen.mutando or d.estado.lower() in ("anulado", "anulada"),
+            width=180,
+            disabled=screen.mutando,
         )
+        estado_l = d.estado.lower()
+        anulado = estado_l in ("anulado", "anulada")
         filas.append(
             ft.Container(
                 padding=8,
                 border=ft.Border(bottom=ft.BorderSide(1, ft.Colors.OUTLINE_VARIANT)),
-                content=ft.Row(
-                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                content=ft.Column(
+                    spacing=6,
                     controls=[
-                        ft.Column(
-                            spacing=2,
-                            expand=True,
+                        ft.Row(
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
                             controls=[
-                                ft.Text(
-                                    f"{d.tipo} · {d.estado} · {d.n_lineas} línea(s)",
-                                    weight=ft.FontWeight.W_600,
-                                    size=13,
+                                ft.Column(
+                                    spacing=2,
+                                    expand=True,
+                                    controls=[
+                                        ft.Text(
+                                            f"{d.tipo} · {d.estado} · {d.n_lineas} línea(s)",
+                                            weight=ft.FontWeight.W_600,
+                                            size=13,
+                                        ),
+                                        ft.Text(
+                                            f"{d.fecha} · {d.proveedor or 'Sin proveedor'}"
+                                            + (
+                                                f" · ref. {d.referencia}"
+                                                if d.referencia
+                                                else ""
+                                            ),
+                                            size=12,
+                                            color=ft.Colors.ON_SURFACE_VARIANT,
+                                        ),
+                                    ],
                                 ),
-                                ft.Text(
-                                    f"{d.fecha} · {d.proveedor or 'Sin proveedor'}"
-                                    + (f" · ref. {d.referencia}" if d.referencia else ""),
-                                    size=12,
-                                    color=ft.Colors.ON_SURFACE_VARIANT,
-                                ),
+                                motivo_tf,
                             ],
                         ),
-                        motivo_tf,
-                        ft.TextButton(
-                            "Anular",
-                            disabled=screen.mutando
-                            or d.estado.lower() in ("anulado", "anulada")
-                            or cbs.get("on_proponer_anular_documento") is None,
-                            on_click=lambda _e, did=d.id, tf=motivo_tf: (
-                                cbs["on_proponer_anular_documento"](
-                                    did, tf.value or ""
-                                )
-                                if cbs.get("on_proponer_anular_documento")
-                                else None
-                            ),
+                        ft.Row(
+                            wrap=True,
+                            controls=[
+                                ft.TextButton(
+                                    "Anular",
+                                    disabled=screen.mutando or anulado or on_anular is None,
+                                    on_click=lambda _e, did=d.id, tf=motivo_tf: (
+                                        on_anular(did, tf.value or "")
+                                        if on_anular
+                                        else None
+                                    ),
+                                ),
+                                ft.TextButton(
+                                    "Rect. económica",
+                                    disabled=screen.mutando
+                                    or anulado
+                                    or on_rect_eco is None,
+                                    on_click=lambda _e, did=d.id, tf=motivo_tf: (
+                                        on_rect_eco(did, tf.value or "")
+                                        if on_rect_eco
+                                        else None
+                                    ),
+                                ),
+                                ft.TextButton(
+                                    "Rect. stock",
+                                    disabled=screen.mutando
+                                    or anulado
+                                    or on_rect_stock is None,
+                                    on_click=lambda _e, did=d.id, tf=motivo_tf: (
+                                        on_rect_stock(did, tf.value or "")
+                                        if on_rect_stock
+                                        else None
+                                    ),
+                                ),
+                            ],
                         ),
                     ],
                 ),
@@ -1110,6 +1158,35 @@ def _panel_documentos(screen: AdminScreenVM, **cbs) -> ft.Control:
                 italic=True,
             )
         ]
+
+    adj_rows: list[ft.Control] = []
+    for a in screen.archivos:
+        adj_rows.append(
+            ft.Row(
+                controls=[
+                    ft.Text(
+                        f"{a.nombre} · doc {a.documento_id or '—'}",
+                        expand=True,
+                        size=12,
+                    ),
+                    ft.TextButton(
+                        "Abrir",
+                        disabled=screen.mutando or on_abrir is None,
+                        on_click=lambda _e, aid=a.id: on_abrir(aid) if on_abrir else None,
+                    ),
+                ]
+            )
+        )
+    if not adj_rows:
+        adj_rows = [ft.Text("Sin adjuntos.", color=ft.Colors.OUTLINE, italic=True)]
+
+    doc_adj = ft.Dropdown(
+        label="Documento destino",
+        options=[ft.dropdown.Option(key=d.id, text=f"{d.tipo} {d.referencia or d.id}") for d in screen.documentos[:40]],
+        width=280,
+    )
+    ruta_tf = ft.TextField(label="Ruta local del archivo", expand=True)
+
     return ft.Column(
         spacing=10,
         scroll=ft.ScrollMode.AUTO,
@@ -1134,6 +1211,24 @@ def _panel_documentos(screen: AdminScreenVM, **cbs) -> ft.Control:
                 ]
             ),
             *filas,
+            ft.Divider(),
+            ft.Text("Adjuntos", size=16, weight=ft.FontWeight.W_600),
+            ft.Row(
+                controls=[
+                    doc_adj,
+                    ruta_tf,
+                    ft.FilledButton(
+                        "Adjuntar",
+                        disabled=screen.mutando or on_adjuntar is None,
+                        on_click=lambda _e: (
+                            on_adjuntar(doc_adj.value or "", ruta_tf.value or "")
+                            if on_adjuntar
+                            else None
+                        ),
+                    ),
+                ]
+            ),
+            *adj_rows,
         ],
     )
 
@@ -1148,6 +1243,15 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
 
     activos_prov = [p for p in screen.proveedores if p.activo]
     activos_prod = [p for p in screen.productos if p.activo]
+    tipo = ft.Dropdown(
+        label="Tipo documento",
+        options=[
+            ft.dropdown.Option(key="albaran", text="Albarán"),
+            ft.dropdown.Option(key="factura", text="Factura"),
+        ],
+        value=screen.compra_tipo or "albaran",
+        width=160,
+    )
     prov = ft.Dropdown(
         label="Proveedor",
         options=[
@@ -1177,10 +1281,10 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
     precio = ft.TextField(label="Precio unitario", width=140, value="0")
 
     def _aplicar_cab(_e=None) -> None:
-        on_set_cab(prov.value or "", ref.value or "")
+        on_set_cab(prov.value or "", ref.value or "", tipo.value or "albaran")
 
     def _add(_e=None) -> None:
-        on_set_cab(prov.value or "", ref.value or "")
+        on_set_cab(prov.value or "", ref.value or "", tipo.value or "albaran")
         try:
             cant = float((cantidad.value or "0").replace(",", "."))
         except ValueError:
@@ -1202,18 +1306,21 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
         if screen.compra_documento_id
         else "Borrador aún no persistido."
     )
+    tipo_lbl = "factura" if (screen.compra_tipo or "") == "factura" else "albarán"
 
     return ft.Column(
         spacing=12,
         controls=[
-            ft.Text("Compras", size=18, weight=ft.FontWeight.BOLD),
+            ft.Text("Compras / Documentos", size=18, weight=ft.FontWeight.BOLD),
             ft.Text(
-                "Flujo productivo: borrador → confirmar (crea lotes/movimientos).",
+                f"Flujo productivo ({tipo_lbl}): borrador → confirmar "
+                "(crea lotes/movimientos en albarán; factura según dominio).",
                 size=13,
                 color=ft.Colors.ON_SURFACE_VARIANT,
             ),
             ft.Row(
                 controls=[
+                    tipo,
                     prov,
                     ref,
                     ft.OutlinedButton("Aplicar cabecera", on_click=_aplicar_cab),
@@ -1233,7 +1340,7 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
                         on_click=lambda _e: on_guardar(),
                     ),
                     ft.FilledButton(
-                        "Confirmar compra",
+                        "Confirmar",
                         disabled=screen.mutando,
                         on_click=lambda _e: on_confirmar(),
                     ),
@@ -1244,7 +1351,7 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
                     ),
                 ]
             ),
-            ft.Text(doc_info, size=12, color=ft.Colors.OUTLINE),
+            ft.Text(doc_info, size=12, color=ft.Colors.ON_SURFACE_VARIANT),
             *lineas,
         ],
     )

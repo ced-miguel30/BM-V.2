@@ -175,5 +175,49 @@ class TestAdminCierreSecciones(_CierreHarness):
         assert_admin_sin_economia(AdminScreenVM)
 
 
+class TestAdminDocumentosWorkflow(_CierreHarness):
+    def _seed_compra_confirmada(self, p: TerminalAdministracionPresenter) -> str:
+        s = p.screen()
+        prov = next((x for x in s.proveedores if x.activo), None)
+        prod = next((x for x in s.productos if x.activo), None)
+        self.assertIsNotNone(prov)
+        self.assertIsNotNone(prod)
+        assert prov is not None and prod is not None
+        p.set_compra_tipo("albaran")
+        p.set_compra_cabecera(prov.id, "ALB-FLET-DOC", "albaran")
+        p.añadir_linea_compra(prod.id, 2.0, 1.5)
+        s = p.confirmar_compra_borrador()
+        self.assertTrue(s.feedback and s.feedback.ok, s.feedback.mensaje if s.feedback else "")
+        docs = p.set_seccion("documentos").documentos
+        self.assertTrue(docs)
+        return docs[0].id
+
+    def test_factura_tipo_en_borrador(self) -> None:
+        p = self._login_dir()
+        s = p.screen()
+        prov = next(x for x in s.proveedores if x.activo)
+        prod = next(x for x in s.productos if x.activo)
+        p.set_compra_tipo("factura")
+        p.set_compra_cabecera(prov.id, "FAC-1", "factura")
+        p.añadir_linea_compra(prod.id, 1.0, 3.0)
+        s = p.guardar_borrador_compra()
+        self.assertTrue(s.feedback and s.feedback.ok, s.feedback.mensaje if s.feedback else "")
+        self.assertEqual(s.compra_tipo, "factura")
+        self.assertTrue(s.compra_documento_id)
+
+    def test_adjunto_y_rectificativa_economica(self) -> None:
+        p = self._login_dir()
+        doc_id = self._seed_compra_confirmada(p)
+        contenido = b"%PDF-1.4 fake adjunto"
+        s = p.adjuntar_archivo_documento(doc_id, "albaran.pdf", contenido)
+        self.assertTrue(s.feedback and s.feedback.ok, s.feedback.mensaje if s.feedback else "")
+        self.assertTrue(any(a.documento_id == doc_id for a in s.archivos))
+
+        s = p.proponer_rectificativa_economica(doc_id, "Ajuste documental Flet")
+        self.assertTrue(s.pending and s.pending.kind == "rectificativa_economica")
+        s = p.confirmar_pendiente()
+        self.assertTrue(s.feedback and s.feedback.ok, s.feedback.mensaje if s.feedback else "")
+
+
 if __name__ == "__main__":
     unittest.main()
