@@ -1,6 +1,7 @@
-"""Presenter Administración operativa — maestros, proveedores, compras, backup.
+"""Presenter Administración operativa — maestros, proveedores, compras, backup, cierre.
 
-Reutiliza stock/receta/settings/backup/restore/merma/proveedor/compra_registro.
+Reutiliza stock/receta/settings/backup/restore/merma/proveedor/compra_registro/
+catalogo/dashboard/destructive_ops/documento_consulta/instance_config.
 Sin reglas de dominio nuevas.
 """
 
@@ -21,9 +22,14 @@ from app.core.models.enums import (
     TIPO_ARTICULO_VALORES,
     UnidadProducto,
 )
+from app.core.repositories.data_repository import DataRepository
 from app.core.services import (
+    caducidad_service,
+    catalogo_service,
     compra_registro_service,
+    dashboard_service,
     documento_consulta_service,
+    destructive_ops_service,
     merma_service,
     proveedor_service,
     receta_service,
@@ -36,13 +42,29 @@ from app.core.services.restore_backup_service import (
     restaurar_desde_bytes,
 )
 from app.core.storage.demo_files import get_demo_file
+from app.core.storage.instance_config import (
+    InstanceConfigError,
+    apply_shared_root,
+    load_client_config,
+    resolve_data_file_from_shared_root,
+    resolve_shared_root,
+    save_client_config,
+    validate_shared_root,
+)
 from app.core.storage.session_store import reload_from_disk
+from app.core.storage.shared_coordinator import (
+    SharedPathUnavailable,
+    assert_data_path_usable,
+)
 from app.presentation.flet import session_bridge
 from app.presentation.flet.admin_viewmodels import (
     ADMIN_SECCIONES,
+    ActividadAdminVM,
     AdminScreenVM,
     BackupItemVM,
+    CatalogoItemVM,
     CompraLineaVM,
+    DestructivaOpVM,
     DocumentoAdminVM,
     LoteAltaVM,
     PendingChangeVM,
@@ -96,6 +118,10 @@ class TerminalAdministracionPresenter:
             UsuarioAdminVM,
             ProveedorAdminVM,
             BackupItemVM,
+            CatalogoItemVM,
+            ActividadAdminVM,
+            DestructivaOpVM,
+            DocumentoAdminVM,
             AdminScreenVM,
         )
         assert_lote_alta_permite_solo_precio_total()
@@ -980,6 +1006,181 @@ class TerminalAdministracionPresenter:
             self._mutando = False
         return self.screen()
 
+    # ── Dashboard / datos compartidos ─────────────────────────────────────
+
+    def refresh_datos(self) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        try:
+            get_container().app_data_store.refresh_if_stale()
+            self._feedback = FeedbackVM(ok=True, mensaje="Datos actualizados desde disco.")
+        except SharedPathUnavailable as exc:
+            self._feedback = map_error_recuperable(
+                f"Ruta compartida no disponible: {exc}",
+                codigo="SHARED_PATH",
+            )
+        except Exception as exc:  # noqa: BLE001
+            self._feedback = map_error_recuperable(
+                f"No se pudo refrescar: {exc}",
+                codigo="REFRESH",
+            )
+        return self.screen()
+
+    def guardar_shared_root(self, path: str) -> AdminScreenVM:
+        """Valida y guarda solo config de cliente (nunca copia datos)."""
+        if not self._gate_admin():
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        texto = (path or "").strip()
+        if not texto:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False,
+                mensaje_backend="Indique una ruta compartida (UNC o local).",
+            )
+            return self.screen()
+        self._mutando = True
+        try:
+            root = validate_shared_root(texto)
+            data_file = resolve_data_file_from_shared_root(root)
+            assert_data_path_usable(data_file)
+            save_client_config(shared_root=root)
+            apply_shared_root(root)
+            get_container().app_data_store.reload_from_disk()
+            self._feedback = FeedbackVM(
+                ok=True,
+                mensaje=(
+                    f"Raíz compartida guardada (solo config de cliente): {root}. "
+                    "No se copiaron datos."
+                ),
+            )
+        except InstanceConfigError as exc:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend=str(exc)
+            )
+        except SharedPathUnavailable as exc:
+            self._feedback = map_error_recuperable(
+                f"Ruta compartida no disponible (sin fallback local): {exc}",
+                codigo="SHARED_PATH",
+            )
+        except Exception as exc:  # noqa: BLE001
+            self._feedback = map_error_recuperable(
+                f"No se pudo guardar la raíz compartida: {exc}",
+                codigo="SHARED_ROOT",
+            )
+        finally:
+            self._mutando = False
+        return self.screen()
+
+    # ── Catálogos ─────────────────────────────────────────────────────────
+
+    def crear_departamento_catalogo(self, nombre: str) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        self._mutando = True
+        try:
+            r = catalogo_service.crear_departamento(nombre)
+            self._feedback = map_admin_operacion_feedback(ok=r.ok, mensaje_backend=r.mensaje)
+        finally:
+            self._mutando = False
+        return self.screen()
+
+    def crear_categoria_catalogo(self, nombre: str) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        self._mutando = True
+        try:
+            r = catalogo_service.crear_categoria(nombre)
+            self._feedback = map_admin_operacion_feedback(ok=r.ok, mensaje_backend=r.mensaje)
+        finally:
+            self._mutando = False
+        return self.screen()
+
+    def crear_ubicacion_catalogo(self, nombre: str, codigo: str) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        self._mutando = True
+        try:
+            r = catalogo_service.crear_ubicacion(nombre, codigo=codigo)
+            self._feedback = map_admin_operacion_feedback(ok=r.ok, mensaje_backend=r.mensaje)
+        finally:
+            self._mutando = False
+        return self.screen()
+
+    # ── Zona de peligro ───────────────────────────────────────────────────
+
+    def ejecutar_op_destructiva(
+        self,
+        op_id: str,
+        frase: str,
+        checkbox_aceptado: bool,
+    ) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if not (
+            session_tiene_permiso(Permiso.EJECUTAR_OPERACION_DESTRUCTIVA)
+            or session_tiene_permiso(Permiso.VER_ZONA_PELIGRO)
+        ):
+            self._feedback = map_error_recuperable(
+                "Solo Dirección puede ejecutar operaciones destructivas.",
+                codigo="DENEGADO",
+            )
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        if op_id != "restablecer_mock":
+            self._feedback = map_admin_operacion_feedback(
+                ok=False,
+                mensaje_backend="Operación no expuesta en Zona de peligro.",
+            )
+            return self.screen()
+        self._mutando = True
+        try:
+            res = destructive_ops_service.restablecer_a_datos_mock(
+                confirmacion_escrita=frase,
+                checkbox_aceptado=bool(checkbox_aceptado),
+                operation_token=str(uuid.uuid4()),
+                recargar_sesion=True,
+            )
+            msg = res.mensaje
+            if res.backup_preventivo:
+                msg = f"{msg} Preventivo: {res.backup_preventivo}."
+            self._feedback = map_admin_operacion_feedback(ok=res.ok, mensaje_backend=msg)
+            if res.ok:
+                get_container().app_data_store.reload_from_disk()
+        finally:
+            self._mutando = False
+        return self.screen()
+
+    # ── Documentos export ─────────────────────────────────────────────────
+
+    def exportar_documentos_csv(self) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        self._mutando = True
+        try:
+            r = documento_consulta_service.exportar_documentos_csv(guardar=True)
+            if r.ok and r.ruta:
+                self._feedback = FeedbackVM(
+                    ok=True,
+                    mensaje=f"{r.mensaje} Guardado en: {r.ruta}",
+                )
+            else:
+                self._feedback = map_admin_operacion_feedback(
+                    ok=r.ok, mensaje_backend=r.mensaje
+                )
+        finally:
+            self._mutando = False
+        return self.screen()
+
     # ── Confirmación pendiente ────────────────────────────────────────────
 
     def cancelar_pendiente(self) -> AdminScreenVM:
@@ -1079,14 +1280,66 @@ class TerminalAdministracionPresenter:
         proveedores: tuple[ProveedorAdminVM, ...] = ()
         documentos: tuple[DocumentoAdminVM, ...] = ()
         backups: tuple[BackupItemVM, ...] = ()
+        departamentos: tuple[CatalogoItemVM, ...] = ()
+        categorias: tuple[CatalogoItemVM, ...] = ()
+        ubicaciones: tuple[CatalogoItemVM, ...] = ()
+        actividades: tuple[ActividadAdminVM, ...] = ()
+        ops_destructivas: tuple[DestructivaOpVM, ...] = ()
         hotel_nombre = ""
         hotel_moneda = "EUR"
+        periodo = ""
+        consumo_count = 0
+        merma_count = 0
+        stock_bajo = 0
+        caducidades = 0
+        alerta_registro = ""
+        revision = 0
+        data_path_label = ""
+        shared_root_label = ""
+        puede_zona = False
 
         if auth:
             data = get_container().app_data_store.get()
             if data.configuracion:
                 hotel_nombre = data.configuracion.nombre_establecimiento or ""
                 hotel_moneda = data.configuracion.moneda or "EUR"
+
+            revision = int(getattr(data, "revision", 0) or 0)
+            try:
+                data_path_label = str(get_demo_file())
+            except Exception:  # noqa: BLE001
+                data_path_label = ""
+            shared = resolve_shared_root()
+            if shared is not None:
+                shared_root_label = str(shared)
+            else:
+                cfg = load_client_config()
+                shared_root_label = str(cfg.get("shared_root") or data_path_label or "—")
+
+            # Dashboard operativo (conteos; sin €)
+            try:
+                periodo_obj = dashboard_service.resolver_periodo("Este mes")
+                periodo = periodo_obj.etiqueta
+                consumo_count = dashboard_service.total_registros(
+                    periodo_obj.desde, periodo_obj.hasta, data=data
+                )
+                merma_count = sum(
+                    1
+                    for m in data.mermas
+                    if periodo_obj.desde <= m.fecha <= periodo_obj.hasta
+                    and not getattr(m, "anulado", False)
+                )
+                repo = DataRepository(data)
+                stock_bajo = len(repo.productos_stock_bajo())
+                caducidades = len(caducidad_service.listar_lotes_caducidad())
+                alerta_registro = (
+                    "Desayuno de hoy registrado"
+                    if repo.desayuno_registrado_hoy()
+                    else "Falta registro de desayuno hoy"
+                )
+            except Exception:  # noqa: BLE001
+                periodo = periodo or "Este mes"
+                alerta_registro = alerta_registro or "—"
 
             lista_r = []
             for r in merma_service.listar_responsables_merma(solo_activos=False):
@@ -1193,6 +1446,7 @@ class TerminalAdministracionPresenter:
                 )
                 prov = getattr(d, "proveedor_nombre_snapshot", None) or d.proveedor_id or ""
                 ref = getattr(d, "referencia", None) or getattr(d, "numero", None) or ""
+                n_lineas = len(getattr(d, "lineas", None) or [])
                 if self._seccion == "documentos" and q:
                     blob = f"{d.id} {tipo} {estado} {prov} {ref}".lower()
                     if q not in blob:
@@ -1205,9 +1459,63 @@ class TerminalAdministracionPresenter:
                         fecha=fecha,
                         proveedor=str(prov),
                         referencia=str(ref),
+                        n_lineas=n_lineas,
                     )
                 )
             documentos = tuple(lista_docs)
+
+            departamentos = tuple(
+                CatalogoItemVM(id=d.id, nombre=d.nombre, activo=bool(d.activo))
+                for d in catalogo_service.listar_departamentos(solo_activos=False)
+            )
+            categorias = tuple(
+                CatalogoItemVM(id=c.id, nombre=c.nombre, activo=bool(c.activo))
+                for c in catalogo_service.listar_categorias(solo_activos=False)
+            )
+            ubicaciones = tuple(
+                CatalogoItemVM(
+                    id=u.id,
+                    nombre=u.nombre,
+                    activo=bool(u.activo),
+                    codigo=getattr(u, "codigo", None) or "",
+                )
+                for u in catalogo_service.listar_ubicaciones(solo_activos=False)
+            )
+
+            acts: list[ActividadAdminVM] = []
+            for a in list(data.actividades or [])[:50]:
+                fh = getattr(a, "fecha_hora", None)
+                fecha_s = fh.isoformat(timespec="seconds") if fh is not None else ""
+                acts.append(
+                    ActividadAdminVM(
+                        fecha=fecha_s,
+                        usuario=getattr(a, "usuario", "") or "",
+                        accion=getattr(a, "accion", "") or "",
+                        detalle=getattr(a, "detalle", "") or "",
+                    )
+                )
+            actividades = tuple(acts)
+
+            puede_zona = session_tiene_permiso(
+                Permiso.EJECUTAR_OPERACION_DESTRUCTIVA
+            ) or session_tiene_permiso(Permiso.VER_ZONA_PELIGRO)
+            if puede_zona:
+                ops: list[DestructivaOpVM] = []
+                for item in destructive_ops_service.inventario_acciones_destructivas_visibles():
+                    if item.get("expuesta_en") != "Zona de peligro":
+                        continue
+                    frase = item.get("frase") or ""
+                    if not frase:
+                        continue
+                    ops.append(
+                        DestructivaOpVM(
+                            id=str(item.get("id") or ""),
+                            etiqueta="Restablecer a datos mock",
+                            frase=str(frase),
+                            nota=str(item.get("nota") or ""),
+                        )
+                    )
+                ops_destructivas = tuple(ops)
 
             backups = self._listar_backups()
 
@@ -1242,6 +1550,21 @@ class TerminalAdministracionPresenter:
             puede_exportar_backup=auth and session_tiene_permiso(Permiso.EXPORTAR_BACKUP),
             puede_restaurar_backup=auth and session_tiene_permiso(Permiso.RESTAURAR_BACKUP),
             inspeccion_backup=self._inspeccion_backup if auth else "",
+            periodo=periodo if auth else "",
+            consumo_count=consumo_count if auth else 0,
+            merma_count=merma_count if auth else 0,
+            stock_bajo=stock_bajo if auth else 0,
+            caducidades=caducidades if auth else 0,
+            alerta_registro=alerta_registro if auth else "",
+            revision=revision if auth else 0,
+            data_path_label=data_path_label if auth else "",
+            shared_root_label=shared_root_label if auth else "",
+            departamentos=departamentos,
+            categorias=categorias,
+            ubicaciones=ubicaciones,
+            actividades=actividades,
+            puede_zona_peligro=auth and puede_zona,
+            ops_destructivas=ops_destructivas if auth and puede_zona else (),
         )
 
     def _listar_backups(self) -> tuple[BackupItemVM, ...]:

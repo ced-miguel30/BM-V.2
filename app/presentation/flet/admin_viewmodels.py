@@ -1,4 +1,4 @@
-"""Viewmodels Administración operativa Flet — maestros + backup + compras.
+"""Viewmodels Administración operativa Flet — maestros + backup + compras + cierre.
 
 Sin economía salvo ``LoteAltaVM.precio_total`` e ``CompraLineaVM.precio_unitario``.
 """
@@ -19,27 +19,42 @@ ADMIN_SECCIONES: tuple[str, ...] = (
     "recetas",
     "usuarios",
     "responsables",
+    "catalogos",
     "proveedores",
     "compras",
     "documentos",
     "inventario_inicial",
+    "actividad",
     "backup",
     "configuracion",
+    "servidor",
+    "zona_peligro",
 )
 
 ADMIN_SECCION_LABEL: dict[str, str] = {
-    "inicio": "Inicio",
+    "inicio": "Dashboard",
     "productos": "Productos",
     "recetas": "Recetas",
     "usuarios": "Usuarios",
     "responsables": "Responsables merma",
+    "catalogos": "Catálogos",
     "proveedores": "Proveedores",
     "compras": "Compras",
     "documentos": "Documentos",
     "inventario_inicial": "Inventario inicial",
+    "actividad": "Actividad",
     "backup": "Backup",
     "configuracion": "Configuración",
+    "servidor": "Servidor",
+    "zona_peligro": "Zona peligro",
 }
+
+
+def secciones_visibles_admin(*, puede_zona_peligro: bool) -> tuple[str, ...]:
+    """Filtra zona_peligro si la sesión no puede verla."""
+    if puede_zona_peligro:
+        return ADMIN_SECCIONES
+    return tuple(s for s in ADMIN_SECCIONES if s != "zona_peligro")
 
 
 @dataclass(frozen=True)
@@ -112,6 +127,7 @@ class DocumentoAdminVM:
     fecha: str
     proveedor: str
     referencia: str = ""
+    n_lineas: int = 0
 
 
 @dataclass(frozen=True)
@@ -132,6 +148,30 @@ class LoteAltaVM:
     precio_total: float
     marca_proveedor: str = ""
     ubicacion_destino_id: str = ""
+
+
+@dataclass(frozen=True)
+class CatalogoItemVM:
+    id: str
+    nombre: str
+    activo: bool
+    codigo: str = ""
+
+
+@dataclass(frozen=True)
+class ActividadAdminVM:
+    fecha: str
+    usuario: str
+    accion: str
+    detalle: str
+
+
+@dataclass(frozen=True)
+class DestructivaOpVM:
+    id: str
+    etiqueta: str
+    frase: str
+    nota: str = ""
 
 
 @dataclass(frozen=True)
@@ -186,6 +226,26 @@ class AdminScreenVM:
     puede_exportar_backup: bool = False
     puede_restaurar_backup: bool = False
     inspeccion_backup: str = ""
+    # Dashboard (inicio)
+    periodo: str = ""
+    consumo_count: int = 0
+    merma_count: int = 0
+    stock_bajo: int = 0
+    caducidades: int = 0
+    alerta_registro: str = ""
+    revision: int = 0
+    data_path_label: str = ""
+    # Servidor / shared root
+    shared_root_label: str = ""
+    # Catálogos
+    departamentos: tuple[CatalogoItemVM, ...] = ()
+    categorias: tuple[CatalogoItemVM, ...] = ()
+    ubicaciones: tuple[CatalogoItemVM, ...] = ()
+    # Actividad
+    actividades: tuple[ActividadAdminVM, ...] = ()
+    # Zona de peligro
+    puede_zona_peligro: bool = False
+    ops_destructivas: tuple[DestructivaOpVM, ...] = ()
 
 
 def assert_admin_sin_economia(*tipos: type) -> None:

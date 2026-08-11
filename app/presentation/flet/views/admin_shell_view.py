@@ -8,16 +8,35 @@ import flet as ft
 
 from app.presentation.flet.admin_viewmodels import (
     ADMIN_SECCION_LABEL,
-    ADMIN_SECCIONES,
     AdminScreenVM,
     BackupItemVM,
+    CatalogoItemVM,
     CompraLineaVM,
     ProductoAdminVM,
     ProveedorAdminVM,
     RecetaAdminVM,
     ResponsableMermaVM,
     UsuarioAdminVM,
+    secciones_visibles_admin,
 )
+
+_SECCION_ICONS: dict[str, tuple] = {
+    "inicio": (ft.Icons.HOME_OUTLINED, ft.Icons.HOME),
+    "productos": (ft.Icons.INVENTORY_2_OUTLINED, ft.Icons.INVENTORY_2),
+    "recetas": (ft.Icons.MENU_BOOK_OUTLINED, ft.Icons.MENU_BOOK),
+    "usuarios": (ft.Icons.PEOPLE_OUTLINE, ft.Icons.PEOPLE),
+    "responsables": (ft.Icons.PERSON_OUTLINE, ft.Icons.PERSON),
+    "catalogos": (ft.Icons.LIST_ALT_OUTLINED, ft.Icons.LIST_ALT),
+    "proveedores": (ft.Icons.STORE_OUTLINED, ft.Icons.STORE),
+    "compras": (ft.Icons.SHOPPING_CART_OUTLINED, ft.Icons.SHOPPING_CART),
+    "documentos": (ft.Icons.DESCRIPTION_OUTLINED, ft.Icons.DESCRIPTION),
+    "inventario_inicial": (ft.Icons.ADD_BOX_OUTLINED, ft.Icons.ADD_BOX),
+    "actividad": (ft.Icons.HISTORY, ft.Icons.HISTORY),
+    "backup": (ft.Icons.BACKUP_OUTLINED, ft.Icons.BACKUP),
+    "configuracion": (ft.Icons.SETTINGS_OUTLINED, ft.Icons.SETTINGS),
+    "servidor": (ft.Icons.STORAGE_OUTLINED, ft.Icons.STORAGE),
+    "zona_peligro": (ft.Icons.WARNING_AMBER_OUTLINED, ft.Icons.WARNING_AMBER),
+}
 from app.presentation.flet.views.menu_nav import (
     build_volver_al_menu_button,
     header_action_row,
@@ -138,6 +157,13 @@ def build_admin_shell(
     on_inspeccionar_backup: Callable[[str], None],
     on_proponer_restaurar: Callable[[str, str], None],
     on_guardar_hotel: Callable[[str, str], None],
+    on_refresh_datos: Callable[[], None],
+    on_guardar_shared_root: Callable[[str], None],
+    on_crear_departamento: Callable[[str], None],
+    on_crear_categoria: Callable[[str], None],
+    on_crear_ubicacion: Callable[[str, str], None],
+    on_ejecutar_destructiva: Callable[[str, str, bool], None],
+    on_exportar_documentos: Callable[[], None],
     on_confirmar: Callable[[], None],
     on_cancelar: Callable[[], None],
     on_volver_menu: Callable[[], None] | None = None,
@@ -185,11 +211,8 @@ def build_admin_shell(
 
     pending_box = _pending_box(screen, on_confirmar=on_confirmar, on_cancelar=on_cancelar)
 
-    selected = (
-        ADMIN_SECCIONES.index(screen.seccion)
-        if screen.seccion in ADMIN_SECCIONES
-        else 0
-    )
+    visibles = secciones_visibles_admin(puede_zona_peligro=screen.puede_zona_peligro)
+    selected = visibles.index(screen.seccion) if screen.seccion in visibles else 0
     rail = ft.NavigationRail(
         selected_index=selected,
         label_type=ft.NavigationRailLabelType.ALL,
@@ -197,13 +220,13 @@ def build_admin_shell(
         min_extended_width=180,
         destinations=[
             ft.NavigationRailDestination(
-                icon=ft.Icons.HOME_OUTLINED,
-                selected_icon=ft.Icons.HOME,
-                label=ADMIN_SECCION_LABEL[s],
+                icon=_SECCION_ICONS.get(s, (ft.Icons.CIRCLE_OUTLINED, ft.Icons.CIRCLE))[0],
+                selected_icon=_SECCION_ICONS.get(s, (ft.Icons.CIRCLE_OUTLINED, ft.Icons.CIRCLE))[1],
+                label=ADMIN_SECCION_LABEL.get(s, s),
             )
-            for s in ADMIN_SECCIONES
+            for s in visibles
         ],
-        on_change=lambda e: on_seccion(ADMIN_SECCIONES[int(e.control.selected_index or 0)]),
+        on_change=lambda e: on_seccion(visibles[int(e.control.selected_index or 0)]),
     )
 
     panel = _panel_for_seccion(
@@ -240,6 +263,13 @@ def build_admin_shell(
         on_inspeccionar_backup=on_inspeccionar_backup,
         on_proponer_restaurar=on_proponer_restaurar,
         on_guardar_hotel=on_guardar_hotel,
+        on_refresh_datos=on_refresh_datos,
+        on_guardar_shared_root=on_guardar_shared_root,
+        on_crear_departamento=on_crear_departamento,
+        on_crear_categoria=on_crear_categoria,
+        on_crear_ubicacion=on_crear_ubicacion,
+        on_ejecutar_destructiva=on_ejecutar_destructiva,
+        on_exportar_documentos=on_exportar_documentos,
     )
 
     body = ft.Row(
@@ -318,6 +348,8 @@ def _panel_for_seccion(screen: AdminScreenVM, **cbs) -> ft.Control:
         return _panel_usuarios(screen, **cbs)
     if sec == "responsables":
         return _panel_responsables(screen, **cbs)
+    if sec == "catalogos":
+        return _panel_catalogos(screen, **cbs)
     if sec == "proveedores":
         return _panel_proveedores(screen, **cbs)
     if sec == "compras":
@@ -326,29 +358,59 @@ def _panel_for_seccion(screen: AdminScreenVM, **cbs) -> ft.Control:
         return _panel_documentos(screen, **cbs)
     if sec == "inventario_inicial":
         return _panel_inventario(screen, **cbs)
+    if sec == "actividad":
+        return _panel_actividad(screen)
     if sec == "backup":
         return _panel_backup(screen, **cbs)
     if sec == "configuracion":
         return _panel_config(screen, **cbs)
-    return _panel_inicio(screen)
+    if sec == "servidor":
+        return _panel_servidor(screen, **cbs)
+    if sec == "zona_peligro":
+        return _panel_zona_peligro(screen, **cbs)
+    return _panel_inicio(screen, **cbs)
 
 
-def _panel_inicio(screen: AdminScreenVM) -> ft.Control:
+def _panel_inicio(screen: AdminScreenVM, **cbs) -> ft.Control:
+    on_refresh = cbs.get("on_refresh_datos")
     return ft.Column(
         spacing=10,
         controls=[
-            ft.Text("Inicio", size=18, weight=ft.FontWeight.BOLD),
+            ft.Text("Dashboard", size=18, weight=ft.FontWeight.BOLD),
             ft.Text(
-                "Seleccione una sección en el menú lateral para gestionar maestros "
-                "operativos sin abrir Streamlit.",
+                f"Periodo: {screen.periodo or '—'}",
                 size=14,
                 color=ft.Colors.ON_SURFACE_VARIANT,
             ),
             ft.Text(
-                f"Productos: {len(screen.productos)} · Recetas: {len(screen.recetas)} · "
-                f"Usuarios: {len(screen.usuarios)} · Responsables: {len(screen.responsables)} · "
-                f"Proveedores: {len(screen.proveedores)} · Backups: {len(screen.backups)}",
+                f"Consumos / servicios: {screen.consumo_count} · "
+                f"Mermas: {screen.merma_count} · "
+                f"Stock bajo: {screen.stock_bajo} · "
+                f"Caducidades: {screen.caducidades}",
                 size=13,
+            ),
+            ft.Text(screen.alerta_registro or "—", size=13),
+            ft.Text(
+                f"Revisión: {screen.revision} · Datos: {screen.data_path_label or '—'}",
+                size=12,
+                color=ft.Colors.OUTLINE,
+            ),
+            ft.Text(
+                f"Raíz compartida: {screen.shared_root_label or '—'}",
+                size=12,
+                color=ft.Colors.OUTLINE,
+            ),
+            ft.FilledButton(
+                "Actualizar datos",
+                icon=ft.Icons.REFRESH,
+                disabled=screen.mutando or on_refresh is None,
+                on_click=lambda _e: on_refresh() if on_refresh else None,
+            ),
+            ft.Text(
+                f"Maestros: {len(screen.productos)} productos · {len(screen.recetas)} recetas · "
+                f"{len(screen.usuarios)} usuarios · {len(screen.proveedores)} proveedores",
+                size=12,
+                color=ft.Colors.OUTLINE,
             ),
         ],
     )
@@ -986,6 +1048,7 @@ def _proveedor_row(
 
 def _panel_documentos(screen: AdminScreenVM, **cbs) -> ft.Control:
     on_filtro = cbs["on_filtro"]
+    on_export = cbs.get("on_exportar_documentos")
     filas = []
     for d in screen.documentos:
         filas.append(
@@ -996,7 +1059,7 @@ def _panel_documentos(screen: AdminScreenVM, **cbs) -> ft.Control:
                     spacing=2,
                     controls=[
                         ft.Text(
-                            f"{d.tipo} · {d.estado}",
+                            f"{d.tipo} · {d.estado} · {d.n_lineas} línea(s)",
                             weight=ft.FontWeight.W_600,
                             size=13,
                         ),
@@ -1024,11 +1087,22 @@ def _panel_documentos(screen: AdminScreenVM, **cbs) -> ft.Control:
         expand=True,
         controls=[
             ft.Text("Documentos", size=20, weight=ft.FontWeight.BOLD),
-            ft.TextField(
-                label="Filtrar",
-                value=screen.filtro,
-                on_submit=lambda e: on_filtro(e.control.value or ""),
-                on_blur=lambda e: on_filtro(e.control.value or ""),
+            ft.Row(
+                controls=[
+                    ft.TextField(
+                        label="Filtrar",
+                        value=screen.filtro,
+                        on_submit=lambda e: on_filtro(e.control.value or ""),
+                        on_blur=lambda e: on_filtro(e.control.value or ""),
+                        expand=True,
+                    ),
+                    ft.OutlinedButton(
+                        "Exportar CSV",
+                        icon=ft.Icons.DOWNLOAD,
+                        disabled=screen.mutando or on_export is None,
+                        on_click=lambda _e: on_export() if on_export else None,
+                    ),
+                ]
             ),
             *filas,
         ],
@@ -1343,3 +1417,210 @@ def _panel_config(screen: AdminScreenVM, **cbs) -> ft.Control:
             ),
         ],
     )
+
+
+def _catalogo_lista(items: tuple[CatalogoItemVM, ...], *, con_codigo: bool = False) -> list[ft.Control]:
+    activos = [i for i in items if i.activo]
+    if not activos:
+        return [ft.Text("Ninguno activo.", color=ft.Colors.OUTLINE, size=12)]
+    out: list[ft.Control] = []
+    for it in activos:
+        label = it.nombre
+        if con_codigo and it.codigo:
+            label = f"{it.nombre} ({it.codigo})"
+        out.append(ft.Text(f"· {label}", size=13))
+    return out
+
+
+def _panel_catalogos(screen: AdminScreenVM, **cbs) -> ft.Control:
+    on_dep = cbs["on_crear_departamento"]
+    on_cat = cbs["on_crear_categoria"]
+    on_ubi = cbs["on_crear_ubicacion"]
+    dep_tf = ft.TextField(label="Nuevo departamento", expand=True)
+    cat_tf = ft.TextField(label="Nueva categoría", expand=True)
+    ubi_tf = ft.TextField(label="Nueva ubicación", expand=True)
+    ubi_cod = ft.TextField(label="Código", width=120)
+
+    return ft.Column(
+        spacing=14,
+        controls=[
+            ft.Text("Catálogos de inventario", size=18, weight=ft.FontWeight.BOLD),
+            ft.Text("Departamentos activos", weight=ft.FontWeight.W_600),
+            ft.Row(
+                controls=[
+                    dep_tf,
+                    ft.FilledButton(
+                        "Crear",
+                        disabled=screen.mutando,
+                        on_click=lambda _e: on_dep(dep_tf.value or ""),
+                    ),
+                ]
+            ),
+            *_catalogo_lista(screen.departamentos),
+            ft.Divider(),
+            ft.Text("Categorías activas", weight=ft.FontWeight.W_600),
+            ft.Row(
+                controls=[
+                    cat_tf,
+                    ft.FilledButton(
+                        "Crear",
+                        disabled=screen.mutando,
+                        on_click=lambda _e: on_cat(cat_tf.value or ""),
+                    ),
+                ]
+            ),
+            *_catalogo_lista(screen.categorias),
+            ft.Divider(),
+            ft.Text("Ubicaciones activas", weight=ft.FontWeight.W_600),
+            ft.Row(
+                controls=[
+                    ubi_tf,
+                    ubi_cod,
+                    ft.FilledButton(
+                        "Crear",
+                        disabled=screen.mutando,
+                        on_click=lambda _e: on_ubi(ubi_tf.value or "", ubi_cod.value or ""),
+                    ),
+                ]
+            ),
+            *_catalogo_lista(screen.ubicaciones, con_codigo=True),
+        ],
+    )
+
+
+def _panel_actividad(screen: AdminScreenVM) -> ft.Control:
+    filas: list[ft.Control] = []
+    for a in screen.actividades:
+        filas.append(
+            ft.Container(
+                padding=8,
+                border=ft.Border(bottom=ft.BorderSide(1, ft.Colors.OUTLINE_VARIANT)),
+                content=ft.Column(
+                    spacing=2,
+                    controls=[
+                        ft.Text(
+                            f"{a.fecha} · {a.usuario} · {a.accion}",
+                            size=13,
+                            weight=ft.FontWeight.W_600,
+                        ),
+                        ft.Text(
+                            a.detalle or "—",
+                            size=12,
+                            color=ft.Colors.ON_SURFACE_VARIANT,
+                        ),
+                    ],
+                ),
+            )
+        )
+    if not filas:
+        filas = [ft.Text("Sin actividad reciente.", color=ft.Colors.OUTLINE)]
+    return ft.Column(
+        spacing=10,
+        controls=[
+            ft.Text("Actividad", size=18, weight=ft.FontWeight.BOLD),
+            ft.Text(
+                "Últimas 50 entradas (solo lectura).",
+                size=13,
+                color=ft.Colors.ON_SURFACE_VARIANT,
+            ),
+            *filas,
+        ],
+    )
+
+
+def _panel_servidor(screen: AdminScreenVM, **cbs) -> ft.Control:
+    on_guardar = cbs["on_guardar_shared_root"]
+    path_tf = ft.TextField(
+        label="Raíz compartida (UNC o local)",
+        value=screen.shared_root_label if screen.shared_root_label != "—" else "",
+        hint_text=r"\\servidor\bm-datos  o  D:\BM_shared",
+        expand=True,
+    )
+    return ft.Column(
+        spacing=12,
+        controls=[
+            ft.Text("Servidor / datos compartidos", size=18, weight=ft.FontWeight.BOLD),
+            ft.Text(
+                "Guarda solo la config de cliente (shared_root). No copia datos del hotel.",
+                size=13,
+                color=ft.Colors.ON_SURFACE_VARIANT,
+            ),
+            ft.Text(
+                f"Ruta de datos actual: {screen.data_path_label or '—'}",
+                size=12,
+            ),
+            ft.Text(
+                f"Raíz compartida resuelta: {screen.shared_root_label or '—'}",
+                size=12,
+            ),
+            ft.Text(f"Revisión en memoria: {screen.revision}", size=12, color=ft.Colors.OUTLINE),
+            ft.Row(
+                controls=[
+                    path_tf,
+                    ft.FilledButton(
+                        "Guardar",
+                        disabled=screen.mutando,
+                        on_click=lambda _e: on_guardar(path_tf.value or ""),
+                    ),
+                ]
+            ),
+        ],
+    )
+
+
+def _panel_zona_peligro(screen: AdminScreenVM, **cbs) -> ft.Control:
+    if not screen.puede_zona_peligro:
+        return ft.Text(
+            "Solo Dirección puede ver la zona de peligro.",
+            color=ft.Colors.RED_700,
+        )
+    on_ejec = cbs["on_ejecutar_destructiva"]
+    controls: list[ft.Control] = [
+        ft.Text("Zona de peligro", size=18, weight=ft.FontWeight.BOLD),
+        ft.Text(
+            "Acciones que sustituyen datos operativos. Confirmación reforzada obligatoria.",
+            size=13,
+            color=ft.Colors.RED_700,
+        ),
+    ]
+    if not screen.ops_destructivas:
+        controls.append(
+            ft.Text("No hay operaciones destructivas expuestas.", color=ft.Colors.OUTLINE)
+        )
+        return ft.Column(spacing=12, controls=controls)
+
+    for op in screen.ops_destructivas:
+        frase_tf = ft.TextField(
+            label=f"Escriba exactamente {op.frase}",
+            width=320,
+        )
+        chk = ft.Checkbox(
+            label="Entiendo que se sustituirán todos los datos operativos",
+            value=False,
+        )
+        controls.append(
+            ft.Container(
+                bgcolor=ft.Colors.RED_50,
+                padding=14,
+                border_radius=8,
+                border=ft.Border.all(1, ft.Colors.RED_300),
+                content=ft.Column(
+                    spacing=8,
+                    controls=[
+                        ft.Text(op.etiqueta, weight=ft.FontWeight.BOLD),
+                        ft.Text(op.nota or "", size=12, color=ft.Colors.ON_SURFACE_VARIANT),
+                        chk,
+                        frase_tf,
+                        ft.FilledButton(
+                            "Ejecutar",
+                            style=ft.ButtonStyle(bgcolor=ft.Colors.RED_700),
+                            disabled=screen.mutando,
+                            on_click=lambda _e, oid=op.id, tf=frase_tf, c=chk: on_ejec(
+                                oid, tf.value or "", bool(c.value)
+                            ),
+                        ),
+                    ],
+                ),
+            )
+        )
+    return ft.Column(spacing=12, controls=controls)

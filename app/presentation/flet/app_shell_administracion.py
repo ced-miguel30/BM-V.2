@@ -87,6 +87,13 @@ class TerminalAdministracionShell:
                 on_inspeccionar_backup=self._on_inspeccionar_backup,
                 on_proponer_restaurar=self._on_proponer_restaurar,
                 on_guardar_hotel=self._on_guardar_hotel,
+                on_refresh_datos=self._on_refresh_datos,
+                on_guardar_shared_root=self._on_guardar_shared_root,
+                on_crear_departamento=self._on_crear_departamento,
+                on_crear_categoria=self._on_crear_categoria,
+                on_crear_ubicacion=self._on_crear_ubicacion,
+                on_ejecutar_destructiva=self._on_ejecutar_destructiva,
+                on_exportar_documentos=self._on_exportar_documentos,
                 on_confirmar=self._on_confirmar,
                 on_cancelar=self._on_cancelar,
             )
@@ -295,6 +302,36 @@ class TerminalAdministracionShell:
 
     def _on_guardar_hotel(self, nombre: str, moneda: str) -> None:
         self.presenter.guardar_hotel(nombre, moneda)
+        self.refresh()
+
+    def _on_refresh_datos(self) -> None:
+        self.presenter.refresh_datos()
+        self.refresh()
+
+    def _on_guardar_shared_root(self, path: str) -> None:
+        self.presenter.guardar_shared_root(path)
+        self.refresh()
+
+    def _on_crear_departamento(self, nombre: str) -> None:
+        self.presenter.crear_departamento_catalogo(nombre)
+        self.refresh()
+
+    def _on_crear_categoria(self, nombre: str) -> None:
+        self.presenter.crear_categoria_catalogo(nombre)
+        self.refresh()
+
+    def _on_crear_ubicacion(self, nombre: str, codigo: str) -> None:
+        self.presenter.crear_ubicacion_catalogo(nombre, codigo)
+        self.refresh()
+
+    def _on_ejecutar_destructiva(
+        self, op_id: str, frase: str, checkbox: bool
+    ) -> None:
+        self.presenter.ejecutar_op_destructiva(op_id, frase, checkbox)
+        self.refresh()
+
+    def _on_exportar_documentos(self) -> None:
+        self.presenter.exportar_documentos_csv()
         self.refresh()
 
     def _on_confirmar(self) -> None:
