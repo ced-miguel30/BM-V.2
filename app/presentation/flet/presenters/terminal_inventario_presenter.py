@@ -1,4 +1,4 @@
-"""Presenter Terminal Inventario âÿÿ orquesta alertas, caducidad, merma, stock,
+"""Presenter Terminal Inventario â€” orquesta alertas, caducidad, merma, stock,
 traslados, recuentos y ajustes.
 
 Sin cÃ¡lculos FIFO/stock/coste. Sin informaciÃ³n econÃ³mica en viewmodels.
@@ -754,7 +754,7 @@ class TerminalInventarioPresenter:
                     f"Borrador {creado.sesion.id} sigue pendiente: puede reintentar "
                     "o descartarlo expresamente."
                 )
-                self._feedback = map_resultado(False, f"{conf.mensaje} âÿÿ {self._rc_aviso_borrador}")
+                self._feedback = map_resultado(False, f"{conf.mensaje} â€” {self._rc_aviso_borrador}")
         finally:
             self._confirmando = False
         return self.screen()
@@ -787,7 +787,7 @@ class TerminalInventarioPresenter:
                 self._rc_aviso_borrador = (
                     f"ConfirmaciÃ³n fallida. Borrador {rid} sigue pendiente."
                 )
-                self._feedback = map_resultado(False, f"{conf.mensaje} âÿÿ {self._rc_aviso_borrador}")
+                self._feedback = map_resultado(False, f"{conf.mensaje} â€” {self._rc_aviso_borrador}")
         finally:
             self._confirmando = False
         return self.screen()
@@ -816,7 +816,7 @@ class TerminalInventarioPresenter:
                 self._rc_aviso_borrador = (
                     f"No se pudo descartar el borrador {rid}. Sigue pendiente."
                 )
-                self._feedback = map_resultado(False, f"{an.mensaje} âÿÿ {self._rc_aviso_borrador}")
+                self._feedback = map_resultado(False, f"{an.mensaje} â€” {self._rc_aviso_borrador}")
         finally:
             self._confirmando = False
         return self.screen()
@@ -1340,7 +1340,7 @@ class TerminalInventarioPresenter:
                         producto_nombre=nombre,
                         lote_id=lote.id,
                         ubicacion_id="",
-                        ubicacion_etiqueta="âÿÿ",
+                        ubicacion_etiqueta="â€”",
                         saldo=0.0,
                         unidad=unidad,
                         cobertura=cob_lbl,
