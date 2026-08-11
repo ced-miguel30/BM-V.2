@@ -1,11 +1,16 @@
-"""Entrada Flet — Terminal Restaurante (primera vertical).
+"""Entrada Flet — Terminal Restaurante (y router por BM_FLET_TERMINAL).
 
 Uso:
   python -m app.presentation.flet.main
+  BM_FLET_TERMINAL=inventario|administracion|launcher|restaurante
 
 Variables:
   BM_DEMO_FILE — JSON de datos (opcional; por defecto el demo canónico)
   BM_FLET_VIEW — web | desktop (default desktop)
+  BM_FLET_TERMINAL — restaurante (default) | inventario | administracion | launcher
+
+Launcher unificado recomendado:
+  python -m app.presentation.flet.main_launcher
 """
 
 from __future__ import annotations
@@ -20,6 +25,14 @@ def build_app_handler():
 
     terminal = (os.environ.get("BM_FLET_TERMINAL") or "restaurante").strip().lower()
     configure_for_flet()
+
+    if terminal in ("launcher", "menu", "inicio"):
+        from app.presentation.flet.app_shell_launcher import attach_launcher
+
+        def main(page) -> None:
+            attach_launcher(page)
+
+        return main
 
     if terminal in ("inventario", "inventory"):
         from app.presentation.flet.app_shell_inventario import attach_terminal_inventario
@@ -65,5 +78,7 @@ def main() -> None:
 if __name__ == "__main__":
     # Permite ``python -m app.presentation.flet.main``
     if __package__ is None:
-        sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../..")))
+        sys.path.insert(
+            0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
+        )
     main()
