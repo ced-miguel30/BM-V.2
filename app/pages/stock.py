@@ -741,85 +741,85 @@ def _render_registrar_lote(*, es_bebida: bool) -> None:
     mapa_fn = mapa_bebidas if es_bebida else lambda d: mapa_productos(d, es_bebida=False)
 
     st.markdown("#### Registrar compra / lote")
-    catalogo_map = mapa_fn(repo.data)
-    if not catalogo_map:
+        catalogo_map = mapa_fn(repo.data)
+        if not catalogo_map:
         st.warning(f"Primero debe crear al menos una {etiqueta} en la pestaña Productos.")
         return
 
-    nombres = list(catalogo_map.keys())
-    opciones_prod = [{"id": catalogo_map[n], "label": n} for n in nombres]
-    producto_sel = render_autocomplete(
-        opciones_prod,
-        f"stock_lote_{key_prefix}",
-        etiqueta_cap,
-        f"Buscar {etiqueta} registrada...",
-        etiqueta_selectbox=etiqueta_cap,
-    )
-    with st.form(f"form_registrar_lote_{key_prefix}", clear_on_submit=True):
-        col1, col2 = st.columns(2)
-        with col1:
-            if producto_sel:
-                st.caption(f"{etiqueta_cap}: **{producto_sel['label']}**")
-            else:
-                st.warning(f"Seleccione una {etiqueta} arriba antes de registrar el lote.")
-            usar_compra = st.checkbox("Usar fecha de compra", value=False)
-            fecha_compra_val = st.date_input(
-                "Fecha de compra",
-                key=f"lote_fecha_compra_{key_prefix}",
+            nombres = list(catalogo_map.keys())
+            opciones_prod = [{"id": catalogo_map[n], "label": n} for n in nombres]
+            producto_sel = render_autocomplete(
+                opciones_prod,
+                f"stock_lote_{key_prefix}",
+                etiqueta_cap,
+                f"Buscar {etiqueta} registrada...",
+                etiqueta_selectbox=etiqueta_cap,
             )
-            usar_exp = st.checkbox("Usar fecha de expiración", value=False)
-            fecha_exp_val = st.date_input(
-                "Fecha de expiración",
-                key=f"lote_fecha_exp_{key_prefix}",
-            )
-        with col2:
-            precio = st.number_input(
-                "Precio total",
-                min_value=0.0,
-                value=0.0,
-                step=0.01,
-                format="%.2f",
-            )
-            unidad_lote = "Ud"
-            if producto_sel:
-                prod_obj = repo.get_producto(producto_sel["id"])
-                if prod_obj:
-                    unidad_lote = prod_obj.unidad.value
-            cantidad = st.number_input(
-                "Cantidad",
-                min_value=0.0,
-                value=0.0,
-                step=paso_unidad(unidad_lote),
-                format=formato_number_input(unidad_lote),
-            )
-            cantidad = normalizar_cantidad(cantidad, unidad_lote)
-            proveedor = st.text_input("Marca / proveedor (opcional)")
-            alerta_dias = st.number_input(
-                "Alerta de expiración en X días (opcional)",
-                min_value=0,
-                value=0,
-                step=1,
-            )
-        enviado = st.form_submit_button("Registrar lote", type="primary")
-        if enviado:
-            if not producto_sel:
-                st.error(f"Seleccione una {etiqueta} antes de registrar el lote.")
-            else:
-                resultado = registrar_lote(
-                    producto_id=producto_sel["id"],
-                    precio_total=precio,
-                    cantidad=cantidad,
-                    fecha_compra=fecha_compra_val if usar_compra else None,
-                    fecha_expiracion=fecha_exp_val if usar_exp else None,
-                    marca_proveedor=proveedor,
-                    alerta_expiracion_dias=alerta_dias if alerta_dias > 0 else None,
-                )
-                if resultado.ok:
-                    sincronizar_alertas()
-                    st.success(resultado.mensaje)
-                    st.rerun()
-                else:
-                    st.error(resultado.mensaje)
+            with st.form(f"form_registrar_lote_{key_prefix}", clear_on_submit=True):
+                col1, col2 = st.columns(2)
+                with col1:
+                    if producto_sel:
+                        st.caption(f"{etiqueta_cap}: **{producto_sel['label']}**")
+                    else:
+                        st.warning(f"Seleccione una {etiqueta} arriba antes de registrar el lote.")
+                    usar_compra = st.checkbox("Usar fecha de compra", value=False)
+                    fecha_compra_val = st.date_input(
+                        "Fecha de compra",
+                        key=f"lote_fecha_compra_{key_prefix}",
+                    )
+                    usar_exp = st.checkbox("Usar fecha de expiración", value=False)
+                    fecha_exp_val = st.date_input(
+                        "Fecha de expiración",
+                        key=f"lote_fecha_exp_{key_prefix}",
+                    )
+                with col2:
+                    precio = st.number_input(
+                        "Precio total",
+                        min_value=0.0,
+                        value=0.0,
+                        step=0.01,
+                        format="%.2f",
+                    )
+                    unidad_lote = "Ud"
+                    if producto_sel:
+                        prod_obj = repo.get_producto(producto_sel["id"])
+                        if prod_obj:
+                            unidad_lote = prod_obj.unidad.value
+                    cantidad = st.number_input(
+                        "Cantidad",
+                        min_value=0.0,
+                        value=0.0,
+                        step=paso_unidad(unidad_lote),
+                        format=formato_number_input(unidad_lote),
+                    )
+                    cantidad = normalizar_cantidad(cantidad, unidad_lote)
+                    proveedor = st.text_input("Marca / proveedor (opcional)")
+                    alerta_dias = st.number_input(
+                        "Alerta de expiración en X días (opcional)",
+                        min_value=0,
+                        value=0,
+                        step=1,
+                    )
+                enviado = st.form_submit_button("Registrar lote", type="primary")
+                if enviado:
+                    if not producto_sel:
+                        st.error(f"Seleccione una {etiqueta} antes de registrar el lote.")
+                    else:
+                        resultado = registrar_lote(
+                            producto_id=producto_sel["id"],
+                            precio_total=precio,
+                            cantidad=cantidad,
+                            fecha_compra=fecha_compra_val if usar_compra else None,
+                            fecha_expiracion=fecha_exp_val if usar_exp else None,
+                            marca_proveedor=proveedor,
+                            alerta_expiracion_dias=alerta_dias if alerta_dias > 0 else None,
+                        )
+                        if resultado.ok:
+                            sincronizar_alertas()
+                            st.success(resultado.mensaje)
+                            st.rerun()
+                        else:
+                            st.error(resultado.mensaje)
 
 
 def _render_tab_productos() -> None:
@@ -1879,11 +1879,11 @@ def _render_alertas_stock() -> None:
             lote_id = getattr(alerta, "lote_id", None)
             lote_txt = f"  \nLote: `{lote_id}`" if lote_id else ""
 
-            st.markdown(
+                st.markdown(
                 f"**{alerta.titulo}** `{etiqueta}` · **{estado_txt}**  \n"
                 f"{alerta.mensaje}{item_txt}{lote_txt}  \n"
-                f"*{formato_fecha(alerta.fecha)}*"
-            )
+                    f"*{formato_fecha(alerta.fecha)}*"
+                )
 
             acciones = st.columns(5)
             with acciones[0]:
