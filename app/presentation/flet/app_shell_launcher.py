@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
 from collections.abc import Callable
 
 import flet as ft
+
+_log = logging.getLogger("bm.flet.launcher")
 
 from app.presentation.flet import session_bridge
 from app.presentation.flet.launcher_routing import (
@@ -78,23 +82,49 @@ class LauncherShell:
         self.page.update()
         try:
             destino = resolver_destino(destino_raw)
-            if destino not in (
-                DESTINO_RESTAURANTE,
-                DESTINO_INVENTARIO,
-                DESTINO_ADMINISTRACION,
-            ):
-                raise DestinoDesconocidoError(destino_raw)
-            session_bridge.logout_terminal()
-            self._mount_destino(destino)
-            self._mounted_destino = destino
-            self._cargando = False
         except DestinoDesconocidoError:
             self._cargando = False
             self._error = "Destino no reconocido."
             self.show_launcher()
-        except Exception:  # noqa: BLE001 — error recuperable de UI
+            return
+        if destino not in (
+            DESTINO_RESTAURANTE,
+            DESTINO_INVENTARIO,
+            DESTINO_ADMINISTRACION,
+        ):
             self._cargando = False
-            self._error = "No se pudo abrir el destino. Inténtelo de nuevo."
+            self._error = "Destino no reconocido."
+            self.show_launcher()
+            return
+
+        if hasattr(self.page, "run_task"):
+            self.page.run_task(self._open_destino_task, destino)
+        else:
+            self._open_destino_sync(destino)
+
+    async def _open_destino_task(self, destino: str) -> None:
+        """Cede un tick al cliente Flet para pintar el indicador de carga."""
+        await asyncio.sleep(0)
+        self._open_destino_sync(destino)
+
+    def _open_destino_sync(self, destino: str) -> None:
+        try:
+            session_bridge.logout_terminal()
+            self._mount_destino(destino)
+            self._cargando = False
+        except Exception as exc:  # noqa: BLE001 — error recuperable de UI
+            _log.exception("No se pudo montar destino %s", destino)
+            self._cargando = False
+            self._mounted_destino = None
+            self._active_shell = None
+            detail = str(exc).strip()
+            if detail:
+                self._error = (
+                    "No se pudo abrir el destino. "
+                    f"{detail[:180]}{'…' if len(detail) > 180 else ''}"
+                )
+            else:
+                self._error = "No se pudo abrir el destino. Inténtelo de nuevo."
             self.show_launcher()
 
     def _mount_destino(self, destino: str) -> None:
@@ -104,6 +134,10 @@ class LauncherShell:
         Pasa callback de retorno sin que las verticales importen este módulo.
         """
         on_volver: Callable[[], None] = self.volver_al_menu
+        self._mounted_destino = destino
+        self.page.theme_mode = ft.ThemeMode.LIGHT
+        self.page.padding = 0
+        self.page.bgcolor = ft.Colors.GREY_100
         if destino == DESTINO_RESTAURANTE:
             from app.presentation.flet.app_shell import TerminalRestauranteShell
 
@@ -111,24 +145,14 @@ class LauncherShell:
             shell = TerminalRestauranteShell(
                 self.page, on_volver_al_menu=on_volver
             )
-            shell._root = self._root
-            self._active_shell = shell
-            self.page.on_resize = lambda _e: shell.refresh()
-            shell.refresh()
-            return
-        if destino == DESTINO_INVENTARIO:
+        elif destino == DESTINO_INVENTARIO:
             from app.presentation.flet.app_shell_inventario import TerminalInventarioShell
 
             self.page.title = "BM — Terminal Inventario"
             shell = TerminalInventarioShell(
                 self.page, on_volver_al_menu=on_volver
             )
-            shell._root = self._root
-            self._active_shell = shell
-            self.page.on_resize = lambda _e: shell.refresh()
-            shell.refresh()
-            return
-        if destino == DESTINO_ADMINISTRACION:
+        elif destino == DESTINO_ADMINISTRACION:
             from app.presentation.flet.app_shell_administracion import (
                 TerminalAdministracionShell,
             )
@@ -137,12 +161,12 @@ class LauncherShell:
             shell = TerminalAdministracionShell(
                 self.page, on_volver_al_menu=on_volver
             )
-            shell._root = self._root
-            self._active_shell = shell
-            self.page.on_resize = lambda _e: shell.refresh()
-            shell.refresh()
-            return
-        raise DestinoDesconocidoError(destino)
+        else:
+            raise DestinoDesconocidoError(destino)
+        shell._root = self._root
+        self._active_shell = shell
+        self.page.on_resize = lambda _e: shell.refresh()
+        shell.refresh()
 
 
 def attach_launcher(page: ft.Page) -> LauncherShell:

@@ -19,9 +19,24 @@ from app.presentation.flet.admin_viewmodels import (
     UsuarioAdminVM,
     secciones_visibles_admin,
 )
+from app.presentation.flet.analisis_viewmodels import (
+    ANALISIS_HUB_LABEL,
+    ANALISIS_HUBS,
+    COSTES_PESTANAS,
+    CONSUMO_PESTANAS,
+    CONSUMO_TIPOS,
+    MERMA_PESTANAS,
+    AnalisisPanelVM,
+)
+from app.presentation.flet.charts import (
+    build_barras_agrupadas,
+    build_barras_horizontales,
+    build_lineas_series,
+)
 
 _SECCION_ICONS: dict[str, tuple] = {
     "inicio": (ft.Icons.HOME_OUTLINED, ft.Icons.HOME),
+    "analisis": (ft.Icons.ANALYTICS_OUTLINED, ft.Icons.ANALYTICS),
     "productos": (ft.Icons.INVENTORY_2_OUTLINED, ft.Icons.INVENTORY_2),
     "recetas": (ft.Icons.MENU_BOOK_OUTLINED, ft.Icons.MENU_BOOK),
     "usuarios": (ft.Icons.PEOPLE_OUTLINE, ft.Icons.PEOPLE),
@@ -41,6 +56,83 @@ from app.presentation.flet.views.menu_nav import (
     build_volver_al_menu_button,
     header_action_row,
 )
+
+
+def build_bootstrap_admin(
+    *,
+    on_bootstrap: Callable[[str, str, str, str], None],
+    feedback_mensaje: str = "",
+    on_volver_menu: Callable[[], None] | None = None,
+) -> ft.Control:
+    nombre_tf = ft.TextField(label="Nombre visible", autofocus=True, width=320)
+    login_tf = ft.TextField(label="Identificador de acceso", width=320)
+    pass_tf = ft.TextField(
+        label="Contraseña",
+        password=True,
+        can_reveal_password=True,
+        width=320,
+    )
+    pass2_tf = ft.TextField(
+        label="Repetir contraseña",
+        password=True,
+        can_reveal_password=True,
+        width=320,
+    )
+    err = (
+        ft.Text(feedback_mensaje, color=ft.Colors.RED_700)
+        if feedback_mensaje
+        else ft.Container()
+    )
+
+    def _submit(_e=None) -> None:
+        on_bootstrap(
+            nombre_tf.value or "",
+            login_tf.value or "",
+            pass_tf.value or "",
+            pass2_tf.value or "",
+        )
+
+    pass2_tf.on_submit = _submit
+    controls: list[ft.Control] = [
+        ft.Text(
+            "Configuración inicial",
+            size=32,
+            weight=ft.FontWeight.BOLD,
+        ),
+        ft.Text(
+            "No hay un usuario Dirección con credenciales. "
+            "Cree el acceso administrativo inicial.",
+            size=14,
+            color=ft.Colors.AMBER_900,
+            text_align=ft.TextAlign.CENTER,
+            width=420,
+        ),
+        nombre_tf,
+        login_tf,
+        pass_tf,
+        pass2_tf,
+        ft.FilledButton(
+            "Crear acceso Dirección",
+            icon=ft.Icons.PERSON_ADD,
+            style=ft.ButtonStyle(padding=18),
+            on_click=_submit,
+        ),
+        err,
+    ]
+    volver = build_volver_al_menu_button(on_volver_menu)
+    if volver is not None:
+        controls.append(volver)
+    return ft.Container(
+        expand=True,
+        alignment=ft.Alignment.CENTER,
+        padding=24,
+        content=ft.Column(
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=16,
+            tight=True,
+            controls=controls,
+        ),
+    )
 
 
 def build_login_admin(
@@ -95,7 +187,7 @@ def build_login_admin(
         controls.append(volver)
     controls.append(
         ft.Text(
-            "Sin Streamlit para operación diaria. Costes avanzados siguen fuera de alcance.",
+            "Sin Streamlit para operación diaria. Análisis de costes/consumo/merma en Flet.",
             size=12,
             color=ft.Colors.OUTLINE,
             text_align=ft.TextAlign.CENTER,
@@ -170,6 +262,15 @@ def build_admin_shell(
     on_proponer_rectificativa_stock: Callable[[str, str], None] | None = None,
     on_adjuntar_archivo: Callable[[str, str], None] | None = None,
     on_abrir_adjunto: Callable[[str], None] | None = None,
+    # análisis
+    on_analisis_hub: Callable[[str], None] | None = None,
+    on_analisis_pestana: Callable[[str], None] | None = None,
+    on_analisis_subtab: Callable[[str], None] | None = None,
+    on_analisis_periodo: Callable[[str, str], None] | None = None,
+    on_analisis_busqueda: Callable[[str], None] | None = None,
+    on_analisis_tipo: Callable[[str], None] | None = None,
+    on_analisis_comparacion: Callable[[str, str, str, str], None] | None = None,
+    on_analisis_export: Callable[[], None] | None = None,
     on_confirmar: Callable[[], None] = None,  # type: ignore[assignment]
     on_cancelar: Callable[[], None] = None,  # type: ignore[assignment]
     on_volver_menu: Callable[[], None] | None = None,
@@ -217,7 +318,10 @@ def build_admin_shell(
 
     pending_box = _pending_box(screen, on_confirmar=on_confirmar, on_cancelar=on_cancelar)
 
-    visibles = secciones_visibles_admin(puede_zona_peligro=screen.puede_zona_peligro)
+    visibles = secciones_visibles_admin(
+        puede_zona_peligro=screen.puede_zona_peligro,
+        puede_ver_analisis=screen.puede_ver_analisis,
+    )
     selected = visibles.index(screen.seccion) if screen.seccion in visibles else 0
     rail = ft.NavigationRail(
         selected_index=selected,
@@ -282,6 +386,14 @@ def build_admin_shell(
         on_proponer_rectificativa_stock=on_proponer_rectificativa_stock,
         on_adjuntar_archivo=on_adjuntar_archivo,
         on_abrir_adjunto=on_abrir_adjunto,
+        on_analisis_hub=on_analisis_hub,
+        on_analisis_pestana=on_analisis_pestana,
+        on_analisis_subtab=on_analisis_subtab,
+        on_analisis_periodo=on_analisis_periodo,
+        on_analisis_busqueda=on_analisis_busqueda,
+        on_analisis_tipo=on_analisis_tipo,
+        on_analisis_comparacion=on_analisis_comparacion,
+        on_analisis_export=on_analisis_export,
     )
 
     body = ft.Row(
@@ -352,6 +464,8 @@ def _pending_box(
 
 def _panel_for_seccion(screen: AdminScreenVM, **cbs) -> ft.Control:
     sec = screen.seccion
+    if sec == "analisis":
+        return _panel_analisis(screen, **cbs)
     if sec == "productos":
         return _panel_productos(screen, **cbs)
     if sec == "recetas":
@@ -381,6 +495,277 @@ def _panel_for_seccion(screen: AdminScreenVM, **cbs) -> ft.Control:
     if sec == "zona_peligro":
         return _panel_zona_peligro(screen, **cbs)
     return _panel_inicio(screen, **cbs)
+
+
+def _chip_row(
+    labels: tuple[str, ...] | list[str],
+    selected: str,
+    on_select: Callable[[str], None] | None,
+) -> ft.Control:
+    return ft.Row(
+        spacing=6,
+        wrap=True,
+        controls=[
+            ft.FilledButton(
+                lab,
+                on_click=(lambda _e, v=lab: on_select(v) if on_select else None),
+            )
+            if lab == selected
+            else ft.OutlinedButton(
+                lab,
+                on_click=(lambda _e, v=lab: on_select(v) if on_select else None),
+            )
+            for lab in labels
+        ],
+    )
+
+
+def _panel_analisis(screen: AdminScreenVM, **cbs) -> ft.Control:
+    panel: AnalisisPanelVM | None = screen.analisis
+    if panel is None or not panel.puede_consultar:
+        return ft.Column(
+            spacing=8,
+            controls=[
+                ft.Text("Análisis", size=18, weight=ft.FontWeight.BOLD),
+                ft.Text(
+                    (panel.aviso if panel else None)
+                    or "Sin permiso para consultar costes.",
+                    color=ft.Colors.RED_700,
+                ),
+            ],
+        )
+
+    hub_id = panel.hub
+    hub_labels = [ANALISIS_HUB_LABEL[h] for h in ANALISIS_HUBS]
+    pestanas = {
+        "costes": COSTES_PESTANAS,
+        "consumo": CONSUMO_PESTANAS,
+        "merma": MERMA_PESTANAS,
+    }.get(hub_id, COSTES_PESTANAS)
+
+    desde_tf = ft.TextField(label="Desde (AAAA-MM-DD)", value=panel.desde, width=150)
+    hasta_tf = ft.TextField(label="Hasta (AAAA-MM-DD)", value=panel.hasta, width=150)
+    controls: list[ft.Control] = [
+        ft.Text("Análisis", size=18, weight=ft.FontWeight.BOLD),
+        ft.Text(
+            "Costes, consumo y merma (sin BI). Gráficos nativos Flet.",
+            size=13,
+            color=ft.Colors.ON_SURFACE_VARIANT,
+        ),
+        _chip_row(
+            hub_labels,
+            ANALISIS_HUB_LABEL.get(hub_id, "Costes"),
+            lambda lab: (cbs.get("on_analisis_hub") or (lambda _x: None))(
+                next(h for h, l in ANALISIS_HUB_LABEL.items() if l == lab)
+            ),
+        ),
+        ft.Row(
+            spacing=8,
+            controls=[
+                desde_tf,
+                hasta_tf,
+                ft.FilledButton(
+                    "Aplicar periodo",
+                    on_click=lambda _e: (cbs.get("on_analisis_periodo") or (lambda a, b: None))(
+                        desde_tf.value or "", hasta_tf.value or ""
+                    ),
+                ),
+            ],
+        ),
+    ]
+
+    if panel.aviso:
+        controls.append(
+            ft.Container(
+                bgcolor=ft.Colors.AMBER_100,
+                padding=10,
+                border_radius=8,
+                content=ft.Text(panel.aviso, size=13),
+            )
+        )
+
+    controls.append(
+        _chip_row(
+            list(pestanas),
+            panel.pestana,
+            cbs.get("on_analisis_pestana"),
+        )
+    )
+
+    if hub_id == "consumo":
+        busq = ft.TextField(
+            label="Buscador",
+            value=panel.busqueda,
+            expand=True,
+            on_submit=lambda e: (cbs.get("on_analisis_busqueda") or (lambda _t: None))(
+                e.control.value or ""
+            ),
+        )
+        tipo_dd = ft.Dropdown(
+            label="Tipo",
+            width=180,
+            value=panel.tipo_filtro,
+            options=[ft.DropdownOption(key=t, text=t) for t in CONSUMO_TIPOS],
+            on_select=lambda e: (cbs.get("on_analisis_tipo") or (lambda _t: None))(
+                getattr(e.control, "value", None) or "Todos"
+            ),
+        )
+        controls.append(
+            ft.Row(
+                controls=[
+                    busq,
+                    ft.FilledButton(
+                        "Filtrar",
+                        on_click=lambda _e: (cbs.get("on_analisis_busqueda") or (lambda _t: None))(
+                            busq.value or ""
+                        ),
+                    ),
+                    tipo_dd,
+                ]
+            )
+        )
+
+    # Subtabs for costes/consumo drilldowns
+    subtabs: list[str] = []
+    if hub_id == "costes" and panel.pestana == "Desayuno":
+        subtabs = ["Recetas", "Extras", "Bebidas en desayuno"]
+    elif hub_id == "costes" and panel.pestana in ("Comida", "Cena"):
+        subtabs = ["Recetas", "Productos y extras", "Bebidas"]
+    elif hub_id == "costes" and panel.pestana == "Bebidas":
+        subtabs = ["Todas", "Desayuno", "Comida", "Cena", "Registro independiente"]
+    elif hub_id == "consumo" and panel.pestana == "Desayuno":
+        subtabs = ["Recetas", "Extras", "Bebidas en desayuno"]
+    elif hub_id == "consumo" and panel.pestana in ("Comida", "Cena"):
+        subtabs = ["Recetas", "Productos y extras", "Bebidas"]
+    elif hub_id == "consumo" and panel.pestana == "Bebidas":
+        subtabs = ["Todas", "Desayuno", "Comida", "Cena", "Registro independiente"]
+    if subtabs:
+        controls.append(
+            _chip_row(
+                subtabs,
+                panel.subtab if panel.subtab in subtabs else subtabs[0],
+                cbs.get("on_analisis_subtab"),
+            )
+        )
+
+    # Metrics
+    if panel.metrics:
+        controls.append(
+            ft.Row(
+                spacing=8,
+                wrap=True,
+                controls=[
+                    ft.Container(
+                        width=180,
+                        padding=10,
+                        bgcolor=ft.Colors.BLUE_GREY_50,
+                        border_radius=8,
+                        content=ft.Column(
+                            spacing=2,
+                            tight=True,
+                            controls=[
+                                ft.Text(m.etiqueta, size=11, color=ft.Colors.OUTLINE),
+                                ft.Text(m.valor, size=16, weight=ft.FontWeight.BOLD),
+                                ft.Text(m.detalle, size=11, color=ft.Colors.ON_SURFACE_VARIANT),
+                            ],
+                        ),
+                    )
+                    for m in panel.metrics
+                ],
+            )
+        )
+
+    for titulo, items in panel.chart_barras:
+        controls.append(build_barras_horizontales(items, titulo=titulo))
+
+    for ch in panel.chart_lineas:
+        controls.append(build_lineas_series(ch))
+
+    for block in panel.rankings:
+        controls.append(ft.Text(block.titulo, size=14, weight=ft.FontWeight.BOLD))
+        if not block.filas:
+            controls.append(
+                ft.Text("Sin filas.", italic=True, color=ft.Colors.OUTLINE, size=12)
+            )
+        else:
+            for row in block.filas:
+                line = f"{row.nombre} · {row.coste_fmt}"
+                if row.cantidad_fmt:
+                    line += f" · {row.cantidad_fmt}"
+                if row.usos != "":
+                    line += f" · usos {row.usos}"
+                if row.tipo:
+                    line += f" · {row.tipo}"
+                controls.append(ft.Text(line, size=12))
+
+    if hub_id == "costes" and panel.pestana == "Resumen":
+        controls.append(ft.Divider())
+        controls.append(
+            ft.Text("Comparación Periodo A / B", size=15, weight=ft.FontWeight.BOLD)
+        )
+        a_d = ft.TextField(label="A desde", value=panel.cmp_a_desde, width=130)
+        a_h = ft.TextField(label="A hasta", value=panel.cmp_a_hasta, width=130)
+        b_d = ft.TextField(label="B desde", value=panel.cmp_b_desde, width=130)
+        b_h = ft.TextField(label="B hasta", value=panel.cmp_b_hasta, width=130)
+        controls.append(
+            ft.Row(
+                wrap=True,
+                controls=[
+                    a_d,
+                    a_h,
+                    b_d,
+                    b_h,
+                    ft.FilledButton(
+                        "Comparar",
+                        on_click=lambda _e: (
+                            cbs.get("on_analisis_comparacion") or (lambda *a: None)
+                        )(
+                            a_d.value or "",
+                            a_h.value or "",
+                            b_d.value or "",
+                            b_h.value or "",
+                        ),
+                    ),
+                    ft.OutlinedButton(
+                        "Exportar Excel",
+                        on_click=lambda _e: (cbs.get("on_analisis_export") or (lambda: None))(),
+                    ),
+                ],
+            )
+        )
+        if panel.cmp_metrics:
+            controls.append(
+                ft.Row(
+                    wrap=True,
+                    spacing=8,
+                    controls=[
+                        ft.Container(
+                            width=150,
+                            padding=8,
+                            bgcolor=ft.Colors.GREY_100,
+                            border_radius=6,
+                            content=ft.Column(
+                                tight=True,
+                                spacing=2,
+                                controls=[
+                                    ft.Text(m.etiqueta, size=11),
+                                    ft.Text(m.valor, weight=ft.FontWeight.BOLD),
+                                    ft.Text(m.detalle, size=10),
+                                ],
+                            ),
+                        )
+                        for m in panel.cmp_metrics
+                    ],
+                )
+            )
+        if panel.cmp_barras:
+            controls.append(
+                build_barras_agrupadas(panel.cmp_barras, titulo="Comparación A/B")
+            )
+        if panel.export_mensaje:
+            controls.append(ft.Text(panel.export_mensaje, size=12, color=ft.Colors.GREEN_800))
+
+    return ft.Column(spacing=12, controls=controls)
 
 
 def _panel_inicio(screen: AdminScreenVM, **cbs) -> ft.Control:
@@ -1321,8 +1706,8 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
         value=screen.compra_albaran_id or None,
         width=320,
         visible=(screen.compra_tipo or "") == "factura",
-        on_change=lambda e: cbs.get("on_set_compra_albaran")
-        and cbs["on_set_compra_albaran"](e.control.value or ""),
+        on_select=lambda e: cbs.get("on_set_compra_albaran")
+        and cbs["on_set_compra_albaran"](getattr(e.control, "value", None) or ""),
     )
 
     return ft.Column(

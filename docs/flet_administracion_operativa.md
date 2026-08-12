@@ -2,33 +2,34 @@
 
 ## Estado
 
-**APROBADA** (piloto responsables) y **ampliada** a maestros operativos, compras, documentos y cierre Streamlit-free (dashboard, catálogos, servidor/shared root, actividad, zona de peligro).
+**APROBADA** (piloto responsables) y **ampliada** a maestros operativos, compras, documentos, cierre Streamlit-free y **Análisis** (Costes / Consumo / Merma en Flet; BI sigue en Streamlit).
 
-Streamlit permanece como referencia para costes avanzados / gráficos de análisis no portados.
+Streamlit permanece como referencia para BI y algunas UIs legado.
 
 ## Alcance incluido
 
 1. Login de **usuario** (Dirección / Administración) con `ACCEDER_CONFIGURACION`.
-2. Navegación por secciones (`ADMIN_SECCIONES`): dashboard (`inicio`), productos, recetas, usuarios, responsables, **catálogos**, proveedores, compras, documentos, inventario_inicial, **actividad**, backup, configuración, **servidor**, **zona_peligro** (solo Dir).
-3. **Dashboard** — conteos operativos del periodo (consumos, mermas, stock bajo, caducidades, alerta de registro), revisión JSON y ruta de datos; botón *Actualizar datos* → `refresh_if_stale()`. Sin € en la UI (costes avanzados fuera de alcance).
-4. **Productos** — `stock_service.crear_producto` / desactivar·reactivar (propose→confirm).
-5. **Recetas** — `receta_service.crear_receta` / desactivar·reactivar.
-6. **Usuarios** — `settings_service` crear / editar / cambiar_rol / set_activo / restablecer_password.
-7. **Responsables de merma** — CRUD existente (sin regresión).
-8. **Catálogos** — departamentos / categorías / ubicaciones vía `catalogo_service` (alta + listado activo).
-9. **Proveedores** — `proveedor_service` crear / editar / desactivar·reactivar.
-10. **Compras** — borrador → `confirmar_compra`. Precio solo en `CompraLineaVM.precio_unitario`.
-11. **Documentos** — listado + export CSV (`documento_consulta_service.exportar_documentos_csv`) con feedback de ruta; nº de líneas en lista.
-12. **Actividad** — últimas 50 entradas de `data.actividades` (solo lectura).
-13. **Inventario inicial** — `registrar_lote` con `LoteAltaVM.precio_total`.
-14. **Backup** — ZIP / inspeccionar / restaurar (Dir + `RESTAURAR`).
-15. **Configuración** — nombre establecimiento / moneda.
-16. **Servidor** — muestra data path / shared root; valida con `instance_config.validate_shared_root` / `apply_shared_root`; Guardar escribe **solo** config de cliente (nunca copia datos). `SharedPathUnavailable` → error claro, sin fallback local.
-17. **Zona de peligro** — visible con `EJECUTAR_OPERACION_DESTRUCTIVA` (Dir); solo ops del inventario productivo (`restablecer_mock`); frase + checkbox.
+2. Navegación por secciones (`ADMIN_SECCIONES`): dashboard (`inicio`), **análisis** (costes/consumo/merma), productos, recetas, usuarios, responsables, **catálogos**, proveedores, compras, documentos, inventario_inicial, **actividad**, backup, configuración, **servidor**, **zona_peligro** (solo Dir).
+3. **Dashboard** — conteos operativos del periodo (consumos, mermas, stock bajo, caducidades, alerta de registro), revisión JSON y ruta de datos; botón *Actualizar datos* → `refresh_if_stale()`.
+4. **Análisis** — visible con `CONSULTAR_COSTES`. Hubs **Costes / Consumo / Merma** (sin BI). Reutiliza `costes_service`, `analitica_consumo_service`, `consumo_service`, `merma_analisis_service`, `dashboard_service`. Gráficos con helpers Flet (`app/presentation/flet/charts.py`), no Altair. Export Excel de comparación de costes.
+5. **Productos** — `stock_service.crear_producto` / desactivar·reactivar (propose→confirm).
+6. **Recetas** — `receta_service.crear_receta` / desactivar·reactivar.
+7. **Usuarios** — `settings_service` crear / editar / cambiar_rol / set_activo / restablecer_password.
+8. **Responsables de merma** — CRUD existente (sin regresión).
+9. **Catálogos** — departamentos / categorías / ubicaciones vía `catalogo_service` (alta + listado activo).
+10. **Proveedores** — `proveedor_service` crear / editar / desactivar·reactivar.
+11. **Compras** — borrador → `confirmar_compra`. Precio solo en `CompraLineaVM.precio_unitario`.
+12. **Documentos** — listado + export CSV (`documento_consulta_service.exportar_documentos_csv`) con feedback de ruta; nº de líneas en lista.
+13. **Actividad** — últimas 50 entradas de `data.actividades` (solo lectura).
+14. **Inventario inicial** — `registrar_lote` con `LoteAltaVM.precio_total`.
+15. **Backup** — ZIP / inspeccionar / restaurar (Dir + `RESTAURAR`).
+16. **Configuración** — nombre establecimiento / moneda.
+17. **Servidor** — muestra data path / shared root; valida con `instance_config.validate_shared_root` / `apply_shared_root`; Guardar escribe **solo** config de cliente (nunca copia datos). `SharedPathUnavailable` → error claro, sin fallback local.
+18. **Zona de peligro** — visible con `EJECUTAR_OPERACION_DESTRUCTIVA` (Dir); solo ops del inventario productivo (`restablecer_mock`); frase + checkbox.
 
 ## Exclusiones
 
-Motivos de merma (enum fijo). Costes/gráficos avanzados de Análisis. Conciliación multi-albarán / adjuntos de compra (UI Streamlit F13.5). SQLite/API/`.exe`.
+Motivos de merma (enum fijo). **BI** (asistente de preguntas). Conciliación multi-albarán avanzada en Streamlit F13.5. SQLite/API. Restaurante/Inventario siguen sin €.
 
 ## Arranque
 

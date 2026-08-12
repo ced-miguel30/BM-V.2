@@ -31,7 +31,8 @@ DESTINOS: tuple[DestinoLauncher, ...] = (
     DestinoLauncher(
         DESTINO_RESTAURANTE,
         "Restaurante",
-        "Registro operativo de Desayuno, Comida, Cena y Bebidas.",
+        "Registro operativo de Desayuno, Comida, Cena y Bebidas. "
+        "Tras abrir, pulse «Entrar al terminal».",
     ),
     DestinoLauncher(
         DESTINO_INVENTARIO,
@@ -41,7 +42,8 @@ DESTINOS: tuple[DestinoLauncher, ...] = (
     DestinoLauncher(
         DESTINO_ADMINISTRACION,
         "Administración operativa",
-        "Responsables de merma (configuración mínima).",
+        "Maestros, compras, documentos y backup. "
+        "Primera vez: cree el acceso Dirección.",
     ),
 )
 

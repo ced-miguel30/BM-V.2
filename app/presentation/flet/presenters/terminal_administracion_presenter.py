@@ -8,7 +8,7 @@ Sin reglas de dominio nuevas.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from app.bootstrap import get_container
@@ -28,6 +28,7 @@ from app.core.services import (
     caducidad_service,
     catalogo_service,
     compra_registro_service,
+    costes_service,
     dashboard_service,
     documento_consulta_service,
     destructive_ops_service,
@@ -60,6 +61,15 @@ from app.core.storage.shared_coordinator import (
     assert_data_path_usable,
 )
 from app.presentation.flet import session_bridge
+from app.presentation.flet.analisis_builder import build_analisis_panel
+from app.presentation.flet.analisis_viewmodels import (
+    ANALISIS_HUBS,
+    COSTES_PESTANAS,
+    CONSUMO_PESTANAS,
+    CONSUMO_TIPOS,
+    MERMA_PESTANAS,
+    AnalisisPanelVM,
+)
 from app.presentation.flet.admin_viewmodels import (
     ADMIN_SECCIONES,
     ActividadAdminVM,
@@ -86,6 +96,27 @@ from app.presentation.flet.mappers import (
     map_error_recuperable,
 )
 from app.presentation.flet.viewmodels import FeedbackVM
+
+
+def _default_periodo() -> tuple[date, date]:
+    hoy = date.today()
+    return hoy.replace(day=1), hoy
+
+
+def _mes_anterior_inicio(ref: date) -> date:
+    if ref.month == 1:
+        return ref.replace(year=ref.year - 1, month=12, day=1)
+    return ref.replace(month=ref.month - 1, day=1)
+
+
+def _parse_iso_date(raw: str, fallback: date) -> date:
+    texto = (raw or "").strip()
+    if not texto:
+        return fallback
+    try:
+        return date.fromisoformat(texto[:10])
+    except ValueError:
+        return fallback
 
 
 def _backups_dir() -> Path:
@@ -116,6 +147,19 @@ class TerminalAdministracionPresenter:
         self._compra_documento_id = ""
         self._compra_tipo = TipoDocumento.ALBARAN.value
         self._compra_albaran_id = ""
+        d0, d1 = _default_periodo()
+        self._analisis_hub = "costes"
+        self._analisis_pestana = "Resumen"
+        self._analisis_subtab = "Recetas"
+        self._analisis_desde = d0
+        self._analisis_hasta = d1
+        self._analisis_busqueda = ""
+        self._analisis_tipo_filtro = "Todos"
+        self._analisis_cmp_a_desde = d0
+        self._analisis_cmp_a_hasta = d1
+        self._analisis_cmp_b_desde = _mes_anterior_inicio(d0)
+        self._analisis_cmp_b_hasta = d0 - timedelta(days=1) if d0.day > 1 else d0
+        self._analisis_export_mensaje = ""
         assert_admin_sin_economia(
             ResponsableMermaVM,
             PendingChangeVM,
@@ -129,7 +173,6 @@ class TerminalAdministracionPresenter:
             DestructivaOpVM,
             DocumentoAdminVM,
             ArchivoAdminVM,
-            AdminScreenVM,
         )
         assert_lote_alta_permite_solo_precio_total()
         assert_compra_linea_permite_precio_unitario()
@@ -144,6 +187,22 @@ class TerminalAdministracionPresenter:
         if session.authenticated and fb is None:
             self._feedback = FeedbackVM(ok=True, mensaje="Sesión administrativa iniciada.")
         return self.screen()
+
+    def bootstrap_direccion(
+        self, nombre: str, login: str, password: str, password2: str
+    ) -> AdminScreenVM:
+        if password != password2:
+            self._feedback = FeedbackVM(
+                ok=False, mensaje="Las contraseñas no coinciden."
+            )
+            return self.screen()
+        res = settings_service.bootstrap_direccion(
+            nombre=nombre, login=login, password=password
+        )
+        if not res.ok:
+            self._feedback = FeedbackVM(ok=False, mensaje=res.mensaje)
+            return self.screen()
+        return self.login(login, password)
 
     def logout(self) -> AdminScreenVM:
         session_bridge.logout_terminal()
@@ -167,6 +226,127 @@ class TerminalAdministracionPresenter:
     def set_filtro(self, texto: str) -> AdminScreenVM:
         self._filtro = (texto or "").strip()
         return self.screen()
+
+    # ── Análisis (costes / consumo / merma) ────────────────────────────────
+
+    def set_analisis_hub(self, hub: str) -> AdminScreenVM:
+        if hub in ANALISIS_HUBS:
+            self._analisis_hub = hub
+            self._analisis_pestana = "Resumen"
+            self._analisis_subtab = "Recetas"
+            self._analisis_export_mensaje = ""
+        return self.screen()
+
+    def set_analisis_pestana(self, pestana: str) -> AdminScreenVM:
+        allowed = {
+            "costes": COSTES_PESTANAS,
+            "consumo": CONSUMO_PESTANAS,
+            "merma": MERMA_PESTANAS,
+        }.get(self._analisis_hub, COSTES_PESTANAS)
+        if pestana in allowed:
+            self._analisis_pestana = pestana
+            self._analisis_subtab = "Recetas"
+            self._analisis_export_mensaje = ""
+        return self.screen()
+
+    def set_analisis_subtab(self, subtab: str) -> AdminScreenVM:
+        self._analisis_subtab = (subtab or "").strip() or "Recetas"
+        return self.screen()
+
+    def set_analisis_periodo(self, desde: str, hasta: str) -> AdminScreenVM:
+        d0, d1 = _default_periodo()
+        a = _parse_iso_date(desde, self._analisis_desde or d0)
+        b = _parse_iso_date(hasta, self._analisis_hasta or d1)
+        if a > b:
+            a, b = b, a
+        self._analisis_desde = a
+        self._analisis_hasta = b
+        self._analisis_export_mensaje = ""
+        return self.screen()
+
+    def set_analisis_busqueda(self, texto: str) -> AdminScreenVM:
+        self._analisis_busqueda = (texto or "").strip()
+        return self.screen()
+
+    def set_analisis_tipo_filtro(self, tipo: str) -> AdminScreenVM:
+        if tipo in CONSUMO_TIPOS:
+            self._analisis_tipo_filtro = tipo
+        return self.screen()
+
+    def set_analisis_comparacion(
+        self,
+        a_desde: str,
+        a_hasta: str,
+        b_desde: str,
+        b_hasta: str,
+    ) -> AdminScreenVM:
+        d0, d1 = _default_periodo()
+        self._analisis_cmp_a_desde = _parse_iso_date(a_desde, self._analisis_cmp_a_desde or d0)
+        self._analisis_cmp_a_hasta = _parse_iso_date(a_hasta, self._analisis_cmp_a_hasta or d1)
+        self._analisis_cmp_b_desde = _parse_iso_date(b_desde, self._analisis_cmp_b_desde or d0)
+        self._analisis_cmp_b_hasta = _parse_iso_date(b_hasta, self._analisis_cmp_b_hasta or d1)
+        if self._analisis_cmp_a_desde > self._analisis_cmp_a_hasta:
+            self._analisis_cmp_a_desde, self._analisis_cmp_a_hasta = (
+                self._analisis_cmp_a_hasta,
+                self._analisis_cmp_a_desde,
+            )
+        if self._analisis_cmp_b_desde > self._analisis_cmp_b_hasta:
+            self._analisis_cmp_b_desde, self._analisis_cmp_b_hasta = (
+                self._analisis_cmp_b_hasta,
+                self._analisis_cmp_b_desde,
+            )
+        return self.screen()
+
+    def exportar_analisis_costes_excel(self) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if not session_tiene_permiso(Permiso.CONSULTAR_COSTES):
+            self._feedback = map_error_recuperable(
+                "Sin permiso para exportar costes.", codigo="DENEGADO"
+            )
+            return self.screen()
+        try:
+            data = costes_service.exportar_costes_excel(
+                self._analisis_cmp_a_desde,
+                self._analisis_cmp_a_hasta,
+                self._analisis_cmp_b_desde,
+                self._analisis_cmp_b_hasta,
+                list(costes_service.NATURALEZAS),
+            )
+            dest = get_demo_file().parent / "exports"
+            dest.mkdir(parents=True, exist_ok=True)
+            nombre = (
+                f"costes_{self._analisis_cmp_a_desde.isoformat()}"
+                f"_{self._analisis_cmp_b_hasta.isoformat()}.xlsx"
+            )
+            path = dest / nombre
+            path.write_bytes(data)
+            self._analisis_export_mensaje = f"Excel guardado: {path}"
+            self._feedback = FeedbackVM(ok=True, mensaje=self._analisis_export_mensaje)
+        except Exception as exc:  # noqa: BLE001
+            self._feedback = map_error_recuperable(str(exc), codigo="EXPORT_ERROR")
+            self._analisis_export_mensaje = ""
+        return self.screen()
+
+    def _analisis_panel(self) -> AnalisisPanelVM | None:
+        if self._seccion != "analisis":
+            return None
+        if not session_tiene_permiso(Permiso.CONSULTAR_COSTES):
+            return AnalisisPanelVM(puede_consultar=False, aviso="Sin permiso CONSULTAR_COSTES.")
+        return build_analisis_panel(
+            hub=self._analisis_hub,
+            pestana=self._analisis_pestana,
+            subtab=self._analisis_subtab,
+            desde=self._analisis_desde,
+            hasta=self._analisis_hasta,
+            busqueda=self._analisis_busqueda,
+            tipo_filtro=self._analisis_tipo_filtro,
+            cmp_a_desde=self._analisis_cmp_a_desde,
+            cmp_a_hasta=self._analisis_cmp_a_hasta,
+            cmp_b_desde=self._analisis_cmp_b_desde,
+            cmp_b_hasta=self._analisis_cmp_b_hasta,
+            export_mensaje=self._analisis_export_mensaje,
+        )
 
     # ── Responsables (piloto existente) ───────────────────────────────────
 
@@ -1888,6 +2068,9 @@ class TerminalAdministracionPresenter:
             actividades=actividades,
             puede_zona_peligro=auth and puede_zona,
             ops_destructivas=ops_destructivas if auth and puede_zona else (),
+            puede_ver_analisis=auth
+            and session_tiene_permiso(Permiso.CONSULTAR_COSTES),
+            analisis=self._analisis_panel() if auth else None,
         )
 
     def _listar_backups(self) -> tuple[BackupItemVM, ...]:

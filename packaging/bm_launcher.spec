@@ -6,7 +6,7 @@
 import os
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_submodules
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 # SPECPATH = directorio que contiene este .spec (PyInstaller)
 _packaging = Path(SPECPATH).resolve()
@@ -17,13 +17,16 @@ os.chdir(ROOT)
 
 block_cipher = None
 
+# Flet carga icons.json (y otros assets) en runtime desde el paquete; sin datas falla el .exe.
+_flet_datas = collect_data_files('flet') + collect_data_files('flet_desktop')
+
 a = Analysis(
     [str(_packaging / 'entry_launcher.py')],
     pathex=[str(ROOT)],
     binaries=[],
     datas=[
         (str(ROOT / 'data' / 'demo' / 'datos_hotel.json'), 'data/demo'),
-    ],
+    ] + _flet_datas,
     hiddenimports=[
         'flet',
         'flet_desktop',

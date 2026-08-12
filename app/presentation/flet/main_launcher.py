@@ -18,14 +18,48 @@ import sys
 
 
 def build_app_handler():
+    import flet as ft
+
     from app.bootstrap import configure_for_flet
     from app.core.deploy.runtime import prepare_runtime
+    from app.core.deploy.writer_lock import WriterLockError
     from app.presentation.flet.app_shell_launcher import attach_launcher
 
-    prepare_runtime(role="flet_launcher")
+    try:
+        prepare_runtime(role="flet_launcher")
+    except WriterLockError as exc:
+        def _lock_error(page: ft.Page) -> None:
+            page.title = "BM — No disponible"
+            page.add(
+                ft.Container(
+                    expand=True,
+                    padding=24,
+                    content=ft.Column(
+                        spacing=12,
+                        controls=[
+                            ft.Text(
+                                "Otra ventana de BM ya está abierta",
+                                size=22,
+                                weight=ft.FontWeight.BOLD,
+                            ),
+                            ft.Text(str(exc), size=14),
+                            ft.Text(
+                                "Cierre la otra ventana o espere a que termine de cargar.",
+                                size=13,
+                                color=ft.Colors.ON_SURFACE_VARIANT,
+                            ),
+                        ],
+                    ),
+                )
+            )
+
+        return _lock_error
+
     configure_for_flet()
 
-    def main(page) -> None:
+    def main(page: ft.Page) -> None:
+        if hasattr(page, "wait_until_visible"):
+            page.wait_until_visible()
         attach_launcher(page)
 
     return main

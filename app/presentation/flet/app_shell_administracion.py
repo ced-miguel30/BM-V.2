@@ -11,6 +11,7 @@ from app.presentation.flet.presenters.terminal_administracion_presenter import (
 )
 from app.presentation.flet.views.admin_shell_view import (
     build_admin_shell,
+    build_bootstrap_admin,
     build_login_admin,
 )
 
@@ -39,16 +40,27 @@ class TerminalAdministracionShell:
         self.refresh()
 
     def refresh(self) -> None:
+        from app.bootstrap import get_container
+        from app.core.auth.session import necesita_bootstrap
+
         screen = self.presenter.screen()
         if not screen.session.authenticated:
             msg = ""
             if screen.feedback and not screen.feedback.ok:
                 msg = screen.feedback.mensaje
-            content = build_login_admin(
-                on_login=self._on_login,
-                feedback_mensaje=msg,
-                on_volver_menu=self._on_volver_al_menu,
-            )
+            data = get_container().app_data_store.get()
+            if necesita_bootstrap(data.usuarios):
+                content = build_bootstrap_admin(
+                    on_bootstrap=self._on_bootstrap,
+                    feedback_mensaje=msg,
+                    on_volver_menu=self._on_volver_al_menu,
+                )
+            else:
+                content = build_login_admin(
+                    on_login=self._on_login,
+                    feedback_mensaje=msg,
+                    on_volver_menu=self._on_volver_al_menu,
+                )
         else:
             content = build_admin_shell(
                 screen,
@@ -100,6 +112,14 @@ class TerminalAdministracionShell:
                 on_proponer_rectificativa_stock=self._on_proponer_rectificativa_stock,
                 on_adjuntar_archivo=self._on_adjuntar_archivo,
                 on_abrir_adjunto=self._on_abrir_adjunto,
+                on_analisis_hub=self._on_analisis_hub,
+                on_analisis_pestana=self._on_analisis_pestana,
+                on_analisis_subtab=self._on_analisis_subtab,
+                on_analisis_periodo=self._on_analisis_periodo,
+                on_analisis_busqueda=self._on_analisis_busqueda,
+                on_analisis_tipo=self._on_analisis_tipo,
+                on_analisis_comparacion=self._on_analisis_comparacion,
+                on_analisis_export=self._on_analisis_export,
                 on_confirmar=self._on_confirmar,
                 on_cancelar=self._on_cancelar,
             )
@@ -108,6 +128,12 @@ class TerminalAdministracionShell:
 
     def _on_login(self, login: str, password: str) -> None:
         self.presenter.login(login, password)
+        self.refresh()
+
+    def _on_bootstrap(
+        self, nombre: str, login: str, password: str, password2: str
+    ) -> None:
+        self.presenter.bootstrap_direccion(nombre, login, password, password2)
         self.refresh()
 
     def _on_logout(self) -> None:
@@ -120,6 +146,40 @@ class TerminalAdministracionShell:
 
     def _on_filtro(self, texto: str) -> None:
         self.presenter.set_filtro(texto)
+        self.refresh()
+
+    def _on_analisis_hub(self, hub: str) -> None:
+        self.presenter.set_analisis_hub(hub)
+        self.refresh()
+
+    def _on_analisis_pestana(self, pestana: str) -> None:
+        self.presenter.set_analisis_pestana(pestana)
+        self.refresh()
+
+    def _on_analisis_subtab(self, subtab: str) -> None:
+        self.presenter.set_analisis_subtab(subtab)
+        self.refresh()
+
+    def _on_analisis_periodo(self, desde: str, hasta: str) -> None:
+        self.presenter.set_analisis_periodo(desde, hasta)
+        self.refresh()
+
+    def _on_analisis_busqueda(self, texto: str) -> None:
+        self.presenter.set_analisis_busqueda(texto)
+        self.refresh()
+
+    def _on_analisis_tipo(self, tipo: str) -> None:
+        self.presenter.set_analisis_tipo_filtro(tipo)
+        self.refresh()
+
+    def _on_analisis_comparacion(
+        self, a_desde: str, a_hasta: str, b_desde: str, b_hasta: str
+    ) -> None:
+        self.presenter.set_analisis_comparacion(a_desde, a_hasta, b_desde, b_hasta)
+        self.refresh()
+
+    def _on_analisis_export(self) -> None:
+        self.presenter.exportar_analisis_costes_excel()
         self.refresh()
 
     def _on_crear_responsable(self, nombre: str) -> None:

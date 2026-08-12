@@ -1,12 +1,14 @@
 """Viewmodels Administración operativa Flet — maestros + backup + compras + cierre.
 
-Sin economía salvo ``LoteAltaVM.precio_total`` e ``CompraLineaVM.precio_unitario``.
+Sin economía salvo ``LoteAltaVM.precio_total``, ``CompraLineaVM.precio_unitario``
+y el panel ``AnalisisPanelVM`` (sección analisis).
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, fields
 
+from app.presentation.flet.analisis_viewmodels import AnalisisPanelVM
 from app.presentation.flet.viewmodels import (
     CAMPOS_ECONOMICOS_PROHIBIDOS,
     FeedbackVM,
@@ -15,6 +17,7 @@ from app.presentation.flet.viewmodels import (
 
 ADMIN_SECCIONES: tuple[str, ...] = (
     "inicio",
+    "analisis",
     "productos",
     "recetas",
     "usuarios",
@@ -33,6 +36,7 @@ ADMIN_SECCIONES: tuple[str, ...] = (
 
 ADMIN_SECCION_LABEL: dict[str, str] = {
     "inicio": "Dashboard",
+    "analisis": "Análisis",
     "productos": "Productos",
     "recetas": "Recetas",
     "usuarios": "Usuarios",
@@ -50,11 +54,18 @@ ADMIN_SECCION_LABEL: dict[str, str] = {
 }
 
 
-def secciones_visibles_admin(*, puede_zona_peligro: bool) -> tuple[str, ...]:
-    """Filtra zona_peligro si la sesión no puede verla."""
-    if puede_zona_peligro:
-        return ADMIN_SECCIONES
-    return tuple(s for s in ADMIN_SECCIONES if s != "zona_peligro")
+def secciones_visibles_admin(
+    *,
+    puede_zona_peligro: bool,
+    puede_ver_analisis: bool = False,
+) -> tuple[str, ...]:
+    """Filtra zona_peligro y analisis según permisos de sesión."""
+    out = list(ADMIN_SECCIONES)
+    if not puede_ver_analisis:
+        out = [s for s in out if s != "analisis"]
+    if not puede_zona_peligro:
+        out = [s for s in out if s != "zona_peligro"]
+    return tuple(out)
 
 
 @dataclass(frozen=True)
@@ -260,6 +271,9 @@ class AdminScreenVM:
     # Zona de peligro
     puede_zona_peligro: bool = False
     ops_destructivas: tuple[DestructivaOpVM, ...] = ()
+    # Análisis (costes / consumo / merma)
+    puede_ver_analisis: bool = False
+    analisis: AnalisisPanelVM | None = None
 
 
 def assert_admin_sin_economia(*tipos: type) -> None:
