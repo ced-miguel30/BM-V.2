@@ -246,6 +246,9 @@ class AdminScreenVM:
     compra_documento_id: str = ""
     compra_tipo: str = "albaran"
     compra_albaran_id: str = ""
+    compra_borradores: tuple[DocumentoAdminVM, ...] = ()
+    compra_prod_busqueda: str = ""
+    compra_prod_sugerencias: tuple[ProductoAdminVM, ...] = ()
     documentos: tuple[DocumentoAdminVM, ...] = ()
     archivos: tuple[ArchivoAdminVM, ...] = ()
     albaranes_conciliables: tuple[DocumentoAdminVM, ...] = ()

@@ -114,6 +114,10 @@ class TerminalAdministracionShell:
                     on_guardar_borrador_compra=self._on_guardar_borrador_compra,
                     on_confirmar_compra=self._on_confirmar_compra,
                     on_limpiar_borrador_compra=self._on_limpiar_borrador_compra,
+                    on_set_compra_prod_busqueda=self._on_set_compra_prod_busqueda,
+                    on_seleccionar_sugerencia_compra=self._on_seleccionar_sugerencia_compra,
+                    on_cargar_borrador_compra=self._on_cargar_borrador_compra,
+                    on_anular_borrador_compra=self._on_anular_borrador_compra,
                     on_set_compra_albaran=self._on_set_compra_albaran,
                     on_generar_backup=self._on_generar_backup,
                     on_inspeccionar_backup=self._on_inspeccionar_backup,
@@ -469,6 +473,22 @@ class TerminalAdministracionShell:
 
     def _on_limpiar_borrador_compra(self) -> None:
         self.presenter.limpiar_borrador_compra()
+        self.refresh()
+
+    def _on_set_compra_prod_busqueda(self, texto: str) -> None:
+        self.presenter.set_compra_prod_busqueda(texto)
+        self.refresh()
+
+    def _on_seleccionar_sugerencia_compra(self, producto_id: str) -> None:
+        self.presenter.seleccionar_sugerencia_compra(producto_id)
+        self.refresh()
+
+    def _on_cargar_borrador_compra(self, documento_id: str) -> None:
+        self.presenter.cargar_borrador_compra(documento_id)
+        self.refresh()
+
+    def _on_anular_borrador_compra(self, documento_id: str) -> None:
+        self.presenter.anular_borrador_compra(documento_id)
         self.refresh()
 
     def _on_set_compra_albaran(self, albaran_id: str) -> None:

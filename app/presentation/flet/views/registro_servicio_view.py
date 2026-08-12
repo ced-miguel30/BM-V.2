@@ -25,7 +25,12 @@ def build_catalog_result_controls(
             if (screen.busqueda or "").strip()
             else "No hay ítems para este servicio o filtro."
         )
-        return [ft.Text(vacio, color=ft.Colors.OUTLINE, italic=True)]
+        return [
+            ui.empty_state(
+                "Sin resultados",
+                vacio + " Pruebe otra palabra (búsqueda parcial).",
+            )
+        ]
     return [
         _catalog_tile(item, on_add_receta, on_add_producto) for item in screen.catalogo
     ]

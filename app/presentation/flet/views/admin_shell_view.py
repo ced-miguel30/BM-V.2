@@ -212,6 +212,10 @@ def build_admin_shell(
     on_guardar_borrador_compra: Callable[[], None],
     on_confirmar_compra: Callable[[], None],
     on_limpiar_borrador_compra: Callable[[], None],
+    on_set_compra_prod_busqueda: Callable[[str], None] | None = None,
+    on_seleccionar_sugerencia_compra: Callable[[str], None] | None = None,
+    on_cargar_borrador_compra: Callable[[str], None] | None = None,
+    on_anular_borrador_compra: Callable[[str], None] | None = None,
     on_generar_backup: Callable[[], None],
     on_inspeccionar_backup: Callable[[str], None],
     on_proponer_restaurar: Callable[[str, str], None],
@@ -342,6 +346,10 @@ def build_admin_shell(
         on_guardar_borrador_compra=on_guardar_borrador_compra,
         on_confirmar_compra=on_confirmar_compra,
         on_limpiar_borrador_compra=on_limpiar_borrador_compra,
+        on_set_compra_prod_busqueda=on_set_compra_prod_busqueda,
+        on_seleccionar_sugerencia_compra=on_seleccionar_sugerencia_compra,
+        on_cargar_borrador_compra=on_cargar_borrador_compra,
+        on_anular_borrador_compra=on_anular_borrador_compra,
         on_set_compra_albaran=on_set_compra_albaran,
         on_generar_backup=on_generar_backup,
         on_inspeccionar_backup=on_inspeccionar_backup,
@@ -2305,6 +2313,10 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
     on_guardar = cbs["on_guardar_borrador_compra"]
     on_confirmar = cbs["on_confirmar_compra"]
     on_limpiar = cbs["on_limpiar_borrador_compra"]
+    on_busq = cbs.get("on_set_compra_prod_busqueda")
+    on_sugerir = cbs.get("on_seleccionar_sugerencia_compra")
+    on_cargar = cbs.get("on_cargar_borrador_compra")
+    on_anular_borr = cbs.get("on_anular_borrador_compra")
 
     activos_prov = [p for p in screen.proveedores if p.activo]
     activos_prod = [p for p in screen.productos if p.activo]
@@ -2366,24 +2378,13 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
     )
 
     busqueda = ft.TextField(
-        label="Código o nombre (Enter)",
-        hint_text="Escáner / código / nombre…",
-        prefix_icon=ft.Icons.QR_CODE_SCANNER,
+        label="Buscar producto (parcial)",
+        hint_text="Ej. huevo → opciones con «huevo»",
+        prefix_icon=ft.Icons.SEARCH,
+        value=screen.compra_prod_busqueda,
         expand=True,
         autofocus=True,
-    )
-    prod = ft.Dropdown(
-        label="Producto",
-        options=[
-            ft.dropdown.Option(
-                key=p.id,
-                text=f"{p.nombre}"
-                + (f" [{p.codigo}]" if p.codigo else "")
-                + f" ({p.unidad})",
-            )
-            for p in activos_prod[:400]
-        ],
-        expand=True,
+        on_change=lambda e: on_busq(e.control.value or "") if on_busq else None,
     )
     cantidad = ft.TextField(label="Cant.", width=100, value="1")
     precio = ft.TextField(
@@ -2397,23 +2398,51 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
         _sync_cab(tipo.value or "albaran", prov.value or "", ref.value or "")
         cant = _parse_num(cantidad.value, 0.0)
         prec = _parse_num(precio.value, 0.0)
-        texto = (busqueda.value or "").strip()
+        texto = (busqueda.value or screen.compra_prod_busqueda or "").strip()
         if texto and on_add_busq is not None:
             on_add_busq(texto, cant, prec)
+        elif screen.compra_prod_sugerencias:
+            # Si hay varias sugerencias, no adivinar: pedir elección
+            if len(screen.compra_prod_sugerencias) == 1:
+                on_add(screen.compra_prod_sugerencias[0].id, cant, prec)
+            elif on_busq:
+                on_busq(texto)
         else:
-            on_add(prod.value or "", cant, prec)
-        busqueda.value = ""
+            on_add("", cant, prec)
         cantidad.value = "1"
-        # precio se deja: operador puede repetir mismo p.u.
 
     busqueda.on_submit = _add
     cantidad.on_submit = _add
     precio.on_submit = _add
 
-    matches_help = ui_theme.text_help(
-        "Enter añade la línea · precio 0 usa último precio del proveedor · "
-        "edite cantidad/p.u. en la tabla"
-    )
+    sugerencias: list[ft.Control] = []
+    if screen.compra_prod_busqueda.strip() and len(screen.compra_prod_busqueda.strip()) >= 2:
+        if not screen.compra_prod_sugerencias:
+            sugerencias.append(
+                ui_theme.text_help("Sin coincidencias. Pruebe otro término.")
+            )
+        else:
+            chips: list[ft.Control] = []
+            for p in screen.compra_prod_sugerencias:
+                label = p.nombre + (f" [{p.codigo}]" if p.codigo else "")
+                chips.append(
+                    ft.TextButton(
+                        label,
+                        icon=ft.Icons.ADD_CIRCLE_OUTLINE,
+                        disabled=screen.mutando,
+                        on_click=lambda _e, pid=p.id: (
+                            on_sugerir(pid) if on_sugerir else None
+                        ),
+                    )
+                )
+            sugerencias.append(
+                ft.Row(wrap=True, spacing=4, controls=chips)
+            )
+            sugerencias.append(
+                ui_theme.text_help(
+                    "Pulse una opción para añadirla al borrador (cant. 1; ajuste en la tabla)."
+                )
+            )
 
     total = sum(l.cantidad * l.precio_unitario for l in screen.compra_lineas)
     header = ft.Container(
@@ -2445,7 +2474,7 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
         lineas.append(
             ui.empty_state(
                 "Borrador vacío",
-                "Busque por código o elija producto y pulse Enter.",
+                "Escriba parte del nombre (ej. huevo) y elija una opción.",
             )
         )
 
@@ -2466,12 +2495,54 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
         and cbs["on_set_compra_albaran"](getattr(e.control, "value", None) or ""),
     )
 
+    borradores_ui: list[ft.Control] = []
+    if not screen.compra_borradores:
+        borradores_ui.append(
+            ui_theme.text_help("No hay borradores guardados de albarán/factura.")
+        )
+    else:
+        for d in screen.compra_borradores:
+            etiqueta = (
+                f"{d.tipo} · {d.referencia or d.id} · {d.proveedor or '—'} "
+                f"· {d.n_lineas} línea(s)"
+            )
+            borradores_ui.append(
+                ft.Container(
+                    padding=ft.Padding.symmetric(horizontal=8, vertical=6),
+                    border=ft.Border(bottom=ft.BorderSide(1, ui_theme.BORDER)),
+                    content=ft.Row(
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        controls=[
+                            ft.Text(
+                                etiqueta,
+                                size=12,
+                                color=ui_theme.DARK_TEXT,
+                                expand=True,
+                            ),
+                            ui.secondary_button(
+                                "Editar",
+                                lambda did=d.id: on_cargar(did) if on_cargar else None,
+                                disabled=screen.mutando or on_cargar is None,
+                            ),
+                            ft.TextButton(
+                                "Anular",
+                                disabled=screen.mutando or on_anular_borr is None,
+                                style=ft.ButtonStyle(color=ui_theme.DANGER),
+                                on_click=lambda _e, did=d.id: (
+                                    on_anular_borr(did) if on_anular_borr else None
+                                ),
+                            ),
+                        ],
+                    ),
+                )
+            )
+
     return ft.Column(
         spacing=ui_theme.SPACE_MD,
         controls=[
             ui.page_header(
                 "Registro de compras",
-                f"Albarán / factura · captura rápida · flujo {tipo_lbl}",
+                f"Albarán / factura · búsqueda parcial · editar/anular borradores · {tipo_lbl}",
                 actions=[
                     ui.status_chip(
                         f"{len(screen.compra_lineas)} línea(s)",
@@ -2484,10 +2555,14 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
                     ui.status_chip(
                         f"Doc {screen.compra_documento_id}"
                         if screen.compra_documento_id
-                        else "Borrador en memoria",
+                        else "Nuevo / en memoria",
                         tone="ok" if screen.compra_documento_id else "warn",
                     ),
                 ],
+            ),
+            ui.card_surface(
+                *borradores_ui,
+                title=f"Borradores guardados ({len(screen.compra_borradores)})",
             ),
             ui.card_surface(
                 ft.Row(controls=[tipo, prov, ref]),
@@ -2495,22 +2570,21 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
                 title="Cabecera",
             ),
             ui.card_surface(
-                matches_help,
+                ui_theme.text_help(
+                    "Escriba parte del nombre o código (≥2 letras). "
+                    "Elija una sugerencia o pulse Enter si hay coincidencia única."
+                ),
                 ft.Row(controls=[busqueda, cantidad, precio]),
+                *sugerencias,
                 ft.Row(
+                    wrap=True,
                     controls=[
-                        prod,
                         ui.primary_button(
-                            "Añadir",
+                            "Añadir línea",
                             _add,
                             icon=ft.Icons.ADD,
                             disabled=screen.mutando,
                         ),
-                    ]
-                ),
-                ft.Row(
-                    wrap=True,
-                    controls=[
                         ui.secondary_button(
                             "Guardar borrador",
                             on_guardar,
@@ -2524,7 +2598,7 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
                             disabled=screen.mutando or not screen.compra_lineas,
                         ),
                         ft.TextButton(
-                            "Limpiar borrador",
+                            "Limpiar pantalla",
                             disabled=screen.mutando,
                             on_click=lambda _e: on_limpiar(),
                         ),

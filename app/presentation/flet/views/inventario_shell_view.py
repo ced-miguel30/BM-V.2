@@ -439,12 +439,9 @@ def _stock_body(
         width=260,
     )
     if not screen.stock_filas:
-        lista: ft.Control = ft.Text(
-            "No hay saldos por ubicación para mostrar. "
-            "Los lotes sin movimientos de ubicación aparecen solo sin filtro "
-            "como cobertura «Sin movimientos».",
-            italic=True,
-            color=ft.Colors.OUTLINE,
+        lista: ft.Control = ui.empty_state(
+            "Sin saldos por ubicación",
+            "Pruebe otra búsqueda o quite el filtro de ubicación.",
         )
     else:
         rows: list[ft.Control] = []
@@ -456,9 +453,10 @@ def _stock_body(
                 badge = " · cobertura parcial"
             rows.append(
                 ft.Container(
-                    bgcolor=ft.Colors.BLUE_GREY_50,
-                    padding=10,
-                    border_radius=8,
+                    bgcolor=ui_theme.LIGHT_GRAY,
+                    padding=ui_theme.SPACE_MD,
+                    border_radius=ui_theme.RADIUS_MD,
+                    border=ft.Border.all(1, ui_theme.BORDER),
                     content=ft.Column(
                         spacing=2,
                         controls=[
@@ -466,13 +464,15 @@ def _stock_body(
                                 f"{r.producto_nombre} · lote {r.lote_id}",
                                 weight=ft.FontWeight.BOLD,
                                 size=14,
+                                color=ui_theme.DARK_TEXT,
                             ),
                             ft.Text(
                                 f"{r.ubicacion_etiqueta}: {r.saldo:g} {r.unidad}"
                                 f"{badge}",
                                 size=13,
+                                color=ui_theme.DARK_TEXT,
                             ),
-                            ft.Text(r.cobertura, size=11, color=ft.Colors.OUTLINE),
+                            ft.Text(r.cobertura, size=11, color=ui_theme.MID_GRAY),
                         ],
                     ),
                 )
@@ -480,15 +480,19 @@ def _stock_body(
         lista = ft.Column(scroll=ft.ScrollMode.AUTO, expand=True, spacing=6, controls=rows)
     return ft.Column(
         expand=True,
-        spacing=10,
+        spacing=ui_theme.SPACE_MD,
         controls=[
-            ft.Text("Stock por ubicación (solo lectura)", weight=ft.FontWeight.BOLD),
+            ui.page_header(
+                "Stock por ubicación",
+                "Consulta de saldos · búsqueda parcial",
+            ),
             ft.Row(
                 controls=[
                     search,
-                    ft.FilledTonalButton(
+                    ui.secondary_button(
                         "Buscar",
-                        on_click=lambda _e: on_busqueda(search.value or ""),
+                        lambda: on_busqueda(search.value or ""),
+                        icon=ft.Icons.SEARCH,
                     ),
                     filtro,
                 ]

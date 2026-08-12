@@ -156,6 +156,44 @@ class TestAdminCompras(_ComprasHarness):
         s = p.añadir_linea_compra_por_busqueda("zzz-no-existe", 1.0, 1.0)
         self.assertTrue(s.feedback and not s.feedback.ok)
 
+    def test_sugerencias_parciales_y_borrador_editar_anular(self) -> None:
+        p = self._login_dir()
+        s = p.crear_proveedor("Prov Borrador", "PRV-BORR-01")
+        self.assertTrue(s.feedback and s.feedback.ok)
+        prov = next(x for x in s.proveedores if x.codigo == "PRV-BORR-01")
+        prod = next(x for x in s.productos if x.activo and x.nombre == "Pan UI")
+
+        # sugerencias parciales («Pan» → Pan UI)
+        p.set_seccion("compras")
+        s = p.set_compra_prod_busqueda("Pan")
+        self.assertTrue(any(x.id == prod.id for x in s.compra_prod_sugerencias))
+
+        p.set_compra_cabecera(prov.id, "ALB-BORR-1")
+        p.añadir_linea_compra(prod.id, 2.0, 1.25)
+        s = p.guardar_borrador_compra()
+        self.assertTrue(s.feedback and s.feedback.ok, s.feedback.mensaje if s.feedback else "")
+        doc_id = s.compra_documento_id
+        self.assertTrue(doc_id)
+        self.assertTrue(any(d.id == doc_id for d in s.compra_borradores))
+
+        # limpiar pantalla y recargar
+        p.limpiar_borrador_compra()
+        self.assertEqual(len(p.screen().compra_lineas), 0)
+        s = p.cargar_borrador_compra(doc_id)
+        self.assertTrue(s.feedback and s.feedback.ok, s.feedback.mensaje if s.feedback else "")
+        self.assertEqual(s.compra_documento_id, doc_id)
+        self.assertEqual(len(s.compra_lineas), 1)
+        self.assertAlmostEqual(s.compra_lineas[0].cantidad, 2.0)
+
+        # editar línea y guardar de nuevo
+        p.update_linea_compra(0, cantidad=4.0, precio_unitario=1.5)
+        s = p.guardar_borrador_compra()
+        self.assertTrue(s.feedback and s.feedback.ok)
+
+        s = p.anular_borrador_compra(doc_id)
+        self.assertTrue(s.feedback and s.feedback.ok, s.feedback.mensaje if s.feedback else "")
+        self.assertFalse(any(d.id == doc_id for d in s.compra_borradores))
+
 
 class TestAdminArquitecturaCompras(_ComprasHarness):
     def test_compra_vm_economia_permitida(self) -> None:

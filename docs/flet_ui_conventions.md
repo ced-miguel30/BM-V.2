@@ -36,7 +36,8 @@ Actividad, Backup, Configuración, Servidor y Zona de peligro.
 
 Registro dinámico estilo captura rápida:
 - Cabecera auto-aplicada al cambiar tipo/proveedor/referencia
-- Búsqueda por código o nombre + Enter
+- Búsqueda parcial (≥2 letras): sugerencias clicables (contiene nombre/código)
 - Precio 0 → último precio del vínculo proveedor
 - Tabla con cantidad/p.u. editables (blur/Enter)
+- Borradores guardados: Editar / Anular; Guardar / Confirmar / Limpiar
 - Guardar borrador / Confirmar / Limpiar

@@ -23,6 +23,7 @@ from app.core.models.enums import (
     UnidadProducto,
 )
 from app.core.repositories.data_repository import DataRepository
+from app.core.services.text_search import coincide_busqueda, contiene_texto
 from app.core.services import (
     archivo_documental_service,
     caducidad_service,
@@ -158,6 +159,7 @@ class TerminalAdministracionPresenter:
         self._compra_documento_id = ""
         self._compra_tipo = TipoDocumento.ALBARAN.value
         self._compra_albaran_id = ""
+        self._compra_prod_busqueda = ""
         d0, d1 = _default_periodo()
         self._analisis_hub = "costes"
         self._analisis_pestana = "Resumen"
@@ -987,11 +989,15 @@ class TerminalAdministracionPresenter:
             return self.screen()
         prod, err = self._resolver_producto_compra(texto)
         if prod is None:
+            self._compra_prod_busqueda = (texto or "").strip()
             self._feedback = map_admin_operacion_feedback(
-                ok=False, mensaje_backend=err or "Producto no encontrado."
+                ok=False,
+                mensaje_backend=err
+                or "Producto no encontrado. Elija una sugerencia de la lista.",
             )
             self._seccion = "compras"
             return self.screen()
+        self._compra_prod_busqueda = ""
         return self.añadir_linea_compra(prod.id, cantidad, precio_unitario)
 
     def update_linea_compra(
@@ -1053,14 +1059,18 @@ class TerminalAdministracionPresenter:
         matches = [
             p
             for p in activos
-            if key in (p.nombre or "").casefold()
-            or key in (getattr(p, "codigo", None) or "").casefold()
+            if contiene_texto(p.nombre or "", raw)
+            or contiene_texto(getattr(p, "codigo", None) or "", raw)
         ]
         if len(matches) == 1:
             return matches[0], None
         if not matches:
             return None, "Sin coincidencias de producto."
-        return None, f"{len(matches)} coincidencias; afine código o nombre."
+        return (
+            None,
+            f"{len(matches)} coincidencias: elija una sugerencia de la lista "
+            f"(contiene «{raw}»).",
+        )
 
     def quitar_linea_compra(self, index: int) -> AdminScreenVM:
         if not self._gate_admin():
@@ -1085,7 +1095,180 @@ class TerminalAdministracionPresenter:
         self._compra_documento_id = ""
         self._compra_tipo = TipoDocumento.ALBARAN.value
         self._compra_albaran_id = ""
+        self._compra_prod_busqueda = ""
         self._feedback = FeedbackVM(ok=True, mensaje="Borrador de compra limpiado.")
+        return self.screen()
+
+    def set_compra_prod_busqueda(self, texto: str) -> AdminScreenVM:
+        """Filtro parcial de productos para captura (contiene nombre/código)."""
+        if not self._gate_admin():
+            return self.screen()
+        self._compra_prod_busqueda = (texto or "").strip()
+        self._seccion = "compras"
+        return self.screen()
+
+    def seleccionar_sugerencia_compra(
+        self,
+        producto_id: str,
+        cantidad: float = 1.0,
+        precio_unitario: float = 0.0,
+    ) -> AdminScreenVM:
+        """Añade el producto elegido desde sugerencias (qty por defecto 1)."""
+        if not self._gate_admin():
+            return self.screen()
+        self._compra_prod_busqueda = ""
+        return self.añadir_linea_compra(producto_id, cantidad, precio_unitario)
+
+    def cargar_borrador_compra(self, documento_id: str) -> AdminScreenVM:
+        """Carga un borrador persistido para editarlo en pantalla."""
+        if not self._gate_admin():
+            return self.screen()
+        did = (documento_id or "").strip()
+        if not did:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Seleccione un borrador."
+            )
+            return self.screen()
+        data = reload_from_disk()
+        doc = next((d for d in (data.documentos or []) if d.id == did), None)
+        if doc is None:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Borrador no encontrado."
+            )
+            return self.screen()
+        estado = (
+            doc.estado.value if hasattr(doc.estado, "value") else str(doc.estado)
+        ).lower()
+        if estado != "borrador":
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Solo se editan documentos en borrador."
+            )
+            return self.screen()
+        tipo = (
+            doc.tipo.value if hasattr(doc.tipo, "value") else str(doc.tipo)
+        ).lower()
+        if tipo not in (
+            TipoDocumento.ALBARAN.value,
+            TipoDocumento.FACTURA.value,
+        ):
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="El documento no es albarán ni factura."
+            )
+            return self.screen()
+
+        lineas: list[CompraLineaVM] = []
+        for ln in getattr(doc, "lineas", None) or []:
+            prod = next(
+                (p for p in data.productos if p.id == ln.producto_id), None
+            )
+            nombre = prod.nombre if prod else ln.producto_id
+            cant = float(
+                getattr(ln, "cantidad_compra", None)
+                if getattr(ln, "cantidad_compra", None) is not None
+                else (ln.cantidad or 0)
+            )
+            precio = float(getattr(ln, "precio_unitario_compra", None) or 0)
+            if precio <= 0 and cant > 0 and getattr(ln, "precio_total", None):
+                try:
+                    precio = float(ln.precio_total) / cant
+                except (TypeError, ZeroDivisionError, ValueError):
+                    precio = 0.0
+            lineas.append(
+                CompraLineaVM(
+                    producto_id=ln.producto_id,
+                    nombre=nombre,
+                    cantidad=cant,
+                    precio_unitario=precio,
+                )
+            )
+
+        self._compra_documento_id = doc.id
+        self._compra_tipo = tipo
+        self._compra_proveedor_id = getattr(doc, "proveedor_id", None) or ""
+        self._compra_referencia = getattr(doc, "referencia_externa", None) or ""
+        self._compra_lineas = lineas
+        self._compra_albaran_id = ""
+        self._compra_prod_busqueda = ""
+        self._seccion = "compras"
+        self._feedback = FeedbackVM(
+            ok=True,
+            mensaje=f"Borrador {doc.id} cargado para edición ({len(lineas)} línea(s)).",
+        )
+        return self.screen()
+
+    def anular_borrador_compra(self, documento_id: str) -> AdminScreenVM:
+        """Anula un borrador de albarán/factura (sin impacto de stock)."""
+        if not self._gate_admin():
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        did = (documento_id or "").strip()
+        if not did:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Seleccione un borrador a anular."
+            )
+            return self.screen()
+        data = get_container().app_data_store.get()
+        doc = next((d for d in (data.documentos or []) if d.id == did), None)
+        if doc is None:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Borrador no encontrado."
+            )
+            return self.screen()
+        estado = (
+            doc.estado.value if hasattr(doc.estado, "value") else str(doc.estado)
+        ).lower()
+        if estado != "borrador":
+            self._feedback = map_admin_operacion_feedback(
+                ok=False,
+                mensaje_backend="Solo se anulan borradores aquí. Use Documentos para confirmados.",
+            )
+            return self.screen()
+        self._mutando = True
+        try:
+            from app.core.models import EstadoDocumento
+            from app.core.services.persistencia_appdata import (
+                transactional_update_appdata,
+            )
+
+            holder: dict = {"msg": ""}
+
+            def _mutate(data):
+                d = next(
+                    (x for x in (data.documentos or []) if x.id == did),
+                    None,
+                )
+                if d is None:
+                    raise RuntimeError("Borrador no encontrado.")
+                est = (
+                    d.estado.value if hasattr(d.estado, "value") else str(d.estado)
+                ).lower()
+                if est != "borrador":
+                    raise RuntimeError(
+                        "Solo se anulan borradores aquí. Use Documentos para confirmados."
+                    )
+                d.estado = EstadoDocumento.ANULADO
+                d.anulado_en = datetime.now()
+                d.motivo_anulacion = "Borrador descartado desde Compras"
+                holder["msg"] = f"Borrador {did} anulado."
+                return data
+
+            try:
+                transactional_update_appdata(get_demo_file(), _mutate)
+                reload_from_disk()
+                if self._compra_documento_id == did:
+                    self._compra_lineas = []
+                    self._compra_documento_id = ""
+                    self._compra_referencia = ""
+                    self._compra_albaran_id = ""
+                self._feedback = FeedbackVM(ok=True, mensaje=holder["msg"])
+            except RuntimeError as exc:
+                self._feedback = map_admin_operacion_feedback(
+                    ok=False, mensaje_backend=str(exc)
+                )
+            self._seccion = "compras"
+        finally:
+            self._mutando = False
         return self.screen()
 
     def guardar_borrador_compra(self) -> AdminScreenVM:
@@ -1891,6 +2074,8 @@ class TerminalAdministracionPresenter:
         documentos: tuple[DocumentoAdminVM, ...] = ()
         archivos: tuple[ArchivoAdminVM, ...] = ()
         albaranes_conciliables: tuple[DocumentoAdminVM, ...] = ()
+        compra_borradores: tuple[DocumentoAdminVM, ...] = ()
+        compra_prod_sugerencias: tuple[ProductoAdminVM, ...] = ()
         backups: tuple[BackupItemVM, ...] = ()
         departamentos: tuple[CatalogoItemVM, ...] = ()
         categorias: tuple[CatalogoItemVM, ...] = ()
@@ -2159,6 +2344,73 @@ class TerminalAdministracionPresenter:
                 )
             albaranes_conciliables = tuple(albs[:50])
 
+            compra_borradores: tuple[DocumentoAdminVM, ...] = ()
+            borr_items: list[DocumentoAdminVM] = []
+            for d in data.documentos or []:
+                tipo = (
+                    d.tipo.value if hasattr(d.tipo, "value") else str(d.tipo)
+                )
+                estado = (
+                    d.estado.value if hasattr(d.estado, "value") else str(d.estado)
+                )
+                if estado.lower() != "borrador":
+                    continue
+                if tipo.lower() not in ("albaran", "factura"):
+                    continue
+                fecha = (
+                    d.fecha_documento.isoformat()
+                    if getattr(d, "fecha_documento", None)
+                    else ""
+                )
+                prov = getattr(d, "proveedor_nombre_snapshot", None) or d.proveedor_id or ""
+                ref = getattr(d, "referencia_externa", None) or ""
+                borr_items.append(
+                    DocumentoAdminVM(
+                        id=d.id,
+                        tipo=tipo,
+                        estado=estado,
+                        fecha=fecha,
+                        proveedor=str(prov),
+                        referencia=str(ref),
+                        n_lineas=len(getattr(d, "lineas", None) or []),
+                    )
+                )
+            compra_borradores = tuple(borr_items[:40])
+
+            compra_prod_sugerencias: tuple[ProductoAdminVM, ...] = ()
+            q_prod = (self._compra_prod_busqueda or "").strip().casefold()
+            if self._seccion == "compras" and len(q_prod) >= 2:
+                sug: list[ProductoAdminVM] = []
+                for p in data.productos or []:
+                    if not getattr(p, "activo", True):
+                        continue
+                    codigo = getattr(p, "codigo", None) or ""
+                    if not (
+                        contiene_texto(p.nombre or "", self._compra_prod_busqueda)
+                        or contiene_texto(codigo, self._compra_prod_busqueda)
+                    ):
+                        continue
+                    unidad = (
+                        p.unidad.value
+                        if hasattr(p.unidad, "value")
+                        else str(p.unidad)
+                    )
+                    sug.append(
+                        ProductoAdminVM(
+                            id=p.id,
+                            nombre=p.nombre,
+                            codigo=codigo,
+                            unidad=unidad,
+                            stock_minimo=float(getattr(p, "stock_minimo", 0) or 0),
+                            tipo_articulo=str(getattr(p, "tipo_articulo", "") or ""),
+                            es_bebida=bool(getattr(p, "es_bebida", False)),
+                            activo=True,
+                        )
+                    )
+                    if len(sug) >= 12:
+                        break
+                compra_prod_sugerencias = tuple(sug)
+
             lista_arch: list[ArchivoAdminVM] = []
             for a in getattr(data, "archivos_documentales", None) or []:
                 if not getattr(a, "activo", True):
@@ -2247,6 +2499,9 @@ class TerminalAdministracionPresenter:
             compra_documento_id=self._compra_documento_id if auth else "",
             compra_tipo=self._compra_tipo if auth else "albaran",
             compra_albaran_id=self._compra_albaran_id if auth else "",
+            compra_borradores=compra_borradores if auth else (),
+            compra_prod_busqueda=self._compra_prod_busqueda if auth else "",
+            compra_prod_sugerencias=compra_prod_sugerencias if auth else (),
             documentos=documentos,
             archivos=archivos,
             albaranes_conciliables=albaranes_conciliables,
