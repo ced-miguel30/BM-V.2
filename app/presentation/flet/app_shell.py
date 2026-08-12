@@ -34,10 +34,9 @@ class TerminalRestauranteShell:
 
     def mount(self) -> None:
         page = self.page
-        page.title = "BM — Terminal Restaurante"
-        page.theme_mode = ft.ThemeMode.LIGHT
-        page.padding = 0
-        page.bgcolor = ft.Colors.GREY_100
+        from app.presentation.flet.theme import apply_page_theme, APP_NAME
+
+        apply_page_theme(page, title=f"{APP_NAME} — Terminal Restaurante")
         page.on_resize = lambda _e: self.refresh()
         page.add(self._root)
         self.refresh()

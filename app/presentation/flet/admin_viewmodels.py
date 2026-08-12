@@ -1,7 +1,8 @@
 """Viewmodels Administración operativa Flet — maestros + backup + compras + cierre.
 
-Sin economía salvo ``LoteAltaVM.precio_total``, ``CompraLineaVM.precio_unitario``
-y el panel ``AnalisisPanelVM`` (sección analisis).
+Sin economía salvo ``LoteAltaVM.precio_total``, ``CompraLineaVM.precio_unitario``,
+``AnalisisPanelVM`` (sección analisis) y ``DashboardPanelVM`` (valores ya
+formateados en strings).
 """
 
 from __future__ import annotations
@@ -9,6 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, fields
 
 from app.presentation.flet.analisis_viewmodels import AnalisisPanelVM
+from app.presentation.flet.dashboard_builder import DashboardPanelVM
 from app.presentation.flet.viewmodels import (
     CAMPOS_ECONOMICOS_PROHIBIDOS,
     FeedbackVM,
@@ -40,18 +42,28 @@ ADMIN_SECCION_LABEL: dict[str, str] = {
     "productos": "Productos",
     "recetas": "Recetas",
     "usuarios": "Usuarios",
-    "responsables": "Responsables merma",
+    "responsables": "Responsables",
     "catalogos": "Catálogos",
     "proveedores": "Proveedores",
     "compras": "Compras",
     "documentos": "Documentos",
-    "inventario_inicial": "Inventario inicial",
+    "inventario_inicial": "Inventario",
     "actividad": "Actividad",
     "backup": "Backup",
     "configuracion": "Configuración",
     "servidor": "Servidor",
     "zona_peligro": "Zona peligro",
 }
+
+# Navegación lateral agrupada (orden de grupos = orden en sidebar).
+ADMIN_NAV_GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("Resumen", ("inicio", "analisis")),
+    ("Operación", ("compras", "documentos", "inventario_inicial")),
+    ("Catálogos", ("productos", "recetas", "proveedores", "catalogos")),
+    ("Administración", ("usuarios", "responsables", "actividad", "configuracion", "backup", "servidor", "zona_peligro")),
+)
+
+PRODUCTOS_PAGE_SIZE = 40
 
 
 def secciones_visibles_admin(
@@ -260,6 +272,13 @@ class AdminScreenVM:
     alerta_registro: str = ""
     revision: int = 0
     data_path_label: str = ""
+    dashboard_error: str = ""
+    stock_bajo_nombres: tuple[str, ...] = ()
+    dashboard: DashboardPanelVM | None = None
+    # Productos (paginación)
+    productos_total: int = 0
+    productos_page: int = 0
+    productos_page_size: int = PRODUCTOS_PAGE_SIZE
     # Servidor / shared root
     shared_root_label: str = ""
     # Catálogos

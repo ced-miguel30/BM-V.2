@@ -121,6 +121,13 @@ def _ranking_from_merma(filas: list[dict]) -> tuple[RankingRowVM, ...]:
     return tuple(out)
 
 
+def _normalizar_subtab_bebidas(subtab: str) -> str:
+    """Subtabs válidos en pestaña Bebidas; evita KeyError por subtab residual (p.ej. Recetas)."""
+    allowed = set(analitica.MAPA_ORIGEN_BEBIDA) | {"Todas"}
+    sub = (subtab or "").strip() or "Todas"
+    return sub if sub in allowed else "Todas"
+
+
 def build_analisis_panel(
     *,
     hub: str,
@@ -146,9 +153,13 @@ def build_analisis_panel(
             aviso="Sin permiso CONSULTAR_COSTES.",
         )
 
+
+    if pestana == "Bebidas":
+        subtab = _normalizar_subtab_bebidas(subtab)
+
     try:
         if hub == "consumo":
-            return _build_consumo(
+            panel = _build_consumo(
                 pestana=pestana,
                 subtab=subtab,
                 desde=desde,
@@ -157,32 +168,45 @@ def build_analisis_panel(
                 tipo_filtro=tipo_filtro,
                 export_mensaje=export_mensaje,
             )
-        if hub == "merma":
-            return _build_merma(
+        elif hub == "merma":
+            panel = _build_merma(
                 pestana=pestana,
                 desde=desde,
                 hasta=hasta,
                 export_mensaje=export_mensaje,
             )
-        return _build_costes(
-            pestana=pestana,
-            subtab=subtab,
-            desde=desde,
-            hasta=hasta,
-            cmp_a_desde=cmp_a_desde,
-            cmp_a_hasta=cmp_a_hasta,
-            cmp_b_desde=cmp_b_desde,
-            cmp_b_hasta=cmp_b_hasta,
-            export_mensaje=export_mensaje,
-        )
+        else:
+            panel = _build_costes(
+                pestana=pestana,
+                subtab=subtab,
+                desde=desde,
+                hasta=hasta,
+                cmp_a_desde=cmp_a_desde,
+                cmp_a_hasta=cmp_a_hasta,
+                cmp_b_desde=cmp_b_desde,
+                cmp_b_hasta=cmp_b_hasta,
+                export_mensaje=export_mensaje,
+            )
+        return panel
     except AuthorizationError as exc:
         return AnalisisPanelVM(
             hub=hub,
             pestana=pestana,
+            subtab=subtab,
             desde=desde.isoformat(),
             hasta=hasta.isoformat(),
             puede_consultar=False,
             aviso=str(exc) or "Acceso denegado a costes.",
+        )
+    except Exception as exc:  # noqa: BLE001
+        return AnalisisPanelVM(
+            hub=hub,
+            pestana=pestana,
+            subtab=subtab if pestana != "Bebidas" else _normalizar_subtab_bebidas(subtab),
+            desde=desde.isoformat(),
+            hasta=hasta.isoformat(),
+            puede_consultar=True,
+            aviso=f"No se pudo cargar Análisis ({type(exc).__name__}). Reintente o cambie de pestaña.",
         )
 
 
@@ -455,7 +479,8 @@ def _build_costes(
 
     else:  # Bebidas
         mapa = analitica.MAPA_ORIGEN_BEBIDA
-        sub = subtab or "Todas"
+        sub = _normalizar_subtab_bebidas(subtab)
+        subtab = sub
         if sub == "Todas":
             dist = [
                 {
@@ -498,16 +523,22 @@ def _build_costes(
             )
             top = [
                 {
-                    "nombre": f["nombre"],
-                    "coste_fmt": repo.formato_precio(f["coste"]),
-                    "usos": f["usos"],
-                    "cantidad_fmt": f"{f['cantidad_normalizada']:g} {f['unidad_normalizada']}",
+                    "nombre": f.get("nombre", ""),
+                    "coste_fmt": repo.formato_precio(f.get("coste", 0)),
+                    "usos": f.get("usos", ""),
+                    "cantidad_fmt": (
+                        f"{f.get('cantidad_normalizada', 0):g} "
+                        f"{f.get('unidad_normalizada', '')}"
+                    ).strip(),
                 }
                 for f in filas
             ]
             rankings.append(RankingBlockVM("Top bebidas", _ranking_from_coste_rows(top)))
         else:
-            bucket = mapa[sub]
+            bucket = mapa.get(sub)
+            if not bucket:
+                # Defensa final: no KeyError aunque llegue un subtab inválido.
+                bucket = next(iter(mapa.values()))
             coste_bucket = analitica.coste_bucket_bebida(bucket, desde, hasta)
             metrics = [MetricVM(f"Coste — {sub}", repo.formato_precio(coste_bucket), "")]
             if sub == "Registro independiente":
@@ -518,7 +549,7 @@ def _build_costes(
                     "Desayuno": "En desayuno",
                     "Comida": "En comida",
                     "Cena": "En cena",
-                }[sub]
+                }.get(sub, "En desayuno")
                 evo_full = dash.evolucion_bebidas_por_origen(desde, hasta)
                 evo = [
                     {"fecha": r["fecha"], etiqueta_evo: r.get(etiqueta_evo, 0.0)}
@@ -771,7 +802,8 @@ def _build_consumo(
         if tipo not in ("Todos", "Bebidas"):
             aviso = (aviso + " " if aviso else "") + "Active filtro Bebidas o Todos."
         else:
-            sub = subtab or "Todas"
+            sub = _normalizar_subtab_bebidas(subtab)
+            subtab = sub
             bucket_map = analitica.MAPA_ORIGEN_BEBIDA
             if sub == "Todas":
                 coste = sum(
@@ -812,7 +844,9 @@ def _build_consumo(
                     )
                 )
             else:
-                bucket = bucket_map[sub]
+                bucket = bucket_map.get(sub)
+                if not bucket:
+                    bucket = next(iter(bucket_map.values()))
                 rankings.append(
                     RankingBlockVM(
                         f"Más — {sub}",

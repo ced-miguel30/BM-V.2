@@ -58,8 +58,7 @@ def build_app_handler():
     configure_for_flet()
 
     def main(page: ft.Page) -> None:
-        if hasattr(page, "wait_until_visible"):
-            page.wait_until_visible()
+        # Flet 0.86+: wait_until_visible es async; no llamar sin await.
         attach_launcher(page)
 
     return main

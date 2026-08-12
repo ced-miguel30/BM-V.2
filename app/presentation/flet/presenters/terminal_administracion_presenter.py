@@ -62,6 +62,7 @@ from app.core.storage.shared_coordinator import (
 )
 from app.presentation.flet import session_bridge
 from app.presentation.flet.analisis_builder import build_analisis_panel
+from app.presentation.flet.dashboard_builder import build_dashboard_panel
 from app.presentation.flet.analisis_viewmodels import (
     ANALISIS_HUBS,
     COSTES_PESTANAS,
@@ -72,6 +73,7 @@ from app.presentation.flet.analisis_viewmodels import (
 )
 from app.presentation.flet.admin_viewmodels import (
     ADMIN_SECCIONES,
+    PRODUCTOS_PAGE_SIZE,
     ActividadAdminVM,
     AdminScreenVM,
     ArchivoAdminVM,
@@ -132,6 +134,15 @@ def _backups_dir() -> Path:
     return dest
 
 
+def _default_analisis_subtab(hub: str, pestana: str) -> str:
+    """Subtab válido para el hub/pestaña actual (evita KeyError al cambiar a Bebidas)."""
+    if pestana == "Bebidas":
+        return "Todas"
+    if pestana in ("Desayuno", "Comida", "Cena"):
+        return "Recetas"
+    return ""
+
+
 class TerminalAdministracionPresenter:
     def __init__(self) -> None:
         self._feedback: FeedbackVM | None = None
@@ -150,7 +161,7 @@ class TerminalAdministracionPresenter:
         d0, d1 = _default_periodo()
         self._analisis_hub = "costes"
         self._analisis_pestana = "Resumen"
-        self._analisis_subtab = "Recetas"
+        self._analisis_subtab = _default_analisis_subtab("costes", "Resumen")
         self._analisis_desde = d0
         self._analisis_hasta = d1
         self._analisis_busqueda = ""
@@ -160,6 +171,7 @@ class TerminalAdministracionPresenter:
         self._analisis_cmp_b_desde = _mes_anterior_inicio(d0)
         self._analisis_cmp_b_hasta = d0 - timedelta(days=1) if d0.day > 1 else d0
         self._analisis_export_mensaje = ""
+        self._productos_page = 0
         assert_admin_sin_economia(
             ResponsableMermaVM,
             PendingChangeVM,
@@ -221,10 +233,17 @@ class TerminalAdministracionPresenter:
     def set_seccion(self, seccion: str) -> AdminScreenVM:
         if seccion in ADMIN_SECCIONES:
             self._seccion = seccion
+            if seccion == "productos":
+                self._productos_page = 0
         return self.screen()
 
     def set_filtro(self, texto: str) -> AdminScreenVM:
         self._filtro = (texto or "").strip()
+        self._productos_page = 0
+        return self.screen()
+
+    def set_productos_page(self, page: int) -> AdminScreenVM:
+        self._productos_page = max(0, int(page))
         return self.screen()
 
     # ── Análisis (costes / consumo / merma) ────────────────────────────────
@@ -233,7 +252,7 @@ class TerminalAdministracionPresenter:
         if hub in ANALISIS_HUBS:
             self._analisis_hub = hub
             self._analisis_pestana = "Resumen"
-            self._analisis_subtab = "Recetas"
+            self._analisis_subtab = _default_analisis_subtab(hub, "Resumen")
             self._analisis_export_mensaje = ""
         return self.screen()
 
@@ -245,12 +264,17 @@ class TerminalAdministracionPresenter:
         }.get(self._analisis_hub, COSTES_PESTANAS)
         if pestana in allowed:
             self._analisis_pestana = pestana
-            self._analisis_subtab = "Recetas"
+            self._analisis_subtab = _default_analisis_subtab(
+                self._analisis_hub, pestana
+            )
             self._analisis_export_mensaje = ""
         return self.screen()
 
     def set_analisis_subtab(self, subtab: str) -> AdminScreenVM:
-        self._analisis_subtab = (subtab or "").strip() or "Recetas"
+        texto = (subtab or "").strip()
+        self._analisis_subtab = texto or _default_analisis_subtab(
+            self._analisis_hub, self._analisis_pestana
+        )
         return self.screen()
 
     def set_analisis_periodo(self, desde: str, hasta: str) -> AdminScreenVM:
@@ -333,6 +357,17 @@ class TerminalAdministracionPresenter:
             return None
         if not session_tiene_permiso(Permiso.CONSULTAR_COSTES):
             return AnalisisPanelVM(puede_consultar=False, aviso="Sin permiso CONSULTAR_COSTES.")
+        # Coacción defensiva: pestaña Bebidas nunca debe llevar subtab de comida (p.ej. Recetas).
+        if self._analisis_pestana == "Bebidas":
+            self._analisis_subtab = _default_analisis_subtab(
+                self._analisis_hub, "Bebidas"
+            ) if self._analisis_subtab not in (
+                "Todas",
+                "Desayuno",
+                "Comida",
+                "Cena",
+                "Registro independiente",
+            ) else self._analisis_subtab
         return build_analisis_panel(
             hub=self._analisis_hub,
             pestana=self._analisis_pestana,
@@ -1776,6 +1811,10 @@ class TerminalAdministracionPresenter:
         revision = 0
         data_path_label = ""
         shared_root_label = ""
+        dashboard_error = ""
+        stock_bajo_nombres: tuple[str, ...] = ()
+        dashboard_panel = None
+        productos_total = 0
         puede_zona = False
 
         if auth:
@@ -1796,7 +1835,9 @@ class TerminalAdministracionPresenter:
                 cfg = load_client_config()
                 shared_root_label = str(cfg.get("shared_root") or data_path_label or "—")
 
-            # Dashboard operativo (conteos; sin €)
+            # Dashboard operativo (conteos + panel ejecutivo)
+            dashboard_error = ""
+            stock_bajo_nombres: tuple[str, ...] = ()
             try:
                 periodo_obj = dashboard_service.resolver_periodo("Este mes")
                 periodo = periodo_obj.etiqueta
@@ -1810,16 +1851,27 @@ class TerminalAdministracionPresenter:
                     and not getattr(m, "anulado", False)
                 )
                 repo = DataRepository(data)
-                stock_bajo = len(repo.productos_stock_bajo())
+                bajos = list(repo.productos_stock_bajo())
+                stock_bajo = len(bajos)
+                stock_bajo_nombres = tuple(
+                    (getattr(p, "nombre", "") or p.id) for p in bajos[:5]
+                )
                 caducidades = len(caducidad_service.listar_lotes_caducidad())
                 alerta_registro = (
                     "Desayuno de hoy registrado"
                     if repo.desayuno_registrado_hoy()
                     else "Falta registro de desayuno hoy"
                 )
+                if self._seccion == "inicio":
+                    dashboard_panel = build_dashboard_panel(
+                        nombre_usuario=sess.actor_label or "Usuario",
+                        periodo_op="Este mes",
+                    )
             except Exception:  # noqa: BLE001
                 periodo = periodo or "Este mes"
                 alerta_registro = alerta_registro or "—"
+                dashboard_error = "No se pudieron cargar algunos indicadores."
+                stock_bajo_nombres = ()
 
             lista_r = []
             for r in merma_service.listar_responsables_merma(solo_activos=False):
@@ -1834,7 +1886,11 @@ class TerminalAdministracionPresenter:
             for p in data.productos:
                 codigo = getattr(p, "codigo", None) or ""
                 if self._seccion == "productos" and q:
-                    if q not in p.nombre.lower() and q not in codigo.lower() and q not in p.id.lower():
+                    if (
+                        q not in p.nombre.lower()
+                        and q not in codigo.lower()
+                        and q not in p.id.lower()
+                    ):
                         continue
                 tipo = getattr(p, "tipo_articulo", None)
                 tipo_s = getattr(tipo, "value", None) or (str(tipo) if tipo else "")
@@ -1843,15 +1899,29 @@ class TerminalAdministracionPresenter:
                         id=p.id,
                         nombre=p.nombre,
                         codigo=codigo,
-                        unidad=p.unidad.value if hasattr(p.unidad, "value") else str(p.unidad),
+                        unidad=p.unidad.value
+                        if hasattr(p.unidad, "value")
+                        else str(p.unidad),
                         stock_minimo=float(p.stock_minimo or 0),
                         tipo_articulo=tipo_s,
                         es_bebida=bool(getattr(p, "es_bebida", False)),
                         activo=bool(getattr(p, "activo", True)),
-                        servicios=tuple(getattr(p, "servicios_disponibles", None) or ()),
+                        servicios=tuple(
+                            getattr(p, "servicios_disponibles", None) or ()
+                        ),
                     )
                 )
-            productos = tuple(lista_p)
+            productos_total = len(lista_p)
+            page_size = PRODUCTOS_PAGE_SIZE
+            max_page = max(0, (productos_total - 1) // page_size) if productos_total else 0
+            if self._productos_page > max_page:
+                self._productos_page = max_page
+            if self._seccion == "productos":
+                start = self._productos_page * page_size
+                productos = tuple(lista_p[start : start + page_size])
+            else:
+                # Catálogo completo para dropdowns (recetas, inventario, etc.).
+                productos = tuple(lista_p)
 
             lista_rec = []
             for r in receta_service.listar_recetas(solo_activas=False):
@@ -2087,6 +2157,12 @@ class TerminalAdministracionPresenter:
             alerta_registro=alerta_registro if auth else "",
             revision=revision if auth else 0,
             data_path_label=data_path_label if auth else "",
+            dashboard_error=dashboard_error if auth else "",
+            stock_bajo_nombres=stock_bajo_nombres if auth else (),
+            dashboard=dashboard_panel if auth else None,
+            productos_total=productos_total if auth else 0,
+            productos_page=self._productos_page if auth else 0,
+            productos_page_size=PRODUCTOS_PAGE_SIZE,
             shared_root_label=shared_root_label if auth else "",
             departamentos=departamentos,
             categorias=categorias,

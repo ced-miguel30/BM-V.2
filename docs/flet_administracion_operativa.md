@@ -10,9 +10,9 @@ Streamlit permanece como referencia para BI y algunas UIs legado.
 
 1. Login de **usuario** (Dirección / Administración) con `ACCEDER_CONFIGURACION`.
 2. Navegación por secciones (`ADMIN_SECCIONES`): dashboard (`inicio`), **análisis** (costes/consumo/merma), productos, recetas, usuarios, responsables, **catálogos**, proveedores, compras, documentos, inventario_inicial, **actividad**, backup, configuración, **servidor**, **zona_peligro** (solo Dir).
-3. **Dashboard** — conteos operativos del periodo (consumos, mermas, stock bajo, caducidades, alerta de registro), revisión JSON y ruta de datos; botón *Actualizar datos* → `refresh_if_stale()`.
+3. **Dashboard** — KPIs accionables (consumos, mermas, stock bajo, caducidades), alerta de desayuno, atajos, totales de catálogo, revisión JSON y ruta de datos; botón *Actualizar* → `refresh_if_stale()`. Navegación lateral **agrupada y con scroll** (`ADMIN_NAV_GROUPS`: Resumen / Catálogo / Compras e inventario / Personas / Sistema).
 4. **Análisis** — visible con `CONSULTAR_COSTES`. Hubs **Costes / Consumo / Merma** (sin BI). Reutiliza `costes_service`, `analitica_consumo_service`, `consumo_service`, `merma_analisis_service`, `dashboard_service`. Gráficos con helpers Flet (`app/presentation/flet/charts.py`), no Altair. Export Excel de comparación de costes.
-5. **Productos** — `stock_service.crear_producto` / desactivar·reactivar (propose→confirm). Botón **Importar Productos (PRECIO)** → `productos_import_service` desde `docs/Productos PRECIO.xlsx` (unidad + coste aproximado); si existe `docs/Productos.xlsx` junto a él, solo importa esos ~499 códigos. Ubicaciones Economato/Cocina/Restaurante. CLI: `python -m app.core.deploy.cli import-productos --path "docs/Productos PRECIO.xlsx"`.
+5. **Productos** — listado denso paginado (40/página), alta en panel colapsable, import PRECIO; `stock_service.crear_producto` / desactivar·reactivar.
 6. **Recetas** — `receta_service.crear_receta` / desactivar·reactivar.
 7. **Usuarios** — `settings_service` crear / editar / cambiar_rol / set_activo / restablecer_password.
 8. **Responsables de merma** — CRUD existente (sin regresión).

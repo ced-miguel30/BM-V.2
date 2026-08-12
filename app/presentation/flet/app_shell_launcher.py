@@ -34,10 +34,9 @@ class LauncherShell:
 
     def mount(self) -> None:
         page = self.page
-        page.title = "BM — Launcher Flet"
-        page.theme_mode = ft.ThemeMode.LIGHT
-        page.padding = 0
-        page.bgcolor = ft.Colors.GREY_100
+        from app.presentation.flet.theme import apply_page_theme, APP_NAME
+
+        apply_page_theme(page, title=f"{APP_NAME} — Launcher")
         page.on_resize = lambda _e: self._safe_refresh()
         page.add(self._root)
         self.show_launcher()
@@ -48,7 +47,9 @@ class LauncherShell:
         self._mounted_destino = None
         self._active_shell = None
         self._cargando = False
-        self.page.title = "BM — Launcher Flet"
+        from app.presentation.flet.theme import APP_NAME
+
+        self.page.title = f"{APP_NAME} — Launcher"
         self.page.on_resize = lambda _e: self._safe_refresh()
         self._root.content = build_launcher_view(
             on_select=self._on_select,

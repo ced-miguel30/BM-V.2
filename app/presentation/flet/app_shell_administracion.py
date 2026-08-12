@@ -16,6 +16,10 @@ from app.presentation.flet.views.admin_shell_view import (
 )
 
 
+def _agent_dbg(location: str, message: str, data: dict, hypothesis_id: str) -> None:
+    return
+
+
 class TerminalAdministracionShell:
     def __init__(
         self,
@@ -31,10 +35,9 @@ class TerminalAdministracionShell:
 
     def mount(self) -> None:
         page = self.page
-        page.title = "BM — Administración"
-        page.theme_mode = ft.ThemeMode.LIGHT
-        page.padding = 0
-        page.bgcolor = ft.Colors.GREY_100
+        from app.presentation.flet.theme import apply_page_theme, APP_NAME
+
+        apply_page_theme(page, title=f"{APP_NAME} — Administración")
         page.on_resize = lambda _e: self.refresh()
         page.add(self._root)
         self.refresh()
@@ -43,89 +46,164 @@ class TerminalAdministracionShell:
         from app.bootstrap import get_container
         from app.core.auth.session import necesita_bootstrap
 
-        screen = self.presenter.screen()
-        if not screen.session.authenticated:
-            msg = ""
-            if screen.feedback and not screen.feedback.ok:
-                msg = screen.feedback.mensaje
-            data = get_container().app_data_store.get()
-            if necesita_bootstrap(data.usuarios):
-                content = build_bootstrap_admin(
-                    on_bootstrap=self._on_bootstrap,
-                    feedback_mensaje=msg,
-                    on_volver_menu=self._on_volver_al_menu,
-                )
-            else:
-                content = build_login_admin(
-                    on_login=self._on_login,
-                    feedback_mensaje=msg,
-                    on_volver_menu=self._on_volver_al_menu,
-                )
-        else:
-            content = build_admin_shell(
-                screen,
-                on_logout=self._on_logout,
-                on_volver_menu=self._on_volver_al_menu,
-                on_seccion=self._on_seccion,
-                on_filtro=self._on_filtro,
-                on_proponer_crear=self._on_crear_responsable,
-                on_proponer_renombrar=self._on_renombrar,
-                on_proponer_desactivar=self._on_desactivar,
-                on_proponer_reactivar=self._on_reactivar,
-                on_crear_producto=self._on_crear_producto,
-                on_importar_productos=self._on_importar_productos,
-                on_desactivar_producto=self._on_desactivar_producto,
-                on_reactivar_producto=self._on_reactivar_producto,
-                on_crear_receta=self._on_crear_receta,
-                on_desactivar_receta=self._on_desactivar_receta,
-                on_reactivar_receta=self._on_reactivar_receta,
-                on_crear_usuario=self._on_crear_usuario,
-                on_editar_usuario=self._on_editar_usuario,
-                on_cambiar_rol=self._on_cambiar_rol,
-                on_desactivar_usuario=self._on_desactivar_usuario,
-                on_reactivar_usuario=self._on_reactivar_usuario,
-                on_restablecer_password=self._on_restablecer_password,
-                on_registrar_lote=self._on_registrar_lote,
-                on_crear_proveedor=self._on_crear_proveedor,
-                on_editar_proveedor=self._on_editar_proveedor,
-                on_desactivar_proveedor=self._on_desactivar_proveedor,
-                on_reactivar_proveedor=self._on_reactivar_proveedor,
-                on_set_compra_cabecera=self._on_set_compra_cabecera,
-                on_añadir_linea_compra=self._on_añadir_linea_compra,
-                on_quitar_linea_compra=self._on_quitar_linea_compra,
-                on_guardar_borrador_compra=self._on_guardar_borrador_compra,
-                on_confirmar_compra=self._on_confirmar_compra,
-                on_limpiar_borrador_compra=self._on_limpiar_borrador_compra,
-                on_set_compra_albaran=self._on_set_compra_albaran,
-                on_generar_backup=self._on_generar_backup,
-                on_inspeccionar_backup=self._on_inspeccionar_backup,
-                on_proponer_restaurar=self._on_proponer_restaurar,
-                on_guardar_hotel=self._on_guardar_hotel,
-                on_refresh_datos=self._on_refresh_datos,
-                on_guardar_shared_root=self._on_guardar_shared_root,
-                on_crear_departamento=self._on_crear_departamento,
-                on_crear_categoria=self._on_crear_categoria,
-                on_crear_ubicacion=self._on_crear_ubicacion,
-                on_ejecutar_destructiva=self._on_ejecutar_destructiva,
-                on_exportar_documentos=self._on_exportar_documentos,
-                on_proponer_anular_documento=self._on_proponer_anular_documento,
-                on_proponer_rectificativa_economica=self._on_proponer_rectificativa_economica,
-                on_proponer_rectificativa_stock=self._on_proponer_rectificativa_stock,
-                on_adjuntar_archivo=self._on_adjuntar_archivo,
-                on_abrir_adjunto=self._on_abrir_adjunto,
-                on_analisis_hub=self._on_analisis_hub,
-                on_analisis_pestana=self._on_analisis_pestana,
-                on_analisis_subtab=self._on_analisis_subtab,
-                on_analisis_periodo=self._on_analisis_periodo,
-                on_analisis_busqueda=self._on_analisis_busqueda,
-                on_analisis_tipo=self._on_analisis_tipo,
-                on_analisis_comparacion=self._on_analisis_comparacion,
-                on_analisis_export=self._on_analisis_export,
-                on_confirmar=self._on_confirmar,
-                on_cancelar=self._on_cancelar,
+        try:
+            screen = self.presenter.screen()
+            _agent_dbg(
+                "app_shell_administracion.py:refresh",
+                "refresh_screen",
+                {
+                    "seccion": screen.seccion,
+                    "auth": bool(screen.session.authenticated),
+                    "n_productos": len(screen.productos),
+                    "n_recetas": len(screen.recetas),
+                },
+                "E",
             )
-        self._root.content = content
-        self.page.update()
+            if not screen.session.authenticated:
+                msg = ""
+                if screen.feedback and not screen.feedback.ok:
+                    msg = screen.feedback.mensaje
+                data = get_container().app_data_store.get()
+                if necesita_bootstrap(data.usuarios):
+                    content = build_bootstrap_admin(
+                        on_bootstrap=self._on_bootstrap,
+                        feedback_mensaje=msg,
+                        on_volver_menu=self._on_volver_al_menu,
+                    )
+                else:
+                    content = build_login_admin(
+                        on_login=self._on_login,
+                        feedback_mensaje=msg,
+                        on_volver_menu=self._on_volver_al_menu,
+                    )
+            else:
+                content = build_admin_shell(
+                    screen,
+                    on_logout=self._on_logout,
+                    on_volver_menu=self._on_volver_al_menu,
+                    on_seccion=self._on_seccion,
+                    on_filtro=self._on_filtro,
+                    on_proponer_crear=self._on_crear_responsable,
+                    on_proponer_renombrar=self._on_renombrar,
+                    on_proponer_desactivar=self._on_desactivar,
+                    on_proponer_reactivar=self._on_reactivar,
+                    on_crear_producto=self._on_crear_producto,
+                    on_importar_productos=self._on_importar_productos,
+                    on_productos_page=self._on_productos_page,
+                    on_desactivar_producto=self._on_desactivar_producto,
+                    on_reactivar_producto=self._on_reactivar_producto,
+                    on_crear_receta=self._on_crear_receta,
+                    on_desactivar_receta=self._on_desactivar_receta,
+                    on_reactivar_receta=self._on_reactivar_receta,
+                    on_crear_usuario=self._on_crear_usuario,
+                    on_editar_usuario=self._on_editar_usuario,
+                    on_cambiar_rol=self._on_cambiar_rol,
+                    on_desactivar_usuario=self._on_desactivar_usuario,
+                    on_reactivar_usuario=self._on_reactivar_usuario,
+                    on_restablecer_password=self._on_restablecer_password,
+                    on_registrar_lote=self._on_registrar_lote,
+                    on_crear_proveedor=self._on_crear_proveedor,
+                    on_editar_proveedor=self._on_editar_proveedor,
+                    on_desactivar_proveedor=self._on_desactivar_proveedor,
+                    on_reactivar_proveedor=self._on_reactivar_proveedor,
+                    on_set_compra_cabecera=self._on_set_compra_cabecera,
+                    on_añadir_linea_compra=self._on_añadir_linea_compra,
+                    on_quitar_linea_compra=self._on_quitar_linea_compra,
+                    on_guardar_borrador_compra=self._on_guardar_borrador_compra,
+                    on_confirmar_compra=self._on_confirmar_compra,
+                    on_limpiar_borrador_compra=self._on_limpiar_borrador_compra,
+                    on_set_compra_albaran=self._on_set_compra_albaran,
+                    on_generar_backup=self._on_generar_backup,
+                    on_inspeccionar_backup=self._on_inspeccionar_backup,
+                    on_proponer_restaurar=self._on_proponer_restaurar,
+                    on_guardar_hotel=self._on_guardar_hotel,
+                    on_refresh_datos=self._on_refresh_datos,
+                    on_guardar_shared_root=self._on_guardar_shared_root,
+                    on_crear_departamento=self._on_crear_departamento,
+                    on_crear_categoria=self._on_crear_categoria,
+                    on_crear_ubicacion=self._on_crear_ubicacion,
+                    on_ejecutar_destructiva=self._on_ejecutar_destructiva,
+                    on_exportar_documentos=self._on_exportar_documentos,
+                    on_proponer_anular_documento=self._on_proponer_anular_documento,
+                    on_proponer_rectificativa_economica=self._on_proponer_rectificativa_economica,
+                    on_proponer_rectificativa_stock=self._on_proponer_rectificativa_stock,
+                    on_adjuntar_archivo=self._on_adjuntar_archivo,
+                    on_abrir_adjunto=self._on_abrir_adjunto,
+                    on_analisis_hub=self._on_analisis_hub,
+                    on_analisis_pestana=self._on_analisis_pestana,
+                    on_analisis_subtab=self._on_analisis_subtab,
+                    on_analisis_periodo=self._on_analisis_periodo,
+                    on_analisis_busqueda=self._on_analisis_busqueda,
+                    on_analisis_tipo=self._on_analisis_tipo,
+                    on_analisis_comparacion=self._on_analisis_comparacion,
+                    on_analisis_export=self._on_analisis_export,
+                    on_confirmar=self._on_confirmar,
+                    on_cancelar=self._on_cancelar,
+                )
+            self._root.content = content
+            try:
+                self.page.update()
+            except Exception as upd_exc:  # noqa: BLE001
+                _agent_dbg(
+                    "app_shell_administracion.py:refresh",
+                    "page_update_exception",
+                    {
+                        "type": type(upd_exc).__name__,
+                        "str": str(upd_exc)[:400],
+                    },
+                    "C",
+                )
+                raise
+            _agent_dbg(
+                "app_shell_administracion.py:refresh",
+                "refresh_ok",
+                {"seccion": screen.seccion},
+                "E",
+            )
+        except Exception as exc:  # noqa: BLE001
+            import traceback as _tb
+
+            _agent_dbg(
+                "app_shell_administracion.py:refresh",
+                "refresh_exception_soft",
+                {
+                    "type": type(exc).__name__,
+                    "repr": repr(exc),
+                    "str": str(exc),
+                    "tb": _tb.format_exc()[-2500:],
+                },
+                "E",
+            )
+            # No re-lanzar: un raise aquí cierra la ventana Flet ("sale" al usuario).
+            self._root.content = ft.Container(
+                expand=True,
+                padding=24,
+                content=ft.Column(
+                    spacing=12,
+                    tight=True,
+                    controls=[
+                        ft.Text(
+                            "Error al actualizar Administración",
+                            size=18,
+                            weight=ft.FontWeight.BOLD,
+                            color=ft.Colors.RED_700,
+                        ),
+                        ft.Text(
+                            f"{type(exc).__name__}: {exc}",
+                            size=13,
+                            selectable=True,
+                        ),
+                        ft.FilledButton(
+                            "Reintentar",
+                            on_click=lambda _e: self.refresh(),
+                        ),
+                    ],
+                ),
+            )
+            try:
+                self.page.update()
+            except Exception:
+                pass
 
     def _on_login(self, login: str, password: str) -> None:
         self.presenter.login(login, password)
@@ -142,6 +220,12 @@ class TerminalAdministracionShell:
         self.refresh()
 
     def _on_seccion(self, seccion: str) -> None:
+        _agent_dbg(
+            "app_shell_administracion.py:_on_seccion",
+            "nav_click",
+            {"seccion_arg": seccion},
+            "D",
+        )
         self.presenter.set_seccion(seccion)
         self.refresh()
 
@@ -154,6 +238,12 @@ class TerminalAdministracionShell:
         self.refresh()
 
     def _on_analisis_pestana(self, pestana: str) -> None:
+        _agent_dbg(
+            "app_shell_administracion.py:_on_analisis_pestana",
+            "pestana_click",
+            {"pestana": pestana},
+            "B",
+        )
         self.presenter.set_analisis_pestana(pestana)
         self.refresh()
 
@@ -222,6 +312,10 @@ class TerminalAdministracionShell:
 
     def _on_importar_productos(self) -> None:
         self.presenter.importar_productos_precio()
+        self.refresh()
+
+    def _on_productos_page(self, page: int) -> None:
+        self.presenter.set_productos_page(page)
         self.refresh()
 
     def _on_desactivar_producto(self, pid: str) -> None:

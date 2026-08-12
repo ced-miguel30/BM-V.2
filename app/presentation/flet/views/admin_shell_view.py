@@ -7,6 +7,7 @@ from typing import Callable
 import flet as ft
 
 from app.presentation.flet.admin_viewmodels import (
+    ADMIN_NAV_GROUPS,
     ADMIN_SECCION_LABEL,
     AdminScreenVM,
     BackupItemVM,
@@ -33,6 +34,8 @@ from app.presentation.flet.charts import (
     build_barras_horizontales,
     build_lineas_series,
 )
+from app.presentation.flet import theme as ui_theme
+from app.presentation.flet import ui_components as ui
 
 _SECCION_ICONS: dict[str, tuple] = {
     "inicio": (ft.Icons.HOME_OUTLINED, ft.Icons.HOME),
@@ -272,6 +275,7 @@ def build_admin_shell(
     on_analisis_comparacion: Callable[[str, str, str, str], None] | None = None,
     on_analisis_export: Callable[[], None] | None = None,
     on_importar_productos: Callable[[], None] | None = None,
+    on_productos_page: Callable[[int], None] | None = None,
     on_confirmar: Callable[[], None] = None,  # type: ignore[assignment]
     on_cancelar: Callable[[], None] = None,  # type: ignore[assignment]
     on_volver_menu: Callable[[], None] | None = None,
@@ -323,26 +327,16 @@ def build_admin_shell(
         puede_zona_peligro=screen.puede_zona_peligro,
         puede_ver_analisis=screen.puede_ver_analisis,
     )
-    selected = visibles.index(screen.seccion) if screen.seccion in visibles else 0
-    rail = ft.NavigationRail(
-        selected_index=selected,
-        label_type=ft.NavigationRailLabelType.ALL,
-        min_width=88,
-        min_extended_width=180,
-        destinations=[
-            ft.NavigationRailDestination(
-                icon=_SECCION_ICONS.get(s, (ft.Icons.CIRCLE_OUTLINED, ft.Icons.CIRCLE))[0],
-                selected_icon=_SECCION_ICONS.get(s, (ft.Icons.CIRCLE_OUTLINED, ft.Icons.CIRCLE))[1],
-                label=ADMIN_SECCION_LABEL.get(s, s),
-            )
-            for s in visibles
-        ],
-        on_change=lambda e: on_seccion(visibles[int(e.control.selected_index or 0)]),
+    sidebar = _build_sidebar(
+        screen,
+        visibles=visibles,
+        on_seccion=on_seccion,
     )
 
     panel = _panel_for_seccion(
         screen,
         on_filtro=on_filtro,
+        on_seccion=on_seccion,
         on_proponer_crear=on_proponer_crear,
         on_proponer_renombrar=on_proponer_renombrar,
         on_proponer_desactivar=on_proponer_desactivar,
@@ -351,6 +345,7 @@ def build_admin_shell(
         on_desactivar_producto=on_desactivar_producto,
         on_reactivar_producto=on_reactivar_producto,
         on_importar_productos=on_importar_productos,
+        on_productos_page=on_productos_page,
         on_crear_receta=on_crear_receta,
         on_desactivar_receta=on_desactivar_receta,
         on_reactivar_receta=on_reactivar_receta,
@@ -400,13 +395,14 @@ def build_admin_shell(
 
     body = ft.Row(
         expand=True,
-        vertical_alignment=ft.CrossAxisAlignment.START,
+        vertical_alignment=ft.CrossAxisAlignment.STRETCH,
+        spacing=0,
         controls=[
-            rail,
-            ft.VerticalDivider(width=1),
+            sidebar,
             ft.Container(
                 expand=True,
-                padding=16,
+                bgcolor=ui_theme.SURFACE,
+                padding=ft.Padding.symmetric(horizontal=20, vertical=16),
                 content=ft.Column(
                     expand=True,
                     spacing=12,
@@ -419,8 +415,105 @@ def build_admin_shell(
 
     return ft.Column(
         expand=True,
-        spacing=12,
+        spacing=0,
         controls=[header, feedback, body],
+    )
+
+
+def _build_sidebar(
+    screen: AdminScreenVM,
+    *,
+    visibles: tuple[str, ...],
+    on_seccion: Callable[[str], None],
+) -> ft.Control:
+    visible_set = set(visibles)
+    items: list[ft.Control] = [
+        ft.Container(
+            padding=ft.Padding.only(left=14, right=14, top=16, bottom=10),
+            content=ft.Column(
+                spacing=2,
+                tight=True,
+                controls=[
+                    ft.Text(
+                        ui_theme.APP_NAME,
+                        size=11,
+                        weight=ft.FontWeight.W_600,
+                        color=ui_theme.GOLD_SOFT,
+                    ),
+                    ft.Text(
+                        screen.hotel_nombre or ui_theme.HOTEL_DEFAULT,
+                        size=14,
+                        weight=ft.FontWeight.BOLD,
+                        color=ui_theme.WHITE,
+                        max_lines=2,
+                        overflow=ft.TextOverflow.ELLIPSIS,
+                    ),
+                    ft.Text(
+                        f"{screen.session.actor_label or 'Usuario'} · {screen.session.role}",
+                        size=11,
+                        color="#A8B3C4",
+                    ),
+                ],
+            ),
+        ),
+        ft.Divider(height=1, color="#2A3F5F"),
+    ]
+    for group_label, secs in ADMIN_NAV_GROUPS:
+        group_secs = [s for s in secs if s in visible_set]
+        if not group_secs:
+            continue
+        items.append(
+            ft.Container(
+                padding=ft.Padding.only(left=12, right=12, top=10, bottom=4),
+                content=ft.Text(
+                    group_label.upper(),
+                    size=10,
+                    weight=ft.FontWeight.W_600,
+                    color="#8B95A5",
+                ),
+            )
+        )
+        for s in group_secs:
+            selected = screen.seccion == s
+            icons = _SECCION_ICONS.get(s, (ft.Icons.CIRCLE_OUTLINED, ft.Icons.CIRCLE))
+            items.append(
+                ft.Container(
+                    margin=ft.Margin.symmetric(horizontal=8, vertical=1),
+                    padding=ft.Padding.symmetric(horizontal=10, vertical=8),
+                    border_radius=ui_theme.RADIUS_SM,
+                    bgcolor=ui_theme.TEAL if selected else None,
+                    ink=True,
+                    on_click=lambda _e, sec=s: on_seccion(sec),
+                    content=ft.Row(
+                        spacing=10,
+                        controls=[
+                            ft.Icon(
+                                icons[1] if selected else icons[0],
+                                size=ui_theme.ICON_SM,
+                                color=ui_theme.WHITE if selected else "#C5CCD6",
+                            ),
+                            ft.Text(
+                                ADMIN_SECCION_LABEL.get(s, s),
+                                size=13,
+                                weight=ft.FontWeight.W_600 if selected else None,
+                                color=ui_theme.WHITE if selected else "#E2E6EC",
+                                expand=True,
+                            ),
+                        ],
+                    ),
+                )
+            )
+
+    return ft.Container(
+        width=ui_theme.SIDEBAR_WIDTH,
+        bgcolor=ui_theme.NAVY,
+        border=ft.Border(right=ft.BorderSide(1, ui_theme.NAVY_LIGHT)),
+        content=ft.Column(
+            expand=True,
+            spacing=0,
+            scroll=ft.ScrollMode.AUTO,
+            controls=items,
+        ),
     )
 
 
@@ -772,47 +865,228 @@ def _panel_analisis(screen: AdminScreenVM, **cbs) -> ft.Control:
 
 def _panel_inicio(screen: AdminScreenVM, **cbs) -> ft.Control:
     on_refresh = cbs.get("on_refresh_datos")
-    return ft.Column(
-        spacing=10,
-        controls=[
-            ft.Text("Dashboard", size=18, weight=ft.FontWeight.BOLD),
-            ft.Text(
-                f"Periodo: {screen.periodo or '—'}",
-                size=14,
-                color=ft.Colors.ON_SURFACE_VARIANT,
-            ),
-            ft.Text(
-                f"Consumos / servicios: {screen.consumo_count} · "
-                f"Mermas: {screen.merma_count} · "
-                f"Stock bajo: {screen.stock_bajo} · "
-                f"Caducidades: {screen.caducidades}",
-                size=13,
-            ),
-            ft.Text(screen.alerta_registro or "—", size=13),
-            ft.Text(
-                f"Revisión: {screen.revision} · Datos: {screen.data_path_label or '—'}",
-                size=12,
-                color=ft.Colors.OUTLINE,
-            ),
-            ft.Text(
-                f"Raíz compartida: {screen.shared_root_label or '—'}",
-                size=12,
-                color=ft.Colors.OUTLINE,
-            ),
-            ft.FilledButton(
-                "Actualizar datos",
-                icon=ft.Icons.REFRESH,
-                disabled=screen.mutando or on_refresh is None,
-                on_click=lambda _e: on_refresh() if on_refresh else None,
-            ),
-            ft.Text(
-                f"Maestros: {len(screen.productos)} productos · {len(screen.recetas)} recetas · "
-                f"{len(screen.usuarios)} usuarios · {len(screen.proveedores)} proveedores",
-                size=12,
-                color=ft.Colors.OUTLINE,
-            ),
-        ],
+    on_seccion = cbs.get("on_seccion")
+    dash = screen.dashboard
+
+    def _go(sec: str) -> None:
+        if on_seccion:
+            on_seccion(sec)
+
+    controls: list[ft.Control] = [
+        ui.page_header(
+            "Dashboard",
+            dash.periodo_label if dash else (screen.periodo or "—"),
+            actions=[
+                ui.primary_button(
+                    "Actualizar",
+                    lambda: on_refresh() if on_refresh else None,
+                    icon=ft.Icons.REFRESH,
+                    disabled=screen.mutando or on_refresh is None,
+                ),
+            ],
+        ),
+        ft.Text(
+            dash.saludo if dash else f"Bienvenido, {screen.session.actor_label or 'Usuario'}",
+            size=16,
+            weight=ft.FontWeight.W_600,
+            color=ui_theme.DARK_TEXT,
+        ),
+    ]
+
+    if screen.dashboard_error:
+        controls.append(ui.alert_banner(screen.dashboard_error, severity="warning"))
+    if dash and dash.aviso:
+        controls.append(ui.alert_banner(dash.aviso, severity="info"))
+
+    if dash and dash.alertas:
+        for a in dash.alertas:
+            controls.append(
+                ft.Container(
+                    ink=bool(a.destino),
+                    on_click=(lambda _e, d=a.destino: _go(d) if d else None),
+                    content=ui.alert_banner(f"{a.titulo} — {a.detalle}", severity=a.severidad),
+                )
+            )
+    else:
+        falta = "falta" in (screen.alerta_registro or "").casefold()
+        controls.append(
+            ui.alert_banner(
+                screen.alerta_registro or "—",
+                severity="warning" if falta else "success",
+            )
+        )
+
+    # KPIs operativos (siempre)
+    controls.append(ui.section_header("Indicadores operativos", "Conteos del periodo"))
+    controls.append(
+        ft.Row(
+            spacing=ui_theme.SPACE_MD,
+            wrap=True,
+            controls=[
+                ui.metric_card(
+                    "Consumos",
+                    str(screen.consumo_count),
+                    "Ver análisis →",
+                    accent=ui_theme.NAVY,
+                    on_click=lambda: _go("analisis"),
+                ),
+                ui.metric_card(
+                    "Mermas",
+                    str(screen.merma_count),
+                    "Ver análisis →",
+                    accent=ui_theme.DANGER,
+                    on_click=lambda: _go("analisis"),
+                ),
+                ui.metric_card(
+                    "Stock bajo",
+                    str(screen.stock_bajo),
+                    "Ver productos →",
+                    accent=ui_theme.WARNING,
+                    on_click=lambda: _go("productos"),
+                ),
+                ui.metric_card(
+                    "Caducidades",
+                    str(screen.caducidades),
+                    "Ver inventario →",
+                    accent=ui_theme.DANGER,
+                    on_click=lambda: _go("inventario_inicial"),
+                ),
+            ],
+        )
     )
+
+    # KPIs económicos (si el presenter los aportó)
+    if dash and dash.puede_ver_economia and dash.metrics:
+        controls.append(
+            ui.section_header("Resumen económico", "Costes del periodo (datos productivos)")
+        )
+        controls.append(
+            ft.Row(
+                spacing=ui_theme.SPACE_MD,
+                wrap=True,
+                controls=[
+                    ui.metric_card(m.etiqueta, m.valor, m.detalle, accent=ui_theme.NAVY)
+                    for m in dash.metrics
+                ],
+            )
+        )
+
+    if dash and dash.por_servicio:
+        controls.append(ui.section_header("Coste por servicio"))
+        controls.append(
+            ft.Row(
+                spacing=ui_theme.SPACE_MD,
+                wrap=True,
+                controls=[
+                    ui.metric_card(
+                        m.etiqueta,
+                        m.valor,
+                        m.detalle,
+                        accent=ui_theme.TEAL,
+                        width=170,
+                    )
+                    for m in dash.por_servicio
+                ],
+            )
+        )
+
+    if dash and dash.chart_naturaleza:
+        controls.append(
+            ui.card_surface(
+                build_barras_horizontales(
+                    dash.chart_naturaleza, titulo="Naturaleza del coste"
+                ),
+                title="",
+            )
+        )
+    if dash and dash.chart_evolucion:
+        controls.append(
+            ui.card_surface(build_lineas_series(dash.chart_evolucion), title="")
+        )
+
+    if dash and dash.rankings:
+        controls.append(ui.section_header("Rankings", "Top del periodo"))
+        rank_cols: list[ft.Control] = []
+        for block in dash.rankings:
+            filas: list[ft.Control] = [
+                ft.Text(block.titulo, size=13, weight=ft.FontWeight.W_600),
+            ]
+            if not block.filas:
+                filas.append(ui_theme.text_help("Sin filas."))
+            else:
+                for row in block.filas[:8]:
+                    line = f"{row.nombre}"
+                    if row.coste_fmt:
+                        line += f" · {row.coste_fmt}"
+                    if row.cantidad_fmt:
+                        line += f" · {row.cantidad_fmt}"
+                    filas.append(ft.Text(line, size=12, color=ui_theme.DARK_TEXT))
+            rank_cols.append(
+                ft.Container(
+                    width=280,
+                    padding=ui_theme.SPACE_MD,
+                    bgcolor=ui_theme.SURFACE_CARD,
+                    border_radius=ui_theme.RADIUS_MD,
+                    border=ft.Border.all(1, ui_theme.BORDER),
+                    content=ft.Column(spacing=4, tight=True, controls=filas),
+                )
+            )
+        controls.append(ft.Row(spacing=ui_theme.SPACE_MD, wrap=True, controls=rank_cols))
+        controls.append(
+            ui.secondary_button(
+                "Abrir Análisis completo",
+                lambda: _go("analisis"),
+                icon=ft.Icons.ANALYTICS,
+            )
+        )
+
+    if screen.stock_bajo_nombres:
+        controls.append(
+            ui.card_surface(
+                *[
+                    ft.Text(f"· {n}", size=12, color=ui_theme.DARK_TEXT)
+                    for n in screen.stock_bajo_nombres
+                ],
+                title="Stock bajo (top 5)",
+            )
+        )
+
+    controls.append(ui.section_header("Atajos"))
+    controls.append(
+        ft.Row(
+            spacing=ui_theme.SPACE_SM,
+            wrap=True,
+            controls=[
+                ui.secondary_button("Productos", lambda: _go("productos"), icon=ft.Icons.INVENTORY_2),
+                ui.secondary_button("Compras", lambda: _go("compras"), icon=ft.Icons.SHOPPING_CART),
+                ui.secondary_button("Análisis", lambda: _go("analisis"), icon=ft.Icons.ANALYTICS),
+                ui.secondary_button(
+                    "Inventario", lambda: _go("inventario_inicial"), icon=ft.Icons.ADD_BOX
+                ),
+                ui.secondary_button("Recetas", lambda: _go("recetas"), icon=ft.Icons.MENU_BOOK),
+            ],
+        )
+    )
+
+    controls.append(
+        ft.Row(
+            spacing=ui_theme.SPACE_SM,
+            wrap=True,
+            controls=[
+                ui.status_chip(f"{screen.productos_total} productos", tone="info"),
+                ui.status_chip(f"{len(screen.recetas)} recetas", tone="info"),
+                ui.status_chip(f"{len(screen.proveedores)} proveedores", tone="neutral"),
+                ui.status_chip(f"{len(screen.usuarios)} usuarios", tone="neutral"),
+                ui.status_chip(f"Rev. {screen.revision}", tone="neutral"),
+            ],
+        )
+    )
+    controls.append(
+        ui_theme.text_help(
+            f"Datos: {screen.data_path_label or '—'} · Raíz: {screen.shared_root_label or '—'}"
+        )
+    )
+    return ft.Column(spacing=ui_theme.SPACE_MD, controls=controls)
 
 
 def _filtro_row(screen: AdminScreenVM, on_filtro: Callable[[str], None]) -> ft.Control:
@@ -837,25 +1111,29 @@ def _panel_productos(screen: AdminScreenVM, **cbs) -> ft.Control:
     on_des = cbs["on_desactivar_producto"]
     on_rea = cbs["on_reactivar_producto"]
     on_import = cbs.get("on_importar_productos")
-    nombre = ft.TextField(label="Nombre", expand=True)
-    codigo = ft.TextField(label="Código", width=140)
+    on_page = cbs.get("on_productos_page")
+    nombre = ft.TextField(label="Nombre", dense=True, expand=True)
+    codigo = ft.TextField(label="Código", dense=True, width=120)
     unidad = ft.Dropdown(
         label="Unidad",
-        width=120,
+        width=110,
+        dense=True,
         options=[ft.dropdown.Option(u) for u in screen.unidades],
         value=screen.unidades[0] if screen.unidades else None,
     )
-    stock = ft.TextField(label="Stock mín.", width=110, value="0")
+    stock = ft.TextField(label="Stock mín.", dense=True, width=100, value="0")
     tipo = ft.Dropdown(
-        label="Tipo artículo",
-        width=160,
+        label="Tipo",
+        width=140,
+        dense=True,
         options=[ft.dropdown.Option(t) for t in screen.tipos_articulo],
         value="consumible" if "consumible" in screen.tipos_articulo else None,
     )
-    es_bebida = ft.Checkbox(label="Es bebida", value=False)
+    es_bebida = ft.Checkbox(label="Bebida", value=False)
     servicios = ft.TextField(
         label="Servicios (coma)",
         hint_text="desayuno,comida,cena,bebidas",
+        dense=True,
         expand=True,
     )
 
@@ -875,35 +1153,104 @@ def _panel_productos(screen: AdminScreenVM, **cbs) -> ft.Control:
             serv,
         )
 
-    lista = [_producto_row(p, screen.mutando or screen.pending is not None, on_des, on_rea) for p in screen.productos]
+    alta = ft.ExpansionTile(
+        title=ft.Text("Añadir producto", weight=ft.FontWeight.W_600),
+        subtitle=ft.Text("Alta manual o importación Excel", size=12),
+        expanded=False,
+        controls=[
+            ft.Container(
+                padding=ft.Padding.only(left=8, right=8, bottom=12),
+                content=ft.Column(
+                    spacing=8,
+                    controls=[
+                        ft.Row(controls=[nombre, codigo, unidad, stock, tipo]),
+                        ft.Row(
+                            controls=[
+                                es_bebida,
+                                servicios,
+                                ft.FilledButton(
+                                    "Crear",
+                                    disabled=screen.mutando,
+                                    on_click=_crear,
+                                ),
+                            ]
+                        ),
+                        ft.Row(
+                            wrap=True,
+                            controls=[
+                                ft.Text(
+                                    "Importar Productos PRECIO.xlsx (coste aproximado).",
+                                    size=12,
+                                    color=ft.Colors.ON_SURFACE_VARIANT,
+                                    expand=True,
+                                ),
+                                ft.OutlinedButton(
+                                    "Importar Excel",
+                                    disabled=screen.mutando or on_import is None,
+                                    on_click=lambda _e: on_import() if on_import else None,
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
+            )
+        ],
+    )
+
+    total = screen.productos_total
+    page = screen.productos_page
+    size = screen.productos_page_size or 40
+    start = page * size + 1 if total else 0
+    end = min(total, (page + 1) * size)
+    max_page = max(0, (total - 1) // size) if total else 0
+
+    lista = [
+        _producto_row(p, screen.mutando or screen.pending is not None, on_des, on_rea)
+        for p in screen.productos
+    ]
     if not lista:
         lista = [ft.Text("No hay productos.", color=ft.Colors.OUTLINE)]
 
-    import_row: list[ft.Control] = [
-        ft.Text(
-            "Importar desde docs/Productos PRECIO.xlsx (cats 101–108; coste aproximado).",
-            size=12,
-            color=ft.Colors.ON_SURFACE_VARIANT,
-        ),
-    ]
-    if on_import is not None:
-        import_row.append(
-            ft.OutlinedButton(
-                "Importar Productos (PRECIO)",
-                disabled=screen.mutando,
-                on_click=lambda _e: on_import(),
-            )
-        )
+    pager = ft.Row(
+        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+        controls=[
+            ft.Text(
+                f"Mostrando {start}–{end} de {total}",
+                size=12,
+                color=ft.Colors.BLUE_GREY_600,
+            ),
+            ft.Row(
+                spacing=4,
+                controls=[
+                    ft.IconButton(
+                        icon=ft.Icons.CHEVRON_LEFT,
+                        disabled=page <= 0 or on_page is None,
+                        on_click=lambda _e: on_page(page - 1) if on_page else None,
+                    ),
+                    ft.Text(f"{page + 1} / {max_page + 1}", size=12),
+                    ft.IconButton(
+                        icon=ft.Icons.CHEVRON_RIGHT,
+                        disabled=page >= max_page or on_page is None,
+                        on_click=lambda _e: on_page(page + 1) if on_page else None,
+                    ),
+                ],
+            ),
+        ],
+    )
 
     return ft.Column(
         spacing=12,
         controls=[
-            ft.Text("Productos", size=18, weight=ft.FontWeight.BOLD),
-            ft.Row(controls=[nombre, codigo, unidad, stock, tipo]),
-            ft.Row(controls=[es_bebida, servicios, ft.FilledButton("Crear", disabled=screen.mutando, on_click=_crear)]),
-            ft.Row(controls=import_row, wrap=True),
+            ft.Text("Productos", size=22, weight=ft.FontWeight.BOLD),
+            alta,
             _filtro_row(screen, on_filtro),
-            *lista,
+            pager,
+            ft.Container(
+                bgcolor=ft.Colors.WHITE,
+                border_radius=8,
+                border=ft.Border.all(1, ft.Colors.BLUE_GREY_100),
+                content=ft.Column(spacing=0, controls=lista),
+            ),
         ],
     )
 
@@ -933,23 +1280,36 @@ def _producto_row(
             )
         )
     return ft.Container(
-        bgcolor=ft.Colors.WHITE if p.activo else ft.Colors.BLUE_GREY_50,
-        padding=12,
-        border_radius=8,
-        border=ft.Border.all(1, ft.Colors.BLUE_GREY_300),
-        content=ft.Column(
-            spacing=4,
-            tight=True,
+        padding=ft.Padding.symmetric(horizontal=12, vertical=8),
+        border=ft.Border(bottom=ft.BorderSide(1, ft.Colors.BLUE_GREY_50)),
+        bgcolor=None if p.activo else ft.Colors.BLUE_GREY_50,
+        content=ft.Row(
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
-                ft.Text(f"{p.nombre} ({p.codigo or 'sin código'})", weight=ft.FontWeight.BOLD),
-                ft.Text(
-                    f"{p.unidad} · mín {p.stock_minimo:g} · {p.tipo_articulo or 'sin clasificar'}"
-                    + (" · bebida" if p.es_bebida else "")
-                    + (" · activo" if p.activo else " · inactivo"),
-                    size=12,
-                    color=ft.Colors.ON_SURFACE_VARIANT,
+                ft.Column(
+                    spacing=2,
+                    tight=True,
+                    expand=True,
+                    controls=[
+                        ft.Text(
+                            p.nombre,
+                            weight=ft.FontWeight.W_600,
+                            size=13,
+                            max_lines=1,
+                            overflow=ft.TextOverflow.ELLIPSIS,
+                        ),
+                        ft.Text(
+                            f"{p.codigo or 'sin código'} · {p.unidad} · "
+                            f"{p.tipo_articulo or '—'}"
+                            + (" · bebida" if p.es_bebida else "")
+                            + ("" if p.activo else " · inactivo"),
+                            size=11,
+                            color=ft.Colors.BLUE_GREY_600,
+                        ),
+                    ],
                 ),
-                ft.Row(controls=acciones),
+                ft.Row(spacing=0, tight=True, controls=acciones),
             ],
         ),
     )
@@ -1596,8 +1956,6 @@ def _panel_documentos(screen: AdminScreenVM, **cbs) -> ft.Control:
 
     return ft.Column(
         spacing=10,
-        scroll=ft.ScrollMode.AUTO,
-        expand=True,
         controls=[
             ft.Text("Documentos", size=20, weight=ft.FontWeight.BOLD),
             ft.Row(

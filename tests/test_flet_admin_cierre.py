@@ -83,6 +83,42 @@ class TestAdminCierreDashboard(_CierreHarness):
         self.assertIsInstance(s.revision, int)
         self.assertTrue(s.data_path_label)
         self.assertIn("inicio", ADMIN_SECCIONES)
+        self.assertIsInstance(s.dashboard_error, str)
+        self.assertIsInstance(s.stock_bajo_nombres, tuple)
+        self.assertIsInstance(s.productos_total, int)
+        self.assertIsNotNone(s.dashboard)
+        self.assertTrue(s.dashboard.saludo)
+        self.assertTrue(s.dashboard.periodo_label)
+        if s.dashboard.puede_ver_economia:
+            self.assertGreaterEqual(len(s.dashboard.metrics), 1)
+
+    def test_dashboard_panel_ui(self) -> None:
+        from app.presentation.flet.views.admin_shell_view import _panel_inicio
+
+        p = self._login_dir()
+        s = p.screen()
+        ctrl = _panel_inicio(
+            s, on_seccion=lambda _x: None, on_refresh_datos=lambda: None
+        )
+        self.assertIsNotNone(ctrl)
+
+    def test_productos_paginacion(self) -> None:
+        from app.presentation.flet.admin_viewmodels import PRODUCTOS_PAGE_SIZE
+
+        p = self._login_dir()
+        p.set_seccion("productos")
+        s = p.screen()
+        self.assertLessEqual(len(s.productos), PRODUCTOS_PAGE_SIZE)
+        self.assertGreaterEqual(s.productos_total, len(s.productos))
+        s2 = p.set_productos_page(1)
+        self.assertEqual(s2.productos_page, 1 if s.productos_total > PRODUCTOS_PAGE_SIZE else 0)
+
+    def test_nav_groups_cubren_secciones(self) -> None:
+        from app.presentation.flet.admin_viewmodels import ADMIN_NAV_GROUPS
+
+        flat = [s for _, secs in ADMIN_NAV_GROUPS for s in secs]
+        for sec in ADMIN_SECCIONES:
+            self.assertIn(sec, flat)
 
     def test_refresh_if_stale_no_crash(self) -> None:
         p = self._login_dir()

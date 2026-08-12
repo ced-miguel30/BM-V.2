@@ -5,18 +5,9 @@ from __future__ import annotations
 import flet as ft
 
 from app.presentation.flet.analisis_viewmodels import BarItemVM, ChartSeriesVM
+from app.presentation.flet import theme as t
 
-_COLORS = (
-    ft.Colors.BLUE_700,
-    ft.Colors.AMBER_700,
-    ft.Colors.RED_700,
-    ft.Colors.TEAL_700,
-    ft.Colors.PURPLE_700,
-    ft.Colors.GREEN_700,
-    ft.Colors.ORANGE_700,
-    ft.Colors.INDIGO_700,
-)
-
+_COLORS = t.CHART_COLORS
 _BAR_MAX_WIDTH = 320.0
 
 
