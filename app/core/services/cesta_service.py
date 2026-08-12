@@ -337,7 +337,14 @@ class MotorCesta:
                 unidad_mostrar=unidad_mostrar,
             ))
 
-        for mod in mods_pendientes or []:
+        # Si no se pasan mods explícitos, usar los pendientes de sesión
+        # (flujo terminal / scripts: anadir_mod_pendiente → anadir_receta).
+        mods = (
+            list(mods_pendientes)
+            if mods_pendientes is not None
+            else list(self.get_mods_pendientes())
+        )
+        for mod in mods:
             ingredientes.append(self._linea_ingrediente_desde_mod(mod))
 
         grupo = GrupoRecetaCesta(

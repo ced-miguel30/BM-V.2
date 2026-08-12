@@ -31,9 +31,16 @@ def build_catalog_result_controls(
                 vacio + " Pruebe otra palabra (búsqueda parcial).",
             )
         ]
-    return [
-        _catalog_tile(item, on_add_receta, on_add_producto) for item in screen.catalogo
+    # Dos columnas en pantallas anchas: evita filas ultra-anchas y «enanas».
+    tiles = [
+        ft.Container(
+            col={"xs": 12, "md": 12, "lg": 6, "xl": 6},
+            padding=ft.Padding.only(right=8, bottom=10),
+            content=_catalog_tile(item, on_add_receta, on_add_producto),
+        )
+        for item in screen.catalogo
     ]
+    return [ft.ResponsiveRow(columns=12, spacing=0, run_spacing=0, controls=tiles)]
 
 
 def build_registro_view(
@@ -117,27 +124,6 @@ def build_registro_view(
         ),
     )
 
-    selector = ui.card_surface(
-        ft.Row(
-            wrap=True,
-            spacing=ui_theme.SPACE_SM,
-            controls=[
-                ft.FilledButton(
-                    s.etiqueta,
-                    style=ft.ButtonStyle(
-                        padding=ft.Padding.symmetric(horizontal=18, vertical=12),
-                        bgcolor=ui_theme.TEAL if s.activo else ui_theme.LIGHT_GRAY,
-                        color=ui_theme.WHITE if s.activo else ui_theme.NAVY,
-                        shape=ft.RoundedRectangleBorder(radius=ui_theme.RADIUS_SM),
-                    ),
-                    on_click=lambda _e, sid=s.id: on_select_servicio(sid),
-                )
-                for s in screen.servicios
-            ],
-        ),
-        title="Servicio",
-    )
-
     feedback = ft.Container()
     if screen.feedback:
         feedback = ft.Container(
@@ -152,33 +138,42 @@ def build_registro_view(
     if search_field is None:
         search_field = ft.TextField(
             label="Buscar receta o producto",
-            hint_text="Búsqueda parcial…",
+            hint_text="Escriba parte del nombre…",
             value=screen.busqueda,
             prefix_icon=ft.Icons.SEARCH,
+            text_size=16,
+            height=52,
+            # Sin expand vertical: en Column robaba todo el hueco entre buscador y lista.
             on_change=lambda e: on_search(e.control.value or ""),
-            expand=True,
         )
     else:
         search_field.on_change = lambda e: on_search(e.control.value or "")
+        search_field.text_size = 16
+        search_field.expand = False
+        search_field.height = 52
 
     tipo_activo = getattr(screen, "catalogo_tipo", None) or "recetas"
     tipo_chips = ft.Row(
         wrap=True,
-        spacing=8,
+        spacing=10,
         controls=[
             (
                 ft.FilledButton(
                     lab,
+                    height=44,
                     style=ft.ButtonStyle(
-                        padding=ft.Padding.symmetric(horizontal=16, vertical=12),
+                        padding=ft.Padding.symmetric(horizontal=20, vertical=12),
+                        text_style=ft.TextStyle(size=15, weight=ft.FontWeight.W_600),
                     ),
                     on_click=lambda _e, t=tid: on_catalogo_tipo(t),
                 )
                 if tipo_activo == tid
                 else ft.OutlinedButton(
                     lab,
+                    height=44,
                     style=ft.ButtonStyle(
-                        padding=ft.Padding.symmetric(horizontal=16, vertical=12),
+                        padding=ft.Padding.symmetric(horizontal=20, vertical=12),
+                        text_style=ft.TextStyle(size=15),
                     ),
                     on_click=lambda _e, t=tid: on_catalogo_tipo(t),
                 )
@@ -196,27 +191,36 @@ def build_registro_view(
     if screen.requiere_huespedes:
         huespedes_row = [
             ft.Container(
-                padding=ft.Padding.symmetric(horizontal=10, vertical=6),
+                padding=ft.Padding.symmetric(horizontal=14, vertical=10),
                 bgcolor=ui_theme.INFO_BG,
                 border_radius=ui_theme.RADIUS_SM,
                 content=ft.Row(
                     spacing=ui_theme.SPACE_SM,
                     vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     controls=[
-                        ft.Text("Huéspedes", size=13, color=ui_theme.INFO, weight=ft.FontWeight.W_600),
+                        ft.Text(
+                            "Huéspedes",
+                            size=16,
+                            color=ui_theme.INFO,
+                            weight=ft.FontWeight.W_600,
+                        ),
                         ft.IconButton(
                             icon=ft.Icons.REMOVE,
+                            icon_size=28,
                             icon_color=ui_theme.NAVY,
-                            on_click=lambda _e: on_huespedes(max(1, screen.num_huespedes - 1)),
+                            on_click=lambda _e: on_huespedes(
+                                max(1, screen.num_huespedes - 1)
+                            ),
                         ),
                         ft.Text(
                             str(screen.num_huespedes),
-                            size=20,
+                            size=28,
                             weight=ft.FontWeight.BOLD,
                             color=ui_theme.NAVY,
                         ),
                         ft.IconButton(
                             icon=ft.Icons.ADD,
+                            icon_size=28,
                             icon_color=ui_theme.NAVY,
                             on_click=lambda _e: on_huespedes(screen.num_huespedes + 1),
                         ),
@@ -230,27 +234,48 @@ def build_registro_view(
     )
     if catalog_results is None:
         catalog_results = ft.Column(
-            spacing=ui_theme.SPACE_SM,
+            spacing=0,
             scroll=ft.ScrollMode.AUTO,
             expand=True,
             controls=result_controls,
         )
     else:
         catalog_results.controls = result_controls
+        catalog_results.spacing = 0
 
-    catalog_col = ft.Column(
-        spacing=ui_theme.SPACE_SM,
+    catalog_panel = ft.Container(
         expand=True,
-        controls=[
-            ui.section_header(
-                "Catálogo",
-                f"{len(screen.catalogo)} ítems · Recetas del Excel · Productos/extras por cantidad",
-            ),
-            tipo_chips,
-            search_field,
-            *huespedes_row,
-            ft.Container(content=catalog_results, expand=True),
-        ],
+        bgcolor=ui_theme.SURFACE_CARD,
+        border=ft.Border.all(1, ui_theme.BORDER),
+        border_radius=ui_theme.RADIUS_MD,
+        padding=16,
+        content=ft.Column(
+            expand=True,
+            spacing=12,
+            controls=[
+                ft.Text(
+                    f"Catálogo · {len(screen.catalogo)} ítems",
+                    size=20,
+                    weight=ft.FontWeight.BOLD,
+                    color=ui_theme.NAVY,
+                ),
+                ft.Text(
+                    "Recetas del Excel · extras/productos por cantidad · pulse Añadir",
+                    size=14,
+                    color=ui_theme.MID_GRAY,
+                ),
+                tipo_chips,
+                *huespedes_row,
+                search_field,
+                ft.Container(
+                    expand=True,
+                    bgcolor=ui_theme.SURFACE,
+                    border_radius=ui_theme.RADIUS_SM,
+                    padding=10,
+                    content=catalog_results,
+                ),
+            ],
+        ),
     )
 
     basket_inner: list[ft.Control] = []
@@ -284,8 +309,8 @@ def build_registro_view(
         if extras:
             basket_inner.append(
                 ft.Text(
-                    "Extras de la receta",
-                    size=12,
+                    "Extras sugeridos",
+                    size=14,
                     weight=ft.FontWeight.W_600,
                     color=ui_theme.MID_GRAY,
                 )
@@ -295,6 +320,7 @@ def build_registro_view(
                 basket_inner.append(
                     ft.OutlinedButton(
                         label,
+                        height=40,
                         on_click=lambda _e, pid=ex.producto_id, c=ex.cantidad: on_add_producto(
                             pid, c
                         ),
@@ -309,24 +335,48 @@ def build_registro_view(
         )
 
     basket_inner.append(
-        ui.primary_button(
+        ft.FilledButton(
             "Confirmar registro",
-            on_confirm,
             icon=ft.Icons.CHECK_CIRCLE,
+            height=52,
             disabled=screen.confirmando
             or screen.anulando
             or screen.cesta is None
             or screen.cesta.vacia,
+            style=ft.ButtonStyle(
+                bgcolor=ui_theme.NAVY,
+                color=ui_theme.WHITE,
+                text_style=ft.TextStyle(size=16, weight=ft.FontWeight.W_600),
+                shape=ft.RoundedRectangleBorder(radius=ui_theme.RADIUS_SM),
+            ),
+            on_click=lambda _e: on_confirm(),
         )
     )
     if screen.confirmando or screen.anulando:
-        basket_inner.append(ft.ProgressRing(width=24, height=24, color=ui_theme.NAVY))
+        basket_inner.append(ft.ProgressRing(width=28, height=28, color=ui_theme.NAVY))
 
     basket_col = ft.Container(
-        width=None if narrow else 360,
-        content=ui.card_surface(
-            *basket_inner,
-            title=f"Cesta ({n_cesta})",
+        width=None if narrow else 380,
+        expand=narrow,
+        content=ft.Container(
+            bgcolor=ui_theme.SURFACE_CARD,
+            border=ft.Border.all(1, ui_theme.BORDER),
+            border_radius=ui_theme.RADIUS_MD,
+            padding=16,
+            content=ft.Column(
+                expand=True,
+                spacing=10,
+                scroll=ft.ScrollMode.AUTO if not narrow else None,
+                controls=[
+                    ft.Text(
+                        f"Cesta ({n_cesta})",
+                        size=20,
+                        weight=ft.FontWeight.BOLD,
+                        color=ui_theme.NAVY,
+                    ),
+                    *basket_inner,
+                ],
+            ),
         ),
     )
 
@@ -338,31 +388,27 @@ def build_registro_view(
         on_confirmar_anulacion=on_confirmar_anulacion,
     )
 
-    # Área catálogo+cesta con altura usable y scroll interno del listado.
+    # Catálogo ocupa casi toda la altura; historial colapsado abajo.
     if narrow:
         body = ft.Column(
             expand=True,
             scroll=ft.ScrollMode.AUTO,
             spacing=ui_theme.SPACE_MD,
-            controls=[catalog_col, basket_col, historial_box],
+            controls=[catalog_panel, basket_col, historial_box],
         )
     else:
         body = ft.Column(
             expand=True,
-            scroll=ft.ScrollMode.AUTO,
             spacing=ui_theme.SPACE_MD,
             controls=[
-                ft.Container(
-                    height=520,
-                    content=ft.Row(
-                        expand=True,
-                        vertical_alignment=ft.CrossAxisAlignment.START,
-                        spacing=ui_theme.SPACE_MD,
-                        controls=[
-                            ft.Container(content=catalog_col, expand=True),
-                            basket_col,
-                        ],
-                    ),
+                ft.Row(
+                    expand=True,
+                    vertical_alignment=ft.CrossAxisAlignment.STRETCH,
+                    spacing=ui_theme.SPACE_MD,
+                    controls=[
+                        ft.Container(content=catalog_panel, expand=True),
+                        basket_col,
+                    ],
                 ),
                 historial_box,
             ],
@@ -377,11 +423,50 @@ def build_registro_view(
             ft.Container(
                 expand=True,
                 bgcolor=ui_theme.SURFACE,
-                padding=ui_theme.SPACE_LG,
+                padding=ft.Padding.symmetric(horizontal=16, vertical=12),
                 content=ft.Column(
                     expand=True,
-                    spacing=ui_theme.SPACE_MD,
-                    controls=[selector, body],
+                    spacing=10,
+                    controls=[
+                        ft.Container(
+                            content=ft.Row(
+                                wrap=True,
+                                spacing=8,
+                                controls=[
+                                    ft.FilledButton(
+                                        s.etiqueta,
+                                        height=42,
+                                        style=ft.ButtonStyle(
+                                            padding=ft.Padding.symmetric(
+                                                horizontal=18, vertical=10
+                                            ),
+                                            bgcolor=(
+                                                ui_theme.TEAL
+                                                if s.activo
+                                                else ui_theme.LIGHT_GRAY
+                                            ),
+                                            color=(
+                                                ui_theme.WHITE
+                                                if s.activo
+                                                else ui_theme.NAVY
+                                            ),
+                                            text_style=ft.TextStyle(
+                                                size=15, weight=ft.FontWeight.W_600
+                                            ),
+                                            shape=ft.RoundedRectangleBorder(
+                                                radius=ui_theme.RADIUS_SM
+                                            ),
+                                        ),
+                                        on_click=lambda _e, sid=s.id: on_select_servicio(
+                                            sid
+                                        ),
+                                    )
+                                    for s in screen.servicios
+                                ],
+                            ),
+                        ),
+                        body,
+                    ],
                 ),
             ),
         ],
@@ -523,9 +608,25 @@ def _historial_section(
                 )
             )
 
-    return ui.card_surface(
-        *controls,
-        title="Historial reciente",
+    return ft.ExpansionTile(
+        title=ft.Text(
+            f"Historial reciente ({len(screen.historial)})",
+            size=16,
+            weight=ft.FontWeight.W_600,
+        ),
+        subtitle=ft.Text(
+            "Pulse para ver o anular registros del servicio",
+            size=13,
+            color=ui_theme.MID_GRAY,
+        ),
+        expanded=bool(screen.anulacion_pendiente),
+        dense=False,
+        controls=[
+            ft.Container(
+                padding=ft.Padding.only(left=8, right=8, bottom=12),
+                content=ft.Column(spacing=4, tight=True, controls=controls),
+            )
+        ],
     )
 
 
@@ -538,54 +639,103 @@ def _catalog_tile(
     if is_receta:
         badge = "Receta"
         tone = "info"
+        icon = ft.Icons.RESTAURANT_MENU
+        hint = "1 ración al añadir · ajuste en cesta"
     elif item.es_bebida:
         badge = "Bebida"
         tone = "ok"
+        icon = ft.Icons.LOCAL_BAR
+        hint = (
+            f"Stock {item.stock_disponible:g} {item.unidad}".strip()
+            if item.stock_disponible is not None
+            else (item.unidad or "Unidad")
+        )
     else:
-        badge = "Producto / extra"
+        badge = "Extra / producto"
         tone = "neutral"
-    detail = item.categoria if is_receta else (
-        f"Stock {item.stock_disponible:g} {item.unidad}".strip()
-        if item.stock_disponible is not None
-        else (item.unidad or "")
-    )
+        icon = ft.Icons.ADD_SHOPPING_CART
+        hint = (
+            f"Stock {item.stock_disponible:g} {item.unidad}".strip()
+            if item.stock_disponible is not None
+            else (item.unidad or "Por cantidad")
+        )
+    if is_receta and item.categoria:
+        hint = f"{item.categoria} · {hint}"
+
     return ft.Container(
-        bgcolor=ui_theme.SURFACE_CARD,
-        padding=ft.Padding.symmetric(horizontal=16, vertical=14),
+        bgcolor=ui_theme.WHITE,
+        padding=ft.Padding.symmetric(horizontal=16, vertical=16),
         border_radius=ui_theme.RADIUS_MD,
-        border=ft.Border.all(1, ui_theme.BORDER),
+        border=ft.Border.all(1, ui_theme.BORDER_STRONG),
+        shadow=ft.BoxShadow(
+            blur_radius=10,
+            color="#0B1F3A12",
+            offset=ft.Offset(0, 2),
+        ),
         content=ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=12,
+            spacing=14,
             controls=[
+                ft.Container(
+                    width=52,
+                    height=52,
+                    bgcolor=ui_theme.NAVY,
+                    border_radius=ui_theme.RADIUS_SM,
+                    alignment=ft.Alignment.CENTER,
+                    content=ft.Icon(icon, color=ui_theme.WHITE, size=28),
+                ),
                 ft.Column(
                     spacing=4,
                     expand=True,
                     tight=True,
                     controls=[
-                        ui.status_chip(badge, tone=tone),
+                        ft.Container(
+                            bgcolor={
+                                "info": ui_theme.INFO_BG,
+                                "ok": ui_theme.SUCCESS_BG,
+                                "neutral": ui_theme.LIGHT_GRAY,
+                            }.get(tone, ui_theme.LIGHT_GRAY),
+                            padding=ft.Padding.symmetric(horizontal=12, vertical=5),
+                            border_radius=20,
+                            content=ft.Text(
+                                badge,
+                                size=13,
+                                weight=ft.FontWeight.W_600,
+                                color={
+                                    "info": ui_theme.INFO,
+                                    "ok": ui_theme.SUCCESS,
+                                    "neutral": ui_theme.DARK_TEXT,
+                                }.get(tone, ui_theme.DARK_TEXT),
+                            ),
+                        ),
                         ft.Text(
                             item.nombre,
-                            size=18,
+                            size=20,
                             weight=ft.FontWeight.BOLD,
                             color=ui_theme.DARK_TEXT,
+                            max_lines=2,
+                            overflow=ft.TextOverflow.ELLIPSIS,
                         ),
-                        ft.Text(
-                            detail or ("1 ración al añadir" if is_receta else ""),
-                            size=14,
-                            color=ui_theme.MID_GRAY,
-                        ),
+                        ft.Text(hint, size=15, color=ui_theme.MID_GRAY),
                     ],
                 ),
-                ui.primary_button(
+                ft.FilledButton(
                     "Añadir",
-                    (
-                        (lambda rid=item.id: on_add_receta(rid))
-                        if is_receta
-                        else (lambda pid=item.id: on_add_producto(pid))
-                    ),
                     icon=ft.Icons.ADD,
+                    height=48,
+                    style=ft.ButtonStyle(
+                        bgcolor=ui_theme.TEAL,
+                        color=ui_theme.WHITE,
+                        text_style=ft.TextStyle(size=16, weight=ft.FontWeight.W_600),
+                        padding=ft.Padding.symmetric(horizontal=18, vertical=12),
+                        shape=ft.RoundedRectangleBorder(radius=ui_theme.RADIUS_SM),
+                    ),
+                    on_click=lambda _e, it=item: (
+                        on_add_receta(it.id)
+                        if it.tipo == "receta"
+                        else on_add_producto(it.id)
+                    ),
                 ),
             ],
         ),
@@ -601,34 +751,42 @@ def _basket_row(
     on_remove,
 ) -> ft.Control:
     return ft.Container(
-        padding=ft.Padding.symmetric(vertical=6),
+        padding=ft.Padding.symmetric(vertical=8),
         border=ft.Border(bottom=ft.BorderSide(1, ui_theme.BORDER)),
         content=ft.Column(
-            spacing=2,
+            spacing=4,
             tight=True,
             controls=[
                 ft.Text(
                     nombre,
                     weight=ft.FontWeight.W_600,
-                    size=13,
+                    size=16,
                     color=ui_theme.DARK_TEXT,
                 ),
                 ft.Row(
-                    spacing=2,
+                    spacing=4,
                     controls=[
                         ft.IconButton(
                             icon=ft.Icons.REMOVE_CIRCLE_OUTLINE,
+                            icon_size=28,
                             icon_color=ui_theme.NAVY,
                             on_click=on_minus,
                         ),
-                        ft.Text(qty_label, size=13, color=ui_theme.DARK_TEXT),
+                        ft.Text(
+                            qty_label,
+                            size=16,
+                            weight=ft.FontWeight.W_600,
+                            color=ui_theme.DARK_TEXT,
+                        ),
                         ft.IconButton(
                             icon=ft.Icons.ADD_CIRCLE_OUTLINE,
+                            icon_size=28,
                             icon_color=ui_theme.NAVY,
                             on_click=on_plus,
                         ),
                         ft.IconButton(
                             icon=ft.Icons.DELETE_OUTLINE,
+                            icon_size=26,
                             icon_color=ui_theme.DANGER,
                             on_click=on_remove,
                         ),

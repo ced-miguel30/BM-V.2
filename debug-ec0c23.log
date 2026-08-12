@@ -89,3 +89,7 @@
 {"sessionId": "ec0c23", "runId": "pre-fix", "hypothesisId": "E", "location": "app_shell_administracion.py:refresh", "message": "refresh_ok", "data": {"seccion": "inicio"}, "timestamp": 1786574724022}
 {"sessionId": "ec0c23", "runId": "pre-fix", "hypothesisId": "E", "location": "app_shell_administracion.py:refresh", "message": "refresh_screen", "data": {"seccion": "inicio", "auth": true, "n_productos": 501, "n_recetas": 66}, "timestamp": 1786574725666}
 {"sessionId": "ec0c23", "runId": "pre-fix", "hypothesisId": "E", "location": "app_shell_administracion.py:refresh", "message": "refresh_ok", "data": {"seccion": "inicio"}, "timestamp": 1786574725704}
+{"sessionId": "ec0c23", "runId": "pre-fix", "hypothesisId": "E", "location": "app_shell_administracion.py:refresh", "message": "refresh_screen", "data": {"seccion": "inicio", "auth": false, "n_productos": 0, "n_recetas": 0}, "timestamp": 1786575282667}
+{"sessionId": "ec0c23", "runId": "pre-fix", "hypothesisId": "E", "location": "app_shell_administracion.py:refresh", "message": "refresh_ok", "data": {"seccion": "inicio"}, "timestamp": 1786575282686}
+{"sessionId": "ec0c23", "runId": "pre-fix", "hypothesisId": "E", "location": "app_shell_administracion.py:refresh", "message": "refresh_screen", "data": {"seccion": "inicio", "auth": true, "n_productos": 501, "n_recetas": 66}, "timestamp": 1786575290512}
+{"sessionId": "ec0c23", "runId": "pre-fix", "hypothesisId": "E", "location": "app_shell_administracion.py:refresh", "message": "refresh_ok", "data": {"seccion": "inicio"}, "timestamp": 1786575290536}
