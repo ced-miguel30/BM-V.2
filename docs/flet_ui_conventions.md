@@ -32,8 +32,11 @@ login/bootstrap Admin, Inicio, Análisis, Productos, Recetas, Usuarios,
 Responsables, Proveedores, Compras, Documentos, Inventario, Catálogos,
 Actividad, Backup, Configuración, Servidor y Zona de peligro.
 
-## Confianza operativa
+## Compras (albarán / factura)
 
-- Cabecera Admin: hotel + actor + feedback con `alert_banner`.
-- Inicio: instancia (ruta de datos), alertas acotadas, actividad reciente.
-- Inventario inicial: ubicación destino + eco del último lote en pantalla.
+Registro dinámico estilo captura rápida:
+- Cabecera auto-aplicada al cambiar tipo/proveedor/referencia
+- Búsqueda por código o nombre + Enter
+- Precio 0 → último precio del vínculo proveedor
+- Tabla con cantidad/p.u. editables (blur/Enter)
+- Guardar borrador / Confirmar / Limpiar

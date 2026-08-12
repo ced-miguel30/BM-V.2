@@ -108,6 +108,8 @@ class TerminalAdministracionShell:
                     on_reactivar_proveedor=self._on_reactivar_proveedor,
                     on_set_compra_cabecera=self._on_set_compra_cabecera,
                     on_añadir_linea_compra=self._on_añadir_linea_compra,
+                    on_añadir_linea_compra_busqueda=self._on_añadir_linea_compra_busqueda,
+                    on_update_linea_compra=self._on_update_linea_compra,
                     on_quitar_linea_compra=self._on_quitar_linea_compra,
                     on_guardar_borrador_compra=self._on_guardar_borrador_compra,
                     on_confirmar_compra=self._on_confirmar_compra,
@@ -437,6 +439,20 @@ class TerminalAdministracionShell:
         self, producto_id: str, cantidad: float, precio_unitario: float
     ) -> None:
         self.presenter.añadir_linea_compra(producto_id, cantidad, precio_unitario)
+        self.refresh()
+
+    def _on_añadir_linea_compra_busqueda(
+        self, texto: str, cantidad: float, precio_unitario: float
+    ) -> None:
+        self.presenter.añadir_linea_compra_por_busqueda(texto, cantidad, precio_unitario)
+        self.refresh()
+
+    def _on_update_linea_compra(
+        self, index: int, cantidad: float, precio_unitario: float
+    ) -> None:
+        self.presenter.update_linea_compra(
+            index, cantidad=cantidad, precio_unitario=precio_unitario
+        )
         self.refresh()
 
     def _on_quitar_linea_compra(self, index: int) -> None:

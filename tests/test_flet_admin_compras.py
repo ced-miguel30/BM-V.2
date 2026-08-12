@@ -125,6 +125,37 @@ class TestAdminCompras(_ComprasHarness):
         estado = docs[0].estado.value if hasattr(docs[0].estado, "value") else str(docs[0].estado)
         self.assertEqual(estado, "confirmado")
 
+    def test_update_linea_y_busqueda_por_codigo(self) -> None:
+        p = self._login_dir()
+        s = p.crear_proveedor("Prov Edit Linea", "PRV-EDIT-01")
+        self.assertTrue(s.feedback and s.feedback.ok)
+        prov = next(x for x in s.proveedores if x.codigo == "PRV-EDIT-01")
+        prod = next(x for x in s.productos if x.activo and x.nombre == "Pan UI")
+        p.set_compra_cabecera(prov.id, "ALB-EDIT-1")
+        p.añadir_linea_compra(prod.id, 2.0, 1.0)
+        self.assertEqual(len(p.screen().compra_lineas), 1)
+
+        s = p.update_linea_compra(0, cantidad=5.0, precio_unitario=2.25)
+        self.assertTrue(s.feedback and s.feedback.ok, s.feedback.mensaje if s.feedback else "")
+        ln = s.compra_lineas[0]
+        self.assertAlmostEqual(ln.cantidad, 5.0)
+        self.assertAlmostEqual(ln.precio_unitario, 2.25)
+
+        # búsqueda por nombre único
+        s = p.añadir_linea_compra_por_busqueda("Pan UI", 1.0, 0.5)
+        self.assertTrue(s.feedback and s.feedback.ok, s.feedback.mensaje if s.feedback else "")
+        self.assertEqual(len(s.compra_lineas), 2)
+
+        # código exacto si existe
+        if prod.codigo:
+            n0 = len(p.screen().compra_lineas)
+            s = p.añadir_linea_compra_por_busqueda(prod.codigo, 1.0, 0.5)
+            self.assertTrue(s.feedback and s.feedback.ok, s.feedback.mensaje if s.feedback else "")
+            self.assertEqual(len(s.compra_lineas), n0 + 1)
+
+        s = p.añadir_linea_compra_por_busqueda("zzz-no-existe", 1.0, 1.0)
+        self.assertTrue(s.feedback and not s.feedback.ok)
+
 
 class TestAdminArquitecturaCompras(_ComprasHarness):
     def test_compra_vm_economia_permitida(self) -> None:

@@ -951,12 +951,23 @@ class TerminalAdministracionPresenter:
                 ok=False, mensaje_backend="Producto no encontrado."
             )
             return self.screen()
+        precio = float(precio_unitario)
+        if precio == 0.0 and self._compra_proveedor_id:
+            from app.core.services.conversion_compra import relacion_activa
+
+            rel = relacion_activa(
+                data,
+                producto_id=pid,
+                proveedor_id=self._compra_proveedor_id,
+            )
+            if rel is not None and getattr(rel, "ultimo_precio_unitario_compra", None) is not None:
+                precio = float(rel.ultimo_precio_unitario_compra)
         self._compra_lineas.append(
             CompraLineaVM(
                 producto_id=pid,
                 nombre=prod.nombre,
                 cantidad=float(cantidad),
-                precio_unitario=float(precio_unitario),
+                precio_unitario=precio,
             )
         )
         self._feedback = FeedbackVM(
@@ -964,6 +975,92 @@ class TerminalAdministracionPresenter:
         )
         self._seccion = "compras"
         return self.screen()
+
+    def añadir_linea_compra_por_busqueda(
+        self,
+        texto: str,
+        cantidad: float,
+        precio_unitario: float,
+    ) -> AdminScreenVM:
+        """Añade línea resolviendo producto por id, código exacto o nombre único."""
+        if not self._gate_admin():
+            return self.screen()
+        prod, err = self._resolver_producto_compra(texto)
+        if prod is None:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend=err or "Producto no encontrado."
+            )
+            self._seccion = "compras"
+            return self.screen()
+        return self.añadir_linea_compra(prod.id, cantidad, precio_unitario)
+
+    def update_linea_compra(
+        self,
+        index: int,
+        *,
+        cantidad: float | None = None,
+        precio_unitario: float | None = None,
+    ) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if index < 0 or index >= len(self._compra_lineas):
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Índice de línea inválido."
+            )
+            return self.screen()
+        actual = self._compra_lineas[index]
+        cant = float(actual.cantidad if cantidad is None else cantidad)
+        precio = float(
+            actual.precio_unitario if precio_unitario is None else precio_unitario
+        )
+        if cant <= 0 or precio < 0:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False,
+                mensaje_backend="Cantidad debe ser > 0 y precio unitario ≥ 0.",
+            )
+            return self.screen()
+        self._compra_lineas[index] = CompraLineaVM(
+            producto_id=actual.producto_id,
+            nombre=actual.nombre,
+            cantidad=cant,
+            precio_unitario=precio,
+        )
+        self._feedback = FeedbackVM(
+            ok=True, mensaje=f"Línea «{actual.nombre}» actualizada."
+        )
+        self._seccion = "compras"
+        return self.screen()
+
+    def _resolver_producto_compra(self, texto: str):
+        raw = (texto or "").strip()
+        if not raw:
+            return None, "Indique código o nombre de producto."
+        data = get_container().app_data_store.get()
+        activos = [p for p in (data.productos or []) if getattr(p, "activo", True)]
+        by_id = next((p for p in activos if p.id == raw), None)
+        if by_id is not None:
+            return by_id, None
+        key = raw.casefold()
+        by_cod = [
+            p
+            for p in activos
+            if (getattr(p, "codigo", None) or "").strip().casefold() == key
+        ]
+        if len(by_cod) == 1:
+            return by_cod[0], None
+        if len(by_cod) > 1:
+            return None, "Código ambiguo; use el selector."
+        matches = [
+            p
+            for p in activos
+            if key in (p.nombre or "").casefold()
+            or key in (getattr(p, "codigo", None) or "").casefold()
+        ]
+        if len(matches) == 1:
+            return matches[0], None
+        if not matches:
+            return None, "Sin coincidencias de producto."
+        return None, f"{len(matches)} coincidencias; afine código o nombre."
 
     def quitar_linea_compra(self, index: int) -> AdminScreenVM:
         if not self._gate_admin():
