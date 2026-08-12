@@ -1924,11 +1924,30 @@ class TerminalAdministracionPresenter:
                 productos = tuple(lista_p)
 
             lista_rec = []
+            puede_valorar = session_tiene_permiso(Permiso.CONSULTAR_COSTES)
             for r in receta_service.listar_recetas(solo_activas=False):
                 if self._seccion == "recetas" and q:
                     if q not in r.nombre.lower() and q not in r.id.lower():
                         continue
                 cat = r.categoria.value if hasattr(r.categoria, "value") else str(r.categoria)
+                teorico_fmt = ""
+                por_racion_fmt = ""
+                teorico_completo = True
+                if puede_valorar and self._seccion == "recetas":
+                    try:
+                        sim = receta_service.valorar_receta(r.id)
+                        if sim.ok:
+                            from app.core.services.data_service import get_repository as _get_repo
+
+                            repo_fmt = _get_repo()
+                            teorico_fmt = repo_fmt.formato_precio(sim.coste_total)
+                            if sim.coste_por_racion is not None:
+                                por_racion_fmt = repo_fmt.formato_precio(sim.coste_por_racion)
+                            teorico_completo = bool(sim.coste_completo)
+                        else:
+                            teorico_fmt = ""
+                    except Exception:  # noqa: BLE001
+                        teorico_fmt = ""
                 lista_rec.append(
                     RecetaAdminVM(
                         id=r.id,
@@ -1938,6 +1957,9 @@ class TerminalAdministracionPresenter:
                         n_ingredientes=len(r.ingredientes or []),
                         activo=bool(getattr(r, "activo", True)),
                         servicios=tuple(getattr(r, "servicios_disponibles", None) or ()),
+                        teorico_fmt=teorico_fmt,
+                        por_racion_fmt=por_racion_fmt,
+                        teorico_completo=teorico_completo,
                     )
                 )
             recetas = tuple(lista_rec)

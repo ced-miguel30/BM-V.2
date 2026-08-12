@@ -109,6 +109,10 @@ class RecetaAdminVM:
     n_ingredientes: int
     activo: bool
     servicios: tuple[str, ...] = ()
+    # Valoración teórica (strings; solo con CONSULTAR_COSTES). Sin campos «coste*».
+    teorico_fmt: str = ""
+    por_racion_fmt: str = ""
+    teorico_completo: bool = True
 
 
 @dataclass(frozen=True)

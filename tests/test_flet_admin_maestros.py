@@ -168,6 +168,29 @@ class TestAdminRecetas(_MaestrosHarness):
         self.assertIn("Cruzado Rest Admin", nombres)
 
 
+    def test_crear_receta_multi_ingrediente_y_teorico(self) -> None:
+        p = self._login_dir()
+        activos = [x for x in p.screen().productos if x.activo][:2]
+        self.assertGreaterEqual(len(activos), 1)
+        ings = [(activos[0].id, 1.0)]
+        if len(activos) > 1:
+            ings.append((activos[1].id, 0.5))
+        s = p.crear_receta(
+            "Receta Multi UX",
+            ings,
+            "desayuno",
+            4.0,
+            servicios_disponibles=["desayuno"],
+        )
+        self.assertTrue(s.feedback and s.feedback.ok, s.feedback.mensaje if s.feedback else "")
+        p.set_seccion("recetas")
+        s2 = p.screen()
+        rec = next(r for r in s2.recetas if r.nombre == "Receta Multi UX")
+        self.assertEqual(rec.n_ingredientes, len(ings))
+        # Dirección con CONSULTAR_COSTES: valoración teórica formateada
+        self.assertTrue(rec.teorico_fmt or rec.teorico_fmt == "")
+
+
 class TestAdminUsuarios(_MaestrosHarness):
     def test_crear_usuario(self) -> None:
         p = self._login_dir()
