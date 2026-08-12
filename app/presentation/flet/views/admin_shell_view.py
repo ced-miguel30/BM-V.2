@@ -526,21 +526,25 @@ def _pending_box(
     if not screen.pending:
         return ft.Container()
     return ft.Container(
-        bgcolor=ft.Colors.AMBER_50,
-        padding=12,
-        border_radius=8,
-        border=ft.Border.all(1, ft.Colors.AMBER_700),
+        bgcolor=ui_theme.WARNING_BG,
+        padding=ui_theme.SPACE_MD,
+        border_radius=ui_theme.RADIUS_MD,
+        border=ft.Border.all(1, ui_theme.WARNING),
         content=ft.Column(
-            spacing=8,
+            spacing=ui_theme.SPACE_SM,
             controls=[
-                ft.Text("Resumen del cambio", weight=ft.FontWeight.BOLD),
-                ft.Text(screen.pending.resumen),
+                ft.Text(
+                    "Resumen del cambio",
+                    weight=ft.FontWeight.BOLD,
+                    color=ui_theme.WARNING,
+                ),
+                ft.Text(screen.pending.resumen, size=13, color=ui_theme.DARK_TEXT),
                 ft.Row(
                     controls=[
-                        ft.FilledButton(
+                        ui.primary_button(
                             "Confirmar",
+                            on_confirmar,
                             disabled=screen.mutando,
-                            on_click=lambda _e: on_confirmar(),
                         ),
                         ft.TextButton(
                             "Cancelar",
@@ -1598,7 +1602,16 @@ def _receta_row(
 
 def _panel_usuarios(screen: AdminScreenVM, **cbs) -> ft.Control:
     if not screen.puede_gestionar_usuarios:
-        return ft.Text("Sin permiso GESTIONAR_USUARIOS.", color=ft.Colors.RED_700)
+        return ft.Column(
+            spacing=ui_theme.SPACE_MD,
+            controls=[
+                ui.page_header("Usuarios", "Gestión de acceso"),
+                ui.alert_banner(
+                    "Sin permiso GESTIONAR_USUARIOS.",
+                    severity="error",
+                ),
+            ],
+        )
 
     on_filtro = cbs["on_filtro"]
     on_crear = cbs["on_crear_usuario"]
@@ -1621,7 +1634,7 @@ def _panel_usuarios(screen: AdminScreenVM, **cbs) -> ft.Control:
     def _crear(_e=None) -> None:
         on_crear(nombre.value or "", rol.value or "", login.value or "", password.value or "")
 
-    lista = [
+    lista: list[ft.Control] = [
         _usuario_row(
             u,
             screen,
@@ -1633,11 +1646,24 @@ def _panel_usuarios(screen: AdminScreenVM, **cbs) -> ft.Control:
         )
         for u in screen.usuarios
     ]
+    if not lista:
+        lista = [
+            ui.empty_state(
+                "Sin usuarios",
+                "Cree el primero o ajuste el filtro.",
+            )
+        ]
 
     return ft.Column(
         spacing=ui_theme.SPACE_MD,
         controls=[
-            ui.page_header("Usuarios", "Alta, roles y estado de acceso"),
+            ui.page_header(
+                "Usuarios",
+                "Alta, roles y estado de acceso",
+                actions=[
+                    ui.status_chip(f"{len(screen.usuarios)} en listado", tone="info"),
+                ],
+            ),
             ui.card_surface(
                 ft.Row(controls=[nombre, login, password, rol]),
                 ui.primary_button(
@@ -1649,7 +1675,7 @@ def _panel_usuarios(screen: AdminScreenVM, **cbs) -> ft.Control:
                 title="Nuevo usuario",
             ),
             _filtro_row(screen, on_filtro),
-            *lista,
+            ui.card_surface(*lista, title="Listado"),
         ],
     )
 
@@ -1675,20 +1701,20 @@ def _usuario_row(
     )
     pwd = ft.TextField(label="Nueva contraseña", password=True, width=160, disabled=disabled)
     acciones: list[ft.Control] = [
-        ft.OutlinedButton(
+        ui.secondary_button(
             "Renombrar",
+            lambda uid=u.id, tf=rename: on_editar(uid, tf.value or ""),
             disabled=disabled,
-            on_click=lambda _e, uid=u.id, tf=rename: on_editar(uid, tf.value or ""),
         ),
-        ft.OutlinedButton(
+        ui.secondary_button(
             "Rol",
+            lambda uid=u.id, dd=rol_dd: on_rol(uid, dd.value or ""),
             disabled=disabled,
-            on_click=lambda _e, uid=u.id, dd=rol_dd: on_rol(uid, dd.value or ""),
         ),
-        ft.OutlinedButton(
+        ui.secondary_button(
             "Password",
+            lambda uid=u.id, tf=pwd: on_pwd(uid, tf.value or ""),
             disabled=disabled,
-            on_click=lambda _e, uid=u.id, tf=pwd: on_pwd(uid, tf.value or ""),
         ),
     ]
     if u.activo:
@@ -1696,7 +1722,7 @@ def _usuario_row(
             ft.TextButton(
                 "Desactivar",
                 disabled=disabled,
-                style=ft.ButtonStyle(color=ft.Colors.RED_700),
+                style=ft.ButtonStyle(color=ui_theme.DANGER),
                 on_click=lambda _e, uid=u.id: on_des(uid),
             )
         )
@@ -1709,17 +1735,43 @@ def _usuario_row(
             )
         )
     return ft.Container(
-        bgcolor=ft.Colors.WHITE if u.activo else ft.Colors.BLUE_GREY_50,
-        padding=12,
-        border_radius=8,
-        border=ft.Border.all(1, ft.Colors.BLUE_GREY_300),
+        bgcolor=ui_theme.SURFACE_CARD if u.activo else ui_theme.LIGHT_GRAY,
+        padding=ui_theme.SPACE_MD,
+        border_radius=ui_theme.RADIUS_MD,
+        border=ft.Border.all(1, ui_theme.BORDER),
         content=ft.Column(
-            spacing=6,
+            spacing=ui_theme.SPACE_SM,
             tight=True,
             controls=[
-                ft.Text(f"{u.nombre} · {u.login} · {u.rol}", weight=ft.FontWeight.BOLD),
+                ft.Row(
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    controls=[
+                        ft.Column(
+                            spacing=2,
+                            tight=True,
+                            expand=True,
+                            controls=[
+                                ft.Text(
+                                    u.nombre,
+                                    weight=ft.FontWeight.BOLD,
+                                    size=15,
+                                    color=ui_theme.DARK_TEXT,
+                                ),
+                                ft.Text(
+                                    f"{u.login} · {u.rol}",
+                                    size=12,
+                                    color=ui_theme.MID_GRAY,
+                                ),
+                            ],
+                        ),
+                        ui.status_chip(
+                            "Activo" if u.activo else "Inactivo",
+                            tone="ok" if u.activo else "neutral",
+                        ),
+                    ],
+                ),
                 ft.Row(controls=[rename, rol_dd, pwd]),
-                ft.Row(controls=acciones),
+                ft.Row(wrap=True, controls=acciones),
             ],
         ),
     )
@@ -2506,6 +2558,14 @@ def _panel_inventario(screen: AdminScreenVM, **cbs) -> ft.Control:
     )
 
 
+def _fmt_bytes(n: int) -> str:
+    if n < 1024:
+        return f"{n} B"
+    if n < 1024 * 1024:
+        return f"{n / 1024:.1f} KB"
+    return f"{n / (1024 * 1024):.1f} MB"
+
+
 def _panel_backup(screen: AdminScreenVM, **cbs) -> ft.Control:
     on_gen = cbs["on_generar_backup"]
     on_insp = cbs["on_inspeccionar_backup"]
@@ -2515,22 +2575,18 @@ def _panel_backup(screen: AdminScreenVM, **cbs) -> ft.Control:
         hint_text="Escriba RESTAURAR",
         width=220,
     )
-    controls: list[ft.Control] = [
-        ft.Text("Backup", size=18, weight=ft.FontWeight.BOLD),
-        ft.FilledButton(
-            "Generar backup ZIP",
-            icon=ft.Icons.BACKUP,
-            disabled=screen.mutando or not screen.puede_exportar_backup,
-            on_click=lambda _e: on_gen(),
-        ),
-    ]
-    if screen.inspeccion_backup:
-        controls.append(ft.Text(screen.inspeccion_backup, size=12))
+
+    lista: list[ft.Control] = []
     if not screen.backups:
-        controls.append(ft.Text("No hay backups en la carpeta local.", color=ft.Colors.OUTLINE))
+        lista.append(
+            ui.empty_state(
+                "Sin backups locales",
+                "Genere un ZIP para crear el primero.",
+            )
+        )
     else:
         for b in screen.backups:
-            controls.append(
+            lista.append(
                 _backup_row(
                     b,
                     screen=screen,
@@ -2539,17 +2595,41 @@ def _panel_backup(screen: AdminScreenVM, **cbs) -> ft.Control:
                     on_rest=on_rest,
                 )
             )
+
+    restore_help: ft.Control
     if screen.puede_restaurar_backup:
-        controls.append(confirm)
+        restore_help = confirm
     else:
-        controls.append(
-            ft.Text(
-                "Restaurar requiere Dirección (RESTAURAR_BACKUP).",
-                size=12,
-                color=ft.Colors.OUTLINE,
-            )
+        restore_help = ui.alert_banner(
+            "Restaurar requiere permiso Dirección (RESTAURAR_BACKUP).",
+            severity="warning",
         )
-    return ft.Column(spacing=12, controls=controls)
+
+    body: list[ft.Control] = [
+        ui.page_header(
+            "Backup",
+            "ZIP local verificable · inspección y restauración controlada",
+            actions=[
+                ui.status_chip(f"{len(screen.backups)} archivo(s)", tone="info"),
+                ui.primary_button(
+                    "Generar backup ZIP",
+                    on_gen,
+                    icon=ft.Icons.BACKUP,
+                    disabled=screen.mutando or not screen.puede_exportar_backup,
+                ),
+            ],
+        ),
+    ]
+    if screen.inspeccion_backup:
+        body.append(ui.alert_banner(screen.inspeccion_backup, severity="info"))
+    body.append(ui.card_surface(*lista, title="Archivos"))
+    body.append(
+        ui.card_surface(
+            restore_help,
+            title="Restauración",
+        )
+    )
+    return ft.Column(spacing=ui_theme.SPACE_MD, controls=body)
 
 
 def _backup_row(
@@ -2564,15 +2644,16 @@ def _backup_row(
     if screen.puede_restaurar_backup:
         acciones.extend(
             [
-                ft.OutlinedButton(
+                ui.secondary_button(
                     "Inspeccionar",
+                    lambda ruta=b.ruta: on_insp(ruta),
+                    icon=ft.Icons.SEARCH,
                     disabled=screen.mutando,
-                    on_click=lambda _e, ruta=b.ruta: on_insp(ruta),
                 ),
                 ft.TextButton(
                     "Restaurar…",
                     disabled=screen.mutando or screen.pending is not None,
-                    style=ft.ButtonStyle(color=ft.Colors.RED_700),
+                    style=ft.ButtonStyle(color=ui_theme.DANGER),
                     on_click=lambda _e, ruta=b.ruta, tf=confirm_tf: on_rest(
                         ruta, tf.value or ""
                     ),
@@ -2580,21 +2661,31 @@ def _backup_row(
             ]
         )
     return ft.Container(
-        bgcolor=ft.Colors.WHITE,
-        padding=12,
-        border_radius=8,
-        border=ft.Border.all(1, ft.Colors.BLUE_GREY_300),
-        content=ft.Column(
-            spacing=4,
-            tight=True,
+        padding=ui_theme.SPACE_MD,
+        border=ft.Border(bottom=ft.BorderSide(1, ui_theme.BORDER)),
+        content=ft.Row(
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
-                ft.Text(b.nombre, weight=ft.FontWeight.BOLD),
-                ft.Text(
-                    f"{b.tamano_bytes} bytes · {b.modificado}",
-                    size=12,
-                    color=ft.Colors.ON_SURFACE_VARIANT,
+                ft.Column(
+                    spacing=2,
+                    tight=True,
+                    expand=True,
+                    controls=[
+                        ft.Text(
+                            b.nombre,
+                            weight=ft.FontWeight.W_600,
+                            size=13,
+                            color=ui_theme.DARK_TEXT,
+                        ),
+                        ft.Text(
+                            f"{_fmt_bytes(b.tamano_bytes)} · {b.modificado}",
+                            size=12,
+                            color=ui_theme.MID_GRAY,
+                        ),
+                    ],
                 ),
-                ft.Row(controls=acciones) if acciones else ft.Container(),
+                ft.Row(spacing=ui_theme.SPACE_SM, tight=True, controls=acciones),
             ],
         ),
     )
@@ -2719,37 +2810,61 @@ def _panel_actividad(screen: AdminScreenVM) -> ft.Control:
     for a in screen.actividades:
         filas.append(
             ft.Container(
-                padding=8,
-                border=ft.Border(bottom=ft.BorderSide(1, ft.Colors.OUTLINE_VARIANT)),
-                content=ft.Column(
-                    spacing=2,
+                padding=ft.Padding.symmetric(horizontal=8, vertical=8),
+                border=ft.Border(bottom=ft.BorderSide(1, ui_theme.BORDER)),
+                content=ft.Row(
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    vertical_alignment=ft.CrossAxisAlignment.START,
                     controls=[
-                        ft.Text(
-                            f"{a.fecha} · {a.usuario} · {a.accion}",
-                            size=13,
-                            weight=ft.FontWeight.W_600,
+                        ft.Column(
+                            spacing=2,
+                            tight=True,
+                            expand=True,
+                            controls=[
+                                ft.Text(
+                                    a.accion,
+                                    size=13,
+                                    weight=ft.FontWeight.W_600,
+                                    color=ui_theme.DARK_TEXT,
+                                ),
+                                ft.Text(
+                                    a.detalle or "—",
+                                    size=12,
+                                    color=ui_theme.MID_GRAY,
+                                ),
+                            ],
                         ),
-                        ft.Text(
-                            a.detalle or "—",
-                            size=12,
-                            color=ft.Colors.ON_SURFACE_VARIANT,
+                        ft.Column(
+                            spacing=2,
+                            tight=True,
+                            horizontal_alignment=ft.CrossAxisAlignment.END,
+                            controls=[
+                                ui.status_chip(a.usuario or "—", tone="neutral"),
+                                ft.Text(a.fecha, size=11, color=ui_theme.MID_GRAY),
+                            ],
                         ),
                     ],
                 ),
             )
         )
     if not filas:
-        filas = [ft.Text("Sin actividad reciente.", color=ft.Colors.OUTLINE)]
+        filas = [
+            ui.empty_state(
+                "Sin actividad reciente",
+                "Las mutaciones administrativas aparecerán aquí.",
+            )
+        ]
     return ft.Column(
-        spacing=10,
+        spacing=ui_theme.SPACE_MD,
         controls=[
-            ft.Text("Actividad", size=18, weight=ft.FontWeight.BOLD),
-            ft.Text(
-                "Últimas 50 entradas (solo lectura).",
-                size=13,
-                color=ft.Colors.ON_SURFACE_VARIANT,
+            ui.page_header(
+                "Actividad",
+                "Últimas 50 entradas (solo lectura)",
+                actions=[
+                    ui.status_chip(f"{len(screen.actividades)} eventos", tone="info"),
+                ],
             ),
-            *filas,
+            ui.card_surface(*filas, title="Registro"),
         ],
     )
 
@@ -2806,25 +2921,37 @@ def _panel_servidor(screen: AdminScreenVM, **cbs) -> ft.Control:
 
 def _panel_zona_peligro(screen: AdminScreenVM, **cbs) -> ft.Control:
     if not screen.puede_zona_peligro:
-        return ft.Text(
-            "Solo Dirección puede ver la zona de peligro.",
-            color=ft.Colors.RED_700,
+        return ft.Column(
+            spacing=ui_theme.SPACE_MD,
+            controls=[
+                ui.page_header("Zona de peligro", "Solo Dirección"),
+                ui.alert_banner(
+                    "Solo Dirección puede ver la zona de peligro.",
+                    severity="error",
+                ),
+            ],
         )
     on_ejec = cbs["on_ejecutar_destructiva"]
     controls: list[ft.Control] = [
-        ft.Text("Zona de peligro", size=18, weight=ft.FontWeight.BOLD),
-        ft.Text(
-            "Acciones que sustituyen datos operativos. Confirmación reforzada obligatoria.",
-            size=13,
-            color=ft.Colors.RED_700,
+        ui.page_header(
+            "Zona de peligro",
+            "Acciones que sustituyen datos operativos",
+        ),
+        ui.alert_banner(
+            "Confirmación reforzada obligatoria. No hay deshacer automático.",
+            severity="error",
         ),
     ]
     if not screen.ops_destructivas:
         controls.append(
-            ft.Text("No hay operaciones destructivas expuestas.", color=ft.Colors.OUTLINE)
+            ui.empty_state(
+                "Sin operaciones destructivas",
+                "No hay acciones expuestas en esta instancia.",
+            )
         )
-        return ft.Column(spacing=12, controls=controls)
+        return ft.Column(spacing=ui_theme.SPACE_MD, controls=controls)
 
+    ops: list[ft.Control] = []
     for op in screen.ops_destructivas:
         frase_tf = ft.TextField(
             label=f"Escriba exactamente {op.frase}",
@@ -2834,22 +2961,29 @@ def _panel_zona_peligro(screen: AdminScreenVM, **cbs) -> ft.Control:
             label="Entiendo que se sustituirán todos los datos operativos",
             value=False,
         )
-        controls.append(
+        ops.append(
             ft.Container(
-                bgcolor=ft.Colors.RED_50,
-                padding=14,
-                border_radius=8,
-                border=ft.Border.all(1, ft.Colors.RED_300),
+                bgcolor=ui_theme.DANGER_BG,
+                padding=ui_theme.SPACE_MD,
+                border_radius=ui_theme.RADIUS_MD,
+                border=ft.Border.all(1, ui_theme.DANGER),
                 content=ft.Column(
-                    spacing=8,
+                    spacing=ui_theme.SPACE_SM,
                     controls=[
-                        ft.Text(op.etiqueta, weight=ft.FontWeight.BOLD),
-                        ft.Text(op.nota or "", size=12, color=ft.Colors.ON_SURFACE_VARIANT),
+                        ft.Text(
+                            op.etiqueta,
+                            weight=ft.FontWeight.BOLD,
+                            color=ui_theme.DANGER,
+                        ),
+                        ft.Text(op.nota or "", size=12, color=ui_theme.MID_GRAY),
                         chk,
                         frase_tf,
                         ft.FilledButton(
                             "Ejecutar",
-                            style=ft.ButtonStyle(bgcolor=ft.Colors.RED_700),
+                            style=ft.ButtonStyle(
+                                bgcolor=ui_theme.DANGER,
+                                color=ui_theme.WHITE,
+                            ),
                             disabled=screen.mutando,
                             on_click=lambda _e, oid=op.id, tf=frase_tf, c=chk: on_ejec(
                                 oid, tf.value or "", bool(c.value)
@@ -2859,4 +2993,5 @@ def _panel_zona_peligro(screen: AdminScreenVM, **cbs) -> ft.Control:
                 ),
             )
         )
-    return ft.Column(spacing=12, controls=controls)
+    controls.append(ui.card_surface(*ops, title="Operaciones"))
+    return ft.Column(spacing=ui_theme.SPACE_MD, controls=controls)
