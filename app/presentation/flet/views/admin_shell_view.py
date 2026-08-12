@@ -619,13 +619,13 @@ def _panel_analisis(screen: AdminScreenVM, **cbs) -> ft.Control:
     panel: AnalisisPanelVM | None = screen.analisis
     if panel is None or not panel.puede_consultar:
         return ft.Column(
-            spacing=8,
+            spacing=ui_theme.SPACE_MD,
             controls=[
-                ft.Text("Análisis", size=18, weight=ft.FontWeight.BOLD),
-                ft.Text(
+                ui.page_header("Análisis", "Costes, consumo y merma"),
+                ui.alert_banner(
                     (panel.aviso if panel else None)
                     or "Sin permiso para consultar costes.",
-                    color=ft.Colors.RED_700,
+                    severity="error",
                 ),
             ],
         )
@@ -640,52 +640,53 @@ def _panel_analisis(screen: AdminScreenVM, **cbs) -> ft.Control:
 
     desde_tf = ft.TextField(label="Desde (AAAA-MM-DD)", value=panel.desde, width=150)
     hasta_tf = ft.TextField(label="Hasta (AAAA-MM-DD)", value=panel.hasta, width=150)
+
     controls: list[ft.Control] = [
-        ft.Text("Análisis", size=18, weight=ft.FontWeight.BOLD),
-        ft.Text(
-            "Costes, consumo y merma (sin BI). Gráficos nativos Flet.",
-            size=13,
-            color=ft.Colors.ON_SURFACE_VARIANT,
-        ),
-        _chip_row(
-            hub_labels,
-            ANALISIS_HUB_LABEL.get(hub_id, "Costes"),
-            lambda lab: (cbs.get("on_analisis_hub") or (lambda _x: None))(
-                next(h for h, l in ANALISIS_HUB_LABEL.items() if l == lab)
-            ),
-        ),
-        ft.Row(
-            spacing=8,
-            controls=[
-                desde_tf,
-                hasta_tf,
-                ft.FilledButton(
-                    "Aplicar periodo",
-                    on_click=lambda _e: (cbs.get("on_analisis_periodo") or (lambda a, b: None))(
-                        desde_tf.value or "", hasta_tf.value or ""
-                    ),
-                ),
+        ui.page_header(
+            "Análisis",
+            "Costes, consumo y merma · gráficos nativos (sin BI)",
+            actions=[
+                ui.status_chip(ANALISIS_HUB_LABEL.get(hub_id, hub_id), tone="info"),
+                ui.status_chip(panel.pestana, tone="neutral"),
             ],
+        ),
+        ui.card_surface(
+            _chip_row(
+                hub_labels,
+                ANALISIS_HUB_LABEL.get(hub_id, "Costes"),
+                lambda lab: (cbs.get("on_analisis_hub") or (lambda _x: None))(
+                    next(h for h, l in ANALISIS_HUB_LABEL.items() if l == lab)
+                ),
+            ),
+            ft.Row(
+                spacing=ui_theme.SPACE_SM,
+                wrap=True,
+                controls=[
+                    desde_tf,
+                    hasta_tf,
+                    ui.primary_button(
+                        "Aplicar periodo",
+                        lambda: (cbs.get("on_analisis_periodo") or (lambda a, b: None))(
+                            desde_tf.value or "", hasta_tf.value or ""
+                        ),
+                        icon=ft.Icons.DATE_RANGE,
+                    ),
+                ],
+            ),
+            title="Periodo y hub",
         ),
     ]
 
     if panel.aviso:
-        controls.append(
-            ft.Container(
-                bgcolor=ft.Colors.AMBER_100,
-                padding=10,
-                border_radius=8,
-                content=ft.Text(panel.aviso, size=13),
-            )
-        )
+        controls.append(ui.alert_banner(panel.aviso, severity="warning"))
 
-    controls.append(
+    filters: list[ft.Control] = [
         _chip_row(
             list(pestanas),
             panel.pestana,
             cbs.get("on_analisis_pestana"),
         )
-    )
+    ]
 
     if hub_id == "consumo":
         busq = ft.TextField(
@@ -705,22 +706,22 @@ def _panel_analisis(screen: AdminScreenVM, **cbs) -> ft.Control:
                 getattr(e.control, "value", None) or "Todos"
             ),
         )
-        controls.append(
+        filters.append(
             ft.Row(
                 controls=[
                     busq,
-                    ft.FilledButton(
+                    ui.secondary_button(
                         "Filtrar",
-                        on_click=lambda _e: (cbs.get("on_analisis_busqueda") or (lambda _t: None))(
+                        lambda: (cbs.get("on_analisis_busqueda") or (lambda _t: None))(
                             busq.value or ""
                         ),
+                        icon=ft.Icons.SEARCH,
                     ),
                     tipo_dd,
                 ]
             )
         )
 
-    # Subtabs for costes/consumo drilldowns
     subtabs: list[str] = []
     if hub_id == "costes" and panel.pestana == "Desayuno":
         subtabs = ["Recetas", "Extras", "Bebidas en desayuno"]
@@ -735,7 +736,7 @@ def _panel_analisis(screen: AdminScreenVM, **cbs) -> ft.Control:
     elif hub_id == "consumo" and panel.pestana == "Bebidas":
         subtabs = ["Todas", "Desayuno", "Comida", "Cena", "Registro independiente"]
     if subtabs:
-        controls.append(
+        filters.append(
             _chip_row(
                 subtabs,
                 panel.subtab if panel.subtab in subtabs else subtabs[0],
@@ -743,76 +744,94 @@ def _panel_analisis(screen: AdminScreenVM, **cbs) -> ft.Control:
             )
         )
 
-    # Metrics
+    controls.append(ui.card_surface(*filters, title="Vista"))
+
     if panel.metrics:
         controls.append(
             ft.Row(
-                spacing=8,
+                spacing=ui_theme.SPACE_SM,
                 wrap=True,
                 controls=[
-                    ft.Container(
-                        width=180,
-                        padding=10,
-                        bgcolor=ft.Colors.BLUE_GREY_50,
-                        border_radius=8,
-                        content=ft.Column(
-                            spacing=2,
-                            tight=True,
-                            controls=[
-                                ft.Text(m.etiqueta, size=11, color=ft.Colors.OUTLINE),
-                                ft.Text(m.valor, size=16, weight=ft.FontWeight.BOLD),
-                                ft.Text(m.detalle, size=11, color=ft.Colors.ON_SURFACE_VARIANT),
-                            ],
-                        ),
-                    )
-                    for m in panel.metrics
+                    ui.metric_card(m.etiqueta, m.valor, m.detalle) for m in panel.metrics
                 ],
             )
         )
 
+    chart_blocks: list[ft.Control] = []
     for titulo, items in panel.chart_barras:
-        controls.append(build_barras_horizontales(items, titulo=titulo))
-
+        chart_blocks.append(build_barras_horizontales(items, titulo=titulo))
     for ch in panel.chart_lineas:
-        controls.append(build_lineas_series(ch))
+        chart_blocks.append(build_lineas_series(ch))
+    if chart_blocks:
+        controls.append(ui.card_surface(*chart_blocks, title="Gráficos"))
+
+    if not panel.rankings and not panel.metrics and not chart_blocks:
+        controls.append(
+            ui.empty_state(
+                "Sin datos en el periodo",
+                "Ajuste fechas o cambie de pestaña para ver métricas y rankings.",
+            )
+        )
 
     for block in panel.rankings:
-        controls.append(ft.Text(block.titulo, size=14, weight=ft.FontWeight.BOLD))
         if not block.filas:
-            controls.append(
-                ft.Text("Sin filas.", italic=True, color=ft.Colors.OUTLINE, size=12)
-            )
+            ranking_body: list[ft.Control] = [
+                ui.empty_state("Sin filas", "No hay elementos en este ranking.")
+            ]
         else:
+            ranking_body = []
             for row in block.filas:
-                line = f"{row.nombre} · {row.coste_fmt}"
+                detalle_parts = [row.coste_fmt]
                 if row.cantidad_fmt:
-                    line += f" · {row.cantidad_fmt}"
+                    detalle_parts.append(row.cantidad_fmt)
                 if row.usos != "":
-                    line += f" · usos {row.usos}"
+                    detalle_parts.append(f"usos {row.usos}")
                 if row.tipo:
-                    line += f" · {row.tipo}"
-                controls.append(ft.Text(line, size=12))
+                    detalle_parts.append(row.tipo)
+                ranking_body.append(
+                    ft.Container(
+                        padding=ft.Padding.symmetric(horizontal=8, vertical=6),
+                        border=ft.Border(
+                            bottom=ft.BorderSide(1, ui_theme.BORDER)
+                        ),
+                        content=ft.Row(
+                            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                            controls=[
+                                ft.Text(
+                                    row.nombre,
+                                    size=13,
+                                    weight=ft.FontWeight.W_600,
+                                    color=ui_theme.DARK_TEXT,
+                                    expand=True,
+                                ),
+                                ft.Text(
+                                    " · ".join(detalle_parts),
+                                    size=12,
+                                    color=ui_theme.MID_GRAY,
+                                ),
+                            ],
+                        ),
+                    )
+                )
+        controls.append(ui.card_surface(*ranking_body, title=block.titulo))
 
     if hub_id == "costes" and panel.pestana == "Resumen":
-        controls.append(ft.Divider())
-        controls.append(
-            ft.Text("Comparación Periodo A / B", size=15, weight=ft.FontWeight.BOLD)
-        )
         a_d = ft.TextField(label="A desde", value=panel.cmp_a_desde, width=130)
         a_h = ft.TextField(label="A hasta", value=panel.cmp_a_hasta, width=130)
         b_d = ft.TextField(label="B desde", value=panel.cmp_b_desde, width=130)
         b_h = ft.TextField(label="B hasta", value=panel.cmp_b_hasta, width=130)
-        controls.append(
+        cmp_controls: list[ft.Control] = [
             ft.Row(
                 wrap=True,
+                spacing=ui_theme.SPACE_SM,
                 controls=[
                     a_d,
                     a_h,
                     b_d,
                     b_h,
-                    ft.FilledButton(
+                    ui.primary_button(
                         "Comparar",
-                        on_click=lambda _e: (
+                        lambda: (
                             cbs.get("on_analisis_comparacion") or (lambda *a: None)
                         )(
                             a_d.value or "",
@@ -820,47 +839,40 @@ def _panel_analisis(screen: AdminScreenVM, **cbs) -> ft.Control:
                             b_d.value or "",
                             b_h.value or "",
                         ),
+                        icon=ft.Icons.COMPARE_ARROWS,
                     ),
-                    ft.OutlinedButton(
+                    ui.secondary_button(
                         "Exportar Excel",
-                        on_click=lambda _e: (cbs.get("on_analisis_export") or (lambda: None))(),
+                        lambda: (cbs.get("on_analisis_export") or (lambda: None))(),
+                        icon=ft.Icons.DOWNLOAD,
                     ),
                 ],
             )
-        )
+        ]
         if panel.cmp_metrics:
-            controls.append(
+            cmp_controls.append(
                 ft.Row(
                     wrap=True,
-                    spacing=8,
+                    spacing=ui_theme.SPACE_SM,
                     controls=[
-                        ft.Container(
-                            width=150,
-                            padding=8,
-                            bgcolor=ft.Colors.GREY_100,
-                            border_radius=6,
-                            content=ft.Column(
-                                tight=True,
-                                spacing=2,
-                                controls=[
-                                    ft.Text(m.etiqueta, size=11),
-                                    ft.Text(m.valor, weight=ft.FontWeight.BOLD),
-                                    ft.Text(m.detalle, size=10),
-                                ],
-                            ),
-                        )
+                        ui.metric_card(m.etiqueta, m.valor, m.detalle, width=160)
                         for m in panel.cmp_metrics
                     ],
                 )
             )
         if panel.cmp_barras:
-            controls.append(
+            cmp_controls.append(
                 build_barras_agrupadas(panel.cmp_barras, titulo="Comparación A/B")
             )
         if panel.export_mensaje:
-            controls.append(ft.Text(panel.export_mensaje, size=12, color=ft.Colors.GREEN_800))
+            cmp_controls.append(
+                ui.alert_banner(panel.export_mensaje, severity="success")
+            )
+        controls.append(
+            ui.card_surface(*cmp_controls, title="Comparación Periodo A / B")
+        )
 
-    return ft.Column(spacing=12, controls=controls)
+    return ft.Column(spacing=ui_theme.SPACE_MD, controls=controls)
 
 
 def _panel_inicio(screen: AdminScreenVM, **cbs) -> ft.Control:
@@ -1724,11 +1736,11 @@ def _panel_responsables(screen: AdminScreenVM, **cbs) -> ft.Control:
     lista: list[ft.Control] = []
     if not screen.responsables:
         lista.append(
-            ft.Text(
-                "No hay responsables con ese filtro."
+            ui.empty_state(
+                "Sin responsables",
+                "No hay coincidencias con el filtro."
                 if screen.filtro
-                else "No hay responsables. Cree el primero.",
-                color=ft.Colors.ON_SURFACE,
+                else "Cree el primero para registrar mermas.",
             )
         )
     else:
@@ -1743,38 +1755,39 @@ def _panel_responsables(screen: AdminScreenVM, **cbs) -> ft.Control:
                 )
             )
 
-    motivos_info = ft.ExpansionTile(
-        title=ft.Text("Motivos de merma (catálogo fijo)"),
-        subtitle=ft.Text("No configurables — enum de dominio"),
-        controls=[
-            ft.Text(" · ".join(screen.motivos_fijos), size=12, color=ft.Colors.OUTLINE)
-        ],
-    )
-
     return ft.Column(
-        spacing=12,
+        spacing=ui_theme.SPACE_MD,
         controls=[
-            ft.Text("Responsables de merma", size=18, weight=ft.FontWeight.BOLD),
-            ft.Row(
-                controls=[
-                    crear_tf,
-                    ft.FilledButton(
-                        "Añadir",
-                        icon=ft.Icons.PERSON_ADD,
-                        disabled=screen.mutando,
-                        on_click=lambda _e: on_proponer_crear(crear_tf.value or ""),
+            ui.page_header(
+                "Responsables de merma",
+                "Quién responde por mermas · motivos de catálogo fijo",
+                actions=[
+                    ui.status_chip(
+                        f"{len(screen.responsables)} en listado",
+                        tone="info",
                     ),
-                ]
+                ],
+            ),
+            ui.card_surface(
+                ft.Row(
+                    controls=[
+                        crear_tf,
+                        ui.primary_button(
+                            "Añadir",
+                            lambda: on_proponer_crear(crear_tf.value or ""),
+                            icon=ft.Icons.PERSON_ADD,
+                            disabled=screen.mutando,
+                        ),
+                    ]
+                ),
+                title="Alta",
             ),
             _filtro_row(screen, on_filtro),
-            ft.Text(
-                f"{len(screen.responsables)} en listado"
-                + (f" (filtro: {screen.filtro})" if screen.filtro else ""),
-                size=12,
-                color=ft.Colors.OUTLINE,
+            ui.card_surface(*lista, title="Listado"),
+            ui.card_surface(
+                ui_theme.text_help(" · ".join(screen.motivos_fijos) or "—"),
+                title="Motivos de merma (fijos)",
             ),
-            *lista,
-            motivos_info,
         ],
     )
 
@@ -1793,14 +1806,11 @@ def _responsable_row(
         width=240,
         disabled=disabled,
     )
-    estado = "Activo" if r.activo else "Inactivo"
-    chip_bg = ft.Colors.TEAL_700 if r.activo else ft.Colors.BLUE_GREY_600
-    row_bg = ft.Colors.WHITE if r.activo else ft.Colors.BLUE_GREY_50
     acciones: list[ft.Control] = [
-        ft.OutlinedButton(
+        ui.secondary_button(
             "Renombrar",
+            lambda rid=r.id, tf=rename_tf: on_renombrar(rid, tf.value or ""),
             disabled=disabled,
-            on_click=lambda _e, rid=r.id, tf=rename_tf: on_renombrar(rid, tf.value or ""),
         ),
     ]
     if r.activo:
@@ -1808,7 +1818,7 @@ def _responsable_row(
             ft.TextButton(
                 "Desactivar",
                 disabled=disabled,
-                style=ft.ButtonStyle(color=ft.Colors.RED_700),
+                style=ft.ButtonStyle(color=ui_theme.DANGER),
                 on_click=lambda _e, rid=r.id: on_desactivar(rid),
             )
         )
@@ -1821,32 +1831,30 @@ def _responsable_row(
             )
         )
     return ft.Container(
-        bgcolor=row_bg,
-        padding=14,
-        border_radius=8,
-        border=ft.Border.all(1, ft.Colors.BLUE_GREY_300),
+        bgcolor=ui_theme.SURFACE_CARD if r.activo else ui_theme.LIGHT_GRAY,
+        padding=ui_theme.SPACE_MD,
+        border_radius=ui_theme.RADIUS_MD,
+        border=ft.Border.all(1, ui_theme.BORDER),
         content=ft.Column(
-            spacing=8,
+            spacing=ui_theme.SPACE_SM,
             tight=True,
             controls=[
                 ft.Row(
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                     controls=[
-                        ft.Text(r.nombre, size=16, weight=ft.FontWeight.BOLD),
-                        ft.Container(
-                            bgcolor=chip_bg,
-                            padding=ft.Padding.symmetric(horizontal=10, vertical=4),
-                            border_radius=12,
-                            content=ft.Text(
-                                estado,
-                                color=ft.Colors.WHITE,
-                                size=12,
-                                weight=ft.FontWeight.W_600,
-                            ),
+                        ft.Text(
+                            r.nombre,
+                            size=15,
+                            weight=ft.FontWeight.BOLD,
+                            color=ui_theme.DARK_TEXT,
+                        ),
+                        ui.status_chip(
+                            "Activo" if r.activo else "Inactivo",
+                            tone="ok" if r.activo else "neutral",
                         ),
                     ],
                 ),
-                ft.Text(f"Id: {r.id}", size=12, color=ft.Colors.ON_SURFACE_VARIANT),
+                ft.Text(f"Id: {r.id}", size=12, color=ui_theme.MID_GRAY),
                 rename_tf,
                 ft.Row(controls=acciones),
             ],
@@ -1884,22 +1892,41 @@ def _panel_proveedores(screen: AdminScreenVM, **cbs) -> ft.Control:
         for p in screen.proveedores
     ]
     if not lista:
-        lista = [ft.Text("No hay proveedores.", color=ft.Colors.OUTLINE)]
+        lista = [
+            ui.empty_state(
+                "Sin proveedores",
+                "Cree la ficha fiscal del primero.",
+            )
+        ]
 
     return ft.Column(
-        spacing=12,
+        spacing=ui_theme.SPACE_MD,
         controls=[
-            ui.page_header("Proveedores", "Ficha fiscal y estado"),
-            ft.Row(controls=[nombre, codigo]),
-            ft.Row(
-                controls=[
-                    comercial,
-                    nif,
-                    ft.FilledButton("Crear", disabled=screen.mutando, on_click=_crear),
-                ]
+            ui.page_header(
+                "Proveedores",
+                "Ficha fiscal y estado",
+                actions=[
+                    ui.status_chip(f"{len(screen.proveedores)} en listado", tone="info"),
+                ],
+            ),
+            ui.card_surface(
+                ft.Row(controls=[nombre, codigo]),
+                ft.Row(
+                    controls=[
+                        comercial,
+                        nif,
+                        ui.primary_button(
+                            "Crear",
+                            _crear,
+                            icon=ft.Icons.ADD_BUSINESS,
+                            disabled=screen.mutando,
+                        ),
+                    ]
+                ),
+                title="Alta",
             ),
             _filtro_row(screen, on_filtro),
-            *lista,
+            ui.card_surface(*lista, title="Listado"),
         ],
     )
 
@@ -1924,15 +1951,13 @@ def _proveedor_row(
         width=120,
         disabled=disabled,
     )
-    estado = "Activo" if p.activo else "Inactivo"
-    chip_bg = ft.Colors.TEAL_700 if p.activo else ft.Colors.BLUE_GREY_600
     acciones: list[ft.Control] = [
-        ft.OutlinedButton(
+        ui.secondary_button(
             "Guardar",
-            disabled=disabled,
-            on_click=lambda _e, pid=p.id, nf=nombre_tf, cf=codigo_tf: on_editar(
+            lambda pid=p.id, nf=nombre_tf, cf=codigo_tf: on_editar(
                 pid, nf.value or "", cf.value or ""
             ),
+            disabled=disabled,
         ),
     ]
     if p.activo:
@@ -1940,7 +1965,7 @@ def _proveedor_row(
             ft.TextButton(
                 "Desactivar",
                 disabled=disabled,
-                style=ft.ButtonStyle(color=ft.Colors.RED_700),
+                style=ft.ButtonStyle(color=ui_theme.DANGER),
                 on_click=lambda _e, pid=p.id: on_desactivar(pid),
             )
         )
@@ -1953,12 +1978,12 @@ def _proveedor_row(
             )
         )
     return ft.Container(
-        bgcolor=ft.Colors.WHITE if p.activo else ft.Colors.BLUE_GREY_50,
-        padding=14,
-        border_radius=8,
-        border=ft.Border.all(1, ft.Colors.BLUE_GREY_300),
+        bgcolor=ui_theme.SURFACE_CARD if p.activo else ui_theme.LIGHT_GRAY,
+        padding=ui_theme.SPACE_MD,
+        border_radius=ui_theme.RADIUS_MD,
+        border=ft.Border.all(1, ui_theme.BORDER),
         content=ft.Column(
-            spacing=8,
+            spacing=ui_theme.SPACE_SM,
             tight=True,
             controls=[
                 ft.Row(
@@ -1966,26 +1991,20 @@ def _proveedor_row(
                     controls=[
                         ft.Text(
                             p.nombre_comercial or p.nombre_fiscal,
-                            size=16,
+                            size=15,
                             weight=ft.FontWeight.BOLD,
+                            color=ui_theme.DARK_TEXT,
                         ),
-                        ft.Container(
-                            bgcolor=chip_bg,
-                            padding=ft.Padding.symmetric(horizontal=10, vertical=4),
-                            border_radius=12,
-                            content=ft.Text(
-                                estado,
-                                color=ft.Colors.WHITE,
-                                size=12,
-                                weight=ft.FontWeight.W_600,
-                            ),
+                        ui.status_chip(
+                            "Activo" if p.activo else "Inactivo",
+                            tone="ok" if p.activo else "neutral",
                         ),
                     ],
                 ),
                 ft.Text(
                     f"Id: {p.id} · NIF: {p.nif_cif or '—'}",
                     size=12,
-                    color=ft.Colors.ON_SURFACE_VARIANT,
+                    color=ui_theme.MID_GRAY,
                 ),
                 ft.Row(controls=[nombre_tf, codigo_tf]),
                 ft.Row(controls=acciones),
@@ -2097,48 +2116,71 @@ def _panel_documentos(screen: AdminScreenVM, **cbs) -> ft.Control:
         )
     if not filas:
         filas = [
-            ft.Text(
-                "No hay documentos (o sin permiso de consulta).",
-                color=ft.Colors.OUTLINE,
-                italic=True,
+            ui.empty_state(
+                "Sin documentos",
+                "No hay resultados o no tiene permiso de consulta.",
             )
         ]
 
     adj_rows: list[ft.Control] = []
     for a in screen.archivos:
         adj_rows.append(
-            ft.Row(
-                controls=[
-                    ft.Text(
-                        f"{a.nombre} · doc {a.documento_id or '—'}",
-                        expand=True,
-                        size=12,
-                    ),
-                    ft.TextButton(
-                        "Abrir",
-                        disabled=screen.mutando or on_abrir is None,
-                        on_click=lambda _e, aid=a.id: on_abrir(aid) if on_abrir else None,
-                    ),
-                ]
+            ft.Container(
+                padding=ft.Padding.symmetric(horizontal=8, vertical=6),
+                border=ft.Border(bottom=ft.BorderSide(1, ui_theme.BORDER)),
+                content=ft.Row(
+                    controls=[
+                        ft.Text(
+                            a.nombre,
+                            expand=True,
+                            size=13,
+                            weight=ft.FontWeight.W_600,
+                            color=ui_theme.DARK_TEXT,
+                        ),
+                        ft.Text(
+                            f"doc {a.documento_id or '—'}",
+                            size=12,
+                            color=ui_theme.MID_GRAY,
+                            width=140,
+                        ),
+                        ft.TextButton(
+                            "Abrir",
+                            disabled=screen.mutando or on_abrir is None,
+                            on_click=lambda _e, aid=a.id: on_abrir(aid)
+                            if on_abrir
+                            else None,
+                        ),
+                    ]
+                ),
             )
         )
     if not adj_rows:
-        adj_rows = [ft.Text("Sin adjuntos.", color=ft.Colors.OUTLINE, italic=True)]
+        adj_rows = [
+            ui.empty_state(
+                "Sin adjuntos",
+                "Adjunte un archivo local a un documento del listado.",
+            )
+        ]
 
     doc_adj = ft.Dropdown(
         label="Documento destino",
-        options=[ft.dropdown.Option(key=d.id, text=f"{d.tipo} {d.referencia or d.id}") for d in screen.documentos[:40]],
+        options=[
+            ft.dropdown.Option(key=d.id, text=f"{d.tipo} {d.referencia or d.id}")
+            for d in screen.documentos[:40]
+        ],
         width=280,
     )
     ruta_tf = ft.TextField(label="Ruta local del archivo", expand=True)
 
     return ft.Column(
-        spacing=10,
+        spacing=ui_theme.SPACE_MD,
         controls=[
             ui.page_header(
                 "Documentos",
                 "Consulta, anulación, rectificativas y adjuntos",
                 actions=[
+                    ui.status_chip(f"{len(screen.documentos)} docs", tone="info"),
+                    ui.status_chip(f"{len(screen.archivos)} adjuntos", tone="neutral"),
                     ui.secondary_button(
                         "Exportar CSV",
                         lambda: on_export() if on_export else None,
@@ -2159,28 +2201,27 @@ def _panel_documentos(screen: AdminScreenVM, **cbs) -> ft.Control:
                     ),
                 ]
             ),
+            ui.card_surface(*filas, title="Listado"),
             ui.card_surface(
-                *filas,
-                title=f"Listado ({len(screen.documentos)})",
-            ),
-            ui.section_header("Adjuntos", "Asocie archivos a un documento"),
-            ft.Row(
-                controls=[
-                    doc_adj,
-                    ruta_tf,
-                    ui.primary_button(
-                        "Adjuntar",
-                        lambda: (
-                            on_adjuntar(doc_adj.value or "", ruta_tf.value or "")
-                            if on_adjuntar
-                            else None
+                ft.Row(
+                    controls=[
+                        doc_adj,
+                        ruta_tf,
+                        ui.primary_button(
+                            "Adjuntar",
+                            lambda: (
+                                on_adjuntar(doc_adj.value or "", ruta_tf.value or "")
+                                if on_adjuntar
+                                else None
+                            ),
+                            icon=ft.Icons.ATTACH_FILE,
+                            disabled=screen.mutando or on_adjuntar is None,
                         ),
-                        icon=ft.Icons.ATTACH_FILE,
-                        disabled=screen.mutando or on_adjuntar is None,
-                    ),
-                ]
+                    ]
+                ),
+                *adj_rows,
+                title="Adjuntos",
             ),
-            *adj_rows,
         ],
     )
 
@@ -2247,17 +2288,32 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
             prec = 0.0
         on_add(prod.value or "", cant, prec)
 
-    lineas: list[ft.Control] = []
-    for i, ln in enumerate(screen.compra_lineas):
-        lineas.append(_compra_linea_row(i, ln, on_quitar, disabled=screen.mutando))
-    if not lineas:
-        lineas = [ft.Text("Sin líneas en el borrador.", color=ft.Colors.OUTLINE)]
-
-    doc_info = (
-        f"Borrador guardado: {screen.compra_documento_id}"
-        if screen.compra_documento_id
-        else "Borrador aún no persistido."
+    total = sum(l.cantidad * l.precio_unitario for l in screen.compra_lineas)
+    header = ft.Container(
+        padding=ft.Padding.symmetric(horizontal=12, vertical=8),
+        bgcolor=ui_theme.LIGHT_GRAY,
+        content=ft.Row(
+            controls=[
+                ft.Text("Producto", size=11, weight=ft.FontWeight.W_600, expand=True),
+                ft.Text("Cant.", size=11, weight=ft.FontWeight.W_600, width=70),
+                ft.Text("P. unit.", size=11, weight=ft.FontWeight.W_600, width=90),
+                ft.Text("Subtotal", size=11, weight=ft.FontWeight.W_600, width=90),
+                ft.Container(width=70),
+            ]
+        ),
     )
+    lineas: list[ft.Control] = [header]
+    if screen.compra_lineas:
+        for i, ln in enumerate(screen.compra_lineas):
+            lineas.append(_compra_linea_row(i, ln, on_quitar, disabled=screen.mutando))
+    else:
+        lineas.append(
+            ui.empty_state(
+                "Sin líneas en el borrador",
+                "Añada producto, cantidad y precio unitario.",
+            )
+        )
+
     tipo_lbl = "factura" if (screen.compra_tipo or "") == "factura" else "albarán"
     alb_dd = ft.Dropdown(
         label="Albarán a conciliar (factura)",
@@ -2276,58 +2332,83 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
     )
 
     return ft.Column(
-        spacing=12,
+        spacing=ui_theme.SPACE_MD,
         controls=[
             ui.page_header(
                 "Compras",
                 "Borrador → confirmar · albarán/factura y conciliación",
+                actions=[
+                    ui.status_chip(
+                        f"{len(screen.compra_lineas)} línea(s)",
+                        tone="info",
+                    ),
+                    ui.status_chip(
+                        f"Total {total:.2f}",
+                        tone="ok" if total else "neutral",
+                    ),
+                    ui.status_chip(
+                        f"Doc {screen.compra_documento_id}"
+                        if screen.compra_documento_id
+                        else "Sin persistir",
+                        tone="ok" if screen.compra_documento_id else "warn",
+                    ),
+                ],
             ),
             ui_theme.text_help(
-                f"Flujo productivo ({tipo_lbl}): borrador → confirmar "
-                "(crea lotes/movimientos en albarán; factura según dominio). "
-                "En factura, opcional: enlazar un albarán confirmado para conciliar por producto."
+                f"Flujo ({tipo_lbl}): borrador → confirmar. "
+                "En factura puede enlazar un albarán confirmado para conciliar."
             ),
-            ft.Row(
-                controls=[
-                    tipo,
-                    prov,
-                    ref,
-                    ft.OutlinedButton("Aplicar cabecera", on_click=_aplicar_cab),
-                ]
+            ui.card_surface(
+                ft.Row(
+                    controls=[
+                        tipo,
+                        prov,
+                        ref,
+                        ui.secondary_button("Aplicar cabecera", _aplicar_cab),
+                    ]
+                ),
+                alb_dd,
+                title="Cabecera",
             ),
-            alb_dd,
-            ft.Row(controls=[prod, cantidad, precio]),
-            ft.Row(
-                controls=[
-                    ft.FilledButton(
-                        "Añadir línea",
-                        disabled=screen.mutando,
-                        on_click=_add,
-                    ),
-                    ft.OutlinedButton(
-                        "Guardar borrador",
-                        disabled=screen.mutando,
-                        on_click=lambda _e: on_guardar(),
-                    ),
-                    ft.FilledButton(
-                        "Confirmar",
-                        disabled=screen.mutando,
-                        on_click=lambda _e: on_confirmar(),
-                    ),
-                    ft.TextButton(
-                        "Limpiar",
-                        disabled=screen.mutando,
-                        on_click=lambda _e: on_limpiar(),
-                    ),
-                ]
+            ui.card_surface(
+                ft.Row(controls=[prod, cantidad, precio]),
+                ft.Row(
+                    wrap=True,
+                    controls=[
+                        ui.primary_button(
+                            "Añadir línea",
+                            _add,
+                            icon=ft.Icons.ADD,
+                            disabled=screen.mutando,
+                        ),
+                        ui.secondary_button(
+                            "Guardar borrador",
+                            on_guardar,
+                            icon=ft.Icons.SAVE_OUTLINED,
+                            disabled=screen.mutando,
+                        ),
+                        ui.primary_button(
+                            "Confirmar",
+                            on_confirmar,
+                            icon=ft.Icons.CHECK_CIRCLE_OUTLINE,
+                            disabled=screen.mutando,
+                        ),
+                        ft.TextButton(
+                            "Limpiar",
+                            disabled=screen.mutando,
+                            on_click=lambda _e: on_limpiar(),
+                        ),
+                    ],
+                ),
+                title="Líneas",
             ),
-            ft.Text(doc_info, size=12, color=ft.Colors.ON_SURFACE_VARIANT),
-            ui.status_chip(
-                f"{len(screen.compra_lineas)} línea(s) · total "
-                f"{sum(l.cantidad * l.precio_unitario for l in screen.compra_lineas):.2f}",
-                tone="info",
+            ft.Container(
+                bgcolor=ui_theme.SURFACE_CARD,
+                border_radius=ui_theme.RADIUS_MD,
+                border=ft.Border.all(1, ui_theme.BORDER),
+                clip_behavior=ft.ClipBehavior.HARD_EDGE,
+                content=ft.Column(spacing=0, controls=lineas),
             ),
-            *lineas,
         ],
     )
 
@@ -2339,22 +2420,37 @@ def _compra_linea_row(
     *,
     disabled: bool,
 ) -> ft.Control:
+    subtotal = ln.cantidad * ln.precio_unitario
     return ft.Container(
-        bgcolor=ft.Colors.WHITE,
-        padding=12,
-        border_radius=8,
-        border=ft.Border.all(1, ft.Colors.BLUE_GREY_300),
+        padding=ft.Padding.symmetric(horizontal=12, vertical=8),
+        border=ft.Border(bottom=ft.BorderSide(1, ui_theme.BORDER)),
         content=ft.Row(
-            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
                 ft.Text(
-                    f"{ln.nombre} · cant. {ln.cantidad} · p.u. {ln.precio_unitario}",
-                    size=14,
+                    ln.nombre,
+                    size=13,
+                    weight=ft.FontWeight.W_600,
+                    color=ui_theme.DARK_TEXT,
+                    expand=True,
+                    max_lines=1,
+                    overflow=ft.TextOverflow.ELLIPSIS,
                 ),
-                ft.TextButton(
-                    "Quitar",
-                    disabled=disabled,
-                    on_click=lambda _e, i=index: on_quitar(i),
+                ft.Text(f"{ln.cantidad:g}", size=12, width=70),
+                ft.Text(f"{ln.precio_unitario:.4g}", size=12, width=90),
+                ft.Text(
+                    f"{subtotal:.2f}",
+                    size=12,
+                    width=90,
+                    weight=ft.FontWeight.W_600,
+                ),
+                ft.Container(
+                    width=70,
+                    content=ft.TextButton(
+                        "Quitar",
+                        disabled=disabled,
+                        on_click=lambda _e, i=index: on_quitar(i),
+                    ),
                 ),
             ],
         ),
@@ -2539,13 +2635,19 @@ def _panel_config(screen: AdminScreenVM, **cbs) -> ft.Control:
 def _catalogo_lista(items: tuple[CatalogoItemVM, ...], *, con_codigo: bool = False) -> list[ft.Control]:
     activos = [i for i in items if i.activo]
     if not activos:
-        return [ft.Text("Ninguno activo.", color=ft.Colors.OUTLINE, size=12)]
+        return [ui.empty_state("Ninguno activo", "Cree el primero abajo.")]
     out: list[ft.Control] = []
     for it in activos:
         label = it.nombre
         if con_codigo and it.codigo:
             label = f"{it.nombre} ({it.codigo})"
-        out.append(ft.Text(f"· {label}", size=13))
+        out.append(
+            ft.Container(
+                padding=ft.Padding.symmetric(horizontal=8, vertical=4),
+                border=ft.Border(bottom=ft.BorderSide(1, ui_theme.BORDER)),
+                content=ft.Text(label, size=13, color=ui_theme.DARK_TEXT),
+            )
+        )
     return out
 
 
@@ -2559,48 +2661,55 @@ def _panel_catalogos(screen: AdminScreenVM, **cbs) -> ft.Control:
     ubi_cod = ft.TextField(label="Código", width=120)
 
     return ft.Column(
-        spacing=14,
+        spacing=ui_theme.SPACE_MD,
         controls=[
-            ft.Text("Catálogos de inventario", size=18, weight=ft.FontWeight.BOLD),
-            ft.Text("Departamentos activos", weight=ft.FontWeight.W_600),
-            ft.Row(
-                controls=[
-                    dep_tf,
-                    ft.FilledButton(
-                        "Crear",
-                        disabled=screen.mutando,
-                        on_click=lambda _e: on_dep(dep_tf.value or ""),
-                    ),
-                ]
+            ui.page_header(
+                "Catálogos de inventario",
+                "Departamentos, categorías y ubicaciones",
             ),
-            *_catalogo_lista(screen.departamentos),
-            ft.Divider(),
-            ft.Text("Categorías activas", weight=ft.FontWeight.W_600),
-            ft.Row(
-                controls=[
-                    cat_tf,
-                    ft.FilledButton(
-                        "Crear",
-                        disabled=screen.mutando,
-                        on_click=lambda _e: on_cat(cat_tf.value or ""),
-                    ),
-                ]
+            ui.card_surface(
+                *_catalogo_lista(screen.departamentos),
+                ft.Row(
+                    controls=[
+                        dep_tf,
+                        ui.primary_button(
+                            "Añadir",
+                            lambda: on_dep(dep_tf.value or ""),
+                            disabled=screen.mutando,
+                        ),
+                    ]
+                ),
+                title="Departamentos",
             ),
-            *_catalogo_lista(screen.categorias),
-            ft.Divider(),
-            ft.Text("Ubicaciones activas", weight=ft.FontWeight.W_600),
-            ft.Row(
-                controls=[
-                    ubi_tf,
-                    ubi_cod,
-                    ft.FilledButton(
-                        "Crear",
-                        disabled=screen.mutando,
-                        on_click=lambda _e: on_ubi(ubi_tf.value or "", ubi_cod.value or ""),
-                    ),
-                ]
+            ui.card_surface(
+                *_catalogo_lista(screen.categorias),
+                ft.Row(
+                    controls=[
+                        cat_tf,
+                        ui.primary_button(
+                            "Añadir",
+                            lambda: on_cat(cat_tf.value or ""),
+                            disabled=screen.mutando,
+                        ),
+                    ]
+                ),
+                title="Categorías",
             ),
-            *_catalogo_lista(screen.ubicaciones, con_codigo=True),
+            ui.card_surface(
+                *_catalogo_lista(screen.ubicaciones, con_codigo=True),
+                ft.Row(
+                    controls=[
+                        ubi_tf,
+                        ubi_cod,
+                        ui.primary_button(
+                            "Añadir",
+                            lambda: on_ubi(ubi_tf.value or "", ubi_cod.value or ""),
+                            disabled=screen.mutando,
+                        ),
+                    ]
+                ),
+                title="Ubicaciones",
+            ),
         ],
     )
 
@@ -2654,32 +2763,42 @@ def _panel_servidor(screen: AdminScreenVM, **cbs) -> ft.Control:
         expand=True,
     )
     return ft.Column(
-        spacing=12,
+        spacing=ui_theme.SPACE_MD,
         controls=[
-            ft.Text("Servidor / datos compartidos", size=18, weight=ft.FontWeight.BOLD),
-            ft.Text(
-                "Guarda solo la config de cliente (shared_root). No copia datos del hotel.",
-                size=13,
-                color=ft.Colors.ON_SURFACE_VARIANT,
+            ui.page_header(
+                "Servidor / datos compartidos",
+                "Config de cliente (shared_root). No copia datos del hotel.",
+                actions=[
+                    ui.status_chip(f"Rev. {screen.revision}", tone="neutral"),
+                ],
             ),
-            ft.Text(
-                f"Ruta de datos actual: {screen.data_path_label or '—'}",
-                size=12,
-            ),
-            ft.Text(
-                f"Raíz compartida resuelta: {screen.shared_root_label or '—'}",
-                size=12,
-            ),
-            ft.Text(f"Revisión en memoria: {screen.revision}", size=12, color=ft.Colors.OUTLINE),
-            ft.Row(
-                controls=[
-                    path_tf,
-                    ft.FilledButton(
-                        "Guardar",
-                        disabled=screen.mutando,
-                        on_click=lambda _e: on_guardar(path_tf.value or ""),
-                    ),
-                ]
+            ui.card_surface(
+                ft.Row(
+                    wrap=True,
+                    spacing=ui_theme.SPACE_SM,
+                    controls=[
+                        ui.status_chip(
+                            f"Datos: {screen.data_path_label or '—'}",
+                            tone="info",
+                        ),
+                        ui.status_chip(
+                            f"Shared: {screen.shared_root_label or '—'}",
+                            tone="neutral",
+                        ),
+                    ],
+                ),
+                ft.Row(
+                    controls=[
+                        path_tf,
+                        ui.primary_button(
+                            "Guardar",
+                            lambda: on_guardar(path_tf.value or ""),
+                            icon=ft.Icons.SAVE,
+                            disabled=screen.mutando,
+                        ),
+                    ]
+                ),
+                title="Instancia",
             ),
         ],
     )

@@ -23,3 +23,10 @@ Las vistas no calculan costes ni tocan JSON.
 ## Navegación Admin
 
 Grupos en `ADMIN_NAV_GROUPS`: Resumen, Operación, Catálogos, Administración.
+
+## Paneles alineados al kit
+
+Usar `page_header`, `card_surface`, `metric_card`, `status_chip`, `empty_state`,
+`alert_banner` y botones del kit en: Inicio, Análisis, Productos, Recetas,
+Usuarios, Responsables, Proveedores, Compras, Documentos, Inventario,
+Configuración y Servidor.
