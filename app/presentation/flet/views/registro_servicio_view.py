@@ -60,23 +60,21 @@ def build_registro_view(
     search_field: ft.TextField | None = None,
     catalog_results: ft.Column | None = None,
 ) -> tuple[ft.Control, ft.TextField, ft.Column]:
-    """Construye la vista y expone controles estables de búsqueda/catálogo.
-
-    Devuelve ``(root, search_field, catalog_results)`` para actualizar solo
-    el listado sin reconstruir el TextField (conserva foco y cursor).
-    """
+    """Construye la vista y expone controles estables de búsqueda/catálogo."""
     on_iniciar_anulacion = on_iniciar_anulacion or (lambda _rid: None)
     on_set_motivo_anulacion = on_set_motivo_anulacion or (lambda _m: None)
     on_cancelar_anulacion = on_cancelar_anulacion or (lambda: None)
     on_confirmar_anulacion = on_confirmar_anulacion or (lambda: None)
     activo = next((s for s in screen.servicios if s.activo), None)
     etiqueta_activo = activo.etiqueta if activo else "—"
+    n_cesta = 0 if screen.cesta is None or screen.cesta.vacia else len(screen.cesta.lineas)
 
     header = ft.Container(
         bgcolor=ui_theme.NAVY,
         padding=ft.Padding.symmetric(horizontal=20, vertical=14),
         content=ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
                 ft.Column(
                     spacing=2,
@@ -101,30 +99,41 @@ def build_registro_view(
                         ),
                     ],
                 ),
-                header_action_row(
-                    on_logout=on_logout,
-                    on_volver_menu=on_volver_menu,
-                    light=True,
+                ft.Row(
+                    spacing=ui_theme.SPACE_SM,
+                    controls=[
+                        ui.status_chip(etiqueta_activo, tone="info"),
+                        ui.status_chip(f"{n_cesta} en cesta", tone="neutral"),
+                        header_action_row(
+                            on_logout=on_logout,
+                            on_volver_menu=on_volver_menu,
+                            light=True,
+                        ),
+                    ],
                 ),
             ],
         ),
     )
 
-    selector = ft.Row(
-        wrap=True,
-        spacing=8,
-        controls=[
-            ft.FilledButton(
-                s.etiqueta,
-                style=ft.ButtonStyle(
-                    padding=18,
-                    bgcolor=ui_theme.TEAL if s.activo else None,
-                    color=ui_theme.WHITE if s.activo else ui_theme.NAVY,
-                ),
-                on_click=lambda _e, sid=s.id: on_select_servicio(sid),
-            )
-            for s in screen.servicios
-        ],
+    selector = ui.card_surface(
+        ft.Row(
+            wrap=True,
+            spacing=ui_theme.SPACE_SM,
+            controls=[
+                ft.FilledButton(
+                    s.etiqueta,
+                    style=ft.ButtonStyle(
+                        padding=ft.Padding.symmetric(horizontal=18, vertical=12),
+                        bgcolor=ui_theme.TEAL if s.activo else ui_theme.LIGHT_GRAY,
+                        color=ui_theme.WHITE if s.activo else ui_theme.NAVY,
+                        shape=ft.RoundedRectangleBorder(radius=ui_theme.RADIUS_SM),
+                    ),
+                    on_click=lambda _e, sid=s.id: on_select_servicio(sid),
+                )
+                for s in screen.servicios
+            ],
+        ),
+        title="Servicio",
     )
 
     feedback = ft.Container()
@@ -141,6 +150,7 @@ def build_registro_view(
     if search_field is None:
         search_field = ft.TextField(
             label="Buscar receta o producto",
+            hint_text="Búsqueda parcial…",
             value=screen.busqueda,
             prefix_icon=ft.Icons.SEARCH,
             on_change=lambda e: on_search(e.control.value or ""),
@@ -152,19 +162,33 @@ def build_registro_view(
     huespedes_row: list[ft.Control] = []
     if screen.requiere_huespedes:
         huespedes_row = [
-            ft.Row(
-                controls=[
-                    ft.Text("Huéspedes:", size=14),
-                    ft.IconButton(
-                        icon=ft.Icons.REMOVE,
-                        on_click=lambda _e: on_huespedes(max(1, screen.num_huespedes - 1)),
-                    ),
-                    ft.Text(str(screen.num_huespedes), size=18, weight=ft.FontWeight.BOLD),
-                    ft.IconButton(
-                        icon=ft.Icons.ADD,
-                        on_click=lambda _e: on_huespedes(screen.num_huespedes + 1),
-                    ),
-                ]
+            ft.Container(
+                padding=ft.Padding.symmetric(horizontal=10, vertical=6),
+                bgcolor=ui_theme.INFO_BG,
+                border_radius=ui_theme.RADIUS_SM,
+                content=ft.Row(
+                    spacing=ui_theme.SPACE_SM,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[
+                        ft.Text("Huéspedes", size=13, color=ui_theme.INFO, weight=ft.FontWeight.W_600),
+                        ft.IconButton(
+                            icon=ft.Icons.REMOVE,
+                            icon_color=ui_theme.NAVY,
+                            on_click=lambda _e: on_huespedes(max(1, screen.num_huespedes - 1)),
+                        ),
+                        ft.Text(
+                            str(screen.num_huespedes),
+                            size=20,
+                            weight=ft.FontWeight.BOLD,
+                            color=ui_theme.NAVY,
+                        ),
+                        ft.IconButton(
+                            icon=ft.Icons.ADD,
+                            icon_color=ui_theme.NAVY,
+                            on_click=lambda _e: on_huespedes(screen.num_huespedes + 1),
+                        ),
+                    ],
+                ),
             )
         ]
 
@@ -173,7 +197,7 @@ def build_registro_view(
     )
     if catalog_results is None:
         catalog_results = ft.Column(
-            spacing=8,
+            spacing=ui_theme.SPACE_SM,
             scroll=ft.ScrollMode.AUTO,
             expand=True,
             controls=result_controls,
@@ -182,22 +206,25 @@ def build_registro_view(
         catalog_results.controls = result_controls
 
     catalog_col = ft.Column(
-        spacing=8,
+        spacing=ui_theme.SPACE_MD,
         expand=True,
-        controls=[search_field, *huespedes_row, catalog_results],
+        controls=[
+            ui.section_header("Catálogo", "Pulse Añadir · búsqueda parcial"),
+            search_field,
+            *huespedes_row,
+            catalog_results,
+        ],
     )
 
-    basket_controls: list[ft.Control] = [
-        ft.Text("Cesta", size=18, weight=ft.FontWeight.BOLD),
-    ]
+    basket_inner: list[ft.Control] = []
     if screen.cesta is None or screen.cesta.vacia:
-        basket_controls.append(
-            ft.Text("Cesta vacía. Añada recetas o productos.", color=ft.Colors.OUTLINE)
+        basket_inner.append(
+            ui.empty_state("Cesta vacía", "Añada recetas o productos del catálogo.")
         )
     else:
         for lin in screen.cesta.lineas:
             if lin.kind == "receta":
-                basket_controls.append(
+                basket_inner.append(
                     _basket_row(
                         lin.nombre,
                         f"{lin.cantidad:g} {lin.unidad}",
@@ -207,7 +234,7 @@ def build_registro_view(
                     )
                 )
             else:
-                basket_controls.append(
+                basket_inner.append(
                     _basket_row(
                         lin.nombre,
                         f"{lin.cantidad:g} {lin.unidad}",
@@ -216,33 +243,34 @@ def build_registro_view(
                         on_remove=lambda _e, lid=lin.line_id: on_remove_producto(lid),
                     )
                 )
-        basket_controls.append(
-            ft.TextButton("Vaciar cesta", on_click=lambda _e: on_clear())
+        basket_inner.append(
+            ft.TextButton(
+                "Vaciar cesta",
+                style=ft.ButtonStyle(color=ui_theme.DANGER),
+                on_click=lambda _e: on_clear(),
+            )
         )
 
-    confirm_btn = ft.FilledButton(
-        "Confirmar registro",
-        icon=ft.Icons.CHECK_CIRCLE,
-        disabled=screen.confirmando
-        or screen.anulando
-        or screen.cesta is None
-        or screen.cesta.vacia,
-        style=ft.ButtonStyle(
-            padding=20,
-            bgcolor=ft.Colors.ORANGE_800,
-        ),
-        on_click=lambda _e: on_confirm(),
+    basket_inner.append(
+        ui.primary_button(
+            "Confirmar registro",
+            on_confirm,
+            icon=ft.Icons.CHECK_CIRCLE,
+            disabled=screen.confirmando
+            or screen.anulando
+            or screen.cesta is None
+            or screen.cesta.vacia,
+        )
     )
-    basket_controls.append(confirm_btn)
     if screen.confirmando or screen.anulando:
-        basket_controls.append(ft.ProgressRing(width=24, height=24))
+        basket_inner.append(ft.ProgressRing(width=24, height=24, color=ui_theme.NAVY))
 
     basket_col = ft.Container(
-        width=None if narrow else 340,
-        bgcolor=ft.Colors.SURFACE_CONTAINER_HIGHEST,
-        padding=12,
-        border_radius=8,
-        content=ft.Column(spacing=8, scroll=ft.ScrollMode.AUTO, controls=basket_controls),
+        width=None if narrow else 360,
+        content=ui.card_surface(
+            *basket_inner,
+            title=f"Cesta ({n_cesta})",
+        ),
     )
 
     historial_box = _historial_section(
@@ -257,35 +285,44 @@ def build_registro_view(
         body = ft.Column(
             expand=True,
             scroll=ft.ScrollMode.AUTO,
-            controls=[
-                ft.Container(content=catalog_col, expand=True),
-                ft.Divider(),
-                basket_col,
-                ft.Divider(),
-                historial_box,
-            ],
+            spacing=ui_theme.SPACE_MD,
+            controls=[catalog_col, basket_col, historial_box],
         )
     else:
         body = ft.Column(
             expand=True,
+            spacing=ui_theme.SPACE_MD,
             controls=[
                 ft.Row(
                     expand=True,
                     vertical_alignment=ft.CrossAxisAlignment.START,
+                    spacing=ui_theme.SPACE_MD,
                     controls=[
                         ft.Container(content=catalog_col, expand=True),
                         basket_col,
                     ],
                 ),
-                ft.Divider(),
                 historial_box,
             ],
         )
 
     root = ft.Column(
         expand=True,
-        spacing=12,
-        controls=[header, selector, feedback, ft.Container(content=body, expand=True)],
+        spacing=0,
+        controls=[
+            header,
+            feedback,
+            ft.Container(
+                expand=True,
+                bgcolor=ui_theme.SURFACE,
+                padding=ui_theme.SPACE_LG,
+                content=ft.Column(
+                    expand=True,
+                    spacing=ui_theme.SPACE_MD,
+                    controls=[selector, body],
+                ),
+            ),
+        ],
     )
     return root, search_field, catalog_results
 
@@ -307,14 +344,8 @@ def _historial_section(
     on_confirmar_anulacion: Callable[[], None],
 ) -> ft.Control:
     bloqueado = screen.confirmando or screen.anulando
-    controls: list[ft.Control] = [
-        ft.Text("Historial reciente", size=18, weight=ft.FontWeight.BOLD),
-        ft.Text(
-            "Solo datos operativos. Sin economía ni valoración.",
-            size=11,
-            color=ft.Colors.ON_SURFACE_VARIANT,
-        ),
-    ]
+    controls: list[ft.Control] = []
+
     if screen.anulacion_pendiente:
         p = screen.anulacion_pendiente
         motivo_tf = ft.TextField(
@@ -328,25 +359,30 @@ def _historial_section(
         )
         controls.append(
             ft.Container(
-                bgcolor=ft.Colors.AMBER_50,
-                padding=12,
-                border_radius=8,
+                bgcolor=ui_theme.WARNING_BG,
+                padding=ui_theme.SPACE_MD,
+                border_radius=ui_theme.RADIUS_MD,
+                border=ft.Border.all(1, ui_theme.WARNING),
                 content=ft.Column(
-                    spacing=8,
+                    spacing=ui_theme.SPACE_SM,
                     controls=[
                         ft.Text(
                             "Confirmar anulación",
                             weight=ft.FontWeight.BOLD,
+                            color=ui_theme.WARNING,
                         ),
-                        ft.Text(p.etiqueta_corta, size=13),
-                        ft.Text(p.resumen, size=12),
+                        ft.Text(p.etiqueta_corta, size=13, color=ui_theme.DARK_TEXT),
+                        ft.Text(p.resumen, size=12, color=ui_theme.MID_GRAY),
                         motivo_tf,
                         ft.Row(
                             controls=[
                                 ft.FilledButton(
                                     "Confirmar anulación",
                                     disabled=bloqueado,
-                                    bgcolor=ft.Colors.RED_700,
+                                    style=ft.ButtonStyle(
+                                        bgcolor=ui_theme.DANGER,
+                                        color=ui_theme.WHITE,
+                                    ),
                                     on_click=lambda _e: (
                                         on_set_motivo_anulacion(motivo_tf.value or ""),
                                         on_confirmar_anulacion(),
@@ -363,41 +399,42 @@ def _historial_section(
                 ),
             )
         )
+
     if not screen.historial:
         controls.append(
-            ft.Text(
-                "Sin registros recientes en este servicio.",
-                color=ft.Colors.OUTLINE,
-                italic=True,
-                size=12,
+            ui.empty_state(
+                "Sin registros recientes",
+                "Los registros de este servicio aparecerán aquí.",
             )
         )
     else:
         for item in screen.historial:
+            tone = (
+                "ok"
+                if item.estado == "activo"
+                else ("neutral" if item.estado == "anulado" else "warn")
+            )
             fila: list[ft.Control] = [
                 ft.Column(
                     spacing=2,
                     expand=True,
+                    tight=True,
                     controls=[
-                        ft.Text(item.etiqueta_corta, weight=ft.FontWeight.W_500, size=13),
-                        ft.Text(item.resumen, size=12),
                         ft.Text(
+                            item.etiqueta_corta,
+                            weight=ft.FontWeight.W_600,
+                            size=13,
+                            color=ui_theme.DARK_TEXT,
+                        ),
+                        ft.Text(item.resumen, size=12, color=ui_theme.MID_GRAY),
+                        ui.status_chip(
                             _estado_label(item.estado)
                             + (
                                 f" — {item.motivo_bloqueo}"
                                 if item.estado == "no_anulable" and item.motivo_bloqueo
                                 else ""
                             ),
-                            size=11,
-                            color=(
-                                ft.Colors.GREEN_800
-                                if item.estado == "activo"
-                                else (
-                                    ft.Colors.OUTLINE
-                                    if item.estado == "anulado"
-                                    else ft.Colors.AMBER_900
-                                )
-                            ),
+                            tone=tone,
                         ),
                     ],
                 ),
@@ -407,6 +444,7 @@ def _historial_section(
                     ft.TextButton(
                         "Anular",
                         disabled=bloqueado or screen.anulacion_pendiente is not None,
+                        style=ft.ButtonStyle(color=ui_theme.DANGER),
                         on_click=lambda _e, rid=item.registro_id: on_iniciar_anulacion(
                             rid
                         ),
@@ -414,17 +452,19 @@ def _historial_section(
                 )
             controls.append(
                 ft.Container(
-                    padding=8,
-                    border=ft.Border(
-                        bottom=ft.BorderSide(1, ft.Colors.OUTLINE_VARIANT)
-                    ),
+                    padding=ft.Padding.symmetric(horizontal=8, vertical=8),
+                    border=ft.Border(bottom=ft.BorderSide(1, ui_theme.BORDER)),
                     content=ft.Row(
                         alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
                         controls=fila,
                     ),
                 )
             )
-    return ft.Column(spacing=8, controls=controls)
+
+    return ui.card_surface(
+        *controls,
+        title="Historial reciente",
+    )
 
 
 def _catalog_tile(
@@ -433,37 +473,44 @@ def _catalog_tile(
     on_add_producto: Callable[[str], None],
 ) -> ft.Control:
     is_receta = item.tipo == "receta"
-    badge = "RECETA" if is_receta else "PRODUCTO DIRECTO"
-    color = ft.Colors.INDIGO_100 if is_receta else ft.Colors.AMBER_100
+    badge = "Receta" if is_receta else "Producto"
     detail = item.categoria if is_receta else (
         f"{item.stock_disponible:g} {item.unidad}".strip()
         if item.stock_disponible is not None
         else item.unidad
     )
     return ft.Container(
-        bgcolor=color,
-        padding=12,
-        border_radius=10,
+        bgcolor=ui_theme.SURFACE_CARD,
+        padding=ui_theme.SPACE_MD,
+        border_radius=ui_theme.RADIUS_MD,
+        border=ft.Border.all(1, ui_theme.BORDER),
         content=ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
                 ft.Column(
                     spacing=2,
                     expand=True,
+                    tight=True,
                     controls=[
-                        ft.Text(badge, size=11, weight=ft.FontWeight.W_600),
-                        ft.Text(item.nombre, size=16, weight=ft.FontWeight.BOLD),
-                        ft.Text(detail or "", size=12, color=ft.Colors.ON_SURFACE_VARIANT),
+                        ui.status_chip(badge, tone="info" if is_receta else "neutral"),
+                        ft.Text(
+                            item.nombre,
+                            size=15,
+                            weight=ft.FontWeight.BOLD,
+                            color=ui_theme.DARK_TEXT,
+                        ),
+                        ft.Text(detail or "", size=12, color=ui_theme.MID_GRAY),
                     ],
                 ),
-                ft.FilledTonalButton(
+                ui.primary_button(
                     "Añadir",
-                    height=48,
-                    on_click=(
-                        (lambda _e, rid=item.id: on_add_receta(rid))
+                    (
+                        (lambda rid=item.id: on_add_receta(rid))
                         if is_receta
-                        else (lambda _e, pid=item.id: on_add_producto(pid))
+                        else (lambda pid=item.id: on_add_producto(pid))
                     ),
+                    icon=ft.Icons.ADD,
                 ),
             ],
         ),
@@ -479,23 +526,38 @@ def _basket_row(
     on_remove,
 ) -> ft.Control:
     return ft.Container(
-        padding=8,
-        border=ft.Border(bottom=ft.BorderSide(1, ft.Colors.OUTLINE_VARIANT)),
+        padding=ft.Padding.symmetric(vertical=6),
+        border=ft.Border(bottom=ft.BorderSide(1, ui_theme.BORDER)),
         content=ft.Column(
-            spacing=4,
+            spacing=2,
+            tight=True,
             controls=[
-                ft.Text(nombre, weight=ft.FontWeight.W_500),
+                ft.Text(
+                    nombre,
+                    weight=ft.FontWeight.W_600,
+                    size=13,
+                    color=ui_theme.DARK_TEXT,
+                ),
                 ft.Row(
+                    spacing=2,
                     controls=[
-                        ft.IconButton(icon=ft.Icons.REMOVE_CIRCLE_OUTLINE, on_click=on_minus),
-                        ft.Text(qty_label, size=14),
-                        ft.IconButton(icon=ft.Icons.ADD_CIRCLE_OUTLINE, on_click=on_plus),
+                        ft.IconButton(
+                            icon=ft.Icons.REMOVE_CIRCLE_OUTLINE,
+                            icon_color=ui_theme.NAVY,
+                            on_click=on_minus,
+                        ),
+                        ft.Text(qty_label, size=13, color=ui_theme.DARK_TEXT),
+                        ft.IconButton(
+                            icon=ft.Icons.ADD_CIRCLE_OUTLINE,
+                            icon_color=ui_theme.NAVY,
+                            on_click=on_plus,
+                        ),
                         ft.IconButton(
                             icon=ft.Icons.DELETE_OUTLINE,
-                            icon_color=ft.Colors.RED_400,
+                            icon_color=ui_theme.DANGER,
                             on_click=on_remove,
                         ),
-                    ]
+                    ],
                 ),
             ],
         ),
