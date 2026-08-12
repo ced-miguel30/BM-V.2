@@ -59,11 +59,23 @@ class BasketLineVM:
 
 
 @dataclass(frozen=True)
+class BasketExtraVM:
+    """Extra sugerido de una receta en cesta (añadir como producto suelto)."""
+
+    producto_id: str
+    nombre: str
+    cantidad: float
+    unidad: str = ""
+    receta_nombre: str = ""
+
+
+@dataclass(frozen=True)
 class BasketVM:
     lineas: tuple[BasketLineVM, ...]
     vacia: bool
     servicio_id: str
     servicio_etiqueta: str
+    extras_sugeridos: tuple[BasketExtraVM, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -115,6 +127,7 @@ class TerminalScreenVM:
     num_huespedes: int
     requiere_huespedes: bool
     busqueda: str
+    catalogo_tipo: str = "recetas"
     historial: tuple[HistorialRegistroVM, ...] = ()
     anulacion_pendiente: AnulacionPendienteVM | None = None
     anulando: bool = False

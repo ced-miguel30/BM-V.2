@@ -113,6 +113,15 @@ class RecetaAdminVM:
     teorico_fmt: str = ""
     por_racion_fmt: str = ""
     teorico_completo: bool = True
+    n_extras: int = 0
+    extras_resumen: str = ""
+
+
+@dataclass(frozen=True)
+class ExtraSugeridoAdminVM:
+    producto_id: str
+    producto_nombre: str
+    cantidad: float
 
 
 @dataclass(frozen=True)

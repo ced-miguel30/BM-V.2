@@ -1,4 +1,4 @@
-"""Sistema de diseño Flet — Royal Marina / BM‑V.2 (tokens sobrios).
+"""Sistema de diseño Flet — Royal Marina / BM-V.2 (tokens sobrios).
 
 Alineado con `app/ui/theme.py` (Streamlit) sin acoplar a Streamlit.
 """
@@ -7,8 +7,8 @@ from __future__ import annotations
 
 import flet as ft
 
-# Identidad
-APP_NAME = "BM‑V.2"
+# Identidad (ASCII: evita guion tipográfico U+2011 que no se ve en ventana Flet/Windows).
+APP_NAME = "BM-V.2"
 APP_SUBTITLE = "Breakfast Management"
 HOTEL_DEFAULT = "Royal Marina Suites"
 

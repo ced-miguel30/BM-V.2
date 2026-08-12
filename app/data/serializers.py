@@ -24,6 +24,7 @@ from app.core.models import (
     EstadoRecuento,
     ExtraRecetaDesayuno,
     ExtraRecetaServicio,
+    ExtraSugeridoReceta,
     Impuesto,
     IngredienteReceta,
     LineaAjuste,
@@ -1103,6 +1104,13 @@ def appdata_to_dict(data: AppData) -> dict:
                     }
                     for i in r.ingredientes
                 ],
+                "extras_sugeridos": [
+                    {
+                        "producto_id": e.producto_id,
+                        "cantidad": float(e.cantidad),
+                    }
+                    for e in (getattr(r, "extras_sugeridos", None) or [])
+                ],
             }
             for r in data.recetas
         ],
@@ -1433,6 +1441,14 @@ def dict_to_appdata(payload: dict) -> AppData:
                 # Ausente / null = no configurado (Fase 7).
                 r.get("porciones_estandar"),
                 activo=bool(r.get("activo", True)),
+                extras_sugeridos=[
+                    ExtraSugeridoReceta(
+                        str(e["producto_id"]),
+                        float(e.get("cantidad") or 1.0),
+                    )
+                    for e in r.get("extras_sugeridos", []) or []
+                    if isinstance(e, dict) and e.get("producto_id")
+                ],
             )
             for r in payload.get("recetas", [])
         ],

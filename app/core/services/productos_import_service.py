@@ -49,7 +49,8 @@ _PALABRAS_BEBIDA = (
     "licor",
     "zumo",
     "refresco",
-    "cola",
+    "coca cola",
+    "cocacola",
     "fanta",
     "sprite",
     "bebida",
@@ -67,7 +68,28 @@ _PALABRAS_BEBIDA = (
     "tequila",
     "sangría",
     "sangria",
+    "aquabona",
+    "royal bliss",
 )
+
+# Evita falsos positivos: «agua»⊂aguacate, «ron»⊂kronos, «cola»⊂cola de rape.
+_RE_BEBIDA_NOMBRE = None
+
+
+def _re_bebida_nombre():
+    global _RE_BEBIDA_NOMBRE
+    if _RE_BEBIDA_NOMBRE is None:
+        import re
+
+        alts = "|".join(
+            re.escape(p) for p in sorted(_PALABRAS_BEBIDA, key=len, reverse=True)
+        )
+        _RE_BEBIDA_NOMBRE = re.compile(
+            rf"(?<![a-záéíóúüñ])(?:{alts})(?![a-záéíóúüñ])",
+            re.IGNORECASE,
+        )
+    return _RE_BEBIDA_NOMBRE
+
 
 _PRECIO_MINIMO = 0.01
 _MARCA_INICIAL = "Inventario inicial (coste aprox.)"
@@ -137,8 +159,42 @@ def resolver_unidad(unidad_excel: object, nombre: str) -> str:
 
 
 def es_bebida_por_nombre(nombre: str) -> bool:
-    n = (nombre or "").casefold()
-    return any(p in n for p in _PALABRAS_BEBIDA)
+    """Heurística por nombre con límites de palabra (no substring ciego)."""
+    n = (nombre or "").strip()
+    if not n:
+        return False
+    # Exclusiones explícitas de alimentos que contienen raíces de bebida.
+    nl = n.casefold()
+    if nl.startswith("aguacate") or "aguacate" in nl:
+        return False
+    if "cola de rape" in nl or "cola rape" in nl:
+        return False
+    return _re_bebida_nombre().search(n) is not None
+
+
+def es_bebida_por_categoria_y_nombre(*, categoria: str, nombre: str) -> bool:
+    """Regla canónica: categoría Excel 104 = bebidas; el nombre solo refuerza."""
+    cat = str(categoria or "").strip()
+    if cat == "104":
+        return True
+    if cat and cat != "104":
+        # Fuera de 104 no se marca bebida por nombre (evita aguacate/queso…).
+        return False
+    return es_bebida_por_nombre(nombre)
+
+
+def limpiar_nombre_producto(nombre: str) -> str:
+    """Quita códigos C00000x embebidos en el nombre comercial (el código va en ``codigo``)."""
+    import re
+
+    n = (nombre or "").strip()
+    if not n:
+        return n
+    # «NOMBRE (C00000603)» o «NOMBRE C00000603»
+    n = re.sub(r"\s*\(\s*C0*\d+\s*\)\s*$", "", n, flags=re.IGNORECASE)
+    n = re.sub(r"\s+C0*\d{5,}\s*$", "", n, flags=re.IGNORECASE)
+    n = re.sub(r"\s{2,}", " ", n).strip(" -–—")
+    return n or (nombre or "").strip()
 
 
 def map_categoria_a_ubicacion_codigo(categoria: str) -> str:
@@ -355,12 +411,8 @@ def importar_productos_desde_excel(
             continue
 
         unidad = resolver_unidad(fila.get("unidad"), nombre)
-        es_bebida = es_bebida_por_nombre(nombre)
-        if cat == "104" and not es_bebida:
-            es_bebida = any(
-                k in nombre.casefold()
-                for k in ("whisky", "ron", "licor", "vino", "zumo", "amaretto", "jack")
-            )
+        nombre = limpiar_nombre_producto(nombre)
+        es_bebida = es_bebida_por_categoria_y_nombre(categoria=cat, nombre=nombre)
 
         ubi_cod = map_categoria_a_ubicacion_codigo(cat)
         ubi_id = ubi_mapa.get(ubi_cod)

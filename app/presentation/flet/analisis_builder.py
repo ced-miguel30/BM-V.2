@@ -157,6 +157,36 @@ def build_analisis_panel(
     if pestana == "Bebidas":
         subtab = _normalizar_subtab_bebidas(subtab)
 
+    # #region agent log
+    def _agent_dbg(location: str, message: str, data: dict, hypothesis_id: str) -> None:
+        try:
+            import json
+            import time
+            from pathlib import Path
+
+            payload = {
+                "sessionId": "ec0c23",
+                "runId": "pre-fix",
+                "hypothesisId": hypothesis_id,
+                "location": location,
+                "message": message,
+                "data": data,
+                "timestamp": int(time.time() * 1000),
+            }
+            log_path = Path(__file__).resolve().parents[3] / "debug-ec0c23.log"
+            with log_path.open("a", encoding="utf-8") as fh:
+                fh.write(json.dumps(payload, ensure_ascii=False) + "\n")
+        except Exception:
+            pass
+
+    _agent_dbg(
+        "analisis_builder.py:build_analisis_panel",
+        "build_enter",
+        {"hub": hub, "pestana": pestana, "subtab": subtab, "tipo": tipo_filtro},
+        "B",
+    )
+    # #endregion
+
     try:
         if hub == "consumo":
             panel = _build_consumo(
@@ -187,8 +217,31 @@ def build_analisis_panel(
                 cmp_b_hasta=cmp_b_hasta,
                 export_mensaje=export_mensaje,
             )
+        # #region agent log
+        _agent_dbg(
+            "analisis_builder.py:build_analisis_panel",
+            "build_ok",
+            {
+                "hub": hub,
+                "pestana": pestana,
+                "subtab_out": panel.subtab,
+                "aviso": (panel.aviso or "")[:200],
+                "n_metrics": len(panel.metrics),
+                "n_rankings": len(panel.rankings),
+            },
+            "B",
+        )
+        # #endregion
         return panel
     except AuthorizationError as exc:
+        # #region agent log
+        _agent_dbg(
+            "analisis_builder.py:build_analisis_panel",
+            "build_auth_error",
+            {"hub": hub, "pestana": pestana, "subtab": subtab, "err": str(exc)[:200]},
+            "B",
+        )
+        # #endregion
         return AnalisisPanelVM(
             hub=hub,
             pestana=pestana,
@@ -199,6 +252,23 @@ def build_analisis_panel(
             aviso=str(exc) or "Acceso denegado a costes.",
         )
     except Exception as exc:  # noqa: BLE001
+        # #region agent log
+        import traceback as _tb
+
+        _agent_dbg(
+            "analisis_builder.py:build_analisis_panel",
+            "build_exception_soft",
+            {
+                "hub": hub,
+                "pestana": pestana,
+                "subtab": subtab,
+                "type": type(exc).__name__,
+                "str": str(exc)[:300],
+                "tb": _tb.format_exc()[-1800:],
+            },
+            "B",
+        )
+        # #endregion
         return AnalisisPanelVM(
             hub=hub,
             pestana=pestana,

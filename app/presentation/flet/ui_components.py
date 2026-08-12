@@ -238,6 +238,12 @@ def auth_card(
     """Tarjeta de acceso centrada (login / bootstrap / launcher)."""
     body: list[ft.Control] = [
         ft.Text(
+            t.APP_NAME,
+            size=28,
+            weight=ft.FontWeight.BOLD,
+            color=t.NAVY,
+        ),
+        ft.Text(
             t.HOTEL_DEFAULT,
             size=12,
             weight=ft.FontWeight.W_600,
@@ -245,9 +251,9 @@ def auth_card(
         ),
         ft.Text(
             titulo,
-            size=26,
-            weight=ft.FontWeight.BOLD,
-            color=t.NAVY,
+            size=18,
+            weight=ft.FontWeight.W_600,
+            color=t.DARK_TEXT,
         ),
     ]
     if subtitulo:

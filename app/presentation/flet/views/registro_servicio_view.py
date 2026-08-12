@@ -16,7 +16,7 @@ def build_catalog_result_controls(
     screen: TerminalScreenVM,
     *,
     on_add_receta: Callable[[str], None],
-    on_add_producto: Callable[[str], None],
+    on_add_producto: Callable[..., None],
 ) -> list[ft.Control]:
     """Solo filas del catálogo (sin campo de búsqueda)."""
     if not screen.catalogo:
@@ -42,7 +42,7 @@ def build_registro_view(
     on_select_servicio: Callable[[str], None],
     on_search: Callable[[str], None],
     on_add_receta: Callable[[str], None],
-    on_add_producto: Callable[[str], None],
+    on_add_producto: Callable[..., None],
     on_qty_receta: Callable[[str, float], None],
     on_qty_producto: Callable[[str, float], None],
     on_remove_receta: Callable[[str], None],
@@ -56,6 +56,7 @@ def build_registro_view(
     on_set_motivo_anulacion: Callable[[str], None] | None = None,
     on_cancelar_anulacion: Callable[[], None] | None = None,
     on_confirmar_anulacion: Callable[[], None] | None = None,
+    on_catalogo_tipo: Callable[[str], None] | None = None,
     narrow: bool = False,
     search_field: ft.TextField | None = None,
     catalog_results: ft.Column | None = None,
@@ -65,6 +66,7 @@ def build_registro_view(
     on_set_motivo_anulacion = on_set_motivo_anulacion or (lambda _m: None)
     on_cancelar_anulacion = on_cancelar_anulacion or (lambda: None)
     on_confirmar_anulacion = on_confirmar_anulacion or (lambda: None)
+    on_catalogo_tipo = on_catalogo_tipo or (lambda _t: None)
     activo = next((s for s in screen.servicios if s.activo), None)
     etiqueta_activo = activo.etiqueta if activo else "—"
     n_cesta = 0 if screen.cesta is None or screen.cesta.vacia else len(screen.cesta.lineas)
@@ -81,7 +83,7 @@ def build_registro_view(
                     tight=True,
                     controls=[
                         ft.Text(
-                            ui_theme.HOTEL_DEFAULT,
+                            ui_theme.APP_NAME,
                             color=ui_theme.GOLD_SOFT,
                             size=12,
                             weight=ft.FontWeight.W_600,
@@ -93,7 +95,7 @@ def build_registro_view(
                             weight=ft.FontWeight.BOLD,
                         ),
                         ft.Text(
-                            f"Servicio activo: {etiqueta_activo}",
+                            f"{ui_theme.HOTEL_DEFAULT} · Servicio: {etiqueta_activo}",
                             color="#B8C4D6",
                             size=13,
                         ),
@@ -159,6 +161,37 @@ def build_registro_view(
     else:
         search_field.on_change = lambda e: on_search(e.control.value or "")
 
+    tipo_activo = getattr(screen, "catalogo_tipo", None) or "recetas"
+    tipo_chips = ft.Row(
+        wrap=True,
+        spacing=8,
+        controls=[
+            (
+                ft.FilledButton(
+                    lab,
+                    style=ft.ButtonStyle(
+                        padding=ft.Padding.symmetric(horizontal=16, vertical=12),
+                    ),
+                    on_click=lambda _e, t=tid: on_catalogo_tipo(t),
+                )
+                if tipo_activo == tid
+                else ft.OutlinedButton(
+                    lab,
+                    style=ft.ButtonStyle(
+                        padding=ft.Padding.symmetric(horizontal=16, vertical=12),
+                    ),
+                    on_click=lambda _e, t=tid: on_catalogo_tipo(t),
+                )
+            )
+            for tid, lab in (
+                ("recetas", "Recetas"),
+                ("productos", "Extras / productos"),
+                ("bebidas", "Bebidas"),
+                ("todas", "Todas"),
+            )
+        ],
+    )
+
     huespedes_row: list[ft.Control] = []
     if screen.requiere_huespedes:
         huespedes_row = [
@@ -206,13 +239,17 @@ def build_registro_view(
         catalog_results.controls = result_controls
 
     catalog_col = ft.Column(
-        spacing=ui_theme.SPACE_MD,
+        spacing=ui_theme.SPACE_SM,
         expand=True,
         controls=[
-            ui.section_header("Catálogo", "Pulse Añadir · búsqueda parcial"),
+            ui.section_header(
+                "Catálogo",
+                f"{len(screen.catalogo)} ítems · Recetas del Excel · Productos/extras por cantidad",
+            ),
+            tipo_chips,
             search_field,
             *huespedes_row,
-            catalog_results,
+            ft.Container(content=catalog_results, expand=True),
         ],
     )
 
@@ -241,6 +278,26 @@ def build_registro_view(
                         on_minus=lambda _e, lid=lin.line_id: on_qty_producto(lid, -1),
                         on_plus=lambda _e, lid=lin.line_id: on_qty_producto(lid, 1),
                         on_remove=lambda _e, lid=lin.line_id: on_remove_producto(lid),
+                    )
+                )
+        extras = getattr(screen.cesta, "extras_sugeridos", ()) or ()
+        if extras:
+            basket_inner.append(
+                ft.Text(
+                    "Extras de la receta",
+                    size=12,
+                    weight=ft.FontWeight.W_600,
+                    color=ui_theme.MID_GRAY,
+                )
+            )
+            for ex in extras:
+                label = f"+ {ex.nombre} ({ex.cantidad:g} {ex.unidad})".strip()
+                basket_inner.append(
+                    ft.OutlinedButton(
+                        label,
+                        on_click=lambda _e, pid=ex.producto_id, c=ex.cantidad: on_add_producto(
+                            pid, c
+                        ),
                     )
                 )
         basket_inner.append(
@@ -281,6 +338,7 @@ def build_registro_view(
         on_confirmar_anulacion=on_confirmar_anulacion,
     )
 
+    # Área catálogo+cesta con altura usable y scroll interno del listado.
     if narrow:
         body = ft.Column(
             expand=True,
@@ -291,16 +349,20 @@ def build_registro_view(
     else:
         body = ft.Column(
             expand=True,
+            scroll=ft.ScrollMode.AUTO,
             spacing=ui_theme.SPACE_MD,
             controls=[
-                ft.Row(
-                    expand=True,
-                    vertical_alignment=ft.CrossAxisAlignment.START,
-                    spacing=ui_theme.SPACE_MD,
-                    controls=[
-                        ft.Container(content=catalog_col, expand=True),
-                        basket_col,
-                    ],
+                ft.Container(
+                    height=520,
+                    content=ft.Row(
+                        expand=True,
+                        vertical_alignment=ft.CrossAxisAlignment.START,
+                        spacing=ui_theme.SPACE_MD,
+                        controls=[
+                            ft.Container(content=catalog_col, expand=True),
+                            basket_col,
+                        ],
+                    ),
                 ),
                 historial_box,
             ],
@@ -470,37 +532,50 @@ def _historial_section(
 def _catalog_tile(
     item: CatalogItemVM,
     on_add_receta: Callable[[str], None],
-    on_add_producto: Callable[[str], None],
+    on_add_producto: Callable[..., None],
 ) -> ft.Control:
     is_receta = item.tipo == "receta"
-    badge = "Receta" if is_receta else "Producto"
+    if is_receta:
+        badge = "Receta"
+        tone = "info"
+    elif item.es_bebida:
+        badge = "Bebida"
+        tone = "ok"
+    else:
+        badge = "Producto / extra"
+        tone = "neutral"
     detail = item.categoria if is_receta else (
-        f"{item.stock_disponible:g} {item.unidad}".strip()
+        f"Stock {item.stock_disponible:g} {item.unidad}".strip()
         if item.stock_disponible is not None
-        else item.unidad
+        else (item.unidad or "")
     )
     return ft.Container(
         bgcolor=ui_theme.SURFACE_CARD,
-        padding=ui_theme.SPACE_MD,
+        padding=ft.Padding.symmetric(horizontal=16, vertical=14),
         border_radius=ui_theme.RADIUS_MD,
         border=ft.Border.all(1, ui_theme.BORDER),
         content=ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=12,
             controls=[
                 ft.Column(
-                    spacing=2,
+                    spacing=4,
                     expand=True,
                     tight=True,
                     controls=[
-                        ui.status_chip(badge, tone="info" if is_receta else "neutral"),
+                        ui.status_chip(badge, tone=tone),
                         ft.Text(
                             item.nombre,
-                            size=15,
+                            size=18,
                             weight=ft.FontWeight.BOLD,
                             color=ui_theme.DARK_TEXT,
                         ),
-                        ft.Text(detail or "", size=12, color=ui_theme.MID_GRAY),
+                        ft.Text(
+                            detail or ("1 ración al añadir" if is_receta else ""),
+                            size=14,
+                            color=ui_theme.MID_GRAY,
+                        ),
                     ],
                 ),
                 ui.primary_button(

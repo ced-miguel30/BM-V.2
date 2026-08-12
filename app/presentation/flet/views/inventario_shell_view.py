@@ -99,7 +99,7 @@ def build_inventario_shell(
                     tight=True,
                     controls=[
                         ft.Text(
-                            ui_theme.HOTEL_DEFAULT,
+                            ui_theme.APP_NAME,
                             color=ui_theme.GOLD_SOFT,
                             size=12,
                             weight=ft.FontWeight.W_600,
@@ -111,7 +111,7 @@ def build_inventario_shell(
                             weight=ft.FontWeight.BOLD,
                         ),
                         ft.Text(
-                            f"Identidad: {screen.session.actor_label}",
+                            f"{ui_theme.HOTEL_DEFAULT} · {screen.session.actor_label}",
                             color="#B8C4D6",
                             size=13,
                         ),
@@ -228,7 +228,12 @@ def build_inventario_shell(
             nav,
             feedback,
             ft.Container(
-                content=body,
+                content=ft.Column(
+                    expand=True,
+                    scroll=ft.ScrollMode.AUTO,
+                    spacing=0,
+                    controls=[body],
+                ),
                 expand=True,
                 bgcolor=ui_theme.SURFACE,
                 padding=ui_theme.SPACE_LG,

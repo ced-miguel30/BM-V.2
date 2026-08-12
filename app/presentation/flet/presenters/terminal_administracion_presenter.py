@@ -611,6 +611,7 @@ class TerminalAdministracionPresenter:
         porciones_estandar: float | None,
         *,
         servicios_disponibles: list[str] | None = None,
+        extras_sugeridos: list[tuple[str, float]] | None = None,
     ) -> AdminScreenVM:
         if not self._gate_admin():
             return self.screen()
@@ -635,6 +636,7 @@ class TerminalAdministracionPresenter:
                 categoria,
                 servicios_disponibles=servicios_disponibles,
                 porciones_estandar=porciones_estandar,
+                extras_sugeridos=extras_sugeridos,
             )
             self._feedback = map_admin_operacion_feedback(ok=r.ok, mensaje_backend=r.mensaje)
             if r.ok:
@@ -2207,9 +2209,17 @@ class TerminalAdministracionPresenter:
 
             lista_rec = []
             puede_valorar = session_tiene_permiso(Permiso.CONSULTAR_COSTES)
+            from app.core.services.text_search import coincide_busqueda as _coincide
+            from app.core.services.data_service import get_repository as _get_repo_noms
+
+            repo_noms = _get_repo_noms() if self._seccion == "recetas" else None
             for r in receta_service.listar_recetas(solo_activas=False):
                 if self._seccion == "recetas" and q:
-                    if q not in r.nombre.lower() and q not in r.id.lower():
+                    if not (
+                        _coincide(r.nombre, q)
+                        or q in r.id.lower()
+                        or q in (r.categoria.value if hasattr(r.categoria, "value") else str(r.categoria)).lower()
+                    ):
                         continue
                 cat = r.categoria.value if hasattr(r.categoria, "value") else str(r.categoria)
                 teorico_fmt = ""
@@ -2230,6 +2240,14 @@ class TerminalAdministracionPresenter:
                             teorico_fmt = ""
                     except Exception:  # noqa: BLE001
                         teorico_fmt = ""
+                extras = list(getattr(r, "extras_sugeridos", None) or [])
+                extras_noms: list[str] = []
+                if repo_noms is not None:
+                    for ex in extras[:4]:
+                        p = repo_noms.get_producto(ex.producto_id)
+                        extras_noms.append(
+                            f"{p.nombre if p else ex.producto_id}×{float(ex.cantidad):g}"
+                        )
                 lista_rec.append(
                     RecetaAdminVM(
                         id=r.id,
@@ -2242,6 +2260,8 @@ class TerminalAdministracionPresenter:
                         teorico_fmt=teorico_fmt,
                         por_racion_fmt=por_racion_fmt,
                         teorico_completo=teorico_completo,
+                        n_extras=len(extras),
+                        extras_resumen=", ".join(extras_noms),
                     )
                 )
             recetas = tuple(lista_rec)

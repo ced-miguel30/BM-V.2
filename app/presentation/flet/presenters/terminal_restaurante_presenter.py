@@ -24,6 +24,7 @@ from app.presentation.flet import session_bridge
 from app.presentation.flet.mappers import map_error_recuperable, map_resultado
 from app.presentation.flet.viewmodels import (
     AnulacionPendienteVM,
+    BasketExtraVM,
     BasketLineVM,
     BasketVM,
     CatalogItemVM,
@@ -77,6 +78,7 @@ class TerminalRestaurantePresenter:
     def __init__(self) -> None:
         self._servicio_id: str | None = None
         self._busqueda: str = ""
+        self._catalogo_tipo: str = "recetas"  # todas|recetas|productos|bebidas
         self._feedback: FeedbackVM | None = None
         self._confirmando: bool = False
         self._anulando: bool = False
@@ -125,6 +127,7 @@ class TerminalRestaurantePresenter:
             return self.screen()
         self._servicio_id = servicio_id
         self._busqueda = ""
+        self._catalogo_tipo = "recetas" if servicio_id != "bebidas" else "todas"
         self._anulacion_pendiente = None
         self._feedback = FeedbackVM(
             ok=True, mensaje=f"Servicio activo: {_binds()[servicio_id].etiqueta}"
@@ -133,6 +136,12 @@ class TerminalRestaurantePresenter:
 
     def set_busqueda(self, texto: str) -> TerminalScreenVM:
         self._busqueda = (texto or "").strip()
+        return self.screen()
+
+    def set_catalogo_tipo(self, tipo: str) -> TerminalScreenVM:
+        clave = (tipo or "").strip().lower()
+        if clave in ("todas", "recetas", "productos", "bebidas"):
+            self._catalogo_tipo = clave
         return self.screen()
 
     def set_num_huespedes(self, n: int) -> TerminalScreenVM:
@@ -407,6 +416,7 @@ class TerminalRestaurantePresenter:
             num_huespedes=self._num_huespedes,
             requiere_huespedes=requiere_h,
             busqueda=self._busqueda,
+            catalogo_tipo=self._catalogo_tipo,
             historial=historial,
             anulacion_pendiente=self._anulacion_pendiente,
             anulando=self._anulando,
@@ -494,43 +504,59 @@ class TerminalRestaurantePresenter:
     def _catalogo(self, bind: _ServicioBind) -> tuple[CatalogItemVM, ...]:
         items: list[CatalogItemVM] = []
         q = self._busqueda
-        recetas = listar_recetas(servicio_disponible=bind.id, solo_activas=True)
-        cats = getattr(bind.api, "categorias_permitidas", None)
-        if cats is None and bind.id == "desayuno":
-            from app.core.models import CategoriaReceta
+        tipo = self._catalogo_tipo or "recetas"
+        incluir_recetas = tipo in ("todas", "recetas")
+        incluir_productos = tipo in ("todas", "productos", "bebidas")
+        if incluir_recetas:
+            recetas = listar_recetas(servicio_disponible=bind.id, solo_activas=True)
+            cats = getattr(bind.api, "categorias_permitidas", None)
+            if cats is None and bind.id == "desayuno":
+                from app.core.models import CategoriaReceta
 
-            cats = [CategoriaReceta.DESAYUNO, CategoriaReceta.BEBIDAS]
-        if cats is not None:
-            allowed = set(cats)
-            recetas = [r for r in recetas if r.categoria in allowed]
-        for r in recetas:
-            if q and not coincide_busqueda(r.nombre, q):
-                continue
-            items.append(
-                CatalogItemVM(
-                    id=r.id,
-                    nombre=r.nombre,
-                    tipo="receta",
-                    categoria=getattr(r.categoria, "value", str(r.categoria)),
+                cats = [CategoriaReceta.DESAYUNO]
+            if cats is not None:
+                allowed = set(cats)
+                recetas = [r for r in recetas if r.categoria in allowed]
+            for r in recetas:
+                if q and not coincide_busqueda(r.nombre, q):
+                    continue
+                items.append(
+                    CatalogItemVM(
+                        id=r.id,
+                        nombre=r.nombre,
+                        tipo="receta",
+                        categoria=getattr(r.categoria, "value", str(r.categoria)),
+                    )
                 )
-            )
-        for p in bind.api.productos_catalogo(q):
-            items.append(
-                CatalogItemVM(
-                    id=p["id"],
-                    nombre=p["nombre"],
-                    tipo="producto_directo",
-                    unidad=str(p.get("unidad") or ""),
-                    stock_disponible=(
-                        float(p["stock"]) if p.get("stock") is not None else None
-                    ),
-                    es_bebida=bool(p.get("es_bebida")),
+        if incluir_productos:
+            for p in bind.api.productos_catalogo(q):
+                es_bebida = bool(p.get("es_bebida"))
+                if tipo == "bebidas" and not es_bebida:
+                    continue
+                if tipo == "productos" and es_bebida:
+                    continue
+                items.append(
+                    CatalogItemVM(
+                        id=p["id"],
+                        nombre=p["nombre"],
+                        tipo="producto_directo",
+                        unidad=str(p.get("unidad") or ""),
+                        stock_disponible=(
+                            float(p["stock"]) if p.get("stock") is not None else None
+                        ),
+                        es_bebida=es_bebida,
+                    )
                 )
-            )
         return tuple(items)
 
     def _cesta_vm(self, bind: _ServicioBind) -> BasketVM:
+        from app.core.services.receta_service import obtener_receta
+        from app.core.services.data_service import get_repository
+
         lineas: list[BasketLineVM] = []
+        extras: list[BasketExtraVM] = []
+        vistos_extra: set[str] = set()
+        repo = get_repository()
         for g in bind.api.get_cesta_recetas():
             lineas.append(
                 BasketLineVM(
@@ -541,6 +567,25 @@ class TerminalRestaurantePresenter:
                     unidad="raciones",
                 )
             )
+            rec = obtener_receta(getattr(g, "receta_id", "") or "")
+            if rec is None:
+                continue
+            for ex in getattr(rec, "extras_sugeridos", None) or []:
+                if ex.producto_id in vistos_extra:
+                    continue
+                prod = repo.get_producto(ex.producto_id)
+                if prod is None or not getattr(prod, "activo", True):
+                    continue
+                vistos_extra.add(ex.producto_id)
+                extras.append(
+                    BasketExtraVM(
+                        producto_id=ex.producto_id,
+                        nombre=prod.nombre,
+                        cantidad=float(ex.cantidad),
+                        unidad=str(getattr(prod, "unidad", "") or ""),
+                        receta_nombre=rec.nombre,
+                    )
+                )
         for lin in bind.api.get_cesta():
             lineas.append(
                 BasketLineVM(
@@ -556,4 +601,5 @@ class TerminalRestaurantePresenter:
             vacia=bind.api.cesta_vacia(),
             servicio_id=bind.id,
             servicio_etiqueta=bind.etiqueta,
+            extras_sugeridos=tuple(extras),
         )

@@ -261,7 +261,7 @@ def build_admin_shell(
                     tight=True,
                     controls=[
                         ft.Text(
-                            hotel,
+                            ui_theme.APP_NAME,
                             color=ui_theme.GOLD_SOFT,
                             size=12,
                             weight=ft.FontWeight.W_600,
@@ -273,7 +273,7 @@ def build_admin_shell(
                             weight=ft.FontWeight.BOLD,
                         ),
                         ft.Text(
-                            f"{screen.session.actor_label} · {screen.session.role}",
+                            f"{hotel} · {screen.session.actor_label} · {screen.session.role}",
                             color="#B8C4D6",
                             size=13,
                         ),
@@ -618,6 +618,12 @@ def _panel_analisis(screen: AdminScreenVM, **cbs) -> ft.Control:
             ],
         )
 
+    return _panel_analisis_body(screen, panel, **cbs)
+
+
+def _panel_analisis_body(
+    screen: AdminScreenVM, panel: AnalisisPanelVM, **cbs
+) -> ft.Control:
     hub_id = panel.hub
     hub_labels = [ANALISIS_HUB_LABEL[h] for h in ANALISIS_HUBS]
     pestanas = {
@@ -1402,15 +1408,25 @@ def _panel_recetas(screen: AdminScreenVM, **cbs) -> ft.Control:
     ]
     ing_prod = ft.Dropdown(label="Producto", options=prod_opts, expand=True)
     ing_cant = ft.TextField(label="Cantidad", width=110, value="1")
+    extra_prod = ft.Dropdown(label="Extra (producto)", options=prod_opts, expand=True)
+    extra_cant = ft.TextField(label="Cant. extra", width=110, value="1")
     servicios = ft.TextField(
         label="Servicios (coma)",
-        hint_text="desayuno,comida",
+        hint_text="Vacío = mismo que la categoría (desayuno/comida/…)",
         expand=True,
     )
     pendientes: list[tuple[str, str, float]] = []
+    extras_pend: list[tuple[str, str, float]] = []
     ings_col = ft.Column(spacing=4, tight=True)
+    extras_col = ft.Column(spacing=4, tight=True)
     ings_hint = ft.Text(
         "Añada uno o más ingredientes antes de crear.",
+        size=12,
+        color=ui_theme.MID_GRAY,
+        italic=True,
+    )
+    extras_hint = ft.Text(
+        "Opcional: extras ofrecidos en terminal (huevo, cherry…).",
         size=12,
         color=ui_theme.MID_GRAY,
         italic=True,
@@ -1446,10 +1462,49 @@ def _panel_recetas(screen: AdminScreenVM, **cbs) -> ft.Control:
         except Exception:  # noqa: BLE001 — aún no montado
             pass
 
+    def _paint_extras() -> None:
+        if not extras_pend:
+            extras_col.controls = [extras_hint]
+        else:
+            rows: list[ft.Control] = []
+            for i, (pid, pnombre, cant) in enumerate(extras_pend):
+                rows.append(
+                    ft.Container(
+                        padding=ft.Padding.symmetric(horizontal=8, vertical=4),
+                        bgcolor=ui_theme.LIGHT_GRAY,
+                        border_radius=ui_theme.RADIUS_SM,
+                        content=ft.Row(
+                            controls=[
+                                ft.Text(
+                                    f"Extra {pnombre} · {cant:g}",
+                                    expand=True,
+                                    size=12,
+                                ),
+                                ft.IconButton(
+                                    icon=ft.Icons.CLOSE,
+                                    icon_size=16,
+                                    tooltip="Quitar",
+                                    on_click=lambda _e, idx=i: _quitar_extra(idx),
+                                ),
+                            ]
+                        ),
+                    )
+                )
+            extras_col.controls = rows
+        try:
+            extras_col.update()
+        except Exception:  # noqa: BLE001
+            pass
+
     def _quitar(idx: int) -> None:
         if 0 <= idx < len(pendientes):
             pendientes.pop(idx)
             _paint_ings()
+
+    def _quitar_extra(idx: int) -> None:
+        if 0 <= idx < len(extras_pend):
+            extras_pend.pop(idx)
+            _paint_extras()
 
     def _add_ing(_e=None) -> None:
         pid = ing_prod.value or ""
@@ -1460,7 +1515,6 @@ def _panel_recetas(screen: AdminScreenVM, **cbs) -> ft.Control:
         if not pid or cant <= 0:
             return
         label = next((p.nombre for p in screen.productos if p.id == pid), pid)
-        # Sustituir si ya está
         for i, (opid, _, _) in enumerate(pendientes):
             if opid == pid:
                 pendientes[i] = (pid, label, cant)
@@ -1469,6 +1523,23 @@ def _panel_recetas(screen: AdminScreenVM, **cbs) -> ft.Control:
         pendientes.append((pid, label, cant))
         _paint_ings()
 
+    def _add_extra(_e=None) -> None:
+        pid = extra_prod.value or ""
+        try:
+            cant = float((extra_cant.value or "0").replace(",", "."))
+        except ValueError:
+            cant = 0.0
+        if not pid or cant <= 0:
+            return
+        label = next((p.nombre for p in screen.productos if p.id == pid), pid)
+        for i, (opid, _, _) in enumerate(extras_pend):
+            if opid == pid:
+                extras_pend[i] = (pid, label, cant)
+                _paint_extras()
+                return
+        extras_pend.append((pid, label, cant))
+        _paint_extras()
+
     def _crear(_e=None) -> None:
         try:
             porc = float((porciones.value or "1").replace(",", "."))
@@ -1476,7 +1547,6 @@ def _panel_recetas(screen: AdminScreenVM, **cbs) -> ft.Control:
             porc = None
         ings = [(pid, cant) for pid, _, cant in pendientes]
         if not ings:
-            # Compat: un solo ingrediente del dropdown si la lista está vacía
             try:
                 cant = float((ing_cant.value or "0").replace(",", "."))
             except ValueError:
@@ -1485,13 +1555,18 @@ def _panel_recetas(screen: AdminScreenVM, **cbs) -> ft.Control:
             if pid and cant > 0:
                 ings = [(pid, cant)]
         serv = [s.strip() for s in (servicios.value or "").split(",") if s.strip()]
-        on_crear(nombre.value or "", ings, categoria.value or "", porc, serv)
+        extras = [(pid, cant) for pid, _, cant in extras_pend]
+        on_crear(nombre.value or "", ings, categoria.value or "", porc, serv, extras)
 
     _paint_ings()
+    _paint_extras()
 
     alta = ft.ExpansionTile(
         title=ft.Text("Nueva receta", weight=ft.FontWeight.W_600),
-        subtitle=ft.Text("Varios ingredientes · rendimiento · servicios", size=12),
+        subtitle=ft.Text(
+            "Ingredientes · extras · categoría = servicio por defecto",
+            size=12,
+        ),
         expanded=False,
         controls=[
             ft.Container(
@@ -1515,6 +1590,20 @@ def _panel_recetas(screen: AdminScreenVM, **cbs) -> ft.Control:
                             ]
                         ),
                         ings_col,
+                        ui.section_header("Extras ofrecidos"),
+                        ft.Row(
+                            controls=[
+                                extra_prod,
+                                extra_cant,
+                                ui.secondary_button(
+                                    "Añadir extra",
+                                    lambda: _add_extra(),
+                                    icon=ft.Icons.ADD,
+                                    disabled=screen.mutando,
+                                ),
+                            ]
+                        ),
+                        extras_col,
                         ui.primary_button(
                             "Crear receta",
                             lambda: _crear(),
@@ -1533,16 +1622,18 @@ def _panel_recetas(screen: AdminScreenVM, **cbs) -> ft.Control:
     ]
 
     return ft.Column(
+        expand=True,
         spacing=ui_theme.SPACE_MD,
+        scroll=ft.ScrollMode.AUTO,
         controls=[
             ui.page_header(
                 "Recetas",
-                "Rendimiento, ingredientes y valoración teórica (si tiene permiso)",
+                f"{len(screen.recetas)} recetas · rendimiento, extras y valoración teórica",
             ),
             alta,
             _filtro_row(screen, on_filtro),
             (
-                ft.Row(wrap=True, spacing=ui_theme.SPACE_MD, controls=lista)
+                ft.Column(spacing=ui_theme.SPACE_SM, controls=lista)
                 if lista
                 else ui.empty_state("Sin recetas", "Cree la primera receta del servicio.")
             ),
@@ -1578,6 +1669,10 @@ def _receta_row(
         f"{r.categoria} · {r.n_ingredientes} ing. · "
         f"porciones {r.porciones_estandar if r.porciones_estandar is not None else '—'}"
     )
+    if getattr(r, "n_extras", 0):
+        meta += f" · {r.n_extras} extras"
+        if getattr(r, "extras_resumen", ""):
+            meta += f" ({r.extras_resumen})"
     if r.servicios:
         meta += f" · {', '.join(r.servicios)}"
     valor_lines: list[ft.Control] = []
@@ -1591,7 +1686,6 @@ def _receta_row(
             ft.Text(detalle, size=12, color=ui_theme.TEAL, weight=ft.FontWeight.W_500)
         )
     return ft.Container(
-        width=320,
         bgcolor=ui_theme.SURFACE_CARD if r.activo else ui_theme.LIGHT_GRAY,
         padding=ui_theme.SPACE_MD,
         border_radius=ui_theme.RADIUS_MD,

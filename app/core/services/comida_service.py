@@ -6,7 +6,7 @@ from app.core.services.servicio_registro_service import crear_servicio
 servicio = crear_servicio(
     "comida",
     "comida",
-    [CategoriaReceta.COMIDA, CategoriaReceta.BEBIDAS],
+    [CategoriaReceta.COMIDA],
     titulo_documento="Registro de Comida",
 )
 
@@ -42,5 +42,5 @@ fecha_mas_antigua = servicio.fecha_mas_antigua
 registros_exportables = servicio.registros_exportables
 configuracion_exportacion = servicio.configuracion_exportacion
 
-CATEGORIAS_RECETA = [CategoriaReceta.COMIDA, CategoriaReceta.BEBIDAS]
+CATEGORIAS_RECETA = [CategoriaReceta.COMIDA]
 PASO_CANTIDAD = 0.5

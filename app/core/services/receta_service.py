@@ -7,6 +7,7 @@ from app.core.models import (
     CATEGORIA_RECETA_LABEL,
     AppData,
     CategoriaReceta,
+    ExtraSugeridoReceta,
     IngredienteReceta,
     Receta,
 )
@@ -19,6 +20,7 @@ from app.core.services.stock_service import (
     disponible_en_servicio,
     normalizar_servicios_disponibles,
 )
+from app.core.models.enums import SERVICIOS_DISPONIBLES_VALORES
 from app.core.services.unidad_service import cantidad_y_unidad_mostrar, resolver_presentacion
 from app.core.storage.session_store import get_data, persist_data
 
@@ -212,6 +214,46 @@ def _exigir_rendimiento(porciones_estandar: float | None) -> ResultadoOperacion 
     return None
 
 
+def _servicios_por_defecto(categoria: CategoriaReceta) -> list[str]:
+    """Si no se configuran servicios, la categoría define el registro permitido."""
+    clave = categoria.value
+    if clave in SERVICIOS_DISPONIBLES_VALORES:
+        return [clave]
+    return []
+
+
+def _normalizar_extras_sugeridos(
+    data: AppData,
+    extras: list[ExtraSugeridoReceta] | list[tuple[str, float]] | None,
+) -> list[ExtraSugeridoReceta] | ResultadoOperacion:
+    if not extras:
+        return []
+    repo = DataRepository(data)
+    out: list[ExtraSugeridoReceta] = []
+    vistos: set[str] = set()
+    for item in extras:
+        if isinstance(item, ExtraSugeridoReceta):
+            pid, cant = item.producto_id, float(item.cantidad)
+        else:
+            pid, cant = str(item[0]), float(item[1])
+        pid = (pid or "").strip()
+        if not pid or cant <= 0:
+            continue
+        if pid in vistos:
+            continue
+        producto = repo.get_producto(pid)
+        if not producto:
+            return ResultadoOperacion(False, f"Extra: producto «{pid}» no existe.")
+        if not getattr(producto, "activo", True):
+            return ResultadoOperacion(
+                False,
+                f"Extra: el producto «{producto.nombre}» está inactivo.",
+            )
+        vistos.add(pid)
+        out.append(ExtraSugeridoReceta(pid, cant))
+    return out
+
+
 def listar_recetas(
     categoria: CategoriaReceta | None = None,
     categorias: list[CategoriaReceta] | None = None,
@@ -284,6 +326,7 @@ def crear_receta(
     *,
     servicios_disponibles: list[str] | None = None,
     porciones_estandar: float | None = None,
+    extras_sugeridos: list[ExtraSugeridoReceta] | list[tuple[str, float]] | None = None,
 ) -> ResultadoOperacion:
     from app.core.auth.permissions import Permiso
     from app.core.auth.usecase_guard import usecase_deny_message
@@ -312,14 +355,23 @@ def crear_receta(
     if error:
         return error
 
+    extras_n = _normalizar_extras_sugeridos(data, extras_sugeridos)
+    if isinstance(extras_n, ResultadoOperacion):
+        return extras_n
+
+    servicios = normalizar_servicios_disponibles(servicios_disponibles)
+    if not servicios:
+        servicios = _servicios_por_defecto(categoria_resuelta)
+
     receta = Receta(
         _next_id("r", [r.id for r in data.recetas]),
         nombre,
         ingredientes,
         categoria_resuelta,
-        normalizar_servicios_disponibles(servicios_disponibles),
+        servicios,
         normalizar_porciones_estandar(porciones_estandar),
         activo=True,
+        extras_sugeridos=extras_n,
     )
     data.recetas.append(receta)
     _registrar_actividad(
@@ -342,6 +394,7 @@ def editar_receta(
     *,
     servicios_disponibles: list[str] | None = None,
     porciones_estandar: float | None = None,
+    extras_sugeridos: list[ExtraSugeridoReceta] | list[tuple[str, float]] | None = None,
 ) -> ResultadoOperacion:
     from app.core.auth.permissions import Permiso
     from app.core.auth.usecase_guard import usecase_deny_message
@@ -377,7 +430,21 @@ def editar_receta(
     if error:
         return error
 
-    servicios = normalizar_servicios_disponibles(servicios_disponibles)
+    extras_n: list[ExtraSugeridoReceta]
+    if extras_sugeridos is None:
+        extras_n = list(getattr(receta, "extras_sugeridos", None) or [])
+    else:
+        extras_res = _normalizar_extras_sugeridos(data, extras_sugeridos)
+        if isinstance(extras_res, ResultadoOperacion):
+            return extras_res
+        extras_n = extras_res
+
+    if servicios_disponibles is None:
+        servicios = list(receta.servicios_disponibles or [])
+    else:
+        servicios = normalizar_servicios_disponibles(servicios_disponibles)
+        if not servicios:
+            servicios = _servicios_por_defecto(categoria_resuelta)
     rendimiento = normalizar_porciones_estandar(porciones_estandar)
     solo_categoria = (
         receta.nombre == nombre
@@ -385,6 +452,7 @@ def editar_receta(
         and receta.categoria != categoria_resuelta
         and receta.servicios_disponibles == servicios
         and receta.porciones_estandar == rendimiento
+        and list(getattr(receta, "extras_sugeridos", []) or []) == extras_n
     )
     categoria_anterior = receta.categoria
 
@@ -393,6 +461,7 @@ def editar_receta(
     receta.categoria = categoria_resuelta
     receta.servicios_disponibles = servicios
     receta.porciones_estandar = rendimiento
+    receta.extras_sugeridos = extras_n
 
     if solo_categoria:
         detalle = (

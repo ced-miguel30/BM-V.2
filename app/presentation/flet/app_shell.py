@@ -76,6 +76,7 @@ class TerminalRestauranteShell:
                 on_set_motivo_anulacion=self._on_set_motivo,
                 on_cancelar_anulacion=self._on_cancelar_anulacion,
                 on_confirmar_anulacion=self._on_confirmar_anulacion,
+                on_catalogo_tipo=self._on_catalogo_tipo,
                 narrow=narrow,
                 search_field=None,
                 catalog_results=None,
@@ -121,14 +122,17 @@ class TerminalRestauranteShell:
         self.presenter.set_busqueda(texto)
         self.update_catalog_only()
 
-    def _on_add_receta(self, rid: str) -> None:
-        self.presenter.anadir_receta(
-            rid, 4.0 if self.presenter.screen().servicio_activo == "desayuno" else 1.0
-        )
+    def _on_catalogo_tipo(self, tipo: str) -> None:
+        self.presenter.set_catalogo_tipo(tipo)
         self.refresh()
 
-    def _on_add_producto(self, pid: str) -> None:
-        self.presenter.anadir_producto_directo(pid, 1.0)
+    def _on_add_receta(self, rid: str) -> None:
+        # Siempre 1 ración al añadir; el usuario ajusta en cesta si hace falta.
+        self.presenter.anadir_receta(rid, 1.0)
+        self.refresh()
+
+    def _on_add_producto(self, pid: str, cantidad: float = 1.0) -> None:
+        self.presenter.anadir_producto_directo(pid, float(cantidad))
         self.refresh()
 
     def _on_qty_receta(self, gid: str, delta: float) -> None:

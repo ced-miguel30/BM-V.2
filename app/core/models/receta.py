@@ -21,6 +21,14 @@ class IngredienteReceta:
 
 
 @dataclass
+class ExtraSugeridoReceta:
+    """Producto ofrecido como extra al servir esta receta (cantidad por defecto)."""
+
+    producto_id: str
+    cantidad: float = 1.0
+
+
+@dataclass
 class Receta:
     id: str
     nombre: str
@@ -35,3 +43,5 @@ class Receta:
     porciones_estandar: float | None = None
     # Soft-disable: inactiva no entra en registros nuevos; históricos intactos.
     activo: bool = True
+    # Extras configurables (p. ej. huevo extra, cherry tomatoes) con cantidad.
+    extras_sugeridos: list[ExtraSugeridoReceta] = field(default_factory=list)

@@ -56,7 +56,7 @@ from app.core.models.merma import LineaMerma, RegistroMerma, ResponsableMerma
 from app.core.models.movimiento import MovimientoInventario
 from app.core.models.producto import Producto
 from app.core.models.proveedor import Impuesto, Proveedor, RelacionProductoProveedor
-from app.core.models.receta import IngredienteReceta, Receta
+from app.core.models.receta import ExtraSugeridoReceta, IngredienteReceta, Receta
 from app.core.models.recuento import EstadoRecuento, LineaRecuento, SesionRecuento
 from app.core.models.registro_servicio import (
     ExtraRecetaServicio,
@@ -92,6 +92,7 @@ __all__ = [
     "ExtraRecetaDesayuno",
     "ExtraRecetaServicio",
     "Impuesto",
+    "ExtraSugeridoReceta",
     "IngredienteReceta",
     "LineaAjuste",
     "LineaDesayuno",

@@ -17,7 +17,27 @@ from app.presentation.flet.views.admin_shell_view import (
 
 
 def _agent_dbg(location: str, message: str, data: dict, hypothesis_id: str) -> None:
-    return
+    # #region agent log
+    try:
+        import json
+        import time
+        from pathlib import Path
+
+        payload = {
+            "sessionId": "ec0c23",
+            "runId": "pre-fix",
+            "hypothesisId": hypothesis_id,
+            "location": location,
+            "message": message,
+            "data": data,
+            "timestamp": int(time.time() * 1000),
+        }
+        log_path = Path(__file__).resolve().parents[3] / "debug-ec0c23.log"
+        with log_path.open("a", encoding="utf-8") as fh:
+            fh.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+    # #endregion
 
 
 class TerminalAdministracionShell:
@@ -244,16 +264,45 @@ class TerminalAdministracionShell:
         self.refresh()
 
     def _on_analisis_pestana(self, pestana: str) -> None:
+        # #region agent log
         _agent_dbg(
             "app_shell_administracion.py:_on_analisis_pestana",
             "pestana_click",
-            {"pestana": pestana},
-            "B",
+            {
+                "pestana": pestana,
+                "hub": getattr(self.presenter, "_analisis_hub", None),
+                "subtab_before": getattr(self.presenter, "_analisis_subtab", None),
+            },
+            "A",
         )
+        # #endregion
         self.presenter.set_analisis_pestana(pestana)
+        # #region agent log
+        _agent_dbg(
+            "app_shell_administracion.py:_on_analisis_pestana",
+            "pestana_after_set",
+            {
+                "pestana": getattr(self.presenter, "_analisis_pestana", None),
+                "subtab_after": getattr(self.presenter, "_analisis_subtab", None),
+            },
+            "A",
+        )
+        # #endregion
         self.refresh()
 
     def _on_analisis_subtab(self, subtab: str) -> None:
+        # #region agent log
+        _agent_dbg(
+            "app_shell_administracion.py:_on_analisis_subtab",
+            "subtab_click",
+            {
+                "subtab": subtab,
+                "pestana": getattr(self.presenter, "_analisis_pestana", None),
+                "hub": getattr(self.presenter, "_analisis_hub", None),
+            },
+            "A",
+        )
+        # #endregion
         self.presenter.set_analisis_subtab(subtab)
         self.refresh()
 
@@ -339,6 +388,7 @@ class TerminalAdministracionShell:
         categoria: str,
         porciones: float | None,
         servicios: list[str],
+        extras: list[tuple[str, float]] | None = None,
     ) -> None:
         self.presenter.crear_receta(
             nombre,
@@ -346,6 +396,7 @@ class TerminalAdministracionShell:
             categoria,
             porciones,
             servicios_disponibles=servicios,
+            extras_sugeridos=extras,
         )
         self.refresh()
 

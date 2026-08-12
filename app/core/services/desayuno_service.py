@@ -83,7 +83,8 @@ _cesta = crear_motor_cesta("desayuno")
 # de tipo_servicio): Desayuno + Bebidas.
 from app.core.models import CategoriaReceta
 
-CATEGORIAS_RECETA_DESAYUNO = [CategoriaReceta.DESAYUNO, CategoriaReceta.BEBIDAS]
+# Solo categoría Desayuno: las bebidas van al servicio Bebidas (y productos sueltos).
+CATEGORIAS_RECETA_DESAYUNO = [CategoriaReceta.DESAYUNO]
 
 
 @dataclass
