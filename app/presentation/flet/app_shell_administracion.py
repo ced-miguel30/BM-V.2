@@ -73,6 +73,7 @@ class TerminalAdministracionShell:
                 on_proponer_desactivar=self._on_desactivar,
                 on_proponer_reactivar=self._on_reactivar,
                 on_crear_producto=self._on_crear_producto,
+                on_importar_productos=self._on_importar_productos,
                 on_desactivar_producto=self._on_desactivar_producto,
                 on_reactivar_producto=self._on_reactivar_producto,
                 on_crear_receta=self._on_crear_receta,
@@ -217,6 +218,10 @@ class TerminalAdministracionShell:
             es_bebida=es_bebida,
             servicios_disponibles=servicios,
         )
+        self.refresh()
+
+    def _on_importar_productos(self) -> None:
+        self.presenter.importar_productos_precio()
         self.refresh()
 
     def _on_desactivar_producto(self, pid: str) -> None:

@@ -493,6 +493,32 @@ class TerminalAdministracionPresenter:
             self._mutando = False
         return self.screen()
 
+    def importar_productos_precio(self, path: str | None = None) -> AdminScreenVM:
+        """Importa cats 101–108 desde Productos PRECIO.xlsx (coste aproximado)."""
+        if not self._gate_admin():
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        from app.core.services.productos_import_service import (
+            importar_productos_desde_excel,
+            mensaje_resumen,
+            ruta_excel_precio_default,
+        )
+
+        excel = path or str(ruta_excel_precio_default())
+        self._mutando = True
+        try:
+            resumen = importar_productos_desde_excel(excel, dry_run=False)
+            msg = mensaje_resumen(resumen)
+            ok = resumen.productos_creados > 0 or resumen.omitidos_existentes > 0
+            if resumen.errores and resumen.productos_creados == 0:
+                ok = False
+            self._feedback = map_admin_operacion_feedback(ok=ok, mensaje_backend=msg)
+            self._seccion = "productos"
+        finally:
+            self._mutando = False
+        return self.screen()
+
     def proponer_desactivar_producto(self, producto_id: str) -> AdminScreenVM:
         if not self._gate_admin():
             return self.screen()

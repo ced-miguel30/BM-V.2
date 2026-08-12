@@ -271,6 +271,7 @@ def build_admin_shell(
     on_analisis_tipo: Callable[[str], None] | None = None,
     on_analisis_comparacion: Callable[[str, str, str, str], None] | None = None,
     on_analisis_export: Callable[[], None] | None = None,
+    on_importar_productos: Callable[[], None] | None = None,
     on_confirmar: Callable[[], None] = None,  # type: ignore[assignment]
     on_cancelar: Callable[[], None] = None,  # type: ignore[assignment]
     on_volver_menu: Callable[[], None] | None = None,
@@ -349,6 +350,7 @@ def build_admin_shell(
         on_crear_producto=on_crear_producto,
         on_desactivar_producto=on_desactivar_producto,
         on_reactivar_producto=on_reactivar_producto,
+        on_importar_productos=on_importar_productos,
         on_crear_receta=on_crear_receta,
         on_desactivar_receta=on_desactivar_receta,
         on_reactivar_receta=on_reactivar_receta,
@@ -834,6 +836,7 @@ def _panel_productos(screen: AdminScreenVM, **cbs) -> ft.Control:
     on_crear = cbs["on_crear_producto"]
     on_des = cbs["on_desactivar_producto"]
     on_rea = cbs["on_reactivar_producto"]
+    on_import = cbs.get("on_importar_productos")
     nombre = ft.TextField(label="Nombre", expand=True)
     codigo = ft.TextField(label="Código", width=140)
     unidad = ft.Dropdown(
@@ -876,12 +879,29 @@ def _panel_productos(screen: AdminScreenVM, **cbs) -> ft.Control:
     if not lista:
         lista = [ft.Text("No hay productos.", color=ft.Colors.OUTLINE)]
 
+    import_row: list[ft.Control] = [
+        ft.Text(
+            "Importar desde docs/Productos PRECIO.xlsx (cats 101–108; coste aproximado).",
+            size=12,
+            color=ft.Colors.ON_SURFACE_VARIANT,
+        ),
+    ]
+    if on_import is not None:
+        import_row.append(
+            ft.OutlinedButton(
+                "Importar Productos (PRECIO)",
+                disabled=screen.mutando,
+                on_click=lambda _e: on_import(),
+            )
+        )
+
     return ft.Column(
         spacing=12,
         controls=[
             ft.Text("Productos", size=18, weight=ft.FontWeight.BOLD),
             ft.Row(controls=[nombre, codigo, unidad, stock, tipo]),
             ft.Row(controls=[es_bebida, servicios, ft.FilledButton("Crear", disabled=screen.mutando, on_click=_crear)]),
+            ft.Row(controls=import_row, wrap=True),
             _filtro_row(screen, on_filtro),
             *lista,
         ],

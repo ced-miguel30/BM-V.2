@@ -10,6 +10,7 @@ Uso (desde la raíz del repo, con venv activo)::
     python -m app.core.deploy.cli restore PATH --confirm RESTORE
     python -m app.core.deploy.cli diagnose
     python -m app.core.deploy.cli release-writer
+    python -m app.core.deploy.cli import-productos --path "docs/Productos PRECIO.xlsx"
 """
 
 from __future__ import annotations
@@ -272,7 +273,79 @@ def build_parser() -> argparse.ArgumentParser:
     )
     br.add_argument("destino")
     br.add_argument("--overwrite", action="store_true")
+    ip = sub.add_parser(
+        "import-productos",
+        help="Importa productos+stock desde Productos PRECIO.xlsx (cats 101–108)",
+    )
+    ip.add_argument(
+        "--path",
+        default="",
+        help="Ruta al Excel (por defecto docs/Productos PRECIO.xlsx)",
+    )
+    ip.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Simula sin escribir productos/lotes",
+    )
     return p
+
+
+def cmd_import_productos(args: argparse.Namespace) -> int:
+    from app.core.auth.session import AuthSession, clear_test_session, set_test_session
+    from app.core.deploy.runtime import prepare_runtime
+    from app.core.services.productos_import_service import (
+        importar_productos_desde_excel,
+        mensaje_resumen,
+        ruta_excel_precio_default,
+    )
+    from app.core.storage.demo_files import set_demo_file_override
+
+    _enable_ops_env()
+    cfg = load_deploy_config()
+    ensure_instance_dirs(cfg)
+    log_path, handlers = _setup_logging(cfg.logs_dir, "import_productos")
+    try:
+        path = Path(args.path) if str(args.path or "").strip() else ruta_excel_precio_default()
+        if not path.is_file():
+            print(f"ERROR: no existe el Excel: {path}", file=sys.stderr)
+            return 2
+        prepare_runtime(role="import-productos", acquire_lock=cfg.is_hotel)
+        if not cfg.data_file_is_demo():
+            set_demo_file_override(cfg.data_file)
+        # Ops CLI: sesión Dirección temporal (no Streamlit).
+        set_test_session(
+            AuthSession(
+                authenticated=True,
+                actor_type="usuario",
+                actor_id="ops_import",
+                actor_label="Ops import-productos",
+                role="direccion",
+                session_id="ops-import-productos",
+                login_at="1970-01-01T00:00:00",
+                login="ops_import",
+            )
+        )
+        try:
+            resumen = importar_productos_desde_excel(path, dry_run=bool(args.dry_run))
+        finally:
+            clear_test_session()
+            if not cfg.data_file_is_demo():
+                set_demo_file_override(None)
+        msg = mensaje_resumen(resumen)
+        print(msg)
+        print(f"data_file={cfg.data_file}")
+        logging.getLogger("bm.deploy").info(
+            "import_productos %s path=%s data=%s", msg, path, cfg.data_file
+        )
+        if (
+            resumen.errores
+            and resumen.productos_creados == 0
+            and resumen.omitidos_existentes == 0
+        ):
+            return 1
+        return 0
+    finally:
+        _close_logging(handlers)
 
 
 def cmd_migrate(args: argparse.Namespace) -> int:
@@ -327,6 +400,8 @@ def main(argv: list[str] | None = None) -> int:
             return cmd_migrate(args)
         if args.command == "build-release":
             return cmd_build_release(args)
+        if args.command == "import-productos":
+            return cmd_import_productos(args)
         parser.error(f"Comando desconocido: {args.command}")
         return 2
     except (DeployConfigError, WriterLockError) as exc:
