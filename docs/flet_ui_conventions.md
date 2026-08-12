@@ -27,6 +27,13 @@ Grupos en `ADMIN_NAV_GROUPS`: Resumen, Operación, Catálogos, Administración.
 ## Paneles alineados al kit
 
 Usar `page_header`, `card_surface`, `metric_card`, `status_chip`, `empty_state`,
-`alert_banner` y botones del kit en: Inicio, Análisis, Productos, Recetas,
-Usuarios, Responsables, Proveedores, Compras, Documentos, Inventario,
-Catálogos, Actividad, Backup, Configuración, Servidor y Zona de peligro.
+`alert_banner`, `auth_card` / `branded_page` y botones del kit en: Launcher,
+login/bootstrap Admin, Inicio, Análisis, Productos, Recetas, Usuarios,
+Responsables, Proveedores, Compras, Documentos, Inventario, Catálogos,
+Actividad, Backup, Configuración, Servidor y Zona de peligro.
+
+## Confianza operativa
+
+- Cabecera Admin: hotel + actor + feedback con `alert_banner`.
+- Inicio: instancia (ruta de datos), alertas acotadas, actividad reciente.
+- Inventario inicial: ubicación destino + eco del último lote en pantalla.

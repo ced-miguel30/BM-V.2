@@ -138,7 +138,9 @@ class LauncherShell:
         self._mounted_destino = destino
         self.page.theme_mode = ft.ThemeMode.LIGHT
         self.page.padding = 0
-        self.page.bgcolor = ft.Colors.GREY_100
+        from app.presentation.flet.theme import SURFACE
+
+        self.page.bgcolor = SURFACE
         if destino == DESTINO_RESTAURANTE:
             from app.presentation.flet.app_shell import TerminalRestauranteShell
 

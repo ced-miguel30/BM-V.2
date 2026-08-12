@@ -6,6 +6,8 @@ from typing import Callable
 
 import flet as ft
 
+from app.presentation.flet import theme as ui_theme
+from app.presentation.flet import ui_components as ui
 from app.presentation.flet.views.menu_nav import build_volver_al_menu_button
 
 
@@ -14,44 +16,28 @@ def build_login_view(
     on_enter: Callable[[], None],
     on_volver_menu: Callable[[], None] | None = None,
 ) -> ft.Control:
-    controls: list[ft.Control] = [
-        ft.Text(
-            "Terminal Restaurante",
-            size=36,
-            weight=ft.FontWeight.BOLD,
-        ),
-        ft.Text(
-            "Registro operativo de Desayuno, Comida, Cena y Bebidas.",
-            size=16,
-            color=ft.Colors.ON_SURFACE_VARIANT,
-            text_align=ft.TextAlign.CENTER,
-        ),
-        ft.Container(height=12),
-        ft.FilledButton(
+    extras: list[ft.Control] = [
+        ui.primary_button(
             "Entrar al terminal",
+            on_enter,
             icon=ft.Icons.LOGIN,
-            style=ft.ButtonStyle(padding=20),
-            on_click=lambda _e: on_enter(),
         ),
     ]
     volver = build_volver_al_menu_button(on_volver_menu)
     if volver is not None:
-        controls.append(volver)
-    controls.append(
+        extras.append(volver)
+    extras.append(
         ft.Text(
-            "Sin menús administrativos ni información económica.",
-            size=12,
-            color=ft.Colors.OUTLINE,
+            "Registro de Desayuno, Comida, Cena y Bebidas · sin economía en pantalla",
+            size=11,
+            color=ui_theme.MID_GRAY,
+            text_align=ft.TextAlign.CENTER,
         )
     )
-    return ft.Container(
-        expand=True,
-        alignment=ft.Alignment.CENTER,
-        padding=24,
-        content=ft.Column(
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=20,
-            tight=True,
-            controls=controls,
-        ),
+    return ui.branded_page(
+        ui.auth_card(
+            *extras,
+            titulo="Terminal Restaurante",
+            subtitulo="Servicio de sala · registro operativo",
+        )
     )

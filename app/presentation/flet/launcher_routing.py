@@ -48,8 +48,8 @@ DESTINOS: tuple[DestinoLauncher, ...] = (
 )
 
 STREAMLIT_ADMIN_HINT = (
-    "Administración operativa en Flet (maestros, compras albarán/factura, "
-    "documentos, adjuntos, rectificativas, backup). Streamlit queda como legado."
+    "Consola Flet: maestros, compras, documentos y backup. "
+    "Streamlit queda como referencia visual, no como operación diaria."
 )
 
 

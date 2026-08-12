@@ -6,6 +6,8 @@ from typing import Callable
 
 import flet as ft
 
+from app.presentation.flet import theme as ui_theme
+from app.presentation.flet import ui_components as ui
 from app.presentation.flet.viewmodels import CatalogItemVM, TerminalScreenVM
 from app.presentation.flet.views.menu_nav import header_action_row
 
@@ -66,24 +68,31 @@ def build_registro_view(
     etiqueta_activo = activo.etiqueta if activo else "—"
 
     header = ft.Container(
-        bgcolor=ft.Colors.BLUE_GREY_900,
-        padding=ft.Padding.symmetric(horizontal=16, vertical=12),
+        bgcolor=ui_theme.NAVY,
+        padding=ft.Padding.symmetric(horizontal=20, vertical=14),
         content=ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             controls=[
                 ft.Column(
                     spacing=2,
+                    tight=True,
                     controls=[
                         ft.Text(
+                            ui_theme.HOTEL_DEFAULT,
+                            color=ui_theme.GOLD_SOFT,
+                            size=12,
+                            weight=ft.FontWeight.W_600,
+                        ),
+                        ft.Text(
                             "Terminal Restaurante",
-                            color=ft.Colors.WHITE,
+                            color=ui_theme.WHITE,
                             size=20,
                             weight=ft.FontWeight.BOLD,
                         ),
                         ft.Text(
                             f"Servicio activo: {etiqueta_activo}",
-                            color=ft.Colors.LIGHT_BLUE_100,
-                            size=14,
+                            color="#B8C4D6",
+                            size=13,
                         ),
                     ],
                 ),
@@ -104,7 +113,8 @@ def build_registro_view(
                 s.etiqueta,
                 style=ft.ButtonStyle(
                     padding=18,
-                    bgcolor=ft.Colors.TEAL_700 if s.activo else None,
+                    bgcolor=ui_theme.TEAL if s.activo else None,
+                    color=ui_theme.WHITE if s.activo else ui_theme.NAVY,
                 ),
                 on_click=lambda _e, sid=s.id: on_select_servicio(sid),
             )
@@ -115,10 +125,12 @@ def build_registro_view(
     feedback = ft.Container()
     if screen.feedback:
         feedback = ft.Container(
-            bgcolor=ft.Colors.GREEN_100 if screen.feedback.ok else ft.Colors.RED_100,
-            padding=12,
-            border_radius=8,
-            content=ft.Text(screen.feedback.mensaje, size=14),
+            padding=ft.Padding.symmetric(horizontal=16, vertical=8),
+            bgcolor=ui_theme.SURFACE,
+            content=ui.alert_banner(
+                screen.feedback.mensaje,
+                severity="success" if screen.feedback.ok else "error",
+            ),
         )
 
     if search_field is None:

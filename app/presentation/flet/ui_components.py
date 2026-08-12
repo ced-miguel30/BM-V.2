@@ -206,3 +206,92 @@ def secondary_button(
         ),
         on_click=lambda _e: on_click(),
     )
+
+
+def table_header_row(*labels: tuple[str, float | None]) -> ft.Control:
+    """Cabecera de tabla: cada ítem es (texto, width|None=expand)."""
+    cols: list[ft.Control] = []
+    for texto, width in labels:
+        cols.append(
+            ft.Text(
+                texto,
+                size=11,
+                weight=ft.FontWeight.W_600,
+                color=t.MID_GRAY,
+                width=width,
+                expand=width is None,
+            )
+        )
+    return ft.Container(
+        padding=ft.Padding.symmetric(horizontal=12, vertical=8),
+        bgcolor=t.LIGHT_GRAY,
+        content=ft.Row(controls=cols),
+    )
+
+
+def auth_card(
+    *controls: ft.Control,
+    titulo: str,
+    subtitulo: str = "",
+    width: float = 440,
+) -> ft.Control:
+    """Tarjeta de acceso centrada (login / bootstrap / launcher)."""
+    body: list[ft.Control] = [
+        ft.Text(
+            t.HOTEL_DEFAULT,
+            size=12,
+            weight=ft.FontWeight.W_600,
+            color=t.GOLD,
+        ),
+        ft.Text(
+            titulo,
+            size=26,
+            weight=ft.FontWeight.BOLD,
+            color=t.NAVY,
+        ),
+    ]
+    if subtitulo:
+        body.append(
+            ft.Text(
+                subtitulo,
+                size=t.TYPE_BODY,
+                color=t.MID_GRAY,
+                text_align=ft.TextAlign.CENTER,
+            )
+        )
+    body.extend(controls)
+    return ft.Container(
+        width=width,
+        bgcolor=t.SURFACE_CARD,
+        border_radius=t.RADIUS_LG,
+        border=ft.Border.all(1, t.BORDER),
+        padding=t.SPACE_XL,
+        shadow=ft.BoxShadow(
+            blur_radius=24,
+            color="#0B1F3A18",
+            offset=ft.Offset(0, 8),
+        ),
+        content=ft.Column(
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=t.SPACE_MD,
+            tight=True,
+            controls=body,
+        ),
+    )
+
+
+def branded_page(*controls: ft.Control) -> ft.Control:
+    """Fondo de superficie para pantallas de entrada."""
+    return ft.Container(
+        expand=True,
+        bgcolor=t.SURFACE,
+        alignment=ft.Alignment.CENTER,
+        padding=t.SPACE_XL,
+        content=ft.Column(
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            spacing=t.SPACE_LG,
+            tight=True,
+            scroll=ft.ScrollMode.AUTO,
+            controls=list(controls),
+        ),
+    )

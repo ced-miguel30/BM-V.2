@@ -6,11 +6,19 @@ from typing import Callable
 
 import flet as ft
 
+from app.presentation.flet import theme as ui_theme
+from app.presentation.flet import ui_components as ui
 from app.presentation.flet.launcher_routing import (
     STREAMLIT_ADMIN_HINT,
     DestinoLauncher,
     listar_destinos,
 )
+
+_DESTINO_ICONS: dict[str, object] = {
+    "restaurante": ft.Icons.RESTAURANT_MENU,
+    "inventario": ft.Icons.INVENTORY_2_OUTLINED,
+    "administracion": ft.Icons.ADMIN_PANEL_SETTINGS_OUTLINED,
+}
 
 
 def build_launcher_view(
@@ -29,54 +37,41 @@ def build_launcher_view(
             ft.Row(
                 alignment=ft.MainAxisAlignment.CENTER,
                 controls=[
-                    ft.ProgressRing(width=28, height=28),
-                    ft.Text("Abriendo destino…", size=14),
+                    ft.ProgressRing(width=28, height=28, color=ui_theme.NAVY),
+                    ft.Text(
+                        "Abriendo destino…",
+                        size=14,
+                        color=ui_theme.DARK_TEXT,
+                    ),
                 ],
             )
         )
     if error:
-        feedback.append(
-            ft.Container(
-                bgcolor=ft.Colors.RED_100,
-                padding=12,
-                border_radius=8,
-                content=ft.Text(error, color=ft.Colors.RED_900, size=14),
-            )
+        feedback.append(ui.alert_banner(error, severity="error"))
+
+    return ui.branded_page(
+        ui.auth_card(
+            *feedback,
+            *cards,
+            ft.Text(
+                f"{ui_theme.APP_NAME} · {ui_theme.APP_SUBTITLE}",
+                size=11,
+                color=ui_theme.MID_GRAY,
+                text_align=ft.TextAlign.CENTER,
+            ),
+            ft.Text(
+                STREAMLIT_ADMIN_HINT,
+                size=11,
+                color=ui_theme.MID_GRAY,
+                text_align=ft.TextAlign.CENTER,
+            ),
+            titulo="Consola operativa",
+            subtitulo=(
+                "Elija la vertical. La selección no inicia sesión "
+                "ni concede permisos."
+            ),
+            width=480,
         )
-    return ft.Container(
-        expand=True,
-        alignment=ft.Alignment.CENTER,
-        padding=24,
-        content=ft.Column(
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=16,
-            tight=True,
-            scroll=ft.ScrollMode.AUTO,
-            controls=[
-                ft.Text("BM — Launcher Flet", size=32, weight=ft.FontWeight.BOLD),
-                ft.Text(
-                    "Elija una vertical operativa. La selección no inicia sesión ni concede permisos.",
-                    size=14,
-                    color=ft.Colors.ON_SURFACE_VARIANT,
-                    text_align=ft.TextAlign.CENTER,
-                ),
-                *feedback,
-                *cards,
-                ft.Container(height=8),
-                ft.Text(
-                    STREAMLIT_ADMIN_HINT,
-                    size=12,
-                    color=ft.Colors.OUTLINE,
-                    text_align=ft.TextAlign.CENTER,
-                ),
-                ft.Text(
-                    "Comando Streamlit documentado: streamlit run app/main.py",
-                    size=11,
-                    color=ft.Colors.OUTLINE,
-                    text_align=ft.TextAlign.CENTER,
-                ),
-            ],
-        ),
     )
 
 
@@ -86,22 +81,47 @@ def _destino_boton(
     on_select: Callable[[str], None],
     disabled: bool,
 ) -> ft.Control:
+    icon = _DESTINO_ICONS.get(dest.id, ft.Icons.ARROW_FORWARD)
     return ft.Container(
-        width=420,
-        bgcolor=ft.Colors.SURFACE,
-        border=ft.Border.all(1, ft.Colors.BLUE_GREY_300),
-        border_radius=10,
-        padding=16,
-        content=ft.Column(
-            spacing=8,
-            tight=True,
+        width=400,
+        bgcolor=ui_theme.SURFACE,
+        border=ft.Border.all(1, ui_theme.BORDER),
+        border_radius=ui_theme.RADIUS_MD,
+        padding=ui_theme.SPACE_MD,
+        content=ft.Row(
+            spacing=ui_theme.SPACE_MD,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
-                ft.Text(dest.etiqueta, size=18, weight=ft.FontWeight.BOLD),
-                ft.Text(dest.descripcion, size=13, color=ft.Colors.ON_SURFACE_VARIANT),
-                ft.FilledButton(
-                    f"Abrir {dest.etiqueta}",
+                ft.Container(
+                    width=44,
+                    height=44,
+                    bgcolor=ui_theme.NAVY,
+                    border_radius=ui_theme.RADIUS_SM,
+                    alignment=ft.Alignment.CENTER,
+                    content=ft.Icon(icon, color=ui_theme.WHITE, size=22),
+                ),
+                ft.Column(
+                    spacing=2,
+                    tight=True,
+                    expand=True,
+                    controls=[
+                        ft.Text(
+                            dest.etiqueta,
+                            size=16,
+                            weight=ft.FontWeight.BOLD,
+                            color=ui_theme.DARK_TEXT,
+                        ),
+                        ft.Text(
+                            dest.descripcion,
+                            size=12,
+                            color=ui_theme.MID_GRAY,
+                        ),
+                    ],
+                ),
+                ui.primary_button(
+                    "Abrir",
+                    lambda did=dest.id: on_select(did),
                     disabled=disabled,
-                    on_click=lambda _e, did=dest.id: on_select(did),
                 ),
             ],
         ),

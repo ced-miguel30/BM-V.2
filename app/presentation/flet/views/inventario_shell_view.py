@@ -7,6 +7,8 @@ from typing import Callable
 import flet as ft
 
 from app.core.models import EstadoAlerta
+from app.presentation.flet import theme as ui_theme
+from app.presentation.flet import ui_components as ui
 from app.presentation.flet.inventory_viewmodels import InventarioScreenVM
 from app.presentation.flet.views.menu_nav import (
     build_volver_al_menu_button,
@@ -19,42 +21,30 @@ def build_login_inventario(
     on_enter: Callable[[], None],
     on_volver_menu: Callable[[], None] | None = None,
 ) -> ft.Control:
-    controls: list[ft.Control] = [
-        ft.Text("Terminal Inventario", size=36, weight=ft.FontWeight.BOLD),
-        ft.Text(
-            "Alertas, caducidad, merma, stock por ubicación, traslados, "
-            "recuentos y ajustes.",
-            size=16,
-            color=ft.Colors.ON_SURFACE_VARIANT,
-            text_align=ft.TextAlign.CENTER,
-        ),
-        ft.FilledButton(
+    extras: list[ft.Control] = [
+        ui.primary_button(
             "Entrar al terminal",
+            on_enter,
             icon=ft.Icons.INVENTORY_2,
-            style=ft.ButtonStyle(padding=20),
-            on_click=lambda _e: on_enter(),
         ),
     ]
     volver = build_volver_al_menu_button(on_volver_menu)
     if volver is not None:
-        controls.append(volver)
-    controls.append(
+        extras.append(volver)
+    extras.append(
         ft.Text(
-            "Sin costes, compras ni administración.",
-            size=12,
-            color=ft.Colors.OUTLINE,
+            "Alertas, caducidad, merma, stock, traslados y recuentos · sin costes",
+            size=11,
+            color=ui_theme.MID_GRAY,
+            text_align=ft.TextAlign.CENTER,
         )
     )
-    return ft.Container(
-        expand=True,
-        alignment=ft.Alignment.CENTER,
-        padding=24,
-        content=ft.Column(
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=20,
-            tight=True,
-            controls=controls,
-        ),
+    return ui.branded_page(
+        ui.auth_card(
+            *extras,
+            titulo="Terminal Inventario",
+            subtitulo="Control de stock y merma operativa",
+        )
     )
 
 
@@ -97,24 +87,31 @@ def build_inventario_shell(
     narrow: bool = False,
 ) -> ft.Control:
     header = ft.Container(
-        bgcolor=ft.Colors.BLUE_GREY_900,
-        padding=ft.Padding.symmetric(horizontal=16, vertical=12),
+        bgcolor=ui_theme.NAVY,
+        padding=ft.Padding.symmetric(horizontal=20, vertical=14),
         content=ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
             controls=[
                 ft.Column(
                     spacing=2,
+                    tight=True,
                     controls=[
                         ft.Text(
+                            ui_theme.HOTEL_DEFAULT,
+                            color=ui_theme.GOLD_SOFT,
+                            size=12,
+                            weight=ft.FontWeight.W_600,
+                        ),
+                        ft.Text(
                             "Terminal Inventario",
-                            color=ft.Colors.WHITE,
+                            color=ui_theme.WHITE,
                             size=20,
                             weight=ft.FontWeight.BOLD,
                         ),
                         ft.Text(
                             f"Identidad: {screen.session.actor_label}",
-                            color=ft.Colors.LIGHT_BLUE_100,
-                            size=14,
+                            color="#B8C4D6",
+                            size=13,
                         ),
                     ],
                 ),
@@ -135,7 +132,8 @@ def build_inventario_shell(
                 e.etiqueta,
                 style=ft.ButtonStyle(
                     padding=16,
-                    bgcolor=ft.Colors.TEAL_700 if e.activo else None,
+                    bgcolor=ui_theme.TEAL if e.activo else None,
+                    color=ui_theme.WHITE if e.activo else ui_theme.NAVY,
                 ),
                 on_click=lambda _e, eid=e.id: on_espacio(eid),
             )
@@ -146,10 +144,12 @@ def build_inventario_shell(
     feedback = ft.Container()
     if screen.feedback:
         feedback = ft.Container(
-            bgcolor=ft.Colors.GREEN_100 if screen.feedback.ok else ft.Colors.RED_100,
-            padding=12,
-            border_radius=8,
-            content=ft.Text(screen.feedback.mensaje, size=14),
+            padding=ft.Padding.symmetric(horizontal=16, vertical=8),
+            bgcolor=ui_theme.SURFACE,
+            content=ui.alert_banner(
+                screen.feedback.mensaje,
+                severity="success" if screen.feedback.ok else "error",
+            ),
         )
 
     body: ft.Control

@@ -67,24 +67,19 @@ def build_bootstrap_admin(
     feedback_mensaje: str = "",
     on_volver_menu: Callable[[], None] | None = None,
 ) -> ft.Control:
-    nombre_tf = ft.TextField(label="Nombre visible", autofocus=True, width=320)
-    login_tf = ft.TextField(label="Identificador de acceso", width=320)
+    nombre_tf = ft.TextField(label="Nombre visible", autofocus=True, width=360)
+    login_tf = ft.TextField(label="Identificador de acceso", width=360)
     pass_tf = ft.TextField(
         label="Contraseña",
         password=True,
         can_reveal_password=True,
-        width=320,
+        width=360,
     )
     pass2_tf = ft.TextField(
         label="Repetir contraseña",
         password=True,
         can_reveal_password=True,
-        width=320,
-    )
-    err = (
-        ft.Text(feedback_mensaje, color=ft.Colors.RED_700)
-        if feedback_mensaje
-        else ft.Container()
+        width=360,
     )
 
     def _submit(_e=None) -> None:
@@ -96,45 +91,36 @@ def build_bootstrap_admin(
         )
 
     pass2_tf.on_submit = _submit
-    controls: list[ft.Control] = [
-        ft.Text(
-            "Configuración inicial",
-            size=32,
-            weight=ft.FontWeight.BOLD,
-        ),
-        ft.Text(
-            "No hay un usuario Dirección con credenciales. "
-            "Cree el acceso administrativo inicial.",
-            size=14,
-            color=ft.Colors.AMBER_900,
-            text_align=ft.TextAlign.CENTER,
-            width=420,
-        ),
-        nombre_tf,
-        login_tf,
-        pass_tf,
-        pass2_tf,
-        ft.FilledButton(
-            "Crear acceso Dirección",
-            icon=ft.Icons.PERSON_ADD,
-            style=ft.ButtonStyle(padding=18),
-            on_click=_submit,
-        ),
-        err,
-    ]
+    extras: list[ft.Control] = []
+    if feedback_mensaje:
+        extras.append(ui.alert_banner(feedback_mensaje, severity="error"))
+    extras.extend(
+        [
+            ui.alert_banner(
+                "No hay usuario Dirección con credenciales. "
+                "Cree el acceso administrativo inicial.",
+                severity="warning",
+            ),
+            nombre_tf,
+            login_tf,
+            pass_tf,
+            pass2_tf,
+            ui.primary_button(
+                "Crear acceso Dirección",
+                _submit,
+                icon=ft.Icons.PERSON_ADD,
+            ),
+        ]
+    )
     volver = build_volver_al_menu_button(on_volver_menu)
     if volver is not None:
-        controls.append(volver)
-    return ft.Container(
-        expand=True,
-        alignment=ft.Alignment.CENTER,
-        padding=24,
-        content=ft.Column(
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=16,
-            tight=True,
-            controls=controls,
-        ),
+        extras.append(volver)
+    return ui.branded_page(
+        ui.auth_card(
+            *extras,
+            titulo="Configuración inicial",
+            subtitulo="Acceso privilegiado para operación del hotel",
+        )
     )
 
 
@@ -144,69 +130,45 @@ def build_login_admin(
     feedback_mensaje: str = "",
     on_volver_menu: Callable[[], None] | None = None,
 ) -> ft.Control:
-    login_tf = ft.TextField(label="Identificador", autofocus=True, width=320)
+    login_tf = ft.TextField(label="Identificador", autofocus=True, width=360)
     pass_tf = ft.TextField(
         label="Contraseña",
         password=True,
         can_reveal_password=True,
-        width=320,
-    )
-    err = (
-        ft.Text(feedback_mensaje, color=ft.Colors.RED_700)
-        if feedback_mensaje
-        else ft.Container()
+        width=360,
     )
 
     def _submit(_e=None) -> None:
         on_login(login_tf.value or "", pass_tf.value or "")
 
     pass_tf.on_submit = _submit
-    controls: list[ft.Control] = [
-        ft.Text(
-            "Administración",
-            size=32,
-            weight=ft.FontWeight.BOLD,
-        ),
-        ft.Text(
-            "Maestros operativos: productos, recetas, usuarios, responsables, "
-            "proveedores, compras, inventario inicial y backup.",
-            size=14,
-            color=ft.Colors.ON_SURFACE_VARIANT,
-            text_align=ft.TextAlign.CENTER,
-            width=420,
-        ),
-        login_tf,
-        pass_tf,
-        ft.FilledButton(
-            "Entrar",
-            icon=ft.Icons.LOGIN,
-            style=ft.ButtonStyle(padding=18),
-            on_click=_submit,
-        ),
-        err,
-    ]
+    extras: list[ft.Control] = []
+    if feedback_mensaje:
+        extras.append(ui.alert_banner(feedback_mensaje, severity="error"))
+    extras.extend(
+        [
+            login_tf,
+            pass_tf,
+            ui.primary_button("Entrar", _submit, icon=ft.Icons.LOGIN),
+        ]
+    )
     volver = build_volver_al_menu_button(on_volver_menu)
     if volver is not None:
-        controls.append(volver)
-    controls.append(
+        extras.append(volver)
+    extras.append(
         ft.Text(
-            "Sin Streamlit para operación diaria. Análisis de costes/consumo/merma en Flet.",
-            size=12,
-            color=ft.Colors.OUTLINE,
+            "Maestros, compras, documentos, análisis y backup",
+            size=11,
+            color=ui_theme.MID_GRAY,
             text_align=ft.TextAlign.CENTER,
-            width=420,
         )
     )
-    return ft.Container(
-        expand=True,
-        alignment=ft.Alignment.CENTER,
-        padding=24,
-        content=ft.Column(
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            spacing=16,
-            tight=True,
-            controls=controls,
-        ),
+    return ui.branded_page(
+        ui.auth_card(
+            *extras,
+            titulo="Administración",
+            subtitulo="Consola operativa del establecimiento",
+        )
     )
 
 
@@ -280,25 +242,33 @@ def build_admin_shell(
     on_cancelar: Callable[[], None] = None,  # type: ignore[assignment]
     on_volver_menu: Callable[[], None] | None = None,
 ) -> ft.Control:
+    hotel = screen.hotel_nombre or ui_theme.HOTEL_DEFAULT
     header = ft.Container(
-        bgcolor=ft.Colors.BLUE_GREY_900,
-        padding=ft.Padding.symmetric(horizontal=16, vertical=12),
+        bgcolor=ui_theme.NAVY,
+        padding=ft.Padding.symmetric(horizontal=20, vertical=14),
         content=ft.Row(
             alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
                 ft.Column(
                     spacing=2,
+                    tight=True,
                     controls=[
                         ft.Text(
-                            "Administración",
-                            color=ft.Colors.WHITE,
+                            hotel,
+                            color=ui_theme.GOLD_SOFT,
+                            size=12,
+                            weight=ft.FontWeight.W_600,
+                        ),
+                        ft.Text(
+                            "Administración operativa",
+                            color=ui_theme.WHITE,
                             size=20,
                             weight=ft.FontWeight.BOLD,
                         ),
                         ft.Text(
-                            f"{screen.session.actor_label} · {screen.session.role}"
-                            + (f" · {screen.hotel_nombre}" if screen.hotel_nombre else ""),
-                            color=ft.Colors.LIGHT_BLUE_100,
+                            f"{screen.session.actor_label} · {screen.session.role}",
+                            color="#B8C4D6",
                             size=13,
                         ),
                     ],
@@ -315,10 +285,12 @@ def build_admin_shell(
     feedback = ft.Container()
     if screen.feedback:
         feedback = ft.Container(
-            bgcolor=ft.Colors.GREEN_100 if screen.feedback.ok else ft.Colors.RED_100,
-            padding=12,
-            border_radius=8,
-            content=ft.Text(screen.feedback.mensaje, size=14),
+            padding=ft.Padding.symmetric(horizontal=20, vertical=8),
+            bgcolor=ui_theme.SURFACE,
+            content=ui.alert_banner(
+                screen.feedback.mensaje,
+                severity="success" if screen.feedback.ok else "error",
+            ),
         )
 
     pending_box = _pending_box(screen, on_confirmar=on_confirmar, on_cancelar=on_cancelar)
@@ -888,11 +860,16 @@ def _panel_inicio(screen: AdminScreenVM, **cbs) -> ft.Control:
         if on_seccion:
             on_seccion(sec)
 
+    hotel = screen.hotel_nombre or ui_theme.HOTEL_DEFAULT
+    periodo = dash.periodo_label if dash else (screen.periodo or "—")
+    saludo = dash.saludo if dash else f"Buenas, {screen.session.actor_label or 'Usuario'}"
+
     controls: list[ft.Control] = [
         ui.page_header(
-            "Dashboard",
-            dash.periodo_label if dash else (screen.periodo or "—"),
+            hotel,
+            f"{saludo} · {periodo}",
             actions=[
+                ui.status_chip(f"Rev. {screen.revision}", tone="neutral"),
                 ui.primary_button(
                     "Actualizar",
                     lambda: on_refresh() if on_refresh else None,
@@ -901,11 +878,24 @@ def _panel_inicio(screen: AdminScreenVM, **cbs) -> ft.Control:
                 ),
             ],
         ),
-        ft.Text(
-            dash.saludo if dash else f"Bienvenido, {screen.session.actor_label or 'Usuario'}",
-            size=16,
-            weight=ft.FontWeight.W_600,
-            color=ui_theme.DARK_TEXT,
+        ui.card_surface(
+            ft.Row(
+                wrap=True,
+                spacing=ui_theme.SPACE_SM,
+                controls=[
+                    ui.status_chip(
+                        f"Datos: {screen.data_path_label or '—'}",
+                        tone="info",
+                    ),
+                    ui.status_chip(
+                        f"Shared: {screen.shared_root_label or '—'}",
+                        tone="neutral",
+                    ),
+                    ui.status_chip(f"{screen.productos_total} productos", tone="neutral"),
+                    ui.status_chip(f"{len(screen.recetas)} recetas", tone="neutral"),
+                ],
+            ),
+            title="Instancia",
         ),
     ]
 
@@ -914,26 +904,33 @@ def _panel_inicio(screen: AdminScreenVM, **cbs) -> ft.Control:
     if dash and dash.aviso:
         controls.append(ui.alert_banner(dash.aviso, severity="info"))
 
-    if dash and dash.alertas:
-        for a in dash.alertas:
+    alertas = list(dash.alertas) if dash and dash.alertas else []
+    if alertas:
+        for a in alertas[:3]:
             controls.append(
                 ft.Container(
                     ink=bool(a.destino),
                     on_click=(lambda _e, d=a.destino: _go(d) if d else None),
-                    content=ui.alert_banner(f"{a.titulo} — {a.detalle}", severity=a.severidad),
+                    content=ui.alert_banner(
+                        f"{a.titulo} — {a.detalle}",
+                        severity=a.severidad,
+                    ),
                 )
+            )
+        if len(alertas) > 3:
+            controls.append(
+                ui_theme.text_help(f"+{len(alertas) - 3} alertas más en Análisis / Inventario")
             )
     else:
         falta = "falta" in (screen.alerta_registro or "").casefold()
         controls.append(
             ui.alert_banner(
-                screen.alerta_registro or "—",
+                screen.alerta_registro or "Sin alertas operativas.",
                 severity="warning" if falta else "success",
             )
         )
 
-    # KPIs operativos (siempre)
-    controls.append(ui.section_header("Indicadores operativos", "Conteos del periodo"))
+    controls.append(ui.section_header("Pulso operativo", "Conteos del periodo"))
     controls.append(
         ft.Row(
             spacing=ui_theme.SPACE_MD,
@@ -942,28 +939,28 @@ def _panel_inicio(screen: AdminScreenVM, **cbs) -> ft.Control:
                 ui.metric_card(
                     "Consumos",
                     str(screen.consumo_count),
-                    "Ver análisis →",
+                    "Abrir análisis",
                     accent=ui_theme.NAVY,
                     on_click=lambda: _go("analisis"),
                 ),
                 ui.metric_card(
                     "Mermas",
                     str(screen.merma_count),
-                    "Ver análisis →",
+                    "Abrir análisis",
                     accent=ui_theme.DANGER,
                     on_click=lambda: _go("analisis"),
                 ),
                 ui.metric_card(
                     "Stock bajo",
                     str(screen.stock_bajo),
-                    "Ver productos →",
+                    "Ver productos",
                     accent=ui_theme.WARNING,
                     on_click=lambda: _go("productos"),
                 ),
                 ui.metric_card(
                     "Caducidades",
                     str(screen.caducidades),
-                    "Ver inventario →",
+                    "Inventario inicial",
                     accent=ui_theme.DANGER,
                     on_click=lambda: _go("inventario_inicial"),
                 ),
@@ -971,10 +968,9 @@ def _panel_inicio(screen: AdminScreenVM, **cbs) -> ft.Control:
         )
     )
 
-    # KPIs económicos (si el presenter los aportó)
     if dash and dash.puede_ver_economia and dash.metrics:
         controls.append(
-            ui.section_header("Resumen económico", "Costes del periodo (datos productivos)")
+            ui.section_header("Resumen económico", "Costes del periodo (permiso CONSULTAR_COSTES)")
         )
         controls.append(
             ft.Row(
@@ -1006,19 +1002,15 @@ def _panel_inicio(screen: AdminScreenVM, **cbs) -> ft.Control:
             )
         )
 
+    charts: list[ft.Control] = []
     if dash and dash.chart_naturaleza:
-        controls.append(
-            ui.card_surface(
-                build_barras_horizontales(
-                    dash.chart_naturaleza, titulo="Naturaleza del coste"
-                ),
-                title="",
-            )
+        charts.append(
+            build_barras_horizontales(dash.chart_naturaleza, titulo="Naturaleza del coste")
         )
     if dash and dash.chart_evolucion:
-        controls.append(
-            ui.card_surface(build_lineas_series(dash.chart_evolucion), title="")
-        )
+        charts.append(build_lineas_series(dash.chart_evolucion))
+    if charts:
+        controls.append(ui.card_surface(*charts, title="Evolución"))
 
     if dash and dash.rankings:
         controls.append(ui.section_header("Rankings", "Top del periodo"))
@@ -1030,8 +1022,8 @@ def _panel_inicio(screen: AdminScreenVM, **cbs) -> ft.Control:
             if not block.filas:
                 filas.append(ui_theme.text_help("Sin filas."))
             else:
-                for row in block.filas[:8]:
-                    line = f"{row.nombre}"
+                for row in block.filas[:6]:
+                    line = row.nombre
                     if row.coste_fmt:
                         line += f" · {row.coste_fmt}"
                     if row.cantidad_fmt:
@@ -1039,7 +1031,7 @@ def _panel_inicio(screen: AdminScreenVM, **cbs) -> ft.Control:
                     filas.append(ft.Text(line, size=12, color=ui_theme.DARK_TEXT))
             rank_cols.append(
                 ft.Container(
-                    width=280,
+                    width=260,
                     padding=ui_theme.SPACE_MD,
                     bgcolor=ui_theme.SURFACE_CARD,
                     border_radius=ui_theme.RADIUS_MD,
@@ -1048,13 +1040,6 @@ def _panel_inicio(screen: AdminScreenVM, **cbs) -> ft.Control:
                 )
             )
         controls.append(ft.Row(spacing=ui_theme.SPACE_MD, wrap=True, controls=rank_cols))
-        controls.append(
-            ui.secondary_button(
-                "Abrir Análisis completo",
-                lambda: _go("analisis"),
-                icon=ft.Icons.ANALYTICS,
-            )
-        )
 
     if screen.stock_bajo_nombres:
         controls.append(
@@ -1067,7 +1052,54 @@ def _panel_inicio(screen: AdminScreenVM, **cbs) -> ft.Control:
             )
         )
 
-    controls.append(ui.section_header("Atajos"))
+    # Actividad reciente (ya en VM)
+    act_rows: list[ft.Control] = []
+    for a in screen.actividades[:5]:
+        act_rows.append(
+            ft.Container(
+                padding=ft.Padding.symmetric(vertical=6),
+                border=ft.Border(bottom=ft.BorderSide(1, ui_theme.BORDER)),
+                content=ft.Row(
+                    controls=[
+                        ft.Column(
+                            spacing=1,
+                            tight=True,
+                            expand=True,
+                            controls=[
+                                ft.Text(
+                                    a.accion,
+                                    size=12,
+                                    weight=ft.FontWeight.W_600,
+                                    color=ui_theme.DARK_TEXT,
+                                ),
+                                ft.Text(
+                                    a.detalle or "—",
+                                    size=11,
+                                    color=ui_theme.MID_GRAY,
+                                    max_lines=1,
+                                    overflow=ft.TextOverflow.ELLIPSIS,
+                                ),
+                            ],
+                        ),
+                        ft.Text(a.fecha, size=11, color=ui_theme.MID_GRAY, width=140),
+                    ]
+                ),
+            )
+        )
+    if not act_rows:
+        act_rows = [ui_theme.text_help("Sin actividad reciente.")]
+    controls.append(
+        ui.card_surface(
+            *act_rows,
+            ui.secondary_button(
+                "Ver actividad completa",
+                lambda: _go("actividad"),
+                icon=ft.Icons.HISTORY,
+            ),
+            title="Últimos movimientos",
+        )
+    )
+
     controls.append(
         ft.Row(
             spacing=ui_theme.SPACE_SM,
@@ -1080,26 +1112,8 @@ def _panel_inicio(screen: AdminScreenVM, **cbs) -> ft.Control:
                     "Inventario", lambda: _go("inventario_inicial"), icon=ft.Icons.ADD_BOX
                 ),
                 ui.secondary_button("Recetas", lambda: _go("recetas"), icon=ft.Icons.MENU_BOOK),
+                ui.secondary_button("Documentos", lambda: _go("documentos"), icon=ft.Icons.DESCRIPTION),
             ],
-        )
-    )
-
-    controls.append(
-        ft.Row(
-            spacing=ui_theme.SPACE_SM,
-            wrap=True,
-            controls=[
-                ui.status_chip(f"{screen.productos_total} productos", tone="info"),
-                ui.status_chip(f"{len(screen.recetas)} recetas", tone="info"),
-                ui.status_chip(f"{len(screen.proveedores)} proveedores", tone="neutral"),
-                ui.status_chip(f"{len(screen.usuarios)} usuarios", tone="neutral"),
-                ui.status_chip(f"Rev. {screen.revision}", tone="neutral"),
-            ],
-        )
-    )
-    controls.append(
-        ui_theme.text_help(
-            f"Datos: {screen.data_path_label or '—'} · Raíz: {screen.shared_root_label or '—'}"
         )
     )
     return ft.Column(spacing=ui_theme.SPACE_MD, controls=controls)
@@ -2512,14 +2526,48 @@ def _compra_linea_row(
 def _panel_inventario(screen: AdminScreenVM, **cbs) -> ft.Control:
     on_registrar = cbs["on_registrar_lote"]
     activos = [p for p in screen.productos if p.activo]
+    ubis_activas = [u for u in screen.ubicaciones if u.activo]
+
+    if not activos:
+        return ft.Column(
+            spacing=ui_theme.SPACE_MD,
+            controls=[
+                ui.page_header(
+                    "Inventario inicial",
+                    "Alta de lote con valoración total",
+                ),
+                ui.empty_state(
+                    "Sin productos activos",
+                    "Cree o reactive productos en Catálogo antes de registrar lotes.",
+                ),
+                ui.secondary_button(
+                    "Ir a Productos",
+                    lambda: (cbs.get("on_seccion") or (lambda _s: None))("productos"),
+                    icon=ft.Icons.INVENTORY_2,
+                ),
+            ],
+        )
+
     prod = ft.Dropdown(
         label="Producto",
-        options=[ft.dropdown.Option(key=p.id, text=f"{p.nombre} ({p.unidad})") for p in activos],
+        options=[
+            ft.dropdown.Option(key=p.id, text=f"{p.nombre} ({p.unidad})") for p in activos
+        ],
         expand=True,
     )
     cantidad = ft.TextField(label="Cantidad", width=120, value="1")
     precio = ft.TextField(label="Precio total", width=140, value="1")
     marca = ft.TextField(label="Marca / proveedor", expand=True)
+    ubi = ft.Dropdown(
+        label="Ubicación destino",
+        options=[
+            ft.dropdown.Option(key=u.id, text=u.nombre if not u.codigo else f"{u.nombre} ({u.codigo})")
+            for u in ubis_activas
+        ],
+        value=ubis_activas[0].id if ubis_activas else None,
+        expand=True,
+        visible=bool(ubis_activas),
+    )
 
     def _go(_e=None) -> None:
         try:
@@ -2530,40 +2578,78 @@ def _panel_inventario(screen: AdminScreenVM, **cbs) -> ft.Control:
             prec = float((precio.value or "0").replace(",", "."))
         except ValueError:
             prec = 0.0
-        on_registrar(prod.value or "", cant, prec, marca.value or "", "")
+        on_registrar(
+            prod.value or "",
+            cant,
+            prec,
+            marca.value or "",
+            ubi.value or "",
+        )
 
-    return ft.Column(
-        spacing=12,
-        controls=[
-            ui.page_header(
-                "Inventario inicial",
-                "Alta de lote (cantidad + precio total del lote)",
-            ),
-            ui.card_surface(
-                ft.Row(controls=[prod, cantidad, precio]),
-                ft.Row(
-                    controls=[
-                        marca,
-                        ui.primary_button(
-                            "Registrar lote",
-                            lambda: _go(),
-                            icon=ft.Icons.ADD_BOX,
-                            disabled=screen.mutando,
-                        ),
-                    ]
+    body: list[ft.Control] = [
+        ui.page_header(
+            "Inventario inicial",
+            "Alta de lote (cantidad + precio total del lote)",
+            actions=[
+                ui.status_chip(f"{len(activos)} productos", tone="info"),
+                ui.status_chip(
+                    f"{len(ubis_activas)} ubicaciones" if ubis_activas else "Sin ubicación",
+                    tone="neutral" if ubis_activas else "warn",
                 ),
-                title="Nuevo lote",
+            ],
+        ),
+        ui.card_surface(
+            ft.Row(controls=[prod, cantidad, precio]),
+            ft.Row(
+                controls=[
+                    marca,
+                    ubi if ubis_activas else ft.Container(),
+                    ui.primary_button(
+                        "Registrar lote",
+                        lambda: _go(),
+                        icon=ft.Icons.ADD_BOX,
+                        disabled=screen.mutando,
+                    ),
+                ]
             ),
-        ],
-    )
+            title="Nuevo lote",
+        ),
+    ]
 
+    if not ubis_activas:
+        body.append(
+            ui.alert_banner(
+                "No hay ubicaciones activas: el lote se registrará sin destino de ubicación. "
+                "Puede crearlas en Catálogos.",
+                severity="warning",
+            )
+        )
 
-def _fmt_bytes(n: int) -> str:
-    if n < 1024:
-        return f"{n} B"
-    if n < 1024 * 1024:
-        return f"{n / 1024:.1f} KB"
-    return f"{n / (1024 * 1024):.1f} MB"
+    la = screen.lote_alta
+    if la is not None:
+        ubi_lbl = la.ubicacion_destino_id or "—"
+        for u in screen.ubicaciones:
+            if u.id == la.ubicacion_destino_id:
+                ubi_lbl = u.nombre
+                break
+        body.append(
+            ui.card_surface(
+                ft.Text(
+                    f"{la.producto_nombre} · cant. {la.cantidad:g} · total {la.precio_total:.2f}",
+                    size=14,
+                    weight=ft.FontWeight.W_600,
+                    color=ui_theme.DARK_TEXT,
+                ),
+                ft.Text(
+                    f"Marca: {la.marca_proveedor or '—'} · Ubicación: {ubi_lbl}",
+                    size=12,
+                    color=ui_theme.MID_GRAY,
+                ),
+                title="Último lote en pantalla",
+            )
+        )
+
+    return ft.Column(spacing=ui_theme.SPACE_MD, controls=body)
 
 
 def _panel_backup(screen: AdminScreenVM, **cbs) -> ft.Control:

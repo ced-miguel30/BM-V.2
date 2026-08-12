@@ -1197,7 +1197,7 @@ class TerminalAdministracionPresenter:
                 self._feedback = FeedbackVM(
                     ok=True, mensaje=f"Lote inicial de «{nombre}» registrado."
                 )
-                self._lote_alta = None
+                # Conservar eco del lote en pantalla para confirmación operativa.
             else:
                 msg = r.mensaje or "No se pudo registrar el lote."
                 low = msg.lower()
