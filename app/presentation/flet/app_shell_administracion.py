@@ -113,6 +113,10 @@ class TerminalAdministracionShell:
                     on_desactivar_producto=self._on_desactivar_producto,
                     on_reactivar_producto=self._on_reactivar_producto,
                     on_crear_receta=self._on_crear_receta,
+                    on_editar_receta=self._on_editar_receta,
+                    on_iniciar_edicion_receta=self._on_iniciar_edicion_receta,
+                    on_cancelar_edicion_receta=self._on_cancelar_edicion_receta,
+                    on_eliminar_receta=self._on_eliminar_receta,
                     on_desactivar_receta=self._on_desactivar_receta,
                     on_reactivar_receta=self._on_reactivar_receta,
                     on_crear_usuario=self._on_crear_usuario,
@@ -398,6 +402,39 @@ class TerminalAdministracionShell:
             servicios_disponibles=servicios,
             extras_sugeridos=extras,
         )
+        self.refresh()
+
+    def _on_editar_receta(
+        self,
+        receta_id: str,
+        nombre: str,
+        ingredientes: list[tuple[str, float]],
+        categoria: str,
+        porciones: float | None,
+        servicios: list[str],
+        extras: list[tuple[str, float]] | None = None,
+    ) -> None:
+        self.presenter.guardar_edicion_receta(
+            receta_id,
+            nombre,
+            ingredientes,
+            categoria,
+            porciones,
+            servicios_disponibles=servicios,
+            extras_sugeridos=extras,
+        )
+        self.refresh()
+
+    def _on_iniciar_edicion_receta(self, rid: str) -> None:
+        self.presenter.iniciar_edicion_receta(rid)
+        self.refresh()
+
+    def _on_cancelar_edicion_receta(self) -> None:
+        self.presenter.cancelar_edicion_receta()
+        self.refresh()
+
+    def _on_eliminar_receta(self, rid: str) -> None:
+        self.presenter.proponer_eliminar_receta(rid)
         self.refresh()
 
     def _on_desactivar_receta(self, rid: str) -> None:

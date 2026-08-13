@@ -189,6 +189,10 @@ def build_admin_shell(
     on_reactivar_producto: Callable[[str], None],
     # recetas
     on_crear_receta: Callable[..., None],
+    on_editar_receta: Callable[..., None],
+    on_iniciar_edicion_receta: Callable[[str], None],
+    on_cancelar_edicion_receta: Callable[[], None],
+    on_eliminar_receta: Callable[[str], None],
     on_desactivar_receta: Callable[[str], None],
     on_reactivar_receta: Callable[[str], None],
     # usuarios
@@ -325,6 +329,10 @@ def build_admin_shell(
         on_importar_productos=on_importar_productos,
         on_productos_page=on_productos_page,
         on_crear_receta=on_crear_receta,
+        on_editar_receta=on_editar_receta,
+        on_iniciar_edicion_receta=on_iniciar_edicion_receta,
+        on_cancelar_edicion_receta=on_cancelar_edicion_receta,
+        on_eliminar_receta=on_eliminar_receta,
         on_desactivar_receta=on_desactivar_receta,
         on_reactivar_receta=on_reactivar_receta,
         on_crear_usuario=on_crear_usuario,
@@ -1391,16 +1399,37 @@ def _producto_row(
 def _panel_recetas(screen: AdminScreenVM, **cbs) -> ft.Control:
     on_filtro = cbs["on_filtro"]
     on_crear = cbs["on_crear_receta"]
-    on_des = cbs["on_desactivar_receta"]
-    on_rea = cbs["on_reactivar_receta"]
-    nombre = ft.TextField(label="Nombre receta", expand=True)
+    on_guardar = cbs["on_editar_receta"]
+    on_iniciar = cbs["on_iniciar_edicion_receta"]
+    on_cancelar = cbs["on_cancelar_edicion_receta"]
+    on_elim = cbs["on_eliminar_receta"]
+    edit_id = (screen.receta_edit_id or "").strip()
+    editando = next((r for r in screen.recetas if r.id == edit_id), None)
+
+    nombre = ft.TextField(
+        label="Nombre receta",
+        expand=True,
+        value=editando.nombre if editando else "",
+    )
     categoria = ft.Dropdown(
         label="Categoría",
         width=160,
         options=[ft.dropdown.Option(c) for c in screen.categorias_receta],
-        value=screen.categorias_receta[0] if screen.categorias_receta else None,
+        value=(
+            editando.categoria
+            if editando
+            else (screen.categorias_receta[0] if screen.categorias_receta else None)
+        ),
     )
-    porciones = ft.TextField(label="Porciones", width=110, value="1")
+    porciones = ft.TextField(
+        label="Porciones",
+        width=110,
+        value=(
+            f"{editando.porciones_estandar:g}"
+            if editando and editando.porciones_estandar is not None
+            else "1"
+        ),
+    )
     prod_opts = [
         ft.dropdown.Option(key=p.id, text=p.nombre)
         for p in screen.productos
@@ -1414,13 +1443,19 @@ def _panel_recetas(screen: AdminScreenVM, **cbs) -> ft.Control:
         label="Servicios (coma)",
         hint_text="Vacío = mismo que la categoría (desayuno/comida/…)",
         expand=True,
+        value=", ".join(editando.servicios) if editando else "",
     )
     pendientes: list[tuple[str, str, float]] = []
     extras_pend: list[tuple[str, str, float]] = []
+    if editando:
+        for ln in editando.ingredientes:
+            pendientes.append((ln.producto_id, ln.producto_nombre, ln.cantidad))
+        for ln in editando.extras:
+            extras_pend.append((ln.producto_id, ln.producto_nombre, ln.cantidad))
     ings_col = ft.Column(spacing=4, tight=True)
     extras_col = ft.Column(spacing=4, tight=True)
     ings_hint = ft.Text(
-        "Añada uno o más ingredientes antes de crear.",
+        "Añada uno o más ingredientes.",
         size=12,
         color=ui_theme.MID_GRAY,
         italic=True,
@@ -1540,7 +1575,7 @@ def _panel_recetas(screen: AdminScreenVM, **cbs) -> ft.Control:
         extras_pend.append((pid, label, cant))
         _paint_extras()
 
-    def _crear(_e=None) -> None:
+    def _payload() -> tuple[str, list[tuple[str, float]], str, float | None, list[str], list[tuple[str, float]]]:
         try:
             porc = float((porciones.value or "1").replace(",", "."))
         except ValueError:
@@ -1556,68 +1591,105 @@ def _panel_recetas(screen: AdminScreenVM, **cbs) -> ft.Control:
                 ings = [(pid, cant)]
         serv = [s.strip() for s in (servicios.value or "").split(",") if s.strip()]
         extras = [(pid, cant) for pid, _, cant in extras_pend]
-        on_crear(nombre.value or "", ings, categoria.value or "", porc, serv, extras)
+        return nombre.value or "", ings, categoria.value or "", porc, serv, extras
+
+    def _crear(_e=None) -> None:
+        n, ings, cat, porc, serv, extras = _payload()
+        on_crear(n, ings, cat, porc, serv, extras)
+
+    def _guardar(_e=None) -> None:
+        if not editando:
+            return
+        n, ings, cat, porc, serv, extras = _payload()
+        on_guardar(editando.id, n, ings, cat, porc, serv, extras)
 
     _paint_ings()
     _paint_extras()
 
-    alta = ft.ExpansionTile(
-        title=ft.Text("Nueva receta", weight=ft.FontWeight.W_600),
-        subtitle=ft.Text(
-            "Ingredientes · extras · categoría = servicio por defecto",
-            size=12,
+    form_controls: list[ft.Control] = [
+        ft.Row(controls=[nombre, categoria, porciones]),
+        servicios,
+        ui.section_header("Ingredientes"),
+        ft.Row(
+            controls=[
+                ing_prod,
+                ing_cant,
+                ui.secondary_button(
+                    "Añadir",
+                    lambda: _add_ing(),
+                    icon=ft.Icons.ADD,
+                    disabled=screen.mutando,
+                ),
+            ]
         ),
-        expanded=False,
+        ings_col,
+        ui.section_header("Extras ofrecidos"),
+        ft.Row(
+            controls=[
+                extra_prod,
+                extra_cant,
+                ui.secondary_button(
+                    "Añadir extra",
+                    lambda: _add_extra(),
+                    icon=ft.Icons.ADD,
+                    disabled=screen.mutando,
+                ),
+            ]
+        ),
+        extras_col,
+    ]
+    if editando:
+        form_controls.append(
+            ft.Row(
+                controls=[
+                    ui.primary_button(
+                        "Guardar cambios",
+                        lambda: _guardar(),
+                        icon=ft.Icons.SAVE,
+                        disabled=screen.mutando,
+                    ),
+                    ui.secondary_button(
+                        "Cancelar",
+                        lambda: on_cancelar(),
+                        disabled=screen.mutando,
+                    ),
+                ]
+            )
+        )
+        form_title = f"Editar: {editando.nombre}"
+        form_sub = "Modifique ingredientes, extras o servicios y guarde"
+    else:
+        form_controls.append(
+            ui.primary_button(
+                "Crear receta",
+                lambda: _crear(),
+                icon=ft.Icons.RESTAURANT_MENU,
+                disabled=screen.mutando,
+            )
+        )
+        form_title = "Nueva receta"
+        form_sub = "Ingredientes · extras · categoría = servicio por defecto"
+
+    form_tile = ft.ExpansionTile(
+        title=ft.Text(form_title, weight=ft.FontWeight.W_600),
+        subtitle=ft.Text(form_sub, size=12),
+        expanded=bool(editando),
         controls=[
             ft.Container(
                 padding=8,
-                content=ft.Column(
-                    spacing=ui_theme.SPACE_SM,
-                    controls=[
-                        ft.Row(controls=[nombre, categoria, porciones]),
-                        servicios,
-                        ui.section_header("Ingredientes"),
-                        ft.Row(
-                            controls=[
-                                ing_prod,
-                                ing_cant,
-                                ui.secondary_button(
-                                    "Añadir",
-                                    lambda: _add_ing(),
-                                    icon=ft.Icons.ADD,
-                                    disabled=screen.mutando,
-                                ),
-                            ]
-                        ),
-                        ings_col,
-                        ui.section_header("Extras ofrecidos"),
-                        ft.Row(
-                            controls=[
-                                extra_prod,
-                                extra_cant,
-                                ui.secondary_button(
-                                    "Añadir extra",
-                                    lambda: _add_extra(),
-                                    icon=ft.Icons.ADD,
-                                    disabled=screen.mutando,
-                                ),
-                            ]
-                        ),
-                        extras_col,
-                        ui.primary_button(
-                            "Crear receta",
-                            lambda: _crear(),
-                            icon=ft.Icons.RESTAURANT_MENU,
-                            disabled=screen.mutando,
-                        ),
-                    ],
-                ),
+                content=ft.Column(spacing=ui_theme.SPACE_SM, controls=form_controls),
             )
         ],
     )
 
     lista = [
-        _receta_row(r, screen.mutando or screen.pending is not None, on_des, on_rea)
+        _receta_row(
+            r,
+            screen.mutando or screen.pending is not None,
+            on_iniciar,
+            on_elim,
+            editando_id=edit_id,
+        )
         for r in screen.recetas
     ]
 
@@ -1628,9 +1700,9 @@ def _panel_recetas(screen: AdminScreenVM, **cbs) -> ft.Control:
         controls=[
             ui.page_header(
                 "Recetas",
-                f"{len(screen.recetas)} recetas · rendimiento, extras y valoración teórica",
+                f"{len(screen.recetas)} recetas · editar · eliminar · valoración teórica",
             ),
-            alta,
+            form_tile,
             _filtro_row(screen, on_filtro),
             (
                 ft.Column(spacing=ui_theme.SPACE_SM, controls=lista)
@@ -1644,27 +1716,24 @@ def _panel_recetas(screen: AdminScreenVM, **cbs) -> ft.Control:
 def _receta_row(
     r: RecetaAdminVM,
     disabled: bool,
-    on_des: Callable[[str], None],
-    on_rea: Callable[[str], None],
+    on_editar: Callable[[str], None],
+    on_eliminar: Callable[[str], None],
+    *,
+    editando_id: str = "",
 ) -> ft.Control:
-    acciones = []
-    if r.activo:
-        acciones.append(
-            ft.TextButton(
-                "Desactivar",
-                disabled=disabled,
-                style=ft.ButtonStyle(color=ui_theme.DANGER),
-                on_click=lambda _e, rid=r.id: on_des(rid),
-            )
-        )
-    else:
-        acciones.append(
-            ft.TextButton(
-                "Reactivar",
-                disabled=disabled,
-                on_click=lambda _e, rid=r.id: on_rea(rid),
-            )
-        )
+    acciones = [
+        ft.TextButton(
+            "Editando…" if r.id == editando_id else "Editar",
+            disabled=disabled or r.id == editando_id,
+            on_click=lambda _e, rid=r.id: on_editar(rid),
+        ),
+        ft.TextButton(
+            "Eliminar",
+            disabled=disabled,
+            style=ft.ButtonStyle(color=ui_theme.DANGER),
+            on_click=lambda _e, rid=r.id: on_eliminar(rid),
+        ),
+    ]
     meta = (
         f"{r.categoria} · {r.n_ingredientes} ing. · "
         f"porciones {r.porciones_estandar if r.porciones_estandar is not None else '—'}"
@@ -1689,7 +1758,10 @@ def _receta_row(
         bgcolor=ui_theme.SURFACE_CARD if r.activo else ui_theme.LIGHT_GRAY,
         padding=ui_theme.SPACE_MD,
         border_radius=ui_theme.RADIUS_MD,
-        border=ft.Border.all(1, ui_theme.BORDER),
+        border=ft.Border.all(
+            2 if r.id == editando_id else 1,
+            ui_theme.TEAL if r.id == editando_id else ui_theme.BORDER,
+        ),
         content=ft.Column(
             spacing=6,
             tight=True,

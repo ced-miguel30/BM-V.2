@@ -672,15 +672,43 @@ def eliminar_receta(receta_id: str) -> ResultadoOperacion:
     if not receta:
         return ResultadoOperacion(False, "Receta no encontrada.")
 
-    if receta_tiene_historico(data, receta_id):
-        return ResultadoOperacion(
-            False,
-            f"No se puede eliminar la receta «{receta.nombre}» porque tiene "
-            "histórico de registro. Desactívela en su lugar.",
-        )
-
     nombre = receta.nombre
+    tenia_historico = receta_tiene_historico(data, receta_id)
     data.recetas = [r for r in data.recetas if r.id != receta_id]
     _registrar_actividad(data, "Eliminar receta", f"«{nombre}» eliminada")
     persist_data(data)
-    return ResultadoOperacion(True, f"Receta «{nombre}» eliminada.")
+    nota = (
+        " El histórico de registros se conserva."
+        if tenia_historico
+        else ""
+    )
+    return ResultadoOperacion(True, f"Receta «{nombre}» eliminada.{nota}")
+
+
+def purgar_recetas_inactivas() -> ResultadoOperacion:
+    """Elimina del catálogo todas las recetas con activo=False."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_INVENTARIO, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
+    data = get_data()
+    inactivas = [r for r in data.recetas if not getattr(r, "activo", True)]
+    if not inactivas:
+        return ResultadoOperacion(True, "No hay recetas inactivas que eliminar.")
+    ids = {r.id for r in inactivas}
+    nombres = ", ".join(r.nombre for r in inactivas[:8])
+    if len(inactivas) > 8:
+        nombres += f" … (+{len(inactivas) - 8})"
+    data.recetas = [r for r in data.recetas if r.id not in ids]
+    _registrar_actividad(
+        data,
+        "Purgar recetas inactivas",
+        f"{len(inactivas)} eliminada(s): {nombres}",
+    )
+    persist_data(data)
+    return ResultadoOperacion(
+        True, f"Eliminadas {len(inactivas)} receta(s) inactiva(s)."
+    )

@@ -409,7 +409,7 @@ def main() -> None:
             data,
             "Paquete de pan",
             CategoriaReceta.COMIDA,
-            ["comida", "cena"],
+            ["comida"],
             [_ing(data, CATALOG["pan_tostada"], 31, "Ud")],
         )
         print(f"  OK Paquete de pan -> {rid}")

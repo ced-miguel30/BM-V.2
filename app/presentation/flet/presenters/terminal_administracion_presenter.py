@@ -88,6 +88,7 @@ from app.presentation.flet.admin_viewmodels import (
     ProductoAdminVM,
     ProveedorAdminVM,
     RecetaAdminVM,
+    RecetaLineaAdminVM,
     ResponsableMermaVM,
     UsuarioAdminVM,
     assert_admin_sin_economia,
@@ -174,6 +175,7 @@ class TerminalAdministracionPresenter:
         self._analisis_cmp_b_hasta = d0 - timedelta(days=1) if d0.day > 1 else d0
         self._analisis_export_mensaje = ""
         self._productos_page = 0
+        self._receta_edit_id = ""
         assert_admin_sin_economia(
             ResponsableMermaVM,
             PendingChangeVM,
@@ -641,8 +643,93 @@ class TerminalAdministracionPresenter:
             self._feedback = map_admin_operacion_feedback(ok=r.ok, mensaje_backend=r.mensaje)
             if r.ok:
                 self._seccion = "recetas"
+                self._receta_edit_id = ""
         finally:
             self._mutando = False
+        return self.screen()
+
+    def iniciar_edicion_receta(self, receta_id: str) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        rec = receta_service.obtener_receta(receta_id)
+        if not rec:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Receta no encontrada."
+            )
+            return self.screen()
+        self._receta_edit_id = receta_id
+        self._seccion = "recetas"
+        self._feedback = FeedbackVM(ok=True, mensaje=f"Editando «{rec.nombre}».")
+        return self.screen()
+
+    def cancelar_edicion_receta(self) -> AdminScreenVM:
+        self._receta_edit_id = ""
+        return self.screen()
+
+    def guardar_edicion_receta(
+        self,
+        receta_id: str,
+        nombre: str,
+        ingredientes: list[tuple[str, float]],
+        categoria: str,
+        porciones_estandar: float | None,
+        *,
+        servicios_disponibles: list[str] | None = None,
+        extras_sugeridos: list[tuple[str, float]] | None = None,
+    ) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        ings: list[IngredienteReceta] = []
+        for pid, cant in ingredientes:
+            pid_n = (pid or "").strip()
+            if not pid_n or cant <= 0:
+                continue
+            ings.append(IngredienteReceta(pid_n, float(cant)))
+        if not ings:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Indique al menos un ingrediente válido."
+            )
+            return self.screen()
+        self._mutando = True
+        try:
+            r = receta_service.editar_receta(
+                receta_id,
+                nombre,
+                ings,
+                categoria,
+                servicios_disponibles=servicios_disponibles,
+                porciones_estandar=porciones_estandar,
+                extras_sugeridos=extras_sugeridos,
+            )
+            self._feedback = map_admin_operacion_feedback(ok=r.ok, mensaje_backend=r.mensaje)
+            if r.ok:
+                self._receta_edit_id = ""
+                self._seccion = "recetas"
+        finally:
+            self._mutando = False
+        return self.screen()
+
+    def proponer_eliminar_receta(self, receta_id: str) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        rec = receta_service.obtener_receta(receta_id)
+        if not rec:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Receta no encontrada."
+            )
+            return self.screen()
+        self._pending = PendingChangeVM(
+            kind="eliminar_receta",
+            resumen=(
+                f"Eliminar receta «{rec.nombre}» del catálogo. "
+                "Los registros históricos conservan el nombre."
+            ),
+            receta_id=receta_id,
+            nombre=rec.nombre,
+        )
+        self._feedback = FeedbackVM(ok=True, mensaje="Confirme la eliminación de la receta.")
         return self.screen()
 
     def proponer_desactivar_receta(self, receta_id: str) -> AdminScreenVM:
@@ -2004,6 +2091,11 @@ class TerminalAdministracionPresenter:
             return receta_service.desactivar_receta(pending.receta_id)
         if pending.kind == "reactivar_receta":
             return receta_service.reactivar_receta(pending.receta_id)
+        if pending.kind == "eliminar_receta":
+            r = receta_service.eliminar_receta(pending.receta_id)
+            if r.ok and self._receta_edit_id == pending.receta_id:
+                self._receta_edit_id = ""
+            return r
         if pending.kind == "desactivar_usuario":
             return settings_service.set_usuario_activo(pending.usuario_id, False)
         if pending.kind == "reactivar_usuario":
@@ -2242,12 +2334,34 @@ class TerminalAdministracionPresenter:
                         teorico_fmt = ""
                 extras = list(getattr(r, "extras_sugeridos", None) or [])
                 extras_noms: list[str] = []
+                ings_vm: list[RecetaLineaAdminVM] = []
+                extras_vm: list[RecetaLineaAdminVM] = []
                 if repo_noms is not None:
-                    for ex in extras[:4]:
-                        p = repo_noms.get_producto(ex.producto_id)
-                        extras_noms.append(
-                            f"{p.nombre if p else ex.producto_id}×{float(ex.cantidad):g}"
+                    for ing in r.ingredientes or []:
+                        p = repo_noms.get_producto(ing.producto_id)
+                        ings_vm.append(
+                            RecetaLineaAdminVM(
+                                producto_id=ing.producto_id,
+                                producto_nombre=p.nombre if p else ing.producto_id,
+                                cantidad=float(
+                                    ing.cantidad_presentacion
+                                    if getattr(ing, "cantidad_presentacion", None)
+                                    else ing.cantidad
+                                ),
+                            )
                         )
+                    for ex in extras:
+                        p = repo_noms.get_producto(ex.producto_id)
+                        nom = p.nombre if p else ex.producto_id
+                        extras_noms.append(f"{nom}×{float(ex.cantidad):g}")
+                        extras_vm.append(
+                            RecetaLineaAdminVM(
+                                producto_id=ex.producto_id,
+                                producto_nombre=nom,
+                                cantidad=float(ex.cantidad),
+                            )
+                        )
+                    extras_noms = extras_noms[:4]
                 lista_rec.append(
                     RecetaAdminVM(
                         id=r.id,
@@ -2262,6 +2376,8 @@ class TerminalAdministracionPresenter:
                         teorico_completo=teorico_completo,
                         n_extras=len(extras),
                         extras_resumen=", ".join(extras_noms),
+                        ingredientes=tuple(ings_vm),
+                        extras=tuple(extras_vm),
                     )
                 )
             recetas = tuple(lista_rec)
@@ -2538,6 +2654,7 @@ class TerminalAdministracionPresenter:
             feedback=self._feedback,
             pending=self._pending,
             mutando=self._mutando,
+            receta_edit_id=self._receta_edit_id if auth else "",
             motivos_fijos=tuple(m.value for m in MotivoMerma),
             puede_gestionar_usuarios=auth and session_tiene_permiso(Permiso.GESTIONAR_USUARIOS),
             puede_exportar_backup=auth and session_tiene_permiso(Permiso.EXPORTAR_BACKUP),

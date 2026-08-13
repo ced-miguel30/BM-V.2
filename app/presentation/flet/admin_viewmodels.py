@@ -101,6 +101,13 @@ class ProductoAdminVM:
 
 
 @dataclass(frozen=True)
+class RecetaLineaAdminVM:
+    producto_id: str
+    producto_nombre: str
+    cantidad: float
+
+
+@dataclass(frozen=True)
 class RecetaAdminVM:
     id: str
     nombre: str
@@ -115,6 +122,8 @@ class RecetaAdminVM:
     teorico_completo: bool = True
     n_extras: int = 0
     extras_resumen: str = ""
+    ingredientes: tuple[RecetaLineaAdminVM, ...] = ()
+    extras: tuple[RecetaLineaAdminVM, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -274,6 +283,7 @@ class AdminScreenVM:
     feedback: FeedbackVM | None = None
     pending: PendingChangeVM | None = None
     mutando: bool = False
+    receta_edit_id: str = ""
     motivos_fijos: tuple[str, ...] = ()
     puede_gestionar_usuarios: bool = False
     puede_exportar_backup: bool = False

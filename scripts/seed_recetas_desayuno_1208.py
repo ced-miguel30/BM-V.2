@@ -225,7 +225,7 @@ def recipes_spec(C: dict[str, str], data) -> list[tuple]:
     M = CategoriaReceta.COMIDA
     B = CategoriaReceta.BEBIDAS
     des = ["desayuno"]
-    com = ["comida", "cena"]
+    com = ["comida"]
     beb = ["desayuno", "comida", "cena", "bebidas"]
 
     def I(key: str, qty: float, unit: str | None = None) -> IngredienteReceta:

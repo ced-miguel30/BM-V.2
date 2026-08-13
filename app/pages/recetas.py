@@ -442,7 +442,7 @@ def _render_editar_eliminar() -> None:
                     st.rerun()
     with c2:
         if st.button(
-            "Eliminar (solo sin histórico)",
+            "Eliminar receta",
             use_container_width=True,
             key="receta_btn_eliminar",
         ):
