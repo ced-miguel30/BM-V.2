@@ -1,0 +1,532 @@
+{
+  "finished_at": "2026-08-15T21:51:55",
+  "ok": [
+    {
+      "clave": "import-ago26-bebidas-2026-08-01",
+      "ref": "be16",
+      "tipo": "bebidas",
+      "fecha": "2026-08-01",
+      "coste": 45.58
+    },
+    {
+      "clave": "import-ago26-comida-2026-08-01",
+      "ref": "co01",
+      "tipo": "comida",
+      "fecha": "2026-08-01",
+      "coste": 11.44
+    },
+    {
+      "clave": "import-ago26-bebidas-2026-08-02",
+      "ref": "be17",
+      "tipo": "bebidas",
+      "fecha": "2026-08-02",
+      "coste": 53.27
+    },
+    {
+      "clave": "import-ago26-comida-2026-08-02",
+      "ref": "co02",
+      "tipo": "comida",
+      "fecha": "2026-08-02",
+      "coste": 0.36
+    },
+    {
+      "clave": "import-ago26-bebidas-2026-08-03",
+      "ref": "be18",
+      "tipo": "bebidas",
+      "fecha": "2026-08-03",
+      "coste": 73.02
+    },
+    {
+      "clave": "import-ago26-comida-2026-08-03",
+      "ref": "co03",
+      "tipo": "comida",
+      "fecha": "2026-08-03",
+      "coste": 16.36
+    },
+    {
+      "clave": "import-ago26-bebidas-2026-08-04",
+      "ref": "be19",
+      "tipo": "bebidas",
+      "fecha": "2026-08-04",
+      "coste": 41.44
+    },
+    {
+      "clave": "import-ago26-comida-2026-08-04",
+      "ref": "co04",
+      "tipo": "comida",
+      "fecha": "2026-08-04",
+      "coste": 1.6
+    },
+    {
+      "clave": "import-ago26-bebidas-2026-08-05",
+      "ref": "be20",
+      "tipo": "bebidas",
+      "fecha": "2026-08-05",
+      "coste": 38.43
+    },
+    {
+      "clave": "import-ago26-comida-2026-08-05",
+      "ref": "co05",
+      "tipo": "comida",
+      "fecha": "2026-08-05",
+      "coste": 3.25
+    },
+    {
+      "clave": "import-ago26-bebidas-2026-08-06",
+      "ref": "be21",
+      "tipo": "bebidas",
+      "fecha": "2026-08-06",
+      "coste": 44.14
+    },
+    {
+      "clave": "import-ago26-comida-2026-08-06",
+      "ref": "co06",
+      "tipo": "comida",
+      "fecha": "2026-08-06",
+      "coste": 3.58
+    },
+    {
+      "clave": "import-ago26-bebidas-2026-08-07",
+      "ref": "be22",
+      "tipo": "bebidas",
+      "fecha": "2026-08-07",
+      "coste": 36.49
+    },
+    {
+      "clave": "import-ago26-comida-2026-08-07",
+      "ref": "co07",
+      "tipo": "comida",
+      "fecha": "2026-08-07",
+      "coste": 6.27
+    },
+    {
+      "clave": "import-ago26-bebidas-2026-08-08",
+      "ref": "be23",
+      "tipo": "bebidas",
+      "fecha": "2026-08-08",
+      "coste": 28.42
+    },
+    {
+      "clave": "import-ago26-comida-2026-08-08",
+      "ref": "co08",
+      "tipo": "comida",
+      "fecha": "2026-08-08",
+      "coste": 6.96
+    },
+    {
+      "clave": "import-ago26-bebidas-2026-08-09",
+      "ref": "be24",
+      "tipo": "bebidas",
+      "fecha": "2026-08-09",
+      "coste": 54.21
+    },
+    {
+      "clave": "import-ago26-comida-2026-08-09",
+      "ref": "co09",
+      "tipo": "comida",
+      "fecha": "2026-08-09",
+      "coste": 17.5
+    },
+    {
+      "clave": "import-ago26-bebidas-2026-08-10",
+      "ref": "be25",
+      "tipo": "bebidas",
+      "fecha": "2026-08-10",
+      "coste": 35.61
+    },
+    {
+      "clave": "import-ago26-bebidas-2026-08-11",
+      "ref": "be26",
+      "tipo": "bebidas",
+      "fecha": "2026-08-11",
+      "coste": 19.33
+    },
+    {
+      "clave": "import-ago26-comida-2026-08-11",
+      "ref": "co10",
+      "tipo": "comida",
+      "fecha": "2026-08-11",
+      "coste": 2.88
+    },
+    {
+      "clave": "import-ago26-bebidas-2026-08-12",
+      "ref": "be27",
+      "tipo": "bebidas",
+      "fecha": "2026-08-12",
+      "coste": 54.8
+    },
+    {
+      "clave": "import-ago26-bebidas-2026-08-13",
+      "ref": "be28",
+      "tipo": "bebidas",
+      "fecha": "2026-08-13",
+      "coste": 19.28
+    },
+    {
+      "clave": "import-ago26-comida-2026-08-13",
+      "ref": "co11",
+      "tipo": "comida",
+      "fecha": "2026-08-13",
+      "coste": 7.61
+    },
+    {
+      "clave": "import-ago26-bebidas-2026-08-14",
+      "ref": "be29",
+      "tipo": "bebidas",
+      "fecha": "2026-08-14",
+      "coste": 24.33
+    },
+    {
+      "clave": "import-ago26-comida-2026-08-14",
+      "ref": "co12",
+      "tipo": "comida",
+      "fecha": "2026-08-14",
+      "coste": 7.28
+    },
+    {
+      "clave": "import-ago26-bebidas-2026-08-15",
+      "ref": "be30",
+      "tipo": "bebidas",
+      "fecha": "2026-08-15",
+      "coste": 35.06
+    },
+    {
+      "clave": "import-ago26-comida-2026-08-15",
+      "ref": "co13",
+      "tipo": "comida",
+      "fecha": "2026-08-15",
+      "coste": 11.72
+    },
+    {
+      "clave": "import-ago26-desayuno-2026-08-01",
+      "ref": "d27",
+      "tipo": "desayuno",
+      "fecha": "2026-08-01",
+      "coste": 204.82,
+      "huespedes": 31
+    },
+    {
+      "clave": "import-ago26-desayuno-2026-08-02",
+      "ref": "d28",
+      "tipo": "desayuno",
+      "fecha": "2026-08-02",
+      "coste": 185.07,
+      "huespedes": 28
+    },
+    {
+      "clave": "import-ago26-desayuno-2026-08-03",
+      "ref": "d29",
+      "tipo": "desayuno",
+      "fecha": "2026-08-03",
+      "coste": 285.86,
+      "huespedes": 31
+    },
+    {
+      "clave": "import-ago26-desayuno-2026-08-04",
+      "ref": "d30",
+      "tipo": "desayuno",
+      "fecha": "2026-08-04",
+      "coste": 181.22,
+      "huespedes": 41
+    },
+    {
+      "clave": "import-ago26-desayuno-2026-08-05",
+      "ref": "d31",
+      "tipo": "desayuno",
+      "fecha": "2026-08-05",
+      "coste": 215.96,
+      "huespedes": 39
+    },
+    {
+      "clave": "import-ago26-desayuno-2026-08-06",
+      "ref": "d32",
+      "tipo": "desayuno",
+      "fecha": "2026-08-06",
+      "coste": 113.91,
+      "huespedes": 35
+    },
+    {
+      "clave": "import-ago26-desayuno-2026-08-07",
+      "ref": "d33",
+      "tipo": "desayuno",
+      "fecha": "2026-08-07",
+      "coste": 165.39,
+      "huespedes": 33
+    },
+    {
+      "clave": "import-ago26-desayuno-2026-08-08",
+      "ref": "d34",
+      "tipo": "desayuno",
+      "fecha": "2026-08-08",
+      "coste": 161.96,
+      "huespedes": 37
+    },
+    {
+      "clave": "import-ago26-desayuno-2026-08-09",
+      "ref": "d35",
+      "tipo": "desayuno",
+      "fecha": "2026-08-09",
+      "coste": 263.72,
+      "huespedes": 32
+    },
+    {
+      "clave": "import-ago26-desayuno-2026-08-10",
+      "ref": "d36",
+      "tipo": "desayuno",
+      "fecha": "2026-08-10",
+      "coste": 154.57,
+      "huespedes": 31
+    },
+    {
+      "clave": "import-ago26-desayuno-2026-08-11",
+      "ref": "d37",
+      "tipo": "desayuno",
+      "fecha": "2026-08-11",
+      "coste": 279.18,
+      "huespedes": 32
+    }
+  ],
+  "tpv_pending_coctel_dia": [
+    {
+      "fecha": "2026-08-02",
+      "qty": 1.0,
+      "importe": 6.54,
+      "nombre": "COCTEL DEL DIA"
+    },
+    {
+      "fecha": "2026-08-04",
+      "qty": 2.0,
+      "importe": 13.08,
+      "nombre": "COCTEL DEL DIA"
+    },
+    {
+      "fecha": "2026-08-04",
+      "qty": 1.0,
+      "importe": 6.54,
+      "nombre": "COCTEL DEL DIA"
+    },
+    {
+      "fecha": "2026-08-05",
+      "qty": 2.0,
+      "importe": 13.08,
+      "nombre": "COCTEL DEL DIA"
+    },
+    {
+      "fecha": "2026-08-07",
+      "qty": 2.0,
+      "importe": 13.08,
+      "nombre": "COCTEL DEL DIA"
+    },
+    {
+      "fecha": "2026-08-08",
+      "qty": 1.0,
+      "importe": 6.54,
+      "nombre": "COCTEL DEL DIA"
+    },
+    {
+      "fecha": "2026-08-08",
+      "qty": 2.0,
+      "importe": 13.08,
+      "nombre": "COCTEL DEL DIA"
+    },
+    {
+      "fecha": "2026-08-09",
+      "qty": 1.0,
+      "importe": 6.54,
+      "nombre": "COCTEL DEL DIA"
+    },
+    {
+      "fecha": "2026-08-10",
+      "qty": 3.0,
+      "importe": 19.63,
+      "nombre": "COCTEL DEL DIA"
+    },
+    {
+      "fecha": "2026-08-10",
+      "qty": 2.0,
+      "importe": 13.08,
+      "nombre": "COCTEL DEL DIA"
+    },
+    {
+      "fecha": "2026-08-10",
+      "qty": 1.0,
+      "importe": 6.54,
+      "nombre": "COCTEL DEL DIA"
+    },
+    {
+      "fecha": "2026-08-11",
+      "qty": 1.0,
+      "importe": 6.54,
+      "nombre": "COCTEL DEL DIA"
+    },
+    {
+      "fecha": "2026-08-11",
+      "qty": 1.0,
+      "importe": 6.54,
+      "nombre": "COCTEL DEL DIA"
+    },
+    {
+      "fecha": "2026-08-12",
+      "qty": 2.0,
+      "importe": 13.08,
+      "nombre": "COCTEL DEL DIA"
+    },
+    {
+      "fecha": "2026-08-12",
+      "qty": 1.0,
+      "importe": 6.54,
+      "nombre": "COCTEL DEL DIA"
+    },
+    {
+      "fecha": "2026-08-12",
+      "qty": 2.0,
+      "importe": 13.08,
+      "nombre": "COCTEL DEL DIA"
+    },
+    {
+      "fecha": "2026-08-13",
+      "qty": 2.0,
+      "importe": 13.08,
+      "nombre": "COCTEL DEL DIA"
+    },
+    {
+      "fecha": "2026-08-14",
+      "qty": 1.0,
+      "importe": 6.54,
+      "nombre": "COCTEL DEL DIA"
+    },
+    {
+      "fecha": "2026-08-15",
+      "qty": 1.0,
+      "importe": 6.54,
+      "nombre": "COCTEL DEL DIA"
+    },
+    {
+      "fecha": "2026-08-15",
+      "qty": 1.0,
+      "importe": 6.54,
+      "nombre": "COCTEL DEL DIA"
+    },
+    {
+      "fecha": "2026-08-15",
+      "qty": 1.0,
+      "importe": 6.54,
+      "nombre": "COCTEL DEL DIA"
+    },
+    {
+      "fecha": "2026-08-15",
+      "qty": 1.0,
+      "importe": 6.54,
+      "nombre": "COCTEL DEL DIA"
+    }
+  ],
+  "mermas_hielo": [
+    {
+      "fecha": "2026-08-01",
+      "qty": 0.035,
+      "comentario": "import-ago26-merma-hielo-2026-08-01 | Descongelación hielo picado (~10% de 7 cócteles)",
+      "coste": 0.03
+    },
+    {
+      "fecha": "2026-08-02",
+      "qty": 0.010000000000000002,
+      "comentario": "import-ago26-merma-hielo-2026-08-02 | Descongelación hielo picado (~10% de 2 cócteles)",
+      "coste": 0.01
+    },
+    {
+      "fecha": "2026-08-03",
+      "qty": 0.030000000000000006,
+      "comentario": "import-ago26-merma-hielo-2026-08-03 | Descongelación hielo picado (~10% de 6 cócteles)",
+      "coste": 0.03
+    },
+    {
+      "fecha": "2026-08-04",
+      "qty": 0.025,
+      "comentario": "import-ago26-merma-hielo-2026-08-04 | Descongelación hielo picado (~10% de 5 cócteles)",
+      "coste": 0.02
+    },
+    {
+      "fecha": "2026-08-05",
+      "qty": 0.005000000000000001,
+      "comentario": "import-ago26-merma-hielo-2026-08-05 | Descongelación hielo picado (~10% de 1 cócteles)",
+      "coste": 0.0
+    },
+    {
+      "fecha": "2026-08-06",
+      "qty": 0.04000000000000001,
+      "comentario": "import-ago26-merma-hielo-2026-08-06 | Descongelación hielo picado (~10% de 8 cócteles)",
+      "coste": 0.04
+    },
+    {
+      "fecha": "2026-08-07",
+      "qty": 0.035,
+      "comentario": "import-ago26-merma-hielo-2026-08-07 | Descongelación hielo picado (~10% de 7 cócteles)",
+      "coste": 0.03
+    },
+    {
+      "fecha": "2026-08-08",
+      "qty": 0.015000000000000003,
+      "comentario": "import-ago26-merma-hielo-2026-08-08 | Descongelación hielo picado (~10% de 3 cócteles)",
+      "coste": 0.01
+    },
+    {
+      "fecha": "2026-08-09",
+      "qty": 0.020000000000000004,
+      "comentario": "import-ago26-merma-hielo-2026-08-09 | Descongelación hielo picado (~10% de 4 cócteles)",
+      "coste": 0.02
+    },
+    {
+      "fecha": "2026-08-10",
+      "qty": 0.04000000000000001,
+      "comentario": "import-ago26-merma-hielo-2026-08-10 | Descongelación hielo picado (~10% de 8 cócteles)",
+      "coste": 0.04
+    },
+    {
+      "fecha": "2026-08-11",
+      "qty": 0.020000000000000004,
+      "comentario": "import-ago26-merma-hielo-2026-08-11 | Descongelación hielo picado (~10% de 4 cócteles)",
+      "coste": 0.02
+    },
+    {
+      "fecha": "2026-08-12",
+      "qty": 0.025,
+      "comentario": "import-ago26-merma-hielo-2026-08-12 | Descongelación hielo picado (~10% de 5 cócteles)",
+      "coste": 0.02
+    },
+    {
+      "fecha": "2026-08-14",
+      "qty": 0.030000000000000006,
+      "comentario": "import-ago26-merma-hielo-2026-08-14 | Descongelación hielo picado (~10% de 6 cócteles)",
+      "coste": 0.03
+    },
+    {
+      "fecha": "2026-08-15",
+      "qty": 0.005000000000000001,
+      "comentario": "import-ago26-merma-hielo-2026-08-15 | Descongelación hielo picado (~10% de 1 cócteles)",
+      "coste": 0.0
+    }
+  ],
+  "summary": {
+    "registros_ok": 39,
+    "comida": 13,
+    "bebidas": 15,
+    "desayuno": 11,
+    "mermas_hielo": 14,
+    "pending_coctel_dia_lineas": 22,
+    "pending_coctel_dia_qty": 32.0,
+    "coste_comida": 96.81,
+    "coste_bebidas": 603.41,
+    "coste_desayuno": 2211.66,
+    "coste_merma_hielo": 0.3,
+    "coste_total_aprox": 2912.18,
+    "unmapped_tpv": 0,
+    "notas": [
+      "COCTEL DEL DIA pendiente de lista del usuario (no descontado).",
+      "Smoothies repartidos entre SKUs; helado chocolate/vainilla alternado.",
+      "Jarra NAO 350ml / Caña 200ml desde barril p399; Cubitazo=6x Estrella mini.",
+      "Cubeta pequeña=6 cubiton / grande=12; picado por cóctel +10% merma descongelación.",
+      "Sin líneas comida TPV el 10 y 12 ago.",
+      "Agua sin gas = Aquabona PET (p264); con gas = Aquabona Singular PET (p265)."
+    ]
+  }
+}
