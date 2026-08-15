@@ -1,7 +1,7 @@
 """Servicio de gestión de recetas."""
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import date, datetime
 
 from app.core.models import (
     CATEGORIA_RECETA_LABEL,
@@ -276,6 +276,42 @@ def listar_recetas(
             if disponible_en_servicio(r.servicios_disponibles, servicio_disponible)
         ]
     return sorted(recetas, key=lambda r: r.nombre.lower())
+
+
+# Nombres canónicos: weekday Python (lunes=0 … domingo=6).
+NOMBRES_TOSTADA_POR_WEEKDAY: tuple[str, ...] = (
+    "Tostada lunes",
+    "Tostada martes",
+    "Tostada miercoles",
+    "Tostada jueves",
+    "Tostada viernes",
+    "Tostada sabado",
+    "Tostada domingo",
+)
+
+ETIQUETA_TOSTADA_DEL_DIA = "Tostada del dia"
+
+
+def es_receta_tostada_weekday(nombre: str) -> bool:
+    """True si es una de las 7 tostadas por día (no la ficha virtual del catálogo)."""
+    n = (nombre or "").strip().lower()
+    return n in {x.lower() for x in NOMBRES_TOSTADA_POR_WEEKDAY}
+
+
+def receta_tostada_del_dia(fecha: date | None = None) -> Receta | None:
+    """Receta de tostada correspondiente al weekday de `fecha` (hoy si None)."""
+    dia = fecha or date.today()
+    nombre = NOMBRES_TOSTADA_POR_WEEKDAY[dia.weekday()]
+    data = get_data()
+    return next(
+        (
+            r
+            for r in data.recetas
+            if getattr(r, "activo", True)
+            and r.nombre.strip().lower() == nombre.lower()
+        ),
+        None,
+    )
 
 
 def obtener_receta(receta_id: str) -> Receta | None:

@@ -502,6 +502,15 @@ class TerminalRestaurantePresenter:
         )
 
     def _catalogo(self, bind: _ServicioBind) -> tuple[CatalogItemVM, ...]:
+        from datetime import date as _date
+
+        from app.core.services.receta_service import (
+            ETIQUETA_TOSTADA_DEL_DIA,
+            es_receta_tostada_weekday,
+            listar_recetas,
+            receta_tostada_del_dia,
+        )
+
         items: list[CatalogItemVM] = []
         q = self._busqueda
         tipo = self._catalogo_tipo or "recetas"
@@ -517,6 +526,22 @@ class TerminalRestaurantePresenter:
             if cats is not None:
                 allowed = set(cats)
                 recetas = [r for r in recetas if r.categoria in allowed]
+            # Desayuno: 7 tostadas weekday → una ficha «Tostada del dia».
+            if bind.id == "desayuno":
+                del_dia = receta_tostada_del_dia(_date.today())
+                recetas = [r for r in recetas if not es_receta_tostada_weekday(r.nombre)]
+                if del_dia is not None:
+                    if not q or coincide_busqueda(ETIQUETA_TOSTADA_DEL_DIA, q):
+                        items.append(
+                            CatalogItemVM(
+                                id=del_dia.id,
+                                nombre=ETIQUETA_TOSTADA_DEL_DIA,
+                                tipo="receta",
+                                categoria=getattr(
+                                    del_dia.categoria, "value", str(del_dia.categoria)
+                                ),
+                            )
+                        )
             for r in recetas:
                 if q and not coincide_busqueda(r.nombre, q):
                     continue

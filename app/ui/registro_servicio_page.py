@@ -306,6 +306,26 @@ def render_pagina_registro_servicio(
             recetas = listar_recetas(
                 servicio_disponible=servicio.tipo_servicio, solo_activas=True,
             )
+            if servicio.tipo_servicio == "desayuno":
+                from datetime import date as _date
+
+                from app.core.services.receta_service import (
+                    ETIQUETA_TOSTADA_DEL_DIA,
+                    es_receta_tostada_weekday,
+                    receta_tostada_del_dia,
+                )
+
+                del_dia = receta_tostada_del_dia(_date.today())
+                recetas = [r for r in recetas if not es_receta_tostada_weekday(r.nombre)]
+                if del_dia is not None:
+                    # Ficha virtual: mismo id, etiqueta «Tostada del dia».
+                    from dataclasses import replace
+
+                    try:
+                        del_dia = replace(del_dia, nombre=ETIQUETA_TOSTADA_DEL_DIA)
+                    except TypeError:
+                        del_dia.nombre = ETIQUETA_TOSTADA_DEL_DIA  # type: ignore[misc]
+                    recetas = [del_dia, *recetas]
             if recetas:
                 # Selección rápida: primeras recetas activas como botones compactos
                 rapidas = recetas[:8]
