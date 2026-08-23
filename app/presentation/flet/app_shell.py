@@ -9,6 +9,7 @@ import flet as ft
 from app.presentation.flet.presenters.terminal_restaurante_presenter import (
     TerminalRestaurantePresenter,
 )
+from app.presentation.flet.viewmodels import FeedbackVM
 from app.presentation.flet.views.login_terminal_view import build_login_view
 from app.presentation.flet.views.registro_servicio_view import (
     build_catalog_result_controls,
@@ -77,6 +78,7 @@ class TerminalRestauranteShell:
                 on_cancelar_anulacion=self._on_cancelar_anulacion,
                 on_confirmar_anulacion=self._on_confirmar_anulacion,
                 on_catalogo_tipo=self._on_catalogo_tipo,
+                on_upload_documento=self._on_upload_documento,
                 narrow=narrow,
                 search_field=None,
                 catalog_results=None,
@@ -178,6 +180,50 @@ class TerminalRestauranteShell:
     def _on_confirmar_anulacion(self) -> None:
         self.presenter.confirmar_anulacion()
         self.refresh()
+
+    def _on_upload_documento(self) -> None:
+        async def _pick_and_import() -> None:
+            try:
+                files = await self.page.pick_files(
+                    dialog_title="Importar documento TPV (comida / bebidas)",
+                    allowed_extensions=["pdf", "png", "jpg", "jpeg", "webp"],
+                    allow_multiple=False,
+                )
+            except Exception as exc:  # noqa: BLE001
+                self.presenter._feedback = FeedbackVM(
+                    ok=False, mensaje=f"No se pudo abrir el selector: {exc}"
+                )
+                self.refresh()
+                return
+            if not files:
+                return
+            path = getattr(files[0], "path", None) or ""
+            if not path:
+                self.presenter._feedback = FeedbackVM(
+                    ok=False,
+                    mensaje=(
+                        "No se obtuvo la ruta del archivo "
+                        "(solo disponible en escritorio)."
+                    ),
+                )
+                self.refresh()
+                return
+            self.presenter._feedback = FeedbackVM(
+                ok=True, mensaje="Leyendo documento TPV (OCR)…"
+            )
+            self.presenter._confirmando = True
+            self.refresh()
+            self.presenter.importar_documento_tpv(path)
+            self.refresh()
+
+        if hasattr(self.page, "run_task"):
+            self.page.run_task(_pick_and_import)
+        else:
+            self.presenter._feedback = FeedbackVM(
+                ok=False,
+                mensaje="Selector de archivos no disponible en este entorno.",
+            )
+            self.refresh()
 
 
 def attach_terminal(page: ft.Page) -> TerminalRestauranteShell:

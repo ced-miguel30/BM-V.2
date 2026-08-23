@@ -43,10 +43,25 @@ TPV_JSON = ROOT / "docs" / "añadidos manual" / "_tpv_parsed.json"
 XLSX = ROOT / "docs" / "añadidos manual" / "registro desayuno.xlsx"
 REPORT = ROOT / "docs" / "añadidos manual" / "_import_agosto_report.json"
 
+# Filtros opcionales (None = sin filtro). Útil para imports delta.
+TPV_FECHA_MIN: date | None = None  # inclusive dd as date
+TPV_FECHA_MAX: date | None = None
+DESAYUNO_DIAS: set[int] | None = None  # p.ej. {14,15,16,17,18}
+
 CLAVE_PREFIX = "import-ago26"
 BARRIL_L = 20.0
 PICADO_POR_COCTEL = 0.05
 RESP_MERMA = "rm02"
+
+# Peso neto (kg) por Ud de envase — conversión gr/Kg → Ud
+PACK_KG: dict[str, float] = {
+    "p117": 3.0,   # champiñón laminado 3KG
+    "p185": 0.2,   # espinacas ~200g
+    "p286": 3.0,   # alubia tomate lata 3KG
+    "p122": 0.85,  # melocotón en su jugo
+    "p405": 2.5,
+    "p367": 2.5,   # frutas del bosque
+}
 
 PACK_L: dict[str, float] = {
     "p236": 0.75,
@@ -147,6 +162,17 @@ def _to_nativa(data, producto_id: str, cantidad: float, unidad: str | None) -> f
         return round(litros / pack, 6) if pack > 0 else round(litros, 6)
     if u in ("ml", "cl", "L") and prod.unidad.value == "L":
         return round(qty * {"ml": 0.001, "cl": 0.01, "L": 1.0}[u], 6)
+    if u in ("mg", "gr", "Kg") and prod.unidad.value == "Ud":
+        gramos = qty * {"mg": 0.001, "gr": 1.0, "Kg": 1000.0}[u]
+        pack = PACK_KG.get(producto_id)
+        if pack and pack > 0:
+            # 4 decimales: evita drift FIFO (0.063534 vs 0.0636) al acumular extras
+            return round(gramos / (pack * 1000.0), 4)
+        # Sin pack conocido: no tratar gramos como Ud enteras
+        raise ValueError(
+            f"Producto {producto_id} ({prod.nombre}) está en Ud pero no hay PACK_KG "
+            f"para convertir {qty} {u}. Añada el peso neto del envase."
+        )
     if u in ("mg", "gr", "Kg") and prod.unidad.value == "Kg":
         return round(qty * {"mg": 0.000001, "gr": 0.001, "Kg": 1.0}[u], 6)
     nativa = convertir_a_unidad_producto(qty, u, prod.unidad)
@@ -308,6 +334,7 @@ def build_name_map(data) -> dict[str, tuple[str, str]]:
     R("ENSALADADEQUESOFRESCOYFRESAS", "Ensalada queso de cabra y fresa")
     R("ENSALADA QUESO", "Ensalada queso de cabra y fresa")
     R("POKE BOWL", "Poke bowl")
+    R("POKEBOWL", "Poke bowl")
     R("GAMBAS AL AJILLO", "Gambas al ajillo")
     R("CALAMARES FRITOS", "Calamares a la romana")
     R("CALAMARES A LA ROMANA", "Calamares a la romana")
@@ -525,9 +552,16 @@ def is_comida_recipe(data, rid: str) -> bool:
     return bool(r and r.categoria == CategoriaReceta.COMIDA)
 
 
-def import_tpv(report: dict) -> None:
+def import_tpv(
+    report: dict,
+    rows: list[dict] | None = None,
+    *,
+    observaciones: str | None = None,
+) -> None:
     data = get_container().app_data_store.get()
-    rows = json.loads(TPV_JSON.read_text(encoding="utf-8"))
+    if rows is None:
+        rows = json.loads(TPV_JSON.read_text(encoding="utf-8"))
+    obs_base = observaciones or "Import TPV agosto 2026"
     M = build_name_map(data)
 
     # Fix Malibu if no recipe
@@ -554,6 +588,10 @@ def import_tpv(report: dict) -> None:
             continue
         kind, token = hit
         for f, qty, imp, raw in infer_qty_for_group(lines):
+            if TPV_FECHA_MIN and f < TPV_FECHA_MIN:
+                continue
+            if TPV_FECHA_MAX and f > TPV_FECHA_MAX:
+                continue
             if kind == "special" and token == "pending_cocktail":
                 pending.append({"fecha": f.isoformat(), "qty": qty, "importe": imp, "nombre": raw or name})
                 continue
@@ -621,7 +659,11 @@ def import_tpv(report: dict) -> None:
         topup_for_service(service, day, report)
         # re-check stock once more
         topup_for_service(service, day, report)
-        res = service.registrar(day, observaciones=f"Import TPV agosto 2026 ({tipo})", clave_idempotencia=clave)
+        res = service.registrar(
+            day,
+            observaciones=f"{obs_base} ({tipo})",
+            clave_idempotencia=clave,
+        )
         if res.ok:
             data_now = get_container().app_data_store.get()
             reg = next(
@@ -735,6 +777,13 @@ def parse_desayuno_line(data, text: str, fecha: date) -> dict:
     t = re.sub(r"\bPOCHE\b", "POCHADO", t)
     t = re.sub(r"\bEXTAR\b", "EXTRA", t)
     t = re.sub(r"\bSALCHCIHA\b", "SALCHICHA", t)
+    t = re.sub(r"\bSALCHICA\b", "SALCHICHA", t)
+    t = re.sub(r"\bINMGLES\b", "INGLES", t)
+    t = re.sub(r"\bTOSTDA\b", "TOSTADA", t)
+    t = re.sub(r"\bQUYESO\b", "QUESO", t)
+    t = re.sub(r"HUEVOSHUEVO", "HUEVO", t)
+    t = re.sub(r"HUEVOS(?=HUEVO)", "HUEVOS ", t)
+    t = t.replace("FRANBCESA", "FRANCESA")
     t = t.replace("DESAYUNO NGLES", "DESAYUNO INGLES")
     t = t.replace("TOSTADA RANCESA", "TOSTADA FRANCESA")
     if t.startswith("TOSTADA DIA") or t == "TOSTADA DIA":
@@ -743,6 +792,8 @@ def parse_desayuno_line(data, text: str, fecha: date) -> dict:
         t = t.replace("TOSTADAS CHAMPI", "TOSTADA CHAMPI")
     # X2 / 1 prefijos
     t = re.sub(r"^X\s*(\d+)\s+", r"\1 ", t)
+    # "2 TOSTADAS DEL DIA" → cantidad en texto
+    t = re.sub(r"\bTOSTADAS DEL DIA\b", "TOSTADA DEL DIA", t)
     recipes: list[tuple[str, float, list[tuple[str, float, str]]]] = []
     products: list[tuple[str, float, str]] = []
     notes: list[str] = []
@@ -770,19 +821,32 @@ def parse_desayuno_line(data, text: str, fecha: date) -> dict:
     if "SANDWICH DE LA CASA" in t or "SANDWICH CASA" in t:
         add_rec("Sandwich de la casa", 1)
         return {"recipes": recipes, "products": products, "notes": notes, "raw": raw}
-    if "SANDWICH MIXTO" in t or "SANDWICH DE QUESO" in t:
+    if "SANDWICH MIXTO" in t or "SANDWICH DE QUESO" in t or "SANDWICH SOLO QUESO" in t:
         add_rec("Sandwich mixto", 1)
+        return {"recipes": recipes, "products": products, "notes": notes, "raw": raw}
+    if "SANDWICH" in t and ("JAMON" in t or "QUESO" in t):
+        extras = []
+        if "CHAMPI" in t:
+            extras.append(("champi", 20, "gr"))
+        add_rec("Sandwich mixto", 1, extras)
         return {"recipes": recipes, "products": products, "notes": notes, "raw": raw}
     if "SANDWICH VEGETAL" in t:
         add_rec("Sandwich vegetal", 1)
         return {"recipes": recipes, "products": products, "notes": notes, "raw": raw}
 
     if "TOSTADA FRANCES" in t:
-        add_rec("Tostada francesa", 1)
+        n_tost = 1
+        m = re.search(r"(\d+)\s*TOSTADA", t)
+        if m:
+            n_tost = int(m.group(1))
+        add_rec("Tostada francesa", float(n_tost))
         return {"recipes": recipes, "products": products, "notes": notes, "raw": raw}
 
     if "TOSTADA CHAMPI" in t:
-        add_rec("Tostada champinones", 1)
+        extras = []
+        if "BACON" in t:
+            extras.append(("bacon", 15, "gr"))
+        add_rec("Tostada champinones", 1, extras)
         return {"recipes": recipes, "products": products, "notes": notes, "raw": raw}
 
     if "TOSTADA DEL DIA" in t or "TOSTADA DEL DÍA" in _norm(raw) or t == "TOSTADA DIA":
@@ -793,9 +857,28 @@ def parse_desayuno_line(data, text: str, fecha: date) -> dict:
             extras.append(("aguacate", 60, "gr"))
         if "SALMON" in t:
             extras.append(("salmon", 40, "gr"))
-        add_rec("Tostada del dia", 1, extras)
+        n_tost = 1
+        m = re.search(r"(\d+)\s*TOSTADA", t)
+        if m:
+            n_tost = int(m.group(1))
+        add_rec("Tostada del dia", float(n_tost), extras)
         if "HUEVO POCHAD" in t and "Y" in t:
             add_rec("Huevo pochado", 1)
+        return {"recipes": recipes, "products": products, "notes": notes, "raw": raw}
+
+    if "TOSTADA" in t and "SALMON" in t and "DEL DIA" not in t:
+        add_rec("Tostada del dia", 1, [("salmon", 40, "gr")])
+        return {"recipes": recipes, "products": products, "notes": notes, "raw": raw}
+
+    # Solo jamón/queso sueltos (sin sandwich/tortilla)
+    if ("JAMON SERRANO" in t or "JAMON" in t) and "TORTILLA" not in t and "SANDWICH" not in t and "HUEVO" not in t:
+        n = 1
+        m = re.search(r"X\s*(\d+)", t) or re.search(r"(\d+)\s*$", t)
+        if "X2" in t or "X 2" in t:
+            n = 2
+        products.append(("jamon_cocido", 20.0 * n, "gr"))  # sin serrano en catálogo
+        if "QUESO" in t:
+            products.append(("queso_loncha", 20.0 * n, "gr"))
         return {"recipes": recipes, "products": products, "notes": notes, "raw": raw}
 
     if "TOSTADA" in t and ("AGUACATE" in t or "SALMON" in t or "POCHAD" in t):
@@ -872,10 +955,10 @@ def parse_desayuno_line(data, text: str, fecha: date) -> dict:
         if "SALCHICHA" in t:
             extras.append(("salchicha", 50, "gr"))
 
-        if "POCHAD" in t or "PASADO" in t:
-            add_rec("Huevo pochado", float(n_huevos), extras)
-        elif "COCID" in t:
+        if "DURO" in t or "COCID" in t:
             add_rec("Huevo cocido", float(n_huevos), extras)
+        elif "POCHAD" in t or "PASADO" in t:
+            add_rec("Huevo pochado", float(n_huevos), extras)
         elif "FRITO" in t:
             add_rec("Huevo frito", float(n_huevos), extras)
         elif "REVUELT" in t:
@@ -886,7 +969,7 @@ def parse_desayuno_line(data, text: str, fecha: date) -> dict:
         return {"recipes": recipes, "products": products, "notes": notes, "raw": raw}
 
     # Solo extras / pan / etc.
-    if "AGUACATE" in t or "SALMON" in t or "PAN" in t or "BACON" in t or "HASH" in t or "SALCHICHA" in t:
+    if "AGUACATE" in t or "SALMON" in t or "PAN" in t or "BACON" in t or "HASH" in t or "SALCHICHA" in t or "TOMATE" in t or "CHERRY" in t:
         if "AGUACATE" in t:
             products.append(("aguacate", 60, "gr"))
         if "SALMON" in t:
@@ -905,6 +988,9 @@ def parse_desayuno_line(data, text: str, fecha: date) -> dict:
             products.append(("queso_loncha", 20, "gr"))
         if "CHAMPI" in t:
             products.append(("champi", 20, "gr"))
+        if "TOMATE" in t or "CHERRY" in t:
+            n_t, _ = _qty_prefix(raw)
+            products.append(("tomate" if "CHERRY" not in t else "cherry", 30.0 * n_t, "gr"))
         if products:
             return {"recipes": recipes, "products": products, "notes": notes, "raw": raw}
 
@@ -922,7 +1008,9 @@ def import_desayunos(report: dict) -> None:
         if not m:
             continue
         day_n = int(m.group(1))
-        if not 1 <= day_n <= 11:
+        if not 1 <= day_n <= 31:
+            continue
+        if DESAYUNO_DIAS is not None and day_n not in DESAYUNO_DIAS:
             continue
         fecha = date(2026, 8, day_n)
         ws = wb[sheet_name]

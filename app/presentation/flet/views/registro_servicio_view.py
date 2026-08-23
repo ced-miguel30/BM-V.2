@@ -64,6 +64,7 @@ def build_registro_view(
     on_cancelar_anulacion: Callable[[], None] | None = None,
     on_confirmar_anulacion: Callable[[], None] | None = None,
     on_catalogo_tipo: Callable[[str], None] | None = None,
+    on_upload_documento: Callable[[], None] | None = None,
     narrow: bool = False,
     search_field: ft.TextField | None = None,
     catalog_results: ft.Column | None = None,
@@ -74,6 +75,7 @@ def build_registro_view(
     on_cancelar_anulacion = on_cancelar_anulacion or (lambda: None)
     on_confirmar_anulacion = on_confirmar_anulacion or (lambda: None)
     on_catalogo_tipo = on_catalogo_tipo or (lambda _t: None)
+    on_upload_documento = on_upload_documento or (lambda: None)
     activo = next((s for s in screen.servicios if s.activo), None)
     etiqueta_activo = activo.etiqueta if activo else "—"
     n_cesta = 0 if screen.cesta is None or screen.cesta.vacia else len(screen.cesta.lineas)
@@ -462,6 +464,23 @@ def build_registro_view(
                                         ),
                                     )
                                     for s in screen.servicios
+                                ]
+                                + [
+                                    ft.OutlinedButton(
+                                        "Subir documento TPV",
+                                        icon=ft.Icons.UPLOAD_FILE,
+                                        height=42,
+                                        disabled=screen.confirmando or screen.anulando,
+                                        style=ft.ButtonStyle(
+                                            padding=ft.Padding.symmetric(
+                                                horizontal=14, vertical=10
+                                            ),
+                                            shape=ft.RoundedRectangleBorder(
+                                                radius=ui_theme.RADIUS_SM
+                                            ),
+                                        ),
+                                        on_click=lambda _e: on_upload_documento(),
+                                    )
                                 ],
                             ),
                         ),

@@ -31,8 +31,12 @@ FECHA_FIN = date(2026, 8, 15)
 
 # Ud con peso neto aprox. para convertir gramos → Ud
 PACK_KG: dict[str, float] = {
+    "p117": 3.0,
+    "p185": 0.2,
+    "p286": 3.0,
     "p122": 0.85,  # melocotón en su jugo (lata/bote)
     "p304": 3.0,
+    "p405": 2.5,
 }
 
 # Loncha ≈ 10 g
@@ -81,8 +85,10 @@ def _to_nativa(data, producto_id: str, cantidad: float, unidad: str | None) -> f
         gramos = qty * {"mg": 0.001, "gr": 1.0, "Kg": 1000.0}[u]
         pack = PACK_KG.get(producto_id)
         if pack and pack > 0:
-            return round(gramos / (pack * 1000.0), 6)
-        return qty
+            return round(gramos / (pack * 1000.0), 4)
+        raise ValueError(
+            f"Producto {producto_id} ({prod.nombre}) en Ud sin PACK_KG para {qty} {u}"
+        )
     if u in ("mg", "gr", "Kg") and prod.unidad.value == "Kg":
         return round(qty * {"mg": 0.000001, "gr": 0.001, "Kg": 1.0}[u], 6)
     nativa = convertir_a_unidad_producto(qty, u, prod.unidad)

@@ -1,0 +1,4342 @@
+[
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000275",
+    "nombre": "ENSALADA CESAR",
+    "importe": 15.89,
+    "cat": "comida"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000212",
+    "nombre": "LANGOSTINOS CRUJIENT",
+    "importe": 15.89,
+    "cat": "comida"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000212",
+    "nombre": "LANGOSTINOSCRUJIENT",
+    "importe": 15.89,
+    "cat": "comida"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000201",
+    "nombre": "TARTAR DE SALMON CON AGUACATE",
+    "importe": 17.76,
+    "cat": "comida"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000207",
+    "nombre": "PAN BAO CON TERIYAKI",
+    "importe": 14.95,
+    "cat": "comida"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000040",
+    "nombre": "PINA COLADA",
+    "importe": 7.94,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000048",
+    "nombre": "MOJITO",
+    "importe": 7.95,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000259",
+    "nombre": "APEROL SPLITZ",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000032",
+    "nombre": "ESTRELLA GALICIA MINI",
+    "importe": 2.81,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000040",
+    "nombre": "PINA COLADA",
+    "importe": 7.94,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000048",
+    "nombre": "MOJITO",
+    "importe": 7.95,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 13.08,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000259",
+    "nombre": "APEROL SPLITZ",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000293",
+    "nombre": "TANQUERAY",
+    "importe": 50.47,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000271",
+    "nombre": "TONICA",
+    "importe": 16.35,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 7.57,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000029",
+    "nombre": "ZUMO NARANJA NATURAL",
+    "importe": 5.61,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000242",
+    "nombre": "COPA DE VINO MONTECILLO BLANCO",
+    "importe": 7.48,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 7.48,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000250",
+    "nombre": "AGUA CON GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000029",
+    "nombre": "ZUMO NARANJA NATURAL",
+    "importe": 5.61,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000250",
+    "nombre": "AGUA CON GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "CUBETAPEQUENA",
+    "nombre": "CUBETAPEQUENA",
+    "importe": 1.87,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000242",
+    "nombre": "COPADEVINO MONTECILLO BLANCO",
+    "importe": 7.48,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000001",
+    "nombre": "EXPRESSO",
+    "importe": 2.34,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "CUBETAPEQUENA",
+    "nombre": "CUBETAPEQUENA",
+    "importe": 1.87,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000293",
+    "nombre": "TANQUERAY",
+    "importe": 8.41,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000271",
+    "nombre": "TONICA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000040",
+    "nombre": "PINA COLADA",
+    "importe": 7.94,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "01/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000297",
+    "nombre": "PAPAS FRITAS",
+    "importe": 3.27,
+    "cat": "comida"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 6.55,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 13.08,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000057",
+    "nombre": "CAFE CAPPUCCINO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 5.05,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAOGRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000285",
+    "nombre": "CUBITAZO",
+    "importe": 11.68,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 19.63,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000250",
+    "nombre": "AGUA CON GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 13.08,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000299",
+    "nombre": "NAO MARINERA",
+    "importe": 4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000299",
+    "nombre": "NAO MARINERA",
+    "importe": 23.36,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000025",
+    "nombre": "FANTA NARANJA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000299",
+    "nombre": "NAO MARINERA",
+    "importe": 9.35,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 7.48,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000243",
+    "nombre": "VINO BLANCO MONTECILLO",
+    "importe": 18.69,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000048",
+    "nombre": "MOJITO",
+    "importe": 7.95,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000259",
+    "nombre": "APEROL SPLITZ",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "02/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000301",
+    "nombre": "ROYAR DE FLOR",
+    "importe": 5.14,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000199",
+    "nombre": "COCKTAIL DE GAMBAS",
+    "importe": 14.95,
+    "cat": "comida"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000275",
+    "nombre": "ENSALADA CESAR",
+    "importe": 15.89,
+    "cat": "comida"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000203",
+    "nombre": "ENSALADADEQUESOFRESCOYFRESAS",
+    "importe": 14.02,
+    "cat": "comida"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000202",
+    "nombre": "POKE BOWL",
+    "importe": 17.76,
+    "cat": "comida"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000206",
+    "nombre": "SANDWICH CLUB",
+    "importe": 13.08,
+    "cat": "comida"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000262",
+    "nombre": "GAMBAS AL AJILLO",
+    "importe": 14.96,
+    "cat": "comida"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000201",
+    "nombre": "TARTAR DE SALMON CON AGUACATE",
+    "importe": 17.76,
+    "cat": "comida"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000206",
+    "nombre": "SANDWICH CLUB",
+    "importe": 13.08,
+    "cat": "comida"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000277",
+    "nombre": "CALAMARES FRITOS",
+    "importe": 15.89,
+    "cat": "comida"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000261",
+    "nombre": "BACALAO TEMPURA",
+    "importe": 16.82,
+    "cat": "comida"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000206",
+    "nombre": "SANDWICH CLUB",
+    "importe": 13.09,
+    "cat": "comida"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 5.05,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000001",
+    "nombre": "EXPRESSO",
+    "importe": 2.34,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 7.48,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 5.05,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000037",
+    "nombre": "CORONITA",
+    "importe": 9.35,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 5.05,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000280",
+    "nombre": "APEROL",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.53,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000308",
+    "nombre": "CANA NAO MARINERA",
+    "importe": 4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000025",
+    "nombre": "FANTA NARANJA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000025",
+    "nombre": "FANTA NARANJA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 7.48,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000023",
+    "nombre": "SPRITE",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 5.04,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000242",
+    "nombre": "COPA DEVINO MONTECILLO BLANCO",
+    "importe": 7.48,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000001",
+    "nombre": "EXPRESSO",
+    "importe": 2.34,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 14.95,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000037",
+    "nombre": "CORONITA",
+    "importe": 4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000027",
+    "nombre": "AMERICANO",
+    "importe": 2.62,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000001",
+    "nombre": "EXPRESSO",
+    "importe": 2.33,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000029",
+    "nombre": "ZUMO NARANJA NATURAL",
+    "importe": 11.22,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000001",
+    "nombre": "EXPRESSO",
+    "importe": 2.34,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000239",
+    "nombre": "COPADEVINO MONTECILLO ROSADO",
+    "importe": 7.48,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000242",
+    "nombre": "COPA DEVINO MONTECILLO BLANCO",
+    "importe": 7.48,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 5.05,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000215",
+    "nombre": "SANGRIA 1L",
+    "importe": 7.94,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000259",
+    "nombre": "APEROL SPLITZ",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000259",
+    "nombre": "APEROL SPLITZ",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000308",
+    "nombre": "CANA NAO MARINERA",
+    "importe": 4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000216",
+    "nombre": "SANGRIA DE CAVA 1L",
+    "importe": 10.28,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 5.05,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000039",
+    "nombre": "DAIKIRI",
+    "importe": 8.41,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000259",
+    "nombre": "APEROL SPLITZ",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 19.63,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 26.17,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000271",
+    "nombre": "TONICA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "03/08/2026",
+    "pv": "PV00000293",
+    "nombre": "TANQUERAY",
+    "importe": 16.82,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000301",
+    "nombre": "ROYAR DE FLOR",
+    "importe": 5.14,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000275",
+    "nombre": "ENSALADA CESAR",
+    "importe": 15.89,
+    "cat": "comida"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000297",
+    "nombre": "PAPAS FRITAS",
+    "importe": 3.27,
+    "cat": "comida"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000001",
+    "nombre": "EXPRESSO",
+    "importe": 2.34,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 7.48,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000028",
+    "nombre": "CAFE LATTE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000001",
+    "nombre": "EXPRESSO",
+    "importe": 2.34,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000027",
+    "nombre": "AMERICANO",
+    "importe": 2.62,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 13.08,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAOGRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 5.05,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 7.48,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000040",
+    "nombre": "PINA COLADA",
+    "importe": 7.94,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000039",
+    "nombre": "DAIKIRI",
+    "importe": 8.41,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000040",
+    "nombre": "PINA COLADA",
+    "importe": 7.94,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000222",
+    "nombre": "DORADA ESPECIAL",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000042",
+    "nombre": "CAIPIRINA",
+    "importe": 7.94,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000039",
+    "nombre": "DAIKIRI",
+    "importe": 8.41,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 5.05,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 13.08,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000188",
+    "nombre": "CUBETA HIELO GRANDE",
+    "importe": 4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000308",
+    "nombre": "CANA NAO MARINERA",
+    "importe": 4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "04/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "05/08/2026",
+    "pv": "PV00000301",
+    "nombre": "ROYAR DE FLOR",
+    "importe": 5.14,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "05/08/2026",
+    "pv": "PV00000206",
+    "nombre": "SANDWICH CLUB",
+    "importe": 13.09,
+    "cat": "comida"
+  },
+  {
+    "fecha": "05/08/2026",
+    "pv": "PV00000279",
+    "nombre": "CROQUETAS VARIADAS",
+    "importe": 11.21,
+    "cat": "comida"
+  },
+  {
+    "fecha": "05/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "05/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 6.55,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "05/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "05/08/2026",
+    "pv": "PV00000037",
+    "nombre": "CORONITA",
+    "importe": 4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "05/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "05/08/2026",
+    "pv": "CUBETAPEQUENA",
+    "nombre": "CUBETAPEQUENA",
+    "importe": 1.87,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "05/08/2026",
+    "pv": "PV00000001",
+    "nombre": "EXPRESSO",
+    "importe": 2.34,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "05/08/2026",
+    "pv": "PV00000250",
+    "nombre": "AGUA CON GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "05/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAOGRANDE",
+    "importe": 6.55,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "05/08/2026",
+    "pv": "PV00000242",
+    "nombre": "COPADEVINOMONTECILLO BLANCO",
+    "importe": 7.47,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "05/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "05/08/2026",
+    "pv": "PV00000242",
+    "nombre": "COPA DEVINO MONTECILLO BLANCO",
+    "importe": 7.48,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "05/08/2026",
+    "pv": "PV00000001",
+    "nombre": "EXPRESSO",
+    "importe": 2.34,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "05/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 13.08,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "05/08/2026",
+    "pv": "PV00000259",
+    "nombre": "APEROL SPLITZ",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "05/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "05/08/2026",
+    "pv": "PV00000001",
+    "nombre": "EXPRESSO",
+    "importe": 2.34,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "05/08/2026",
+    "pv": "PV00000243",
+    "nombre": "VINO BLANCO MONTECILLO",
+    "importe": 18.69,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000301",
+    "nombre": "ROYAR DE FLOR",
+    "importe": 2.57,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000301",
+    "nombre": "ROYAR DE FLOR",
+    "importe": 2.57,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000206",
+    "nombre": "SANDWICH CLUB",
+    "importe": 26.17,
+    "cat": "comida"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 6.55,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000215",
+    "nombre": "SANGRIA 1L",
+    "importe": 7.94,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.53,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000023",
+    "nombre": "SPRITE",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000259",
+    "nombre": "APEROL SPLITZ",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000011",
+    "nombre": "CORTADO",
+    "importe": 5.61,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000259",
+    "nombre": "APEROL SPLITZ",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000040",
+    "nombre": "PINA COLADA",
+    "importe": 7.95,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAOGRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": -6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000299",
+    "nombre": "NAO MARINERA",
+    "importe": 4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000259",
+    "nombre": "APEROL SPLITZ",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000299",
+    "nombre": "NAO MARINERA",
+    "importe": 4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000299",
+    "nombre": "NAO MARINERA",
+    "importe": 4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000299",
+    "nombre": "NAO MARINERA",
+    "importe": 9.35,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000259",
+    "nombre": "APEROL SPLITZ",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000222",
+    "nombre": "DORADA ESPECIAL",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000299",
+    "nombre": "NAO MARINERA",
+    "importe": 4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000039",
+    "nombre": "DAIKIRI",
+    "importe": 8.41,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "06/08/2026",
+    "pv": "PV00000040",
+    "nombre": "PINA COLADA",
+    "importe": 7.95,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000204",
+    "nombre": "CROQUETAS DE JAMONIBERICO",
+    "importe": 11.21,
+    "cat": "comida"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000275",
+    "nombre": "ENSALADA CESAR",
+    "importe": 15.89,
+    "cat": "comida"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000206",
+    "nombre": "SANDWICH CLUB",
+    "importe": 13.09,
+    "cat": "comida"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000206",
+    "nombre": "SANDWICH CLUB",
+    "importe": 13.08,
+    "cat": "comida"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 5.05,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000028",
+    "nombre": "CAFE LATTE",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000028",
+    "nombre": "CAFE LATTE",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000001",
+    "nombre": "EXPRESSO",
+    "importe": 2.34,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.53,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000023",
+    "nombre": "SPRITE",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000250",
+    "nombre": "AGUA CON GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 7.57,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000221",
+    "nombre": "ESTRELLA DAM",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000040",
+    "nombre": "PINA COLADA",
+    "importe": 15.89,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 13.08,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000040",
+    "nombre": "PINA COLADA",
+    "importe": 7.94,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000108",
+    "nombre": "GORDON DRY",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000271",
+    "nombre": "TONICA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000040",
+    "nombre": "PINA COLADA",
+    "importe": 7.94,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000048",
+    "nombre": "MOJITO",
+    "importe": 7.95,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000259",
+    "nombre": "APEROL SPLITZ",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000259",
+    "nombre": "APEROL SPLITZ",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000001",
+    "nombre": "EXPRESSO",
+    "importe": 4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000097",
+    "nombre": "MALIBU",
+    "importe": 7.48,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "07/08/2026",
+    "pv": "PV00000299",
+    "nombre": "NAO MARINERA",
+    "importe": 4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000206",
+    "nombre": "SANDWICH CLUB",
+    "importe": 13.09,
+    "cat": "comida"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000275",
+    "nombre": "ENSALADA CESAR",
+    "importe": 15.89,
+    "cat": "comida"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000275",
+    "nombre": "ENSALADA CESAR",
+    "importe": 15.89,
+    "cat": "comida"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000297",
+    "nombre": "PAPAS FRITAS",
+    "importe": 3.27,
+    "cat": "comida"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000200",
+    "nombre": "NACHOS CON GUACAMOLE",
+    "importe": 13.09,
+    "cat": "comida"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000187",
+    "nombre": "COPA DE HELADO (3 BOLAS)",
+    "importe": 7.48,
+    "cat": "comida"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000025",
+    "nombre": "FANTA NARANJA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 5.05,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 13.08,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 9.81,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 9.81,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 7.57,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 5.05,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000304",
+    "nombre": "COPA SANGRIA",
+    "importe": 5.61,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000308",
+    "nombre": "CANA NAO MARINERA",
+    "importe": 9.35,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000023",
+    "nombre": "SPRITE",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000239",
+    "nombre": "COPADEVINO MONTECILLO ROSADO",
+    "importe": 7.48,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 20.19,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000023",
+    "nombre": "SPRITE",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000001",
+    "nombre": "EXPRESSO",
+    "importe": 9.35,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000040",
+    "nombre": "PINA COLADA",
+    "importe": 15.89,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "08/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 13.08,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000200",
+    "nombre": "NACHOS CON GUACAMOLE",
+    "importe": 13.08,
+    "cat": "comida"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000207",
+    "nombre": "PAN BAO CON TERIYAKI",
+    "importe": 14.96,
+    "cat": "comida"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000207",
+    "nombre": "PAN BAO CON TERIYAKI",
+    "importe": 14.95,
+    "cat": "comida"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000206",
+    "nombre": "SANDWICH CLUB",
+    "importe": 13.08,
+    "cat": "comida"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000297",
+    "nombre": "PAPAS FRITAS",
+    "importe": 3.27,
+    "cat": "comida"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000297",
+    "nombre": "PAPAS FRITAS",
+    "importe": 3.27,
+    "cat": "comida"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000275",
+    "nombre": "ENSALADA CESAR",
+    "importe": 15.89,
+    "cat": "comida"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.53,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000285",
+    "nombre": "CUBITAZO",
+    "importe": 11.68,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 10.09,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000037",
+    "nombre": "CORONITA",
+    "importe": 9.35,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000285",
+    "nombre": "CUBITAZO",
+    "importe": 11.68,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000285",
+    "nombre": "CUBITAZO",
+    "importe": -11.68,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 5.05,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 6.55,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 7.57,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 7.57,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000029",
+    "nombre": "ZUMO NARANJA NATURAL",
+    "importe": 5.61,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000259",
+    "nombre": "APEROL SPLITZ",
+    "importe": 26.17,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000221",
+    "nombre": "ESTRELLA DAM",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000308",
+    "nombre": "CANA NAO MARINERA",
+    "importe": 4.68,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000308",
+    "nombre": "CANA NAO MARINERA",
+    "importe": 4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000027",
+    "nombre": "AMERICANO",
+    "importe": 2.62,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAOGRANDE",
+    "importe": 13.08,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000285",
+    "nombre": "CUBITAZO",
+    "importe": 11.68,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.53,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 6.55,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000027",
+    "nombre": "AMERICANO",
+    "importe": -2.62,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": -6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": -3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAOGRANDE",
+    "importe": -6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000221",
+    "nombre": "ESTRELLA DAM",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000280",
+    "nombre": "APEROL",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000280",
+    "nombre": "APEROL",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000243",
+    "nombre": "VINO BLANCO MONTECILLO",
+    "importe": 18.69,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.53,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "09/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.53,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000039",
+    "nombre": "DAIKIRI",
+    "importe": 16.82,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000027",
+    "nombre": "AMERICANO",
+    "importe": 2.62,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000057",
+    "nombre": "CAFE CAPPUCCINO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.53,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000221",
+    "nombre": "ESTRELLA DAM",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000039",
+    "nombre": "DAIKIRI",
+    "importe": 8.41,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000408",
+    "nombre": "COCKTAIL ROYAL MARINA",
+    "importe": 7.95,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000285",
+    "nombre": "CUBITAZO",
+    "importe": 11.68,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 19.63,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000075",
+    "nombre": "EL GRIFO BLANCO",
+    "importe": 28.04,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000285",
+    "nombre": "CUBITAZO",
+    "importe": 11.68,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000048",
+    "nombre": "MOJITO",
+    "importe": 7.94,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000048",
+    "nombre": "MOJITO",
+    "importe": 7.95,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000032",
+    "nombre": "ESTRELLA GALICIA MINI",
+    "importe": 8.41,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 13.08,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000050",
+    "nombre": "SEX ON THE BEACH",
+    "importe": 7.95,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "10/08/2026",
+    "pv": "PV00000259",
+    "nombre": "APEROL SPLITZ",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "11/08/2026",
+    "pv": "PV00000257",
+    "nombre": "BOLAS HELADOS ARTESANALES",
+    "importe": 3.74,
+    "cat": "comida"
+  },
+  {
+    "fecha": "11/08/2026",
+    "pv": "PV00000275",
+    "nombre": "ENSALADA CESAR",
+    "importe": 15.89,
+    "cat": "comida"
+  },
+  {
+    "fecha": "11/08/2026",
+    "pv": "PV00000297",
+    "nombre": "PAPAS FRITAS",
+    "importe": 3.27,
+    "cat": "comida"
+  },
+  {
+    "fecha": "11/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "11/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.53,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "11/08/2026",
+    "pv": "PV00000216",
+    "nombre": "SANGRIA DE CAVA 1L",
+    "importe": 10.28,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "11/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "11/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "11/08/2026",
+    "pv": "PV00000026",
+    "nombre": "ANNACODORNIUPRIMAVIDE",
+    "importe": 18.69,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "11/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "11/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.53,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "11/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "11/08/2026",
+    "pv": "PV00000221",
+    "nombre": "ESTRELLA DAM",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "11/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "11/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "11/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "11/08/2026",
+    "pv": "PV00000293",
+    "nombre": "TANQUERAY",
+    "importe": 33.64,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "11/08/2026",
+    "pv": "PV00000271",
+    "nombre": "TONICA",
+    "importe": 13.08,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "11/08/2026",
+    "pv": "PV00000039",
+    "nombre": "DAIKIRI",
+    "importe": 8.41,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "11/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "11/08/2026",
+    "pv": "PV00000259",
+    "nombre": "APEROL SPLITZ",
+    "importe": 13.09,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "11/08/2026",
+    "pv": "PV00000025",
+    "nombre": "FANTA NARANJA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "12/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 5.05,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "12/08/2026",
+    "pv": "PV00000057",
+    "nombre": "CAFE CAPPUCCINO",
+    "importe": 6.55,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "12/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "12/08/2026",
+    "pv": "PV00000242",
+    "nombre": "COPA DEVINO MONTECILLO BLANCO",
+    "importe": 7.47,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "12/08/2026",
+    "pv": "PV00000282",
+    "nombre": "MARTINI ROJO",
+    "importe": 7.48,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "12/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "12/08/2026",
+    "pv": "PV00000285",
+    "nombre": "CUBITAZO",
+    "importe": 11.68,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "12/08/2026",
+    "pv": "PV00000259",
+    "nombre": "APEROL SPLITZ",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "12/08/2026",
+    "pv": "PV00000108",
+    "nombre": "GORDON DRY",
+    "importe": 13.09,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "12/08/2026",
+    "pv": "PV00000271",
+    "nombre": "TONICA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "12/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 13.08,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "12/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "12/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "12/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 7.57,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "12/08/2026",
+    "pv": "PV00000308",
+    "nombre": "CANA NAO MARINERA",
+    "importe": 9.35,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "12/08/2026",
+    "pv": "PV00000188",
+    "nombre": "CUBETA HIELO GRANDE",
+    "importe": 4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "12/08/2026",
+    "pv": "PV00000041",
+    "nombre": "MARGARITA",
+    "importe": 8.41,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "12/08/2026",
+    "pv": "PV00000285",
+    "nombre": "CUBITAZO",
+    "importe": 11.68,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "12/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 13.08,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "12/08/2026",
+    "pv": "PV00000025",
+    "nombre": "FANTA NARANJA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "12/08/2026",
+    "pv": "PV00000048",
+    "nombre": "MOJITO",
+    "importe": 23.83,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "12/08/2026",
+    "pv": "PV00000222",
+    "nombre": "DORADA ESPECIAL",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "13/08/2026",
+    "pv": "PV00000206",
+    "nombre": "SANDWICH CLUB",
+    "importe": 26.17,
+    "cat": "comida"
+  },
+  {
+    "fecha": "13/08/2026",
+    "pv": "PV00000205",
+    "nombre": "HAMBURGUESA BREEZE",
+    "importe": 18.69,
+    "cat": "comida"
+  },
+  {
+    "fecha": "13/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "13/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "13/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "13/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 5.05,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "13/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "13/08/2026",
+    "pv": "PV00000308",
+    "nombre": "CANA NAO MARINERA",
+    "importe": 4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "13/08/2026",
+    "pv": "PV00000308",
+    "nombre": "CANA NAO MARINERA",
+    "importe": -4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "13/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": -6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "13/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "13/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 7.48,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "13/08/2026",
+    "pv": "PV00000037",
+    "nombre": "CORONITA",
+    "importe": 9.35,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "13/08/2026",
+    "pv": "PV00000285",
+    "nombre": "CUBITAZO",
+    "importe": 11.68,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "13/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 13.08,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "13/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 13.09,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "13/08/2026",
+    "pv": "PV00000308",
+    "nombre": "CANA NAO MARINERA",
+    "importe": 4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000206",
+    "nombre": "SANDWICH CLUB",
+    "importe": 13.09,
+    "cat": "comida"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000206",
+    "nombre": "SANDWICH CLUB",
+    "importe": 13.09,
+    "cat": "comida"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000206",
+    "nombre": "SANDWICH CLUB",
+    "importe": 13.08,
+    "cat": "comida"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000275",
+    "nombre": "ENSALADA CESAR",
+    "importe": 15.88,
+    "cat": "comida"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000297",
+    "nombre": "PAPAS FRITAS",
+    "importe": 3.27,
+    "cat": "comida"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000297",
+    "nombre": "PAPAS FRITAS",
+    "importe": 3.27,
+    "cat": "comida"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAOGRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000040",
+    "nombre": "PINA COLADA",
+    "importe": 7.95,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000029",
+    "nombre": "ZUMO NARANJA NATURAL",
+    "importe": 5.61,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000285",
+    "nombre": "CUBITAZO",
+    "importe": 11.68,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000048",
+    "nombre": "MOJITO",
+    "importe": 7.95,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 5.05,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000285",
+    "nombre": "CUBITAZO",
+    "importe": 11.68,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000029",
+    "nombre": "ZUMO NARANJA NATURAL",
+    "importe": 5.61,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000048",
+    "nombre": "MOJITO",
+    "importe": 7.94,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000041",
+    "nombre": "MARGARITA",
+    "importe": 25.24,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000222",
+    "nombre": "DORADA ESPECIAL",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "14/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000206",
+    "nombre": "SANDWICH CLUB",
+    "importe": 13.08,
+    "cat": "comida"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000205",
+    "nombre": "HAMBURGUESA BREEZE",
+    "importe": 18.69,
+    "cat": "comida"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000275",
+    "nombre": "ENSALADA CESAR",
+    "importe": 31.78,
+    "cat": "comida"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000206",
+    "nombre": "SANDWICH CLUB",
+    "importe": 13.09,
+    "cat": "comida"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000297",
+    "nombre": "PAPAS FRITAS",
+    "importe": 3.27,
+    "cat": "comida"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000206",
+    "nombre": "SANDWICH CLUB",
+    "importe": 13.08,
+    "cat": "comida"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000242",
+    "nombre": "COPA DEVINOMONTECILLO BLANCO",
+    "importe": 7.48,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000021",
+    "nombre": "NESTEA MANGO PINA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000285",
+    "nombre": "CUBITAZO",
+    "importe": 11.68,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000221",
+    "nombre": "ESTRELLA DAM",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000221",
+    "nombre": "ESTRELLA DAM",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000034",
+    "nombre": "ETRELLA GALICIA 0,0",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000308",
+    "nombre": "CANA NAO MARINERA",
+    "importe": 4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000308",
+    "nombre": "CANA NAO MARINERA",
+    "importe": 4.68,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000023",
+    "nombre": "SPRITE",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000219",
+    "nombre": "BEEFEATERS",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000271",
+    "nombre": "TONICA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000050",
+    "nombre": "SEX ON THE BEACH",
+    "importe": 7.95,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000219",
+    "nombre": "BEEFEATERS",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000271",
+    "nombre": "TONICA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000026",
+    "nombre": "ANNACODORNIUPRIMAVIDE",
+    "importe": 18.69,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000305",
+    "nombre": "ANNA CODORNIU MINI",
+    "importe": 10.28,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000073",
+    "nombre": "COPA VINO MONTECILLO CRIANZA",
+    "importe": 7.48,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "15/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "16/08/2026",
+    "pv": "PV00000206",
+    "nombre": "SANDWICH CLUB",
+    "importe": 13.09,
+    "cat": "comida"
+  },
+  {
+    "fecha": "16/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "16/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "16/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "16/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 3.28,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "16/08/2026",
+    "pv": "PV00000250",
+    "nombre": "AGUA CON GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "16/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "16/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "16/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "16/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "16/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "16/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "16/08/2026",
+    "pv": "PV00000108",
+    "nombre": "GORDON DRY",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "16/08/2026",
+    "pv": "PV00000271",
+    "nombre": "TONICA",
+    "importe": 3.28,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "16/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "16/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "16/08/2026",
+    "pv": "PV00000308",
+    "nombre": "CANA NAO MARINERA",
+    "importe": 4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000206",
+    "nombre": "SANDWICH CLUB",
+    "importe": 13.08,
+    "cat": "comida"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000262",
+    "nombre": "GAMBAS AL AJILLO",
+    "importe": 14.96,
+    "cat": "comida"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000206",
+    "nombre": "SANDWICH CLUB",
+    "importe": 13.08,
+    "cat": "comida"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000202",
+    "nombre": "POKEBOWL",
+    "importe": 17.76,
+    "cat": "comida"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAOGRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000250",
+    "nombre": "AGUA CON GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000280",
+    "nombre": "APEROL",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000308",
+    "nombre": "CANA NAO MARINERA",
+    "importe": 4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000221",
+    "nombre": "ESTRELLA DAM",
+    "importe": 7.48,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000221",
+    "nombre": "ESTRELLA DAM",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000299",
+    "nombre": "NAO MARINERA",
+    "importe": 4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 5.05,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000250",
+    "nombre": "AGUA CON GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000041",
+    "nombre": "MARGARITA",
+    "importe": 16.82,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000242",
+    "nombre": "COPA DE VINO MONTECILLO BLANCO",
+    "importe": 14.95,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000040",
+    "nombre": "PINA COLADA",
+    "importe": 7.95,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000050",
+    "nombre": "SEX ON THE BEACH",
+    "importe": 7.94,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000304",
+    "nombre": "COPA SANGRIA",
+    "importe": 5.61,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000299",
+    "nombre": "NAO MARINERA",
+    "importe": 4.67,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "17/08/2026",
+    "pv": "PV00000304",
+    "nombre": "COPA SANGRIA",
+    "importe": 5.61,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "18/08/2026",
+    "pv": "PV00000297",
+    "nombre": "PAPAS FRITAS",
+    "importe": 3.27,
+    "cat": "comida"
+  },
+  {
+    "fecha": "18/08/2026",
+    "pv": "PV00000275",
+    "nombre": "ENSALADA CESAR",
+    "importe": 15.89,
+    "cat": "comida"
+  },
+  {
+    "fecha": "18/08/2026",
+    "pv": "PV00000285",
+    "nombre": "CUBITAZO",
+    "importe": 11.68,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "18/08/2026",
+    "pv": "PV00000222",
+    "nombre": "DORADA ESPECIAL",
+    "importe": 7.48,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "18/08/2026",
+    "pv": "PV00000017",
+    "nombre": "COCA-COLA ZERO",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "18/08/2026",
+    "pv": "PV00000250",
+    "nombre": "AGUA CON GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "18/08/2026",
+    "pv": "PV00000304",
+    "nombre": "COPA SANGRIA",
+    "importe": 5.61,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "18/08/2026",
+    "pv": "PV00000040",
+    "nombre": "PINA COLADA",
+    "importe": 7.94,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "18/08/2026",
+    "pv": "PV00000040",
+    "nombre": "PINA COLADA",
+    "importe": 7.95,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "18/08/2026",
+    "pv": "PV00000050",
+    "nombre": "SEX ON THE BEACH",
+    "importe": 7.95,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "18/08/2026",
+    "pv": "PV00000041",
+    "nombre": "MARGARITA",
+    "importe": 8.41,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "18/08/2026",
+    "pv": "PV00000285",
+    "nombre": "CUBITAZO",
+    "importe": 11.68,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "18/08/2026",
+    "pv": "PV00000050",
+    "nombre": "SEX ON THE BEACH",
+    "importe": 7.95,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "18/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000297",
+    "nombre": "PAPAS FRITAS",
+    "importe": 6.54,
+    "cat": "comida"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000212",
+    "nombre": "LANGOSTINOSCRUJIENT",
+    "importe": 15.89,
+    "cat": "comida"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000204",
+    "nombre": "RACION CROQUETAS",
+    "importe": 11.21,
+    "cat": "comida"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000297",
+    "nombre": "PAPAS FRITAS",
+    "importe": 6.54,
+    "cat": "comida"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.53,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000285",
+    "nombre": "CUBITAZO",
+    "importe": 11.68,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 3.28,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000249",
+    "nombre": "AGUA SIN GAS",
+    "importe": 2.52,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000023",
+    "nombre": "SPRITE",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000284",
+    "nombre": "MARTINI BIANCO",
+    "importe": 7.48,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000250",
+    "nombre": "AGUA CON GAS",
+    "importe": 2.53,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000034",
+    "nombre": "ETRELLA GALICIA 0,0",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 7.48,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000221",
+    "nombre": "ESTRELLA DAM",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000316",
+    "nombre": "JARRA NAO GRANDE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000050",
+    "nombre": "SEX ON THE BEACH",
+    "importe": 7.95,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000259",
+    "nombre": "APEROL SPLITZ",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000024",
+    "nombre": "FANTA LIMON",
+    "importe": 3.27,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000222",
+    "nombre": "DORADA ESPECIAL",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000036",
+    "nombre": "HEINEKEN",
+    "importe": 3.74,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000050",
+    "nombre": "SEX ON THE BEACH",
+    "importe": 7.95,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000286",
+    "nombre": "SMOOTHIE",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000050",
+    "nombre": "SEX ON THE BEACH",
+    "importe": 7.94,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000269",
+    "nombre": "COCTEL DEL DIA",
+    "importe": 6.54,
+    "cat": "bebidas"
+  },
+  {
+    "fecha": "19/08/2026",
+    "pv": "PV00000016",
+    "nombre": "COCA-COLA",
+    "importe": 3.27,
+    "cat": "bebidas"
+  }
+]

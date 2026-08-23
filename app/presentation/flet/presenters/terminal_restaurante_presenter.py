@@ -118,6 +118,30 @@ class TerminalRestaurantePresenter:
         self._confirmando = False
         self._anulando = False
 
+    def importar_documento_tpv(self, ruta: str) -> TerminalScreenVM:
+        """Lee PDF/imagen TPV (comida + bebidas) y registra como el import manual."""
+        if not session_bridge.puede_usar_terminal():
+            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            return self.screen()
+        if not session_tiene_permiso(Permiso.ACCEDER_REGISTRO):
+            self._feedback = map_error_recuperable("No autorizado para registrar.")
+            return self.screen()
+        path = (ruta or "").strip()
+        if not path:
+            self._feedback = map_error_recuperable("No se seleccionó ningún archivo.")
+            return self.screen()
+        self._confirmando = True
+        try:
+            from app.core.services.tpv_documento_service import importar_documento_tpv
+
+            resultado = importar_documento_tpv(path)
+            self._feedback = FeedbackVM(ok=resultado.ok, mensaje=resultado.mensaje)
+        except Exception as exc:  # noqa: BLE001
+            self._feedback = map_error_recuperable(f"Error al importar documento: {exc}")
+        finally:
+            self._confirmando = False
+        return self.screen()
+
     def seleccionar_servicio(self, servicio_id: str) -> TerminalScreenVM:
         if servicio_id not in _binds():
             self._feedback = map_error_recuperable("Servicio no reconocido.")

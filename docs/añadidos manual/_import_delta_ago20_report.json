@@ -1,0 +1,127 @@
+{
+  "finished_at": "2026-08-20T12:27:16",
+  "desayuno_huesped_14_18": {
+    "dias": [
+      "2026-08-14",
+      "2026-08-15",
+      "2026-08-16",
+      "2026-08-17",
+      "2026-08-18"
+    ],
+    "coste": 1027.41
+  },
+  "buffet_16_19": {
+    "dias": [
+      "2026-08-16",
+      "2026-08-17",
+      "2026-08-18",
+      "2026-08-19"
+    ],
+    "coste": 398.28
+  },
+  "tpv_16_19": {
+    "comida_dias": [
+      "2026-08-16",
+      "2026-08-17",
+      "2026-08-18",
+      "2026-08-19"
+    ],
+    "bebidas_dias": [
+      "2026-08-16",
+      "2026-08-17",
+      "2026-08-18",
+      "2026-08-19"
+    ],
+    "coste_comida": 22.49,
+    "coste_bebidas": 70.67
+  },
+  "pending_coctel_dia_lineas": 7,
+  "cobertura_agosto": {
+    "desayuno_huesped": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      14,
+      15,
+      16,
+      17,
+      18
+    ],
+    "buffet": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ],
+    "comida": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      11,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ],
+    "bebidas": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ]
+  },
+  "notas": [
+    "TPV nuevo PDF: importados solo 16-19 (12-15 ya estaban del PDF anterior).",
+    "Desayuno Excel: hojas 14-18 importadas; 1-11 sin reimportar.",
+    "Buffet diario extendido a 16-19.",
+    "COCTEL DEL DIA sigue pendiente de lista.",
+    "Sin hoja desayuno 19/20 ni TPV 20/08 en el PDF."
+  ]
+}
