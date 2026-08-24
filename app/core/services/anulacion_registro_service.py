@@ -59,6 +59,12 @@ class ResultadoAnulacion:
     mensaje: str
 
 
+@dataclass
+class ResultadoConfirmacionRevision:
+    ok: bool
+    mensaje: str
+
+
 class _CompatSessionUow:
     def get_data(self) -> AppData:
         return get_data()
@@ -207,8 +213,40 @@ def puede_anular_registro(
     _ = tipo  # reservado; el registro ya tipa el stack
     if registro is None:
         return ResultadoPuedeAnular(False, ["Registro no encontrado."])
+    if bool(getattr(registro, "revision_confirmada", False)):
+        return ResultadoPuedeAnular(False, ["Registro revisado y confirmado."])
     motivos = _motivos_bloqueo_trazabilidad(data, registro)
     return ResultadoPuedeAnular(ok=not motivos, motivos_bloqueo=motivos)
+
+
+def confirmar_revision_registro(
+    registro_id: str,
+    *,
+    tipo_registro: str = TIPO_SERVICIO,
+    ctx: AppContext | None = None,
+) -> ResultadoConfirmacionRevision:
+    """Marca un registro como revisado y bloquea su anulación posterior."""
+    app_ctx, data = _context(ctx=ctx)
+    registro = _buscar_registro(data, registro_id, tipo_registro)
+    if registro is None:
+        return ResultadoConfirmacionRevision(False, "Registro no encontrado.")
+    if registro_esta_anulado(registro):
+        return ResultadoConfirmacionRevision(False, "No se puede confirmar un registro anulado.")
+    if bool(getattr(registro, "revision_confirmada", False)):
+        return ResultadoConfirmacionRevision(True, "Registro ya confirmado tras revisión.")
+
+    now = datetime.now()
+    registro.revision_confirmada = True
+    registro.fecha_revision_confirmacion = now.date()
+    registro.hora_revision_confirmacion = now.time().replace(microsecond=0)
+    registro.revision_confirmada_por = app_ctx.actor.nombre
+    _registrar_actividad(
+        app_ctx,
+        "confirmar_revision_registro",
+        f"{tipo_registro}:{registro_id}",
+    )
+    app_ctx.uow.commit(data)
+    return ResultadoConfirmacionRevision(True, f"Registro {registro_id} confirmado tras revisión.")
 
 
 def _aggregar_devoluciones(registro) -> dict[str, float]:

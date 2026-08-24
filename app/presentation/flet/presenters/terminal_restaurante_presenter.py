@@ -30,6 +30,7 @@ from app.presentation.flet.viewmodels import (
     CatalogItemVM,
     FeedbackVM,
     HistorialRegistroVM,
+    ImportacionTpvVM,
     ServicioVM,
     TerminalScreenVM,
     assert_sin_campos_economicos,
@@ -84,6 +85,9 @@ class TerminalRestaurantePresenter:
         self._anulando: bool = False
         self._num_huespedes: int = 30
         self._anulacion_pendiente: AnulacionPendienteVM | None = None
+        self._importacion_tpv: ImportacionTpvVM | None = None
+        self._historial_expandido: bool = False
+        self._importacion_tpv_activa: bool = False
         assert_sin_campos_economicos(CatalogItemVM)
         assert_sin_campos_economicos(BasketLineVM)
         assert_sin_campos_economicos(BasketVM)
@@ -117,30 +121,115 @@ class TerminalRestaurantePresenter:
         self._anulacion_pendiente = None
         self._confirmando = False
         self._anulando = False
+        self._importacion_tpv = None
+        self._historial_expandido = False
 
-    def importar_documento_tpv(self, ruta: str) -> TerminalScreenVM:
-        """Lee PDF/imagen TPV (comida + bebidas) y registra como el import manual."""
+    def set_importacion_tpv_activa(self, activa: bool) -> None:
+        self._importacion_tpv_activa = bool(activa)
+
+    def ejecutar_importacion_tpv_completa_sync(self, ruta: str):
+        """OCR + registro en un solo hilo de fondo (sin refrescos UI intermedios)."""
+        from app.core.services.tpv_documento_service import ResultadoImportTpv
         if not session_bridge.puede_usar_terminal():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
-            return self.screen()
+            return ResultadoImportTpv(ok=False, mensaje="Sesión no autorizada.")
         if not session_tiene_permiso(Permiso.ACCEDER_REGISTRO):
-            self._feedback = map_error_recuperable("No autorizado para registrar.")
-            return self.screen()
+            return ResultadoImportTpv(ok=False, mensaje="No autorizado para registrar.")
         path = (ruta or "").strip()
         if not path:
-            self._feedback = map_error_recuperable("No se seleccionó ningún archivo.")
-            return self.screen()
-        self._confirmando = True
-        try:
-            from app.core.services.tpv_documento_service import importar_documento_tpv
+            return ResultadoImportTpv(ok=False, mensaje="No se seleccionó ningún archivo.")
+        parsed = self.procesar_documento_tpv_ocr_sync(path)
+        if not parsed.ok:
+            return ResultadoImportTpv(
+                ok=False,
+                mensaje=parsed.error,
+                lineas_detectadas=parsed.lineas_detectadas,
+            )
+        return self.registrar_lineas_tpv_sync(parsed.rows, str(parsed.path or path))
 
-            resultado = importar_documento_tpv(path)
-            self._feedback = FeedbackVM(ok=resultado.ok, mensaje=resultado.mensaje)
-        except Exception as exc:  # noqa: BLE001
-            self._feedback = map_error_recuperable(f"Error al importar documento: {exc}")
-        finally:
-            self._confirmando = False
+    def procesar_documento_tpv_ocr_sync(self, ruta: str):
+        """OCR+parse en hilo de fondo (sin AppData)."""
+        from app.core.services.tpv_documento_service import procesar_documento_tpv_ocr
+
+        return procesar_documento_tpv_ocr(ruta)
+
+    def registrar_lineas_tpv_sync(self, rows: list, ruta: str):
+        """Registro en hilo principal (AppData / persist)."""
+        from app.core.services.tpv_documento_service import (
+            ResultadoImportTpv,
+            registrar_lineas_tpv,
+        )
+
+        if not session_bridge.puede_usar_terminal():
+            return ResultadoImportTpv(ok=False, mensaje="Sesión no autorizada.")
+        if not session_tiene_permiso(Permiso.ACCEDER_REGISTRO):
+            return ResultadoImportTpv(ok=False, mensaje="No autorizado para registrar.")
+        return registrar_lineas_tpv(rows, ruta)
+
+    def importar_documento_tpv_sync(self, ruta: str):
+        """Compat: OCR+registro completo."""
+        return self.ejecutar_importacion_tpv_completa_sync(ruta)
+
+    def aplicar_resultado_importacion_tpv(self, resultado) -> TerminalScreenVM:
+        """Aplica el resultado del import TPV y deja visible el panel de revisión."""
+        self._confirmando = False
+        self._historial_expandido = True
+        try:
+            get_container().app_data_store.reload_from_disk()
+        except Exception:  # noqa: BLE001
+            pass
+        self._importacion_tpv = self._importacion_tpv_vm(resultado)
+        self._feedback = FeedbackVM(ok=resultado.ok, mensaje=resultado.mensaje)
+        if resultado.registros_creados:
+            tipos = {str(x.get("tipo") or "") for x in resultado.registros_creados}
+            if "comida" in tipos:
+                self._servicio_id = "comida"
+            elif "bebidas" in tipos:
+                self._servicio_id = "bebidas"
         return self.screen()
+
+    def cerrar_panel_importacion_tpv(self) -> TerminalScreenVM:
+        self._importacion_tpv = None
+        return self.screen()
+
+    def confirmar_revision_historial(self, registro_id: str) -> TerminalScreenVM:
+        bind = self._require_bind()
+        if bind is None:
+            return self.screen()
+        if not session_tiene_permiso(Permiso.ACCEDER_REGISTRO):
+            self._feedback = map_error_recuperable("No autorizado para confirmar.")
+            return self.screen()
+        tipo = self._tipo_registro_bind(bind)
+        try:
+            r = anul.confirmar_revision_registro(registro_id, tipo_registro=tipo)
+            self._feedback = map_resultado(r.ok, r.mensaje)
+        except Exception as exc:  # noqa: BLE001
+            self._feedback = map_error_recuperable(
+                str(exc) or "Error al confirmar el registro.",
+                codigo="ERROR",
+            )
+        return self.screen()
+
+    def marcar_importando_tpv(self, activo: bool) -> TerminalScreenVM:
+        self._confirmando = bool(activo)
+        if activo:
+            self._feedback = FeedbackVM(
+                ok=True,
+                mensaje=(
+                    "Importando documento TPV (OCR + registro). "
+                    "Puede tardar 1-2 minutos; no cierre la ventana."
+                ),
+            )
+        return self.screen()
+
+    def importar_documento_tpv(self, ruta: str) -> TerminalScreenVM:
+        """Compat: import síncrono (preferir sync + aplicar_resultado en UI)."""
+        try:
+            resultado = self.importar_documento_tpv_sync(ruta)
+        except Exception as exc:  # noqa: BLE001
+            self._confirmando = False
+            self._feedback = map_error_recuperable(f"Error al importar documento: {exc}")
+            return self.screen()
+        return self.aplicar_resultado_importacion_tpv(resultado)
 
     def seleccionar_servicio(self, servicio_id: str) -> TerminalScreenVM:
         if servicio_id not in _binds():
@@ -410,10 +499,11 @@ class TerminalRestaurantePresenter:
 
     def screen(self) -> TerminalScreenVM:
         # Multiclinte: recargar si otro PC avanzó la revisión.
-        try:
-            get_container().app_data_store.refresh_if_stale()
-        except Exception:  # noqa: BLE001
-            pass
+        if not self._importacion_tpv_activa:
+            try:
+                get_container().app_data_store.refresh_if_stale()
+            except Exception:  # noqa: BLE001
+                pass
         session = session_bridge.current_session_vm()
         servicios = tuple(
             ServicioVM(id=sid, etiqueta=etq, activo=(sid == self._servicio_id))
@@ -442,6 +532,8 @@ class TerminalRestaurantePresenter:
             busqueda=self._busqueda,
             catalogo_tipo=self._catalogo_tipo,
             historial=historial,
+            historial_expandido=self._historial_expandido,
+            importacion_tpv=self._importacion_tpv,
             anulacion_pendiente=self._anulacion_pendiente,
             anulando=self._anulando,
         )
@@ -503,6 +595,10 @@ class TerminalRestaurantePresenter:
             estado = "anulado"
             puede = False
             motivo = "Registro ya anulado."
+        elif bool(getattr(registro, "revision_confirmada", False)):
+            estado = "confirmado"
+            puede = False
+            motivo = "Registro revisado y confirmado."
         else:
             puede_r = anul.puede_anular_registro(data, registro, tipo=tipo)
             if puede_r.ok:
@@ -523,7 +619,130 @@ class TerminalRestaurantePresenter:
             estado=estado,
             puede_anular=puede,
             motivo_bloqueo=motivo,
+            detalle_lineas=self._detalle_historial_lineas(data, registro),
+            observaciones=str(getattr(registro, "observaciones", "") or ""),
+            puede_confirmar_revision=(
+                not anulado and not bool(getattr(registro, "revision_confirmada", False))
+            ),
+            revision_confirmada=bool(getattr(registro, "revision_confirmada", False)),
         )
+
+    def _detalle_historial_lineas(self, data, registro) -> tuple[str, ...]:
+        from collections import defaultdict
+
+        from app.core.repositories.data_repository import DataRepository
+
+        dr = DataRepository(data)
+        out: list[str] = []
+        for rec in getattr(registro, "registros_recetas", None) or []:
+            extras = []
+            for ex in getattr(rec, "extras", None) or []:
+                extras.append(
+                    f"+ {dr.get_nombre_producto(ex.producto_id)} ({float(ex.cantidad):g})"
+                )
+            omisiones = []
+            for om in getattr(rec, "omisiones", None) or []:
+                omisiones.append(f"sin {dr.get_nombre_producto(om.producto_id)}")
+            suf = ""
+            mods = extras + omisiones
+            if mods:
+                suf = " · " + ", ".join(mods)
+            out.append(f"Receta: {rec.nombre_receta} x{float(rec.porciones):g}{suf}")
+
+        directos: dict[str, float] = defaultdict(float)
+        for lin in getattr(registro, "lineas", None) or []:
+            if getattr(lin, "es_extra", False):
+                continue
+            directos[lin.producto_id] += float(lin.cantidad)
+        for pid, qty in sorted(directos.items(), key=lambda kv: dr.get_nombre_producto(kv[0]).lower()):
+            out.append(f"Producto: {dr.get_nombre_producto(pid)} x{qty:g}")
+
+        extras_sueltos: dict[str, float] = defaultdict(float)
+        for lin in getattr(registro, "lineas", None) or []:
+            if not getattr(lin, "es_extra", False):
+                continue
+            extras_sueltos[lin.producto_id] += float(lin.cantidad)
+        for pid, qty in sorted(extras_sueltos.items(), key=lambda kv: dr.get_nombre_producto(kv[0]).lower()):
+            out.append(f"Extra: {dr.get_nombre_producto(pid)} x{qty:g}")
+        return tuple(out[:40])
+
+    def _importacion_tpv_vm(self, resultado) -> ImportacionTpvVM:
+        lineas: list[str] = []
+        if resultado.lineas_detectadas:
+            lineas.append(f"{resultado.lineas_detectadas} líneas leídas del documento")
+        if resultado.registros_ok:
+            lineas.append(f"{resultado.registros_ok} registro(s) confirmado(s)")
+        if resultado.fechas:
+            lineas.append(
+                "Fechas: "
+                + ", ".join(resultado.fechas[:10])
+                + ("…" if len(resultado.fechas) > 10 else "")
+            )
+        for item in resultado.registros_creados[:20]:
+            tipo = str(item.get("tipo") or "servicio").capitalize()
+            fecha = item.get("fecha") or "—"
+            ref = item.get("ref") or "—"
+            lineas.append(f"· {tipo} {fecha} · ref. {ref}")
+        if resultado.omitidos_idempotentes:
+            lineas.append(
+                f"{resultado.omitidos_idempotentes} registro(s) ya existían (sin duplicar)"
+            )
+
+        advertencias: list[str] = []
+        for nombre in resultado.sin_mapear[:15]:
+            advertencias.append(f"Sin mapear: {nombre}")
+        if len(resultado.sin_mapear) > 15:
+            advertencias.append(
+                f"… y {len(resultado.sin_mapear) - 15} producto(s) más sin mapear"
+            )
+        if resultado.pendientes_coctel:
+            advertencias.append(
+                f"{len(resultado.pendientes_coctel)} cóctel del día pendiente(s) de lista"
+            )
+        for err in resultado.errores[:10]:
+            advertencias.append(str(err))
+
+        titulo = (
+            "Documento TPV registrado"
+            if resultado.ok
+            else "Importación TPV con incidencias"
+        )
+        historial = self._historial_desde_refs_tpv(resultado.registros_creados)
+        if not lineas and not advertencias:
+            lineas = ["No se registró ninguna venta."]
+        return ImportacionTpvVM(
+            ok=resultado.ok,
+            titulo=titulo,
+            lineas=tuple(lineas),
+            advertencias=tuple(advertencias),
+            historial=historial,
+        )
+
+    def _historial_desde_refs_tpv(
+        self, refs: list[dict]
+    ) -> tuple[HistorialRegistroVM, ...]:
+        if not refs:
+            return ()
+        data = get_container().app_data_store.get()
+        etiquetas = {"comida": "Comida", "bebidas": "Bebidas independientes"}
+        out: list[HistorialRegistroVM] = []
+        for item in refs:
+            ref = item.get("ref")
+            if not ref:
+                continue
+            reg = next((r for r in data.registros_servicio if r.id == ref), None)
+            if reg is None:
+                continue
+            tipo_srv = str(item.get("tipo") or "comida")
+            out.append(
+                self._historial_item_vm(
+                    data,
+                    reg,
+                    anul.TIPO_SERVICIO,
+                    etiquetas.get(tipo_srv, tipo_srv.capitalize()),
+                )
+            )
+        return tuple(out)
 
     def _catalogo(self, bind: _ServicioBind) -> tuple[CatalogItemVM, ...]:
         from datetime import date as _date

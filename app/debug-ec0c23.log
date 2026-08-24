@@ -1,0 +1,2 @@
+{"sessionId": "ec0c23", "timestamp": 1787557264489, "location": "registro_servicio_view.py:_historial_section", "message": "build_historial_item_tile", "data": {"estado": "activo", "registro_id": "d149"}, "runId": "pre-fix", "hypothesisId": "H1,H2,H3"}
+{"sessionId": "ec0c23", "timestamp": 1787557264491, "location": "registro_servicio_view.py:_historial_section", "message": "build_historial_item_tile_error", "data": {"type": "TypeError", "msg": "ExpansionTile.__init__() got an unexpected keyword argument 'padding'"}, "runId": "pre-fix", "hypothesisId": "H1,H2,H3"}

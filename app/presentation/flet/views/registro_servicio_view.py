@@ -63,8 +63,10 @@ def build_registro_view(
     on_set_motivo_anulacion: Callable[[str], None] | None = None,
     on_cancelar_anulacion: Callable[[], None] | None = None,
     on_confirmar_anulacion: Callable[[], None] | None = None,
+    on_confirmar_revision_historial: Callable[[str], None] | None = None,
     on_catalogo_tipo: Callable[[str], None] | None = None,
     on_upload_documento: Callable[[], None] | None = None,
+    on_cerrar_importacion_tpv: Callable[[], None] | None = None,
     narrow: bool = False,
     search_field: ft.TextField | None = None,
     catalog_results: ft.Column | None = None,
@@ -74,8 +76,10 @@ def build_registro_view(
     on_set_motivo_anulacion = on_set_motivo_anulacion or (lambda _m: None)
     on_cancelar_anulacion = on_cancelar_anulacion or (lambda: None)
     on_confirmar_anulacion = on_confirmar_anulacion or (lambda: None)
+    on_confirmar_revision_historial = on_confirmar_revision_historial or (lambda _rid: None)
     on_catalogo_tipo = on_catalogo_tipo or (lambda _t: None)
     on_upload_documento = on_upload_documento or (lambda: None)
+    on_cerrar_importacion_tpv = on_cerrar_importacion_tpv or (lambda: None)
     activo = next((s for s in screen.servicios if s.activo), None)
     etiqueta_activo = activo.etiqueta if activo else "—"
     n_cesta = 0 if screen.cesta is None or screen.cesta.vacia else len(screen.cesta.lineas)
@@ -136,6 +140,12 @@ def build_registro_view(
                 severity="success" if screen.feedback.ok else "error",
             ),
         )
+
+    importacion_panel = _importacion_tpv_panel(
+        screen,
+        on_cerrar=on_cerrar_importacion_tpv,
+        on_iniciar_anulacion=on_iniciar_anulacion,
+    )
 
     if search_field is None:
         search_field = ft.TextField(
@@ -388,6 +398,8 @@ def build_registro_view(
         on_set_motivo_anulacion=on_set_motivo_anulacion,
         on_cancelar_anulacion=on_cancelar_anulacion,
         on_confirmar_anulacion=on_confirmar_anulacion,
+        on_confirmar_revision_historial=on_confirmar_revision_historial,
+        items_extra=screen.importacion_tpv.historial if screen.importacion_tpv else (),
     )
 
     # Catálogo ocupa casi toda la altura; historial colapsado abajo.
@@ -422,6 +434,7 @@ def build_registro_view(
         controls=[
             header,
             feedback,
+            importacion_panel,
             ft.Container(
                 expand=True,
                 bgcolor=ui_theme.SURFACE,
@@ -493,11 +506,110 @@ def build_registro_view(
     return root, search_field, catalog_results
 
 
+def _importacion_tpv_panel(
+    screen: TerminalScreenVM,
+    *,
+    on_cerrar: Callable[[], None],
+    on_iniciar_anulacion: Callable[[str], None],
+) -> ft.Control:
+    panel = screen.importacion_tpv
+    if panel is None:
+        return ft.Container()
+
+    bloqueado = screen.confirmando or screen.anulando
+    lineas = [ft.Text(ln, size=13, color=ui_theme.DARK_TEXT) for ln in panel.lineas]
+    advertencias = [
+        ft.Text(f"⚠ {adv}", size=12, color=ui_theme.WARNING) for adv in panel.advertencias
+    ]
+    historial_controls: list[ft.Control] = []
+    if panel.historial:
+        historial_controls.append(
+            ft.Text(
+                "Registros creados — anule los incorrectos y vuelva a subir o registre manualmente:",
+                size=12,
+                color=ui_theme.MID_GRAY,
+            )
+        )
+        for item in panel.historial:
+            fila: list[ft.Control] = [
+                ft.Column(
+                    spacing=2,
+                    expand=True,
+                    tight=True,
+                    controls=[
+                        ft.Text(
+                            item.etiqueta_corta,
+                            weight=ft.FontWeight.W_600,
+                            size=13,
+                        ),
+                        ft.Text(item.resumen, size=12, color=ui_theme.MID_GRAY),
+                    ],
+                )
+            ]
+            if item.puede_anular and item.estado == "activo":
+                fila.append(
+                    ft.TextButton(
+                        "Anular",
+                        disabled=bloqueado or screen.anulacion_pendiente is not None,
+                        style=ft.ButtonStyle(color=ui_theme.DANGER),
+                        on_click=lambda _e, rid=item.registro_id: on_iniciar_anulacion(
+                            rid
+                        ),
+                    )
+                )
+            historial_controls.append(
+                ft.Container(
+                    padding=ft.Padding.symmetric(vertical=6),
+                    border=ft.Border(bottom=ft.BorderSide(1, ui_theme.BORDER)),
+                    content=ft.Row(controls=fila),
+                )
+            )
+
+    bgcolor = ui_theme.SUCCESS_BG if panel.ok else ui_theme.WARNING_BG
+    border = ui_theme.SUCCESS if panel.ok else ui_theme.WARNING
+    return ft.Container(
+        padding=ft.Padding.symmetric(horizontal=16, vertical=10),
+        bgcolor=ui_theme.SURFACE,
+        content=ft.Container(
+            bgcolor=bgcolor,
+            padding=16,
+            border_radius=ui_theme.RADIUS_MD,
+            border=ft.Border.all(1, border),
+            content=ft.Column(
+                spacing=10,
+                controls=[
+                    ft.Row(
+                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                        controls=[
+                            ft.Text(
+                                panel.titulo,
+                                size=17,
+                                weight=ft.FontWeight.BOLD,
+                                color=ui_theme.NAVY,
+                            ),
+                            ft.TextButton("Cerrar", on_click=lambda _e: on_cerrar()),
+                        ],
+                    ),
+                    *lineas,
+                    *advertencias,
+                    *historial_controls,
+                    ft.Text(
+                        "También puede revisar el historial del servicio (Comida / Bebidas) abajo.",
+                        size=12,
+                        color=ui_theme.MID_GRAY,
+                    ),
+                ],
+            ),
+        ),
+    )
+
+
 def _estado_label(estado: str) -> str:
     return {
         "activo": "Activo",
         "anulado": "Anulado",
         "no_anulable": "No anulable",
+        "confirmado": "Confirmado",
     }.get(estado, estado)
 
 
@@ -508,6 +620,8 @@ def _historial_section(
     on_set_motivo_anulacion: Callable[[str], None],
     on_cancelar_anulacion: Callable[[], None],
     on_confirmar_anulacion: Callable[[], None],
+    on_confirmar_revision_historial: Callable[[str], None],
+    items_extra: tuple = (),
 ) -> ft.Control:
     bloqueado = screen.confirmando or screen.anulando
     controls: list[ft.Control] = []
@@ -566,7 +680,14 @@ def _historial_section(
             )
         )
 
-    if not screen.historial:
+    historial_items = list(items_extra) + [
+        item
+        for item in screen.historial
+        if not items_extra
+        or item.registro_id not in {x.registro_id for x in items_extra}
+    ]
+
+    if not historial_items:
         controls.append(
             ui.empty_state(
                 "Sin registros recientes",
@@ -574,71 +695,125 @@ def _historial_section(
             )
         )
     else:
-        for item in screen.historial:
+        for item in historial_items:
             tone = (
                 "ok"
                 if item.estado == "activo"
-                else ("neutral" if item.estado == "anulado" else "warn")
-            )
-            fila: list[ft.Control] = [
-                ft.Column(
-                    spacing=2,
-                    expand=True,
-                    tight=True,
-                    controls=[
-                        ft.Text(
-                            item.etiqueta_corta,
-                            weight=ft.FontWeight.W_600,
-                            size=13,
-                            color=ui_theme.DARK_TEXT,
-                        ),
-                        ft.Text(item.resumen, size=12, color=ui_theme.MID_GRAY),
-                        ui.status_chip(
-                            _estado_label(item.estado)
-                            + (
-                                f" — {item.motivo_bloqueo}"
-                                if item.estado == "no_anulable" and item.motivo_bloqueo
-                                else ""
-                            ),
-                            tone=tone,
-                        ),
-                    ],
-                ),
-            ]
-            if item.puede_anular and item.estado == "activo":
-                fila.append(
-                    ft.TextButton(
-                        "Anular",
-                        disabled=bloqueado or screen.anulacion_pendiente is not None,
-                        style=ft.ButtonStyle(color=ui_theme.DANGER),
-                        on_click=lambda _e, rid=item.registro_id: on_iniciar_anulacion(
-                            rid
-                        ),
-                    )
+                else (
+                    "neutral"
+                    if item.estado in ("anulado", "confirmado")
+                    else "warn"
                 )
-            controls.append(
-                ft.Container(
-                    padding=ft.Padding.symmetric(horizontal=8, vertical=8),
-                    border=ft.Border(bottom=ft.BorderSide(1, ui_theme.BORDER)),
-                    content=ft.Row(
-                        alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
-                        controls=fila,
+            )
+            tile = ft.Container(
+                border=ft.Border(bottom=ft.BorderSide(1, ui_theme.BORDER)),
+                content=ft.ExpansionTile(
+                    title=ft.Text(
+                        item.etiqueta_corta,
+                        weight=ft.FontWeight.W_600,
+                        size=13,
+                        color=ui_theme.DARK_TEXT,
                     ),
-                )
+                    subtitle=ft.Text(item.resumen, size=12, color=ui_theme.MID_GRAY),
+                    trailing=ui.status_chip(
+                        _estado_label(item.estado)
+                        + (
+                            f" — {item.motivo_bloqueo}"
+                            if item.estado == "no_anulable" and item.motivo_bloqueo
+                            else ""
+                        ),
+                        tone=tone,
+                    ),
+                    tile_padding=ft.Padding.symmetric(horizontal=8, vertical=8),
+                    controls=[
+                        ft.Container(
+                            padding=ft.Padding.only(left=8, right=8, bottom=8),
+                            content=ft.Column(
+                                spacing=8,
+                                controls=[
+                                    *[
+                                        ft.Text(
+                                            linea,
+                                            size=12,
+                                            color=ui_theme.DARK_TEXT,
+                                        )
+                                        for linea in item.detalle_lineas
+                                    ],
+                                    *(
+                                        [
+                                            ft.Text(
+                                                f"Observaciones: {item.observaciones}",
+                                                size=12,
+                                                color=ui_theme.MID_GRAY,
+                                            )
+                                        ]
+                                        if item.observaciones
+                                        else []
+                                    ),
+                                    ft.Row(
+                                        wrap=True,
+                                        controls=[
+                                            *(
+                                                [
+                                                    ft.FilledButton(
+                                                        "Confirmar revisión",
+                                                        disabled=(
+                                                            bloqueado
+                                                            or screen.anulacion_pendiente is not None
+                                                        ),
+                                                        style=ft.ButtonStyle(
+                                                            bgcolor=ui_theme.SUCCESS,
+                                                            color=ui_theme.WHITE,
+                                                        ),
+                                                        on_click=lambda _e, rid=item.registro_id: on_confirmar_revision_historial(
+                                                            rid
+                                                        ),
+                                                    )
+                                                ]
+                                                if item.puede_confirmar_revision
+                                                else []
+                                            ),
+                                            *(
+                                                [
+                                                    ft.TextButton(
+                                                        "Anular",
+                                                        disabled=(
+                                                            bloqueado
+                                                            or screen.anulacion_pendiente is not None
+                                                        ),
+                                                        style=ft.ButtonStyle(color=ui_theme.DANGER),
+                                                        on_click=lambda _e, rid=item.registro_id: on_iniciar_anulacion(
+                                                            rid
+                                                        ),
+                                                    )
+                                                ]
+                                                if item.puede_anular and item.estado == "activo"
+                                                else []
+                                            ),
+                                        ],
+                                    ),
+                                ],
+                            ),
+                        )
+                    ],
+                    expanded=False,
+                    maintain_state=True,
+                ),
             )
+            controls.append(tile)
 
     return ft.ExpansionTile(
         title=ft.Text(
-            f"Historial reciente ({len(screen.historial)})",
+            f"Historial reciente ({len(historial_items)})",
             size=16,
             weight=ft.FontWeight.W_600,
         ),
         subtitle=ft.Text(
-            "Pulse para ver o anular registros del servicio",
+            "Revise o anule registros del servicio activo",
             size=13,
             color=ui_theme.MID_GRAY,
         ),
-        expanded=bool(screen.anulacion_pendiente),
+        expanded=bool(screen.historial_expandido or screen.anulacion_pendiente),
         dense=False,
         controls=[
             ft.Container(

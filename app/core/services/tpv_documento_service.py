@@ -26,6 +26,7 @@ class ResultadoImportTpv:
     pendientes_coctel: list[dict] = field(default_factory=list)
     sin_mapear: list[str] = field(default_factory=list)
     fechas: list[str] = field(default_factory=list)
+    registros_creados: list[dict] = field(default_factory=list)
 
 
 def _ocr_engine():
@@ -148,35 +149,63 @@ def _resumen(report: dict, lineas: int, fechas: list[str]) -> ResultadoImportTpv
         pendientes_coctel=list(pending)[:50],
         sin_mapear=names_um[:30],
         fechas=fechas,
+        registros_creados=[
+            {
+                "ref": item.get("ref"),
+                "tipo": item.get("tipo"),
+                "fecha": item.get("fecha"),
+                "clave": item.get("clave"),
+            }
+            for item in ok_list
+            if item.get("ref")
+        ],
     )
 
 
-def importar_documento_tpv(ruta: str | Path) -> ResultadoImportTpv:
-    """OCR + parse + registro comida/bebidas en el hotel activo."""
+@dataclass
+class OcrParseTpvResult:
+    """Resultado de OCR+parse (seguro en hilo de fondo, sin tocar AppData)."""
+
+    ok: bool
+    rows: list[dict] = field(default_factory=list)
+    path: Path | None = None
+    error: str = ""
+    lineas_detectadas: int = 0
+
+
+def procesar_documento_tpv_ocr(ruta: str | Path) -> OcrParseTpvResult:
+    """Solo OCR + parse. No usar get_container ni persist_data aquí."""
     path = Path(ruta)
     try:
         texto = ocr_documento(path)
-    except Exception as exc:  # noqa: BLE001 — error recuperable de UI
+    except Exception as exc:  # noqa: BLE001
         logger.exception("OCR TPV falló: %s", path)
-        return ResultadoImportTpv(ok=False, mensaje=f"No se pudo leer el documento: {exc}")
+        return OcrParseTpvResult(ok=False, path=path, error=f"No se pudo leer el documento: {exc}")
 
     try:
         rows = parse_lineas_tpv(texto)
     except Exception as exc:  # noqa: BLE001
         logger.exception("Parse TPV falló")
-        return ResultadoImportTpv(ok=False, mensaje=f"Error al interpretar el TPV: {exc}")
-
-    if not rows:
-        return ResultadoImportTpv(
-            ok=False,
-            mensaje="No se detectaron líneas de venta en el documento.",
-            lineas_detectadas=0,
+        return OcrParseTpvResult(
+            ok=False, path=path, error=f"Error al interpretar el TPV: {exc}"
         )
 
+    if not rows:
+        return OcrParseTpvResult(
+            ok=False,
+            path=path,
+            error="No se detectaron líneas de venta en el documento.",
+            lineas_detectadas=0,
+        )
+    return OcrParseTpvResult(ok=True, rows=rows, path=path, lineas_detectadas=len(rows))
+
+
+def registrar_lineas_tpv(rows: list[dict], ruta: str | Path) -> ResultadoImportTpv:
+    """Registra filas parseadas. Debe ejecutarse en el hilo principal de la app."""
+    path = Path(ruta)
     fechas = sorted({str(r.get("fecha") or "") for r in rows if r.get("fecha")})
     content_key = _file_hash(path)
 
-    # Reutiliza el pipeline de import (mapeo + cesta + stock + confirmar).
     import scripts.import_registros_agosto_2026 as imp
 
     report: dict = {}
@@ -206,3 +235,91 @@ def importar_documento_tpv(ruta: str | Path) -> ResultadoImportTpv:
         imp.TPV_FECHA_MAX = old_max
 
     return _resumen(report, len(rows), fechas)
+
+
+def importar_documento_tpv(ruta: str | Path) -> ResultadoImportTpv:
+    """OCR + parse + registro comida/bebidas en el hotel activo."""
+    parsed = procesar_documento_tpv_ocr(ruta)
+    if not parsed.ok:
+        return ResultadoImportTpv(
+            ok=False,
+            mensaje=parsed.error,
+            lineas_detectadas=parsed.lineas_detectadas,
+        )
+    return registrar_lineas_tpv(parsed.rows, parsed.path or ruta)
+
+
+def importar_documento_tpv_aislado(ruta: str | Path, *, hotel_path: str | Path) -> ResultadoImportTpv:
+    """Ejecuta import completo en subproceso (aislado de Flet/GIL)."""
+    import multiprocessing as mp
+    ctx = mp.get_context("spawn")
+    with ctx.Pool(1) as pool:
+        payload = pool.apply(
+            _subprocess_import_worker,
+            (str(ruta), str(hotel_path)),
+        )
+    return _resultado_from_dict(payload)
+
+
+def _resultado_to_dict(r: ResultadoImportTpv) -> dict:
+    return {
+        "ok": r.ok,
+        "mensaje": r.mensaje,
+        "lineas_detectadas": r.lineas_detectadas,
+        "registros_ok": r.registros_ok,
+        "omitidos_idempotentes": r.omitidos_idempotentes,
+        "errores": list(r.errores),
+        "pendientes_coctel": list(r.pendientes_coctel),
+        "sin_mapear": list(r.sin_mapear),
+        "fechas": list(r.fechas),
+        "registros_creados": list(r.registros_creados),
+    }
+
+
+def _resultado_from_dict(d: dict) -> ResultadoImportTpv:
+    return ResultadoImportTpv(
+        ok=bool(d.get("ok")),
+        mensaje=str(d.get("mensaje") or ""),
+        lineas_detectadas=int(d.get("lineas_detectadas") or 0),
+        registros_ok=int(d.get("registros_ok") or 0),
+        omitidos_idempotentes=int(d.get("omitidos_idempotentes") or 0),
+        errores=list(d.get("errores") or []),
+        pendientes_coctel=list(d.get("pendientes_coctel") or []),
+        sin_mapear=list(d.get("sin_mapear") or []),
+        fechas=list(d.get("fechas") or []),
+        registros_creados=list(d.get("registros_creados") or []),
+    )
+
+
+def _subprocess_import_worker(path: str, hotel_path: str) -> dict:
+    """Worker picklable para spawn (sin estado Flet)."""
+    import os
+    from datetime import datetime, timezone
+
+    from app.bootstrap import configure_for_flet, reset_container
+    from app.core.auth.roles import ROL_DIRECCION
+    from app.core.auth.session import ACTOR_TYPE_USUARIO, AuthSession, save_auth_session
+
+    os.environ.setdefault("PYTHONPATH", str(Path(__file__).resolve().parents[3]))
+    reset_container()
+    configure_for_flet(data_path=hotel_path)
+    save_auth_session(
+        AuthSession(
+            authenticated=True,
+            actor_type=ACTOR_TYPE_USUARIO,
+            actor_id="tpv-worker",
+            actor_label="TPV Worker",
+            role=ROL_DIRECCION,
+            session_id="tpv-worker",
+            login_at=datetime.now(timezone.utc).isoformat(),
+            terminal_id=None,
+            login="tpv-worker",
+        )
+    )
+    try:
+        r = importar_documento_tpv(path)
+        return _resultado_to_dict(r)
+    except Exception as exc:  # noqa: BLE001
+        return _resultado_to_dict(
+            ResultadoImportTpv(ok=False, mensaje=f"Error en subproceso: {exc}")
+        )

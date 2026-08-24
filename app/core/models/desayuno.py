@@ -61,3 +61,8 @@ class RegistroDesayuno:
     clave_idempotencia: str | None = None
     # Observaciones operativas del registro (aditivo; históricos → "").
     observaciones: str = ""
+    # Confirmación manual de revisión operativa (aditivo; históricos → False).
+    revision_confirmada: bool = False
+    fecha_revision_confirmacion: date | None = None
+    hora_revision_confirmacion: time | None = None
+    revision_confirmada_por: str = ""

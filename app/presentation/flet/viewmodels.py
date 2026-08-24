@@ -99,9 +99,13 @@ class HistorialRegistroVM:
     fecha: str
     hora: str
     resumen: str
-    estado: str  # activo | anulado | no_anulable
+    estado: str  # activo | anulado | no_anulable | confirmado
     puede_anular: bool
     motivo_bloqueo: str = ""
+    detalle_lineas: tuple[str, ...] = ()
+    observaciones: str = ""
+    puede_confirmar_revision: bool = False
+    revision_confirmada: bool = False
 
 
 @dataclass(frozen=True)
@@ -113,6 +117,17 @@ class AnulacionPendienteVM:
     etiqueta_corta: str
     resumen: str
     motivo: str = ""
+
+
+@dataclass(frozen=True)
+class ImportacionTpvVM:
+    """Resumen visible tras subir un documento TPV (sin economía)."""
+
+    ok: bool
+    titulo: str
+    lineas: tuple[str, ...]
+    advertencias: tuple[str, ...]
+    historial: tuple[HistorialRegistroVM, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -129,6 +144,8 @@ class TerminalScreenVM:
     busqueda: str
     catalogo_tipo: str = "recetas"
     historial: tuple[HistorialRegistroVM, ...] = ()
+    historial_expandido: bool = False
+    importacion_tpv: ImportacionTpvVM | None = None
     anulacion_pendiente: AnulacionPendienteVM | None = None
     anulando: bool = False
 

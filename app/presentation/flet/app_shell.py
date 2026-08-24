@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
+import os
 from collections.abc import Callable
+from pathlib import Path
 
 import flet as ft
 
@@ -32,17 +35,28 @@ class TerminalRestauranteShell:
         self._search_field: ft.TextField | None = None
         self._catalog_results: ft.Column | None = None
         self._last_refresh_kind: str | None = None
+        self._file_picker: ft.FilePicker | None = None
+        self._import_bloqueado: bool = False
+        self._resize_handler = None
+
+    def refresh(self) -> None:
+        """Reconstrucción completa (servicio, cesta, login, confirmación…)."""
+        if self._import_bloqueado:
+            return
+        self._refresh_full()
 
     def mount(self) -> None:
         page = self.page
         from app.presentation.flet.theme import apply_page_theme, APP_NAME
 
         apply_page_theme(page, title=f"{APP_NAME} — Terminal Restaurante")
-        page.on_resize = lambda _e: self.refresh()
+        self._resize_handler = lambda _e: self.refresh()
+        page.on_resize = self._resize_handler
+        self._file_picker = ft.FilePicker()
         page.add(self._root)
         self.refresh()
 
-    def refresh(self) -> None:
+    def _refresh_full(self) -> None:
         """Reconstrucción completa (servicio, cesta, login, confirmación…)."""
         screen = self.presenter.screen()
         narrow = (self.page.width or 900) < 720
@@ -77,8 +91,10 @@ class TerminalRestauranteShell:
                 on_set_motivo_anulacion=self._on_set_motivo,
                 on_cancelar_anulacion=self._on_cancelar_anulacion,
                 on_confirmar_anulacion=self._on_confirmar_anulacion,
+                on_confirmar_revision_historial=self._on_confirmar_revision_historial,
                 on_catalogo_tipo=self._on_catalogo_tipo,
                 on_upload_documento=self._on_upload_documento,
+                on_cerrar_importacion_tpv=self._on_cerrar_importacion_tpv,
                 narrow=narrow,
                 search_field=None,
                 catalog_results=None,
@@ -181,11 +197,25 @@ class TerminalRestauranteShell:
         self.presenter.confirmar_anulacion()
         self.refresh()
 
+    def _on_confirmar_revision_historial(self, registro_id: str) -> None:
+        self.presenter.confirmar_revision_historial(registro_id)
+        self.refresh()
+
+    def _on_cerrar_importacion_tpv(self) -> None:
+        self.presenter.cerrar_panel_importacion_tpv()
+        self.refresh()
+
     def _on_upload_documento(self) -> None:
         async def _pick_and_import() -> None:
+            picker = self._file_picker
+            if picker is None:
+                picker = ft.FilePicker()
+                self._file_picker = picker
+                self.page.update()
             try:
-                files = await self.page.pick_files(
+                files = await picker.pick_files(
                     dialog_title="Importar documento TPV (comida / bebidas)",
+                    file_type=ft.FilePickerFileType.CUSTOM,
                     allowed_extensions=["pdf", "png", "jpg", "jpeg", "webp"],
                     allow_multiple=False,
                 )
@@ -208,12 +238,36 @@ class TerminalRestauranteShell:
                 )
                 self.refresh()
                 return
-            self.presenter._feedback = FeedbackVM(
-                ok=True, mensaje="Leyendo documento TPV (OCR)…"
+
+            self.presenter.set_importacion_tpv_activa(True)
+            self.presenter.marcar_importando_tpv(True)
+            self._import_bloqueado = True
+            self.page.on_resize = None
+            self._refresh_full()
+            hotel_path = (
+                Path(os.environ["LOCALAPPDATA"]) / "BM-V2-local" / "data" / "datos_hotel.json"
             )
-            self.presenter._confirmando = True
-            self.refresh()
-            self.presenter.importar_documento_tpv(path)
+            try:
+                from app.core.services.tpv_documento_service import (
+                    importar_documento_tpv_aislado,
+                )
+
+                resultado = await asyncio.to_thread(
+                    importar_documento_tpv_aislado,
+                    path,
+                    hotel_path=hotel_path,
+                )
+                self.presenter.aplicar_resultado_importacion_tpv(resultado)
+            except Exception as exc:  # noqa: BLE001
+                self.presenter._confirmando = False
+                self.presenter._feedback = FeedbackVM(
+                    ok=False,
+                    mensaje=f"Error al importar documento: {exc}",
+                )
+            finally:
+                self.presenter.set_importacion_tpv_activa(False)
+                self._import_bloqueado = False
+                self.page.on_resize = self._resize_handler
             self.refresh()
 
         if hasattr(self.page, "run_task"):
