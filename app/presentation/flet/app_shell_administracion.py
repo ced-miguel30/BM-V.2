@@ -108,6 +108,11 @@ class TerminalAdministracionShell:
                     on_cargar_borrador_compra=self._on_cargar_borrador_compra,
                     on_anular_borrador_compra=self._on_anular_borrador_compra,
                     on_set_compra_albaran=self._on_set_compra_albaran,
+                    on_importar_noray=self._on_importar_noray,
+                    on_set_compra_linea_ubicacion=self._on_set_compra_linea_ubicacion,
+                    on_set_compra_linea_producto=self._on_set_compra_linea_producto,
+                    on_verificar_linea_compra=self._on_verificar_linea_compra,
+                    on_crear_producto_linea_noray=self._on_crear_producto_linea_noray,
                     on_generar_backup=self._on_generar_backup,
                     on_inspeccionar_backup=self._on_inspeccionar_backup,
                     on_proponer_restaurar=self._on_proponer_restaurar,
@@ -475,6 +480,64 @@ class TerminalAdministracionShell:
     def _on_set_compra_albaran(self, albaran_id: str) -> None:
         self.presenter.set_compra_albaran_conciliacion(albaran_id)
         self.refresh()
+
+    def _on_set_compra_linea_ubicacion(self, index: int, ubicacion_id: str) -> None:
+        self.presenter.set_compra_linea_ubicacion(index, ubicacion_id)
+        self.refresh()
+
+    def _on_set_compra_linea_producto(self, index: int, producto_id: str) -> None:
+        self.presenter.set_compra_linea_producto(index, producto_id)
+        self.refresh()
+
+    def _on_verificar_linea_compra(self, index: int) -> None:
+        self.presenter.confirmar_match_linea_compra(index)
+        self.refresh()
+
+    def _on_crear_producto_linea_noray(self, index: int) -> None:
+        self.presenter.crear_producto_desde_linea_noray(index)
+        self.refresh()
+
+    def _on_importar_noray(self) -> None:
+        async def _pick_and_load() -> None:
+            picker = getattr(self, "_file_picker", None)
+            if picker is None:
+                picker = ft.FilePicker()
+                self._file_picker = picker
+                self.page.update()
+            try:
+                files = await picker.pick_files(
+                    dialog_title="Importar líneas Noray (Excel)",
+                    file_type=ft.FilePickerFileType.CUSTOM,
+                    allowed_extensions=["xlsx", "xlsm"],
+                    allow_multiple=False,
+                )
+            except Exception as exc:  # noqa: BLE001
+                from app.presentation.flet.viewmodels import FeedbackVM
+
+                self.presenter._feedback = FeedbackVM(
+                    ok=False, mensaje=f"No se pudo abrir el selector: {exc}"
+                )
+                self.refresh()
+                return
+            if not files:
+                return
+            path = getattr(files[0], "path", None) or ""
+            if not path:
+                from app.presentation.flet.viewmodels import FeedbackVM
+
+                self.presenter._feedback = FeedbackVM(
+                    ok=False,
+                    mensaje=(
+                        "No se obtuvo la ruta del archivo "
+                        "(solo disponible en escritorio)."
+                    ),
+                )
+                self.refresh()
+                return
+            self.presenter.cargar_excel_noray(path)
+            self.refresh()
+
+        self.page.run_task(_pick_and_load)
 
     def _on_generar_backup(self) -> None:
         self.presenter.generar_backup()

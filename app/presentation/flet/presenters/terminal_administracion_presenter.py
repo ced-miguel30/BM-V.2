@@ -8,6 +8,7 @@ Sin reglas de dominio nuevas.
 from __future__ import annotations
 
 import uuid
+from dataclasses import replace
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
@@ -161,6 +162,9 @@ class TerminalAdministracionPresenter:
         self._compra_tipo = TipoDocumento.ALBARAN.value
         self._compra_albaran_id = ""
         self._compra_prod_busqueda = ""
+        self._compra_noray_archivo = ""
+        self._compra_noray_omitidas = 0
+        self._compra_fecha_documento = None  # date | None; Noray / cabecera
         d0, d1 = _default_periodo()
         self._analisis_hub = "costes"
         self._analisis_pestana = "Resumen"
@@ -1059,6 +1063,11 @@ class TerminalAdministracionPresenter:
                 nombre=prod.nombre,
                 cantidad=float(cantidad),
                 precio_unitario=precio,
+                unidad=(
+                    prod.unidad.value
+                    if hasattr(prod.unidad, "value")
+                    else str(prod.unidad)
+                ),
             )
         )
         self._feedback = FeedbackVM(
@@ -1114,15 +1123,306 @@ class TerminalAdministracionPresenter:
                 mensaje_backend="Cantidad debe ser > 0 y precio unitario ≥ 0.",
             )
             return self.screen()
-        self._compra_lineas[index] = CompraLineaVM(
-            producto_id=actual.producto_id,
-            nombre=actual.nombre,
-            cantidad=cant,
-            precio_unitario=precio,
+        self._compra_lineas[index] = replace(
+            actual, cantidad=cant, precio_unitario=precio
         )
         self._feedback = FeedbackVM(
             ok=True, mensaje=f"Línea «{actual.nombre}» actualizada."
         )
+        self._seccion = "compras"
+        return self.screen()
+
+    def set_compra_linea_ubicacion(
+        self, index: int, ubicacion_destino_id: str
+    ) -> AdminScreenVM:
+        """Asigna ubicación de almacenamiento a una línea (import Noray / captura)."""
+        if not self._gate_admin():
+            return self.screen()
+        if index < 0 or index >= len(self._compra_lineas):
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Índice de línea inválido."
+            )
+            return self.screen()
+        uid = (ubicacion_destino_id or "").strip()
+        if uid in ("", "__ninguna__"):
+            uid = ""
+        actual = self._compra_lineas[index]
+        self._compra_lineas[index] = replace(actual, ubicacion_destino_id=uid)
+        self._seccion = "compras"
+        return self.screen()
+
+    def set_compra_linea_producto(
+        self, index: int, producto_id: str
+    ) -> AdminScreenVM:
+        """Reasigna / verifica el producto de una línea de import Noray."""
+        if not self._gate_admin():
+            return self.screen()
+        if index < 0 or index >= len(self._compra_lineas):
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Índice de línea inválido."
+            )
+            return self.screen()
+        pid = (producto_id or "").strip()
+        if not pid:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Seleccione un producto."
+            )
+            return self.screen()
+        data = get_container().app_data_store.get()
+        prod = next(
+            (p for p in (data.productos or []) if p.id == pid and getattr(p, "activo", True)),
+            None,
+        )
+        if prod is None:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Producto no encontrado."
+            )
+            return self.screen()
+        actual = self._compra_lineas[index]
+        pcod = (getattr(prod, "codigo", None) or "").strip()
+        ncod = (actual.codigo_noray or "").strip()
+        avisos: list[str] = ["Producto reasignado manualmente."]
+        estado = "ok"
+        from app.core.services.text_search import normalizar_texto
+
+        if ncod and pcod and ncod.casefold() != pcod.casefold():
+            estado = "revisar"
+            avisos.append(
+                f"Código catálogo [{pcod}] ≠ Noray [{ncod}]; verifique."
+            )
+        elif ncod and not pcod:
+            estado = "revisar"
+            avisos.append(f"Producto sin código; Noray trae {ncod}.")
+        if actual.nombre_noray and normalizar_texto(prod.nombre) != normalizar_texto(
+            actual.nombre_noray
+        ):
+            if estado == "ok":
+                estado = "revisar"
+            avisos.append("Nombre catálogo distinto al de Noray; verifique.")
+        self._compra_lineas[index] = replace(
+            actual,
+            producto_id=prod.id,
+            nombre=prod.nombre,
+            producto_codigo=pcod,
+            unidad=(
+                prod.unidad.value
+                if hasattr(prod.unidad, "value")
+                else str(prod.unidad)
+            )
+            or actual.unidad,
+            match_estado=estado,
+            aviso="; ".join(avisos),
+        )
+        self._feedback = FeedbackVM(
+            ok=True, mensaje=f"Línea reasignada a «{prod.nombre}»."
+        )
+        self._seccion = "compras"
+        return self.screen()
+
+    def confirmar_match_linea_compra(self, index: int) -> AdminScreenVM:
+        """Marca una línea en «revisar» como verificada (OK) por el usuario."""
+        if not self._gate_admin():
+            return self.screen()
+        if index < 0 or index >= len(self._compra_lineas):
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Índice de línea inválido."
+            )
+            return self.screen()
+        actual = self._compra_lineas[index]
+        if not actual.producto_id:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False,
+                mensaje_backend="Asigne o cree un producto antes de verificar.",
+            )
+            return self.screen()
+        if actual.match_estado in ("sin_match", "ambiguo"):
+            self._feedback = map_admin_operacion_feedback(
+                ok=False,
+                mensaje_backend="Resuelva el emparejamiento antes de verificar.",
+            )
+            return self.screen()
+        self._compra_lineas[index] = replace(
+            actual,
+            match_estado="ok",
+            aviso="Verificado manualmente.",
+        )
+        self._feedback = FeedbackVM(ok=True, mensaje="Línea verificada.")
+        self._seccion = "compras"
+        return self.screen()
+
+    def crear_producto_desde_linea_noray(self, index: int) -> AdminScreenVM:
+        """Alta de producto con nombre/código Noray y enlace a la línea."""
+        if not self._gate_admin():
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        if index < 0 or index >= len(self._compra_lineas):
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Índice de línea inválido."
+            )
+            return self.screen()
+        actual = self._compra_lineas[index]
+        nombre = (actual.nombre_noray or actual.nombre or "").strip()
+        codigo = (actual.codigo_noray or "").strip()
+        if not nombre or len(nombre) < 2:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend="Falta nombre Noray para crear el producto."
+            )
+            return self.screen()
+        if not codigo:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False,
+                mensaje_backend="Falta código Noray; es obligatorio en altas nuevas.",
+            )
+            return self.screen()
+        unidad = (actual.unidad or "Ud").strip() or "Ud"
+        # Normalizar a valores UnidadProducto
+        unidades_ok = {u.value for u in UnidadProducto}
+        if unidad not in unidades_ok:
+            mapa = {
+                "ud": "Ud",
+                "u": "Ud",
+                "kg": "Kg",
+                "l": "L",
+                "lt": "L",
+                "g": "g",
+                "ml": "ml",
+            }
+            unidad = mapa.get(unidad.casefold(), "Ud")
+        self._mutando = True
+        try:
+            r = stock_service.crear_producto(
+                nombre,
+                unidad,
+                None,
+                codigo=codigo,
+                tipo_articulo="consumible",
+            )
+            if not r.ok:
+                self._feedback = map_admin_operacion_feedback(
+                    ok=False, mensaje_backend=r.mensaje
+                )
+                return self.screen()
+            reload_from_disk()
+            data = get_container().app_data_store.get()
+            # Localizar por código recién creado
+            prod = next(
+                (
+                    p
+                    for p in (data.productos or [])
+                    if (getattr(p, "codigo", None) or "").strip().casefold()
+                    == codigo.casefold()
+                    and getattr(p, "activo", True)
+                ),
+                None,
+            )
+            if prod is None:
+                self._feedback = map_admin_operacion_feedback(
+                    ok=False,
+                    mensaje_backend="Producto creado pero no localizado; reasigne manualmente.",
+                )
+                return self.screen()
+            self._compra_lineas[index] = replace(
+                actual,
+                producto_id=prod.id,
+                nombre=prod.nombre,
+                producto_codigo=(getattr(prod, "codigo", None) or "").strip(),
+                unidad=unidad,
+                match_estado="ok",
+                aviso="Producto nuevo creado desde Noray.",
+            )
+            self._feedback = FeedbackVM(
+                ok=True, mensaje=f"Producto «{prod.nombre}» creado y enlazado."
+            )
+            self._seccion = "compras"
+        finally:
+            self._mutando = False
+        return self.screen()
+
+    def cargar_excel_noray(self, ruta: str) -> AdminScreenVM:
+        """Lee Excel «Líneas» Noray/BC y carga líneas emparejadas en el borrador."""
+        if not self._gate_admin():
+            return self.screen()
+        if self._mutando:
+            return self._busy()
+        if not session_tiene_permiso(Permiso.ACCEDER_COMPRAS_DOCUMENTOS):
+            self._feedback = map_error_recuperable(
+                "Sin permiso de compras/documentos.", codigo="DENEGADO"
+            )
+            return self.screen()
+        from app.core.services.noray_lineas_import_service import (
+            MATCH_OK,
+            MATCH_REVISAR,
+            MATCH_SIN,
+            emparejar_lineas_noray,
+            parsear_excel_lineas_noray,
+        )
+
+        parsed = parsear_excel_lineas_noray(ruta)
+        if not parsed.ok:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend=parsed.mensaje
+            )
+            self._seccion = "compras"
+            return self.screen()
+        data = get_container().app_data_store.get()
+        matches = emparejar_lineas_noray(data, parsed.lineas)
+        lineas: list[CompraLineaVM] = []
+        n_ok = n_revisar = n_accion = 0
+        for m in matches:
+            ln = m.linea
+            aviso = "; ".join(m.avisos) if m.avisos else ""
+            estado = m.estado or MATCH_SIN
+            if estado == MATCH_OK:
+                n_ok += 1
+            elif estado == MATCH_REVISAR:
+                n_revisar += 1
+            else:
+                n_accion += 1
+            lineas.append(
+                CompraLineaVM(
+                    producto_id=m.producto_id or "",
+                    nombre=m.producto_nombre or ln.descripcion,
+                    cantidad=float(ln.cantidad),
+                    precio_unitario=float(ln.coste_unitario),
+                    ubicacion_destino_id=m.ubicacion_sugerida_id or "",
+                    unidad=ln.unidad or "Ud",
+                    igic_pct=float(ln.igic_pct),
+                    aviso=aviso,
+                    codigo_noray=ln.codigo_articulo,
+                    almacen_noray=ln.almacen,
+                    nombre_noray=ln.descripcion,
+                    match_estado=estado,
+                    producto_codigo=m.producto_codigo or "",
+                )
+            )
+        if not lineas:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False,
+                mensaje_backend=f"{parsed.mensaje} Sin líneas de artículo.",
+            )
+            self._seccion = "compras"
+            return self.screen()
+        from pathlib import Path as _Path
+
+        self._compra_lineas = lineas
+        self._compra_documento_id = ""
+        self._compra_noray_archivo = _Path(ruta).name
+        self._compra_noray_omitidas = n_accion
+        self._compra_fecha_documento = parsed.fecha_documento
+        if parsed.referencia_sugerida and not self._compra_referencia:
+            self._compra_referencia = parsed.referencia_sugerida
+        sin_ubi = sum(1 for x in lineas if not x.ubicacion_destino_id)
+        partes = [
+            f"Import Noray: {len(lineas)} línea(s)",
+            f"{n_ok} OK",
+            f"{n_revisar} a revisar",
+            f"{n_accion} sin resolver",
+        ]
+        msg = " · ".join(partes)
+        if sin_ubi:
+            msg += f". Revise ubicación en {sin_ubi}."
+        self._feedback = FeedbackVM(ok=True, mensaje=msg)
         self._seccion = "compras"
         return self.screen()
 
@@ -1185,6 +1485,9 @@ class TerminalAdministracionPresenter:
         self._compra_tipo = TipoDocumento.ALBARAN.value
         self._compra_albaran_id = ""
         self._compra_prod_busqueda = ""
+        self._compra_noray_archivo = ""
+        self._compra_noray_omitidas = 0
+        self._compra_fecha_documento = None
         self._feedback = FeedbackVM(ok=True, mensaje="Borrador de compra limpiado.")
         return self.screen()
 
@@ -1268,6 +1571,13 @@ class TerminalAdministracionPresenter:
                     nombre=nombre,
                     cantidad=cant,
                     precio_unitario=precio,
+                    ubicacion_destino_id=getattr(ln, "ubicacion_destino_id", None) or "",
+                    unidad=getattr(ln, "unidad_compra", None)
+                    or getattr(ln, "unidad_inventario", None)
+                    or "Ud",
+                    igic_pct=float(
+                        getattr(ln, "impuesto_porcentaje_snapshot", None) or 0
+                    ),
                 )
             )
 
@@ -1400,6 +1710,33 @@ class TerminalAdministracionPresenter:
             return self.screen()
         self._mutando = True
         try:
+            sin_ubi = [
+                ln.nombre for ln in self._compra_lineas if not (ln.ubicacion_destino_id or "").strip()
+            ]
+            if self._compra_noray_archivo and sin_ubi:
+                self._feedback = map_admin_operacion_feedback(
+                    ok=False,
+                    mensaje_backend=(
+                        "Asigne ubicación a todas las líneas del import Noray "
+                        f"antes de confirmar ({len(sin_ubi)} pendiente(s))."
+                    ),
+                )
+                return self.screen()
+            pendientes = [
+                ln
+                for ln in self._compra_lineas
+                if not (ln.producto_id or "").strip()
+                or ln.match_estado in ("sin_match", "conflicto", "ambiguo", "revisar")
+            ]
+            if self._compra_noray_archivo and pendientes:
+                self._feedback = map_admin_operacion_feedback(
+                    ok=False,
+                    mensaje_backend=(
+                        "Hay líneas por verificar: reasigne producto, cree uno nuevo "
+                        f"o pulse Verificar ({len(pendientes)} pendiente(s))."
+                    ),
+                )
+                return self.screen()
             if not self._compra_documento_id:
                 if not self._compra_proveedor_id or not self._compra_lineas:
                     self._feedback = map_admin_operacion_feedback(
@@ -1444,6 +1781,9 @@ class TerminalAdministracionPresenter:
                 self._compra_documento_id = ""
                 self._compra_referencia = ""
                 self._compra_albaran_id = ""
+                self._compra_noray_archivo = ""
+                self._compra_noray_omitidas = 0
+                self._compra_fecha_documento = None
                 msg = res.mensaje or "Compra confirmada."
                 if res.codigo == compra_registro_service.CONFIRMACION_IDEMPOTENTE:
                     msg = f"{msg} (idempotente)"
@@ -1498,9 +1838,11 @@ class TerminalAdministracionPresenter:
         data = get_container().app_data_store.get()
         lineas_payload: list[dict] = []
         for ln in self._compra_lineas:
+            if not (ln.producto_id or "").strip():
+                continue
             prod = next((p for p in data.productos if p.id == ln.producto_id), None)
-            unidad = "Ud"
-            if prod is not None:
+            unidad = ln.unidad or "Ud"
+            if prod is not None and not ln.unidad:
                 unidad = (
                     prod.unidad.value
                     if hasattr(prod.unidad, "value")
@@ -1514,14 +1856,20 @@ class TerminalAdministracionPresenter:
                     "unidad_compra": unidad,
                     "unidad_inventario": unidad,
                     "precio_unitario_compra": str(ln.precio_unitario),
-                    "impuesto_porcentaje": "0",
+                    "impuesto_porcentaje": str(ln.igic_pct or 0),
+                    "ubicacion_destino_id": ln.ubicacion_destino_id or None,
                 }
+            )
+        if not lineas_payload:
+            return compra_registro_service.ResultadoCompra(
+                False, "No hay líneas con producto asignado."
             )
         return compra_registro_service.guardar_borrador_persistente(
             json_path=get_demo_file(),
             tipo=self._compra_tipo or TipoDocumento.ALBARAN.value,
             proveedor_id=self._compra_proveedor_id,
             referencia_externa=self._compra_referencia or None,
+            fecha_documento=self._compra_fecha_documento,
             lineas=lineas_payload,
             documento_id=self._compra_documento_id or None,
         )
@@ -2638,6 +2986,8 @@ class TerminalAdministracionPresenter:
             compra_borradores=compra_borradores if auth else (),
             compra_prod_busqueda=self._compra_prod_busqueda if auth else "",
             compra_prod_sugerencias=compra_prod_sugerencias if auth else (),
+            compra_noray_archivo=self._compra_noray_archivo if auth else "",
+            compra_noray_omitidas=self._compra_noray_omitidas if auth else 0,
             documentos=documentos,
             archivos=archivos,
             albaranes_conciliables=albaranes_conciliables,

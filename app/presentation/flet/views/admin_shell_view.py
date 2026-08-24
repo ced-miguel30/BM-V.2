@@ -9,6 +9,7 @@ import flet as ft
 from app.presentation.flet.admin_viewmodels import (
     ADMIN_NAV_GROUPS,
     ADMIN_SECCION_LABEL,
+    MATCH_ESTADO_ETIQUETA,
     AdminScreenVM,
     BackupItemVM,
     CatalogoItemVM,
@@ -232,6 +233,11 @@ def build_admin_shell(
     on_ejecutar_destructiva: Callable[[str, str, bool], None],
     on_exportar_documentos: Callable[[], None],
     on_set_compra_albaran: Callable[[str], None] | None = None,
+    on_importar_noray: Callable[[], None] | None = None,
+    on_set_compra_linea_ubicacion: Callable[[int, str], None] | None = None,
+    on_set_compra_linea_producto: Callable[[int, str], None] | None = None,
+    on_verificar_linea_compra: Callable[[int], None] | None = None,
+    on_crear_producto_linea_noray: Callable[[int], None] | None = None,
     on_proponer_anular_documento: Callable[[str, str], None] | None = None,
     on_proponer_rectificativa_economica: Callable[[str, str], None] | None = None,
     on_proponer_rectificativa_stock: Callable[[str, str], None] | None = None,
@@ -359,6 +365,11 @@ def build_admin_shell(
         on_cargar_borrador_compra=on_cargar_borrador_compra,
         on_anular_borrador_compra=on_anular_borrador_compra,
         on_set_compra_albaran=on_set_compra_albaran,
+        on_importar_noray=on_importar_noray,
+        on_set_compra_linea_ubicacion=on_set_compra_linea_ubicacion,
+        on_set_compra_linea_producto=on_set_compra_linea_producto,
+        on_verificar_linea_compra=on_verificar_linea_compra,
+        on_crear_producto_linea_noray=on_crear_producto_linea_noray,
         on_generar_backup=on_generar_backup,
         on_inspeccionar_backup=on_inspeccionar_backup,
         on_proponer_restaurar=on_proponer_restaurar,
@@ -2488,6 +2499,11 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
     on_sugerir = cbs.get("on_seleccionar_sugerencia_compra")
     on_cargar = cbs.get("on_cargar_borrador_compra")
     on_anular_borr = cbs.get("on_anular_borrador_compra")
+    on_import_noray = cbs.get("on_importar_noray")
+    on_set_ubi = cbs.get("on_set_compra_linea_ubicacion")
+    on_set_prod = cbs.get("on_set_compra_linea_producto")
+    on_verificar = cbs.get("on_verificar_linea_compra")
+    on_crear_prod_ln = cbs.get("on_crear_producto_linea_noray")
 
     deprecacion = ui.alert_banner(
         "Deprecado: use Terminal Inventario → Albarán / Factura / Documentos "
@@ -2496,7 +2512,22 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
     )
 
     activos_prov = [p for p in screen.proveedores if p.activo]
+    activos_ubi = [u for u in screen.ubicaciones if u.activo]
     activos_prod = [p for p in screen.productos if p.activo]
+    ubi_options = [
+        ft.dropdown.Option(
+            key=u.id,
+            text=f"{u.codigo} · {u.nombre}" if u.codigo else u.nombre,
+        )
+        for u in activos_ubi
+    ]
+    prod_options = [
+        ft.dropdown.Option(
+            key=p.id,
+            text=f"{p.nombre}" + (f" [{p.codigo}]" if p.codigo else ""),
+        )
+        for p in activos_prod[:400]
+    ]
 
     def _parse_num(raw: str | None, default: float = 0.0) -> float:
         try:
@@ -2579,7 +2610,6 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
         if texto and on_add_busq is not None:
             on_add_busq(texto, cant, prec)
         elif screen.compra_prod_sugerencias:
-            # Si hay varias sugerencias, no adivinar: pedir elección
             if len(screen.compra_prod_sugerencias) == 1:
                 on_add(screen.compra_prod_sugerencias[0].id, cant, prec)
             elif on_busq:
@@ -2612,14 +2642,38 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
                         ),
                     )
                 )
-            sugerencias.append(
-                ft.Row(wrap=True, spacing=4, controls=chips)
-            )
+            sugerencias.append(ft.Row(wrap=True, spacing=4, controls=chips))
             sugerencias.append(
                 ui_theme.text_help(
                     "Pulse una opción para añadirla al borrador (cant. 1; ajuste en la tabla)."
                 )
             )
+
+    noray_help = (
+        f"Archivo: {screen.compra_noray_archivo}"
+        if screen.compra_noray_archivo
+        else "Suba el Excel de líneas Noray/BC. Empareja por nombre y verifica "
+        "código; si no cuadran puede reasignar, verificar o crear producto."
+    )
+    if screen.compra_noray_omitidas:
+        noray_help += (
+            f" · {screen.compra_noray_omitidas} línea(s) pendientes de resolver."
+        )
+    noray_card = ui.card_surface(
+        ui_theme.text_help(noray_help),
+        ft.Row(
+            wrap=True,
+            controls=[
+                ui.primary_button(
+                    "Subir Excel Noray",
+                    on_import_noray or (lambda: None),
+                    icon=ft.Icons.UPLOAD_FILE,
+                    disabled=screen.mutando or on_import_noray is None,
+                ),
+            ],
+        ),
+        title="Importar albarán / factura Noray",
+    )
 
     total = sum(l.cantidad * l.precio_unitario for l in screen.compra_lineas)
     header = ft.Container(
@@ -2628,6 +2682,7 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
         content=ft.Row(
             controls=[
                 ft.Text("Producto", size=11, weight=ft.FontWeight.W_600, expand=True),
+                ft.Text("Ubicación", size=11, weight=ft.FontWeight.W_600, width=200),
                 ft.Text("Cant.", size=11, weight=ft.FontWeight.W_600, width=90),
                 ft.Text("P. unit.", size=11, weight=ft.FontWeight.W_600, width=110),
                 ft.Text("Subtotal", size=11, weight=ft.FontWeight.W_600, width=90),
@@ -2644,6 +2699,12 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
                     ln,
                     on_quitar,
                     on_update=on_update,
+                    on_set_ubicacion=on_set_ubi,
+                    on_set_producto=on_set_prod,
+                    on_verificar=on_verificar,
+                    on_crear_producto=on_crear_prod_ln,
+                    ubicacion_options=ubi_options,
+                    producto_options=prod_options,
                     disabled=screen.mutando,
                 )
             )
@@ -2651,7 +2712,7 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
         lineas.append(
             ui.empty_state(
                 "Borrador vacío",
-                "Escriba parte del nombre (ej. huevo) y elija una opción.",
+                "Suba un Excel Noray o escriba parte del nombre y elija una opción.",
             )
         )
 
@@ -2720,7 +2781,7 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
             deprecacion,
             ui.page_header(
                 "Registro de compras",
-                f"Albarán / factura · búsqueda parcial · editar/anular borradores · {tipo_lbl}",
+                f"Albarán / factura · import Noray · ubicación por línea · {tipo_lbl}",
                 actions=[
                     ui.status_chip(
                         f"{len(screen.compra_lineas)} línea(s)",
@@ -2738,6 +2799,7 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
                     ),
                 ],
             ),
+            noray_card,
             ui.card_surface(
                 *borradores_ui,
                 title=f"Borradores guardados ({len(screen.compra_borradores)})",
@@ -2801,6 +2863,12 @@ def _compra_linea_row(
     on_quitar: Callable[[int], None],
     *,
     on_update: Callable[..., None] | None,
+    on_set_ubicacion: Callable[[int, str], None] | None,
+    on_set_producto: Callable[[int, str], None] | None,
+    on_verificar: Callable[[int], None] | None,
+    on_crear_producto: Callable[[int], None] | None,
+    ubicacion_options: list,
+    producto_options: list,
     disabled: bool,
 ) -> ft.Control:
     cant_tf = ft.TextField(
@@ -2818,6 +2886,32 @@ def _compra_linea_row(
         disabled=disabled or on_update is None,
     )
     subtotal = ln.cantidad * ln.precio_unitario
+    ubi_dd = ft.Dropdown(
+        options=ubicacion_options,
+        value=ln.ubicacion_destino_id or None,
+        width=180,
+        dense=True,
+        hint_text="Ubicación",
+        disabled=disabled or on_set_ubicacion is None or not ubicacion_options,
+        on_select=lambda e, i=index: (
+            on_set_ubicacion(i, getattr(e.control, "value", None) or "")
+            if on_set_ubicacion
+            else None
+        ),
+    )
+    prod_dd = ft.Dropdown(
+        options=producto_options,
+        value=ln.producto_id or None,
+        width=220,
+        dense=True,
+        hint_text="Producto catálogo",
+        disabled=disabled or on_set_producto is None or not producto_options,
+        on_select=lambda e, i=index: (
+            on_set_producto(i, getattr(e.control, "value", None) or "")
+            if on_set_producto
+            else None
+        ),
+    )
 
     def _commit(_e=None, i=index, ct=cant_tf, pt=prec_tf) -> None:
         if on_update is None:
@@ -2839,37 +2933,119 @@ def _compra_linea_row(
     prec_tf.on_submit = _commit
     prec_tf.on_blur = _commit
 
-    return ft.Container(
-        padding=ft.Padding.symmetric(horizontal=12, vertical=6),
-        border=ft.Border(bottom=ft.BorderSide(1, ui_theme.BORDER)),
-        content=ft.Row(
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+    estado = ln.match_estado or "ok"
+    etiq = MATCH_ESTADO_ETIQUETA.get(estado, estado)
+    tone = {
+        "ok": "ok",
+        "revisar": "warn",
+        "conflicto": "danger",
+        "sin_match": "danger",
+        "ambiguo": "warn",
+    }.get(estado, "neutral")
+
+    noray_nom = ln.nombre_noray or ln.nombre
+    noray_cod = ln.codigo_noray or "—"
+    cat_cod = ln.producto_codigo or "—"
+    detalle_cols: list[ft.Control] = [
+        ft.Row(
+            spacing=8,
             controls=[
+                ui.status_chip(etiq, tone=tone),
                 ft.Text(
-                    ln.nombre,
-                    size=13,
+                    f"Noray: {noray_nom} [{noray_cod}]",
+                    size=12,
                     weight=ft.FontWeight.W_600,
                     color=ui_theme.DARK_TEXT,
                     expand=True,
                     max_lines=1,
                     overflow=ft.TextOverflow.ELLIPSIS,
                 ),
-                cant_tf,
-                prec_tf,
-                ft.Text(
-                    f"{subtotal:.2f}",
-                    size=12,
-                    width=90,
-                    weight=ft.FontWeight.W_600,
-                    color=ui_theme.DARK_TEXT,
-                ),
-                ft.Container(
-                    width=70,
-                    content=ft.TextButton(
-                        "Quitar",
-                        disabled=disabled,
-                        on_click=lambda _e, i=index: on_quitar(i),
-                    ),
+            ],
+        ),
+    ]
+    if ln.producto_id:
+        detalle_cols.append(
+            ft.Text(
+                f"Catálogo: {ln.nombre} [{cat_cod}]",
+                size=11,
+                color=ui_theme.MID_GRAY,
+                max_lines=1,
+                overflow=ft.TextOverflow.ELLIPSIS,
+            )
+        )
+    extra = " · ".join(
+        x
+        for x in (
+            f"Alm. {ln.almacen_noray}" if ln.almacen_noray else "",
+            ln.aviso,
+        )
+        if x
+    )
+    if extra:
+        detalle_cols.append(
+            ft.Text(
+                extra,
+                size=10,
+                color=ui_theme.MID_GRAY,
+                max_lines=2,
+                overflow=ft.TextOverflow.ELLIPSIS,
+            )
+        )
+
+    acciones: list[ft.Control] = []
+    if estado in ("revisar", "conflicto") and ln.producto_id and on_verificar:
+        acciones.append(
+            ft.TextButton(
+                "Verificar",
+                disabled=disabled,
+                on_click=lambda _e, i=index: on_verificar(i),
+            )
+        )
+    if estado in ("sin_match", "conflicto", "ambiguo", "revisar") and on_crear_producto:
+        acciones.append(
+            ft.TextButton(
+                "Crear producto",
+                disabled=disabled or not (ln.codigo_noray or "").strip(),
+                on_click=lambda _e, i=index: on_crear_producto(i),
+            )
+        )
+    acciones.append(
+        ft.TextButton(
+            "Quitar",
+            disabled=disabled,
+            on_click=lambda _e, i=index: on_quitar(i),
+        )
+    )
+
+    return ft.Container(
+        padding=ft.Padding.symmetric(horizontal=12, vertical=8),
+        border=ft.Border(bottom=ft.BorderSide(1, ui_theme.BORDER)),
+        bgcolor=ui_theme.WARNING_BG
+        if estado in ("revisar", "ambiguo")
+        else (ui_theme.DANGER_BG if estado in ("sin_match", "conflicto") else None),
+        content=ft.Column(
+            spacing=6,
+            tight=True,
+            controls=[
+                ft.Column(spacing=2, tight=True, controls=detalle_cols),
+                ft.Row(
+                    wrap=True,
+                    spacing=8,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    controls=[
+                        prod_dd,
+                        ubi_dd,
+                        cant_tf,
+                        prec_tf,
+                        ft.Text(
+                            f"{subtotal:.2f}",
+                            size=12,
+                            width=70,
+                            weight=ft.FontWeight.W_600,
+                            color=ui_theme.DARK_TEXT,
+                        ),
+                        *acciones,
+                    ],
                 ),
             ],
         ),

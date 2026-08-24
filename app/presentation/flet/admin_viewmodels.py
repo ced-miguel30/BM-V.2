@@ -160,6 +160,24 @@ class CompraLineaVM:
     nombre: str
     cantidad: float
     precio_unitario: float
+    ubicacion_destino_id: str = ""
+    unidad: str = "Ud"
+    igic_pct: float = 0.0
+    aviso: str = ""
+    codigo_noray: str = ""
+    almacen_noray: str = ""
+    nombre_noray: str = ""
+    match_estado: str = "ok"  # ok | revisar | conflicto | sin_match | ambiguo
+    producto_codigo: str = ""
+
+
+MATCH_ESTADO_ETIQUETA: dict[str, str] = {
+    "ok": "OK",
+    "revisar": "Revisar",
+    "conflicto": "Conflicto",
+    "sin_match": "Sin match",
+    "ambiguo": "Ambiguo",
+}
 
 
 @dataclass(frozen=True)
@@ -267,6 +285,8 @@ class AdminScreenVM:
     compra_borradores: tuple[DocumentoAdminVM, ...] = ()
     compra_prod_busqueda: str = ""
     compra_prod_sugerencias: tuple[ProductoAdminVM, ...] = ()
+    compra_noray_archivo: str = ""
+    compra_noray_omitidas: int = 0
     documentos: tuple[DocumentoAdminVM, ...] = ()
     archivos: tuple[ArchivoAdminVM, ...] = ()
     albaranes_conciliables: tuple[DocumentoAdminVM, ...] = ()
