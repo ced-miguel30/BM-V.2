@@ -358,5 +358,76 @@ class TestFletArranque(unittest.TestCase):
         self.assertEqual(sha256_demo_file(DEMO_FILE), DEMO_CONTENT_SHA256_CANONICO)
 
 
+class TestCatalogoBebidasSinSueltos(unittest.TestCase):
+    """Bebidas independientes sin productos sueltos; Comida/Cena Bebidas = recetas."""
+
+    def setUp(self) -> None:
+        reset_container()
+        clear_test_session()
+        self._tmpdir = tempfile.TemporaryDirectory()
+        raw = __import__("json").loads(Path(DEMO_FILE).read_text(encoding="utf-8"))
+        if not raw.get("productos"):
+            raw["productos"] = [
+                {
+                    "id": "px",
+                    "nombre": "Agua",
+                    "unidad": "Ud",
+                    "es_bebida": True,
+                    "activo": True,
+                }
+            ]
+        else:
+            raw["productos"][0]["es_bebida"] = True
+        pid = raw["productos"][0]["id"]
+        raw.setdefault("recetas", [])
+        raw["recetas"].append(
+            {
+                "id": "rb_test",
+                "nombre": "Copa Test Cat",
+                "categoria": "bebidas",
+                "activo": True,
+                "porciones_estandar": 1,
+                "ingredientes": [{"producto_id": pid, "cantidad": 0.15}],
+                "servicios_disponibles": ["bebidas", "comida", "cena"],
+            }
+        )
+        self._demo = Path(self._tmpdir.name) / "datos_hotel.json"
+        self._demo.write_text(
+            __import__("json").dumps(raw), encoding="utf-8"
+        )
+        set_demo_file_override(self._demo)
+        configure_for_flet()
+        from app.core.auth.session import iniciar_terminal_restaurante
+
+        set_test_session(iniciar_terminal_restaurante())
+
+    def tearDown(self) -> None:
+        clear_test_session()
+        set_demo_file_override(None)
+        reset_container()
+        self._tmpdir.cleanup()
+
+    def test_bebidas_independientes_solo_recetas(self) -> None:
+        p = TerminalRestaurantePresenter()
+        p.entrar()
+        s = p.seleccionar_servicio("bebidas")
+        self.assertEqual(s.catalogo_tipo, "recetas")
+        self.assertTrue(s.catalogo)
+        self.assertTrue(all(i.tipo == "receta" for i in s.catalogo))
+
+    def test_comida_chip_bebidas_son_recetas(self) -> None:
+        p = TerminalRestaurantePresenter()
+        p.entrar()
+        p.seleccionar_servicio("comida")
+        s = p.set_catalogo_tipo("bebidas")
+        self.assertTrue(s.catalogo)
+        self.assertTrue(all(i.tipo == "receta" for i in s.catalogo))
+        self.assertTrue(
+            all((i.categoria or "").lower() == "bebidas" for i in s.catalogo)
+        )
+        s2 = p.anadir_receta(s.catalogo[0].id, 1.0)
+        self.assertTrue(s2.feedback.ok, s2.feedback.mensaje)
+
+
 if __name__ == "__main__":
     unittest.main()

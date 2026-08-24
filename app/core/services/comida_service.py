@@ -6,7 +6,7 @@ from app.core.services.servicio_registro_service import crear_servicio
 servicio = crear_servicio(
     "comida",
     "comida",
-    [CategoriaReceta.COMIDA],
+    [CategoriaReceta.COMIDA, CategoriaReceta.BEBIDAS],
     titulo_documento="Registro de Comida",
 )
 

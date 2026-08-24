@@ -165,6 +165,27 @@ def build_registro_view(
         search_field.height = 52
 
     tipo_activo = getattr(screen, "catalogo_tipo", None) or "recetas"
+    servicio = screen.servicio_activo or ""
+    if servicio == "bebidas":
+        # Solo recetas de categoría Bebidas (sin productos sueltos).
+        filtros_tipo: tuple[tuple[str, str], ...] = (("recetas", "Recetas"),)
+        if tipo_activo not in {t for t, _ in filtros_tipo}:
+            tipo_activo = "recetas"
+    elif servicio in ("comida", "cena"):
+        filtros_tipo = (
+            ("recetas", "Recetas"),
+            ("productos", "Extras / productos"),
+            ("bebidas", "Bebidas"),
+            ("todas", "Todas"),
+        )
+    else:
+        # Desayuno: Bebidas = cafés/tés (recetas) + leches rápidas.
+        filtros_tipo = (
+            ("recetas", "Recetas"),
+            ("productos", "Extras / productos"),
+            ("bebidas", "Bebidas"),
+            ("todas", "Todas"),
+        )
     tipo_chips = ft.Row(
         wrap=True,
         spacing=10,
@@ -190,12 +211,7 @@ def build_registro_view(
                     on_click=lambda _e, t=tid: on_catalogo_tipo(t),
                 )
             )
-            for tid, lab in (
-                ("recetas", "Recetas"),
-                ("productos", "Extras / productos"),
-                ("bebidas", "Bebidas"),
-                ("todas", "Todas"),
-            )
+            for tid, lab in filtros_tipo
         ],
     )
 
@@ -274,14 +290,22 @@ def build_registro_view(
                 ft.Text(
                     (
                         "Extras habituales de desayuno · una porción al añadir · ajuste en cesta"
-                        if (screen.servicio_activo == "desayuno" and tipo_activo == "productos")
+                        if (servicio == "desayuno" and tipo_activo == "productos")
                         else (
                             "Cafés, tés y Cola Cao · leche vegetal = Espresso + ración de leche"
-                            if (
-                                screen.servicio_activo == "desayuno"
-                                and tipo_activo == "bebidas"
+                            if (servicio == "desayuno" and tipo_activo == "bebidas")
+                            else (
+                                "Copas, botellas y cócteles (mismas recetas que Bebidas independientes)"
+                                if (
+                                    servicio in ("comida", "cena")
+                                    and tipo_activo == "bebidas"
+                                )
+                                else (
+                                    "Recetas de barra · copas, botellas y cócteles"
+                                    if servicio == "bebidas"
+                                    else "Recetas · extras/productos por cantidad · pulse Añadir"
+                                )
                             )
-                            else "Recetas del Excel · extras/productos por cantidad · pulse Añadir"
                         )
                     ),
                     size=14,

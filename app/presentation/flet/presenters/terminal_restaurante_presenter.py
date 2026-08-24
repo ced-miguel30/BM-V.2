@@ -240,7 +240,7 @@ class TerminalRestaurantePresenter:
             return self.screen()
         self._servicio_id = servicio_id
         self._busqueda = ""
-        self._catalogo_tipo = "recetas" if servicio_id != "bebidas" else "todas"
+        self._catalogo_tipo = "recetas"
         self._anulacion_pendiente = None
         self._feedback = FeedbackVM(
             ok=True, mensaje=f"Servicio activo: {_binds()[servicio_id].etiqueta}"
@@ -253,6 +253,10 @@ class TerminalRestaurantePresenter:
 
     def set_catalogo_tipo(self, tipo: str) -> TerminalScreenVM:
         clave = (tipo or "").strip().lower()
+        if self._servicio_id == "bebidas":
+            # Sin productos sueltos: solo recetas.
+            self._catalogo_tipo = "recetas"
+            return self.screen()
         if clave in ("todas", "recetas", "productos", "bebidas"):
             self._catalogo_tipo = clave
         return self.screen()
@@ -815,51 +819,15 @@ class TerminalRestaurantePresenter:
                 )
             return tuple(items)
 
-        incluir_recetas = tipo in ("todas", "recetas")
-        incluir_productos = tipo in ("todas", "productos", "bebidas")
-        if incluir_recetas:
-            recetas = listar_recetas(servicio_disponible=bind.id, solo_activas=True)
-            cats = getattr(bind.api, "categorias_permitidas", None)
-            if cats is None and bind.id == "desayuno":
-                from app.core.models import CategoriaReceta
+        # Comida/Cena «Bebidas»: mismas recetas que Bebidas independientes (sin sueltos).
+        if bind.id in ("comida", "cena") and tipo == "bebidas":
+            from app.core.models import CategoriaReceta
 
-                cats = [CategoriaReceta.DESAYUNO]
-            if cats is not None:
-                allowed = set(cats)
-                # En «Recetas» de desayuno no mezclar cafés (van a Bebidas).
-                if bind.id == "desayuno" and tipo == "recetas":
-                    from app.core.models import CategoriaReceta
-
-                    allowed = {CategoriaReceta.DESAYUNO}
-                recetas = [r for r in recetas if r.categoria in allowed]
-            # Desayuno: 7 tostadas weekday → una ficha «Tostada del dia».
-            if bind.id == "desayuno":
-                del_dia = receta_tostada_del_dia(_date.today())
-                recetas = [r for r in recetas if not es_receta_tostada_weekday(r.nombre)]
-                if del_dia is not None and (
-                    not q or coincide_busqueda(ETIQUETA_TOSTADA_DEL_DIA, q)
-                ):
-                    items.append(
-                        CatalogItemVM(
-                            id=del_dia.id,
-                            nombre=ETIQUETA_TOSTADA_DEL_DIA,
-                            tipo="receta",
-                            categoria=getattr(
-                                del_dia.categoria, "value", str(del_dia.categoria)
-                            ),
-                        )
-                    )
-            for r in recetas:
-                if bind.id == "desayuno" and tipo == "todas":
-                    from app.core.services.desayuno_service import (
-                        es_receta_bebida_desayuno,
-                    )
-                    from app.core.models import CategoriaReceta
-
-                    if r.categoria == CategoriaReceta.BEBIDAS and not es_receta_bebida_desayuno(
-                        r.nombre
-                    ):
-                        continue
+            for r in listar_recetas(
+                categorias=[CategoriaReceta.BEBIDAS],
+                servicio_disponible="bebidas",
+                solo_activas=True,
+            ):
                 if q and not coincide_busqueda(r.nombre, q):
                     continue
                 items.append(
@@ -867,9 +835,121 @@ class TerminalRestaurantePresenter:
                         id=r.id,
                         nombre=r.nombre,
                         tipo="receta",
-                        categoria=getattr(r.categoria, "value", str(r.categoria)),
+                        categoria="bebidas",
                     )
                 )
+            return tuple(items)
+
+        # Bebidas independientes: solo recetas (sin productos sueltos).
+        if bind.id == "bebidas":
+            incluir_recetas = True
+            incluir_productos = False
+        else:
+            incluir_recetas = tipo in ("todas", "recetas")
+            # «bebidas» en comida/cena ya retornó arriba; desayuno tiene rama propia.
+            incluir_productos = tipo in ("todas", "productos")
+
+        if incluir_recetas:
+            from app.core.models import CategoriaReceta
+
+            if bind.id in ("comida", "cena") and tipo == "todas":
+                cats_plato = (
+                    {CategoriaReceta.COMIDA}
+                    if bind.id == "comida"
+                    else {CategoriaReceta.CENA}
+                )
+                vistos: set[str] = set()
+                for r in listar_recetas(
+                    servicio_disponible=bind.id, solo_activas=True
+                ):
+                    if r.categoria not in cats_plato:
+                        continue
+                    if q and not coincide_busqueda(r.nombre, q):
+                        continue
+                    vistos.add(r.id)
+                    items.append(
+                        CatalogItemVM(
+                            id=r.id,
+                            nombre=r.nombre,
+                            tipo="receta",
+                            categoria=getattr(r.categoria, "value", str(r.categoria)),
+                        )
+                    )
+                for r in listar_recetas(
+                    categorias=[CategoriaReceta.BEBIDAS],
+                    servicio_disponible="bebidas",
+                    solo_activas=True,
+                ):
+                    if r.id in vistos:
+                        continue
+                    if q and not coincide_busqueda(r.nombre, q):
+                        continue
+                    items.append(
+                        CatalogItemVM(
+                            id=r.id,
+                            nombre=r.nombre,
+                            tipo="receta",
+                            categoria="bebidas",
+                        )
+                    )
+            else:
+                recetas = listar_recetas(
+                    servicio_disponible=bind.id, solo_activas=True
+                )
+                cats = getattr(bind.api, "categorias_permitidas", None)
+                if cats is None and bind.id == "desayuno":
+                    cats = [CategoriaReceta.DESAYUNO]
+                if cats is not None:
+                    allowed = set(cats)
+                    # Plato: no mezclar bebidas en «Recetas» (van al chip Bebidas).
+                    if bind.id == "desayuno" and tipo == "recetas":
+                        allowed = {CategoriaReceta.DESAYUNO}
+                    elif bind.id == "comida" and tipo == "recetas":
+                        allowed = {CategoriaReceta.COMIDA}
+                    elif bind.id == "cena" and tipo == "recetas":
+                        allowed = {CategoriaReceta.CENA}
+                    elif bind.id == "bebidas":
+                        allowed = {CategoriaReceta.BEBIDAS}
+                    recetas = [r for r in recetas if r.categoria in allowed]
+                # Desayuno: 7 tostadas weekday → una ficha «Tostada del dia».
+                if bind.id == "desayuno":
+                    del_dia = receta_tostada_del_dia(_date.today())
+                    recetas = [
+                        r for r in recetas if not es_receta_tostada_weekday(r.nombre)
+                    ]
+                    if del_dia is not None and (
+                        not q or coincide_busqueda(ETIQUETA_TOSTADA_DEL_DIA, q)
+                    ):
+                        items.append(
+                            CatalogItemVM(
+                                id=del_dia.id,
+                                nombre=ETIQUETA_TOSTADA_DEL_DIA,
+                                tipo="receta",
+                                categoria=getattr(
+                                    del_dia.categoria, "value", str(del_dia.categoria)
+                                ),
+                            )
+                        )
+                for r in recetas:
+                    if bind.id == "desayuno" and tipo == "todas":
+                        from app.core.services.desayuno_service import (
+                            es_receta_bebida_desayuno,
+                        )
+
+                        if r.categoria == CategoriaReceta.BEBIDAS and not es_receta_bebida_desayuno(
+                            r.nombre
+                        ):
+                            continue
+                    if q and not coincide_busqueda(r.nombre, q):
+                        continue
+                    items.append(
+                        CatalogItemVM(
+                            id=r.id,
+                            nombre=r.nombre,
+                            tipo="receta",
+                            categoria=getattr(r.categoria, "value", str(r.categoria)),
+                        )
+                    )
         if incluir_productos:
             # Desayuno: lista corta de extras con cantidad estándar (más cómoda).
             if bind.id == "desayuno" and tipo in ("productos", "todas"):
@@ -912,6 +992,9 @@ class TerminalRestaurantePresenter:
                 ids_rapidos = set()
             for p in bind.api.productos_catalogo(q):
                 es_bebida = bool(p.get("es_bebida"))
+                # Comida/cena: nunca productos sueltos de bebida (usar chip Bebidas = recetas).
+                if bind.id in ("comida", "cena") and es_bebida:
+                    continue
                 if tipo == "bebidas" and not es_bebida:
                     continue
                 if tipo == "productos" and es_bebida:
