@@ -20,19 +20,67 @@ def build_economato_body(
     screen: InventarioScreenVM,
     callbacks: dict[str, Any],
 ) -> ft.Control:
+    # #region agent log
+    def _dbg(msg: str, data: dict, hyp: str = "A") -> None:
+        import json, time
+        try:
+            with open(
+                r"c:\Users\User\Desktop\HOTEL\BM V.2\debug-ec0c23.log",
+                "a",
+                encoding="utf-8",
+            ) as _f:
+                _f.write(
+                    json.dumps(
+                        {
+                            "sessionId": "ec0c23",
+                            "hypothesisId": hyp,
+                            "location": "inventario_economato_view.py:build_economato_body",
+                            "message": msg,
+                            "data": data,
+                            "timestamp": int(time.time() * 1000),
+                        },
+                        ensure_ascii=False,
+                    )
+                    + "\n"
+                )
+        except Exception:
+            pass
+
+    # #endregion
     eco = screen.economato
     if eco is None:
+        # #region agent log
+        _dbg("eco_none", {"espacio": screen.espacio_activo}, "B")
+        # #endregion
         return ft.Text("Cargando economato…", color=ui_theme.MID_GRAY)
     espacio = screen.espacio_activo
-    if espacio == "recepcion":
-        return _recepcion(screen, eco, callbacks)
-    if espacio == "documentos":
-        return _documentos(screen, eco, callbacks)
-    if espacio == "maestros":
-        return _maestros(screen, eco, callbacks)
-    if espacio == "historial":
-        return _historial(screen, eco, callbacks)
-    return ft.Text("Espacio no soportado", color=ui_theme.MID_GRAY)
+    # #region agent log
+    _dbg("build_start", {"espacio": espacio}, "B")
+    # #endregion
+    try:
+        if espacio == "recepcion":
+            body = _recepcion(screen, eco, callbacks)
+        elif espacio == "documentos":
+            body = _documentos(screen, eco, callbacks)
+        elif espacio == "maestros":
+            body = _maestros(screen, eco, callbacks)
+        elif espacio == "historial":
+            body = _historial(screen, eco, callbacks)
+        else:
+            body = ft.Text("Espacio no soportado", color=ui_theme.MID_GRAY)
+        # #region agent log
+        _dbg("build_ok", {"espacio": espacio, "type": type(body).__name__}, "A")
+        # #endregion
+        return body
+    except TypeError as exc:
+        # #region agent log
+        _dbg(
+            "build_typeerror",
+            {"espacio": espacio, "error": str(exc)},
+            "A",
+        )
+        # #endregion
+        raise
 
 
 def _section_title(text: str) -> ft.Control:
@@ -42,6 +90,60 @@ def _section_title(text: str) -> ft.Control:
 def _recepcion(
     screen: InventarioScreenVM, eco: EconomatoPanelVM, cbs: dict[str, Any]
 ) -> ft.Control:
+    # #region agent log
+    import json, time, inspect
+
+    try:
+        sig = inspect.signature(ft.Dropdown.__init__)
+        with open(
+            r"c:\Users\User\Desktop\HOTEL\BM V.2\debug-ec0c23.log",
+            "a",
+            encoding="utf-8",
+        ) as _f:
+            _f.write(
+                json.dumps(
+                    {
+                        "sessionId": "ec0c23",
+                        "hypothesisId": "A",
+                        "location": "inventario_economato_view.py:_recepcion",
+                        "message": "dropdown_api",
+                        "data": {
+                            "has_on_change": "on_change" in sig.parameters,
+                            "has_on_select": "on_select" in sig.parameters,
+                        },
+                        "timestamp": int(time.time() * 1000),
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
+    except Exception:
+        pass
+    # #endregion
+    # #region agent log
+    try:
+        with open(
+            r"c:\Users\User\Desktop\HOTEL\BM V.2\debug-ec0c23.log",
+            "a",
+            encoding="utf-8",
+        ) as _f:
+            _f.write(
+                json.dumps(
+                    {
+                        "sessionId": "ec0c23",
+                        "hypothesisId": "A",
+                        "location": "inventario_economato_view.py:_recepcion",
+                        "message": "creating_tipo_dd_with_on_select",
+                        "data": {"kw": "on_select"},
+                        "timestamp": int(time.time() * 1000),
+                    },
+                    ensure_ascii=False,
+                )
+                + "\n"
+            )
+    except Exception:
+        pass
+    # #endregion
     tipo_dd = ft.Dropdown(
         label="Tipo documento",
         value=eco.compra_tipo or "albaran",
@@ -50,7 +152,7 @@ def _recepcion(
             ft.dropdown.Option("factura", "Factura"),
         ],
         width=180,
-        on_change=lambda e: cbs["on_compra_tipo"](e.control.value or "albaran"),
+        on_select=lambda e: cbs["on_compra_tipo"](e.control.value or "albaran"),
     )
     prov_dd = ft.Dropdown(
         label="Proveedor",
@@ -59,7 +161,7 @@ def _recepcion(
             ft.dropdown.Option(o.id, o.etiqueta) for o in eco.compra_proveedores
         ],
         width=280,
-        on_change=lambda e: cbs["on_compra_cabecera"](
+        on_select=lambda e: cbs["on_compra_cabecera"](
             proveedor_id=e.control.value or ""
         ),
     )
@@ -84,7 +186,7 @@ def _recepcion(
             ft.dropdown.Option(o.id, o.etiqueta) for o in eco.compra_ubicaciones
         ],
         width=260,
-        on_change=lambda e: cbs["on_compra_cabecera"](
+        on_select=lambda e: cbs["on_compra_cabecera"](
             ubicacion_entrada_id=e.control.value or ""
         ),
     )
@@ -321,7 +423,7 @@ def _documentos(
             ft.dropdown.Option("rectificativa", "Rectificativa"),
         ],
         width=160,
-        on_change=lambda e: cbs["on_doc_filtros"](tipo=e.control.value or ""),
+        on_select=lambda e: cbs["on_doc_filtros"](tipo=e.control.value or ""),
     )
     estado = ft.Dropdown(
         label="Estado",
@@ -334,7 +436,7 @@ def _documentos(
             ft.dropdown.Option("rectificado", "Rectificado"),
         ],
         width=160,
-        on_change=lambda e: cbs["on_doc_filtros"](estado=e.control.value or ""),
+        on_select=lambda e: cbs["on_doc_filtros"](estado=e.control.value or ""),
     )
 
     lista: list[ft.Control] = []
@@ -506,7 +608,7 @@ def _maestros(
                                     ft.dropdown.Option(t, t) for t in TIPOS_UBICACION
                                 ],
                                 width=130,
-                                on_change=lambda e, uid=u.id: cbs["on_tipo_ubicacion"](
+                                on_select=lambda e, uid=u.id: cbs["on_tipo_ubicacion"](
                                     uid, e.control.value or "otro"
                                 ),
                             ),
@@ -650,7 +752,7 @@ def _historial(
         options=[ft.dropdown.Option("", "Todas")]
         + [ft.dropdown.Option(o.id, o.etiqueta) for o in eco.compra_ubicaciones],
         width=220,
-        on_change=lambda e: cbs["on_hist_filtros"](ubicacion_id=e.control.value or ""),
+        on_select=lambda e: cbs["on_hist_filtros"](ubicacion_id=e.control.value or ""),
     )
     prov = ft.Dropdown(
         label="Proveedor (docs)",
@@ -658,7 +760,7 @@ def _historial(
         options=[ft.dropdown.Option("", "Todos")]
         + [ft.dropdown.Option(o.id, o.etiqueta) for o in eco.compra_proveedores],
         width=220,
-        on_change=lambda e: cbs["on_hist_filtros"](proveedor_id=e.control.value or ""),
+        on_select=lambda e: cbs["on_hist_filtros"](proveedor_id=e.control.value or ""),
     )
     rows = [
         ft.DataRow(

@@ -1,0 +1,6 @@
+{"sessionId": "ec0c23", "hypothesisId": "B", "location": "inventario_economato_view.py:build_economato_body", "message": "build_start", "data": {"espacio": "recepcion"}, "timestamp": 1787569130127}
+{"sessionId": "ec0c23", "hypothesisId": "A", "location": "inventario_economato_view.py:_recepcion", "message": "dropdown_api", "data": {"has_on_change": false, "has_on_select": true}, "timestamp": 1787569130133}
+{"sessionId": "ec0c23", "hypothesisId": "A", "location": "inventario_economato_view.py:_recepcion", "message": "creating_tipo_dd_with_on_select", "data": {"kw": "on_select"}, "timestamp": 1787569130133}
+{"sessionId": "ec0c23", "hypothesisId": "A", "location": "inventario_economato_view.py:build_economato_body", "message": "build_ok", "data": {"espacio": "recepcion", "type": "Column"}, "timestamp": 1787569130135}
+{"sessionId": "ec0c23", "hypothesisId": "B", "location": "inventario_economato_view.py:build_economato_body", "message": "build_start", "data": {"espacio": "maestros"}, "timestamp": 1787569132773}
+{"sessionId": "ec0c23", "hypothesisId": "A", "location": "inventario_economato_view.py:build_economato_body", "message": "build_ok", "data": {"espacio": "maestros", "type": "Column"}, "timestamp": 1787569132774}
