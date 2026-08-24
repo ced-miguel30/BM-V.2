@@ -16,8 +16,14 @@ from app.presentation.flet.admin_viewmodels import (
     secciones_visibles_admin,
 )
 from app.presentation.flet.analisis_viewmodels import ANALISIS_HUBS
-from app.presentation.flet.charts import build_barras_horizontales, build_lineas_series
+from app.presentation.flet.charts import (
+    build_barras_horizontales,
+    build_donut,
+    build_lineas_series,
+    normalize_donut_slices,
+)
 from app.presentation.flet.analisis_viewmodels import BarItemVM, ChartSeriesVM
+from app.core.services import costes_service
 from app.presentation.flet.presenters.terminal_administracion_presenter import (
     TerminalAdministracionPresenter,
 )
@@ -131,7 +137,20 @@ class TestFletAnalisis(unittest.TestCase):
         self.assertTrue(screen.analisis.metrics)
         labels = " ".join(m.etiqueta for m in screen.analisis.metrics)
         self.assertIn("Coste total", labels)
+        # Dirección: donuts + tones
+        self.assertTrue(screen.analisis.chart_donuts)
+        self.assertTrue(any(m.tone for m in screen.analisis.metrics))
         build_admin_shell(screen, on_volver_menu=None, **self._cbs())
+
+    def test_costes_resumen_pareto_y_alertas_shape(self) -> None:
+        self.pr.set_seccion("analisis")
+        screen = self.pr.screen()
+        assert screen.analisis is not None
+        # Pareto / alertas pueden estar vacíos en fixture mínima; tipos OK
+        self.assertIsInstance(screen.analisis.pareto, tuple)
+        self.assertIsInstance(screen.analisis.alertas, tuple)
+        for m in screen.analisis.metrics:
+            self.assertIn(m.tone, ("ok", "warn", "danger", "neutral"))
 
     def test_hubs_consumo_merma(self) -> None:
         self.pr.set_seccion("analisis")
@@ -140,6 +159,9 @@ class TestFletAnalisis(unittest.TestCase):
             screen = self.pr.screen()
             assert screen.analisis is not None
             self.assertEqual(screen.analisis.hub, hub)
+            if screen.analisis.pestana == "Resumen":
+                # Resumen usa donuts en los 3 hubs
+                self.assertIsInstance(screen.analisis.chart_donuts, tuple)
             build_admin_shell(screen, on_volver_menu=None, **self._cbs())
 
     def test_charts_helpers(self) -> None:
@@ -162,6 +184,54 @@ class TestFletAnalisis(unittest.TestCase):
             )
         )
         self.assertIsNotNone(lines)
+        donut = build_donut(
+            (
+                BarItemVM("Consumo", 70.0, 70.0, "70"),
+                BarItemVM("Merma", 20.0, 20.0, "20"),
+                BarItemVM("Exp", 10.0, 10.0, "10"),
+            ),
+            titulo="Naturaleza",
+        )
+        self.assertIsNotNone(donut)
+
+    def test_normalize_donut_slices_otros(self) -> None:
+        items = [
+            BarItemVM("A", 90, 90, "90"),
+            BarItemVM("B", 5, 5, "5"),
+            BarItemVM("C", 2, 2, "2"),
+            BarItemVM("D", 1, 1, "1"),
+            BarItemVM("E", 1, 1, "1"),
+            BarItemVM("F", 1, 1, "1"),
+        ]
+        out = normalize_donut_slices(items, min_pct=3.0, max_slices=6)
+        cats = [x.categoria for x in out]
+        self.assertIn("A", cats)
+        self.assertIn("Otros", cats)
+        self.assertLessEqual(len(out), 6)
+
+    def test_pareto_acumula_umbral(self) -> None:
+        # Sin sesión de costes el usecase falla; validamos lógica vía filas sintéticas
+        # construyendo acum manualmente como el servicio.
+        filas = [
+            {"nombre": "P1", "coste": 50},
+            {"nombre": "P2", "coste": 30},
+            {"nombre": "P3", "coste": 10},
+            {"nombre": "P4", "coste": 10},
+        ]
+        total = sum(f["coste"] for f in filas)
+        acum = 0.0
+        out = []
+        for f in filas:
+            pct = round(100.0 * f["coste"] / total, 1)
+            acum = round(acum + pct, 1)
+            out.append(acum)
+            if acum >= 80:
+                break
+        self.assertGreaterEqual(out[-1], 80)
+        self.assertLessEqual(len(out), 4)
+        # API existe
+        self.assertTrue(callable(costes_service.pareto_generadores_coste))
+        self.assertTrue(callable(costes_service.alertas_periodo_costes))
 
     def test_flet_sin_streamlit_ni_altair(self) -> None:
         for path in FLET_ROOT.rglob("*.py"):

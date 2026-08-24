@@ -17,13 +17,57 @@ from app.presentation.flet.analisis_viewmodels import (
     COSTES_PESTANAS,
     CONSUMO_PESTANAS,
     MERMA_PESTANAS,
+    AlertaAnalisisVM,
     AnalisisPanelVM,
     BarItemVM,
     ChartSeriesVM,
     MetricVM,
+    ParetoRowVM,
     RankingBlockVM,
     RankingRowVM,
 )
+
+
+def _tone_from_delta(delta: float | None, *, higher_is_bad: bool = True) -> str:
+    if delta is None:
+        return "neutral"
+    if abs(delta) < 0.5:
+        return "neutral"
+    if higher_is_bad:
+        if delta >= 10:
+            return "danger"
+        if delta > 0:
+            return "warn"
+        return "ok"
+    if delta <= -10:
+        return "danger"
+    if delta < 0:
+        return "warn"
+    return "ok"
+
+
+def _alertas_vm(raw: list[dict]) -> tuple[AlertaAnalisisVM, ...]:
+    return tuple(
+        AlertaAnalisisVM(
+            titulo=str(a.get("titulo") or ""),
+            mensaje=str(a.get("mensaje") or ""),
+            severity=str(a.get("severity") or "warning"),
+        )
+        for a in raw
+    )
+
+
+def _pareto_vm(filas: list[dict]) -> tuple[ParetoRowVM, ...]:
+    return tuple(
+        ParetoRowVM(
+            nombre=str(f.get("nombre") or ""),
+            coste_fmt=str(f.get("coste_fmt") or ""),
+            pct=float(f.get("pct") or 0),
+            pct_acum=float(f.get("pct_acum") or 0),
+        )
+        for f in filas
+    )
+
 
 _MERMA_PESTANA_A_AMBITO = {
     "Desayuno": "desayuno",
@@ -215,6 +259,9 @@ def _build_costes(
     repo = get_repository()
     pestana = pestana if pestana in COSTES_PESTANAS else "Resumen"
     metrics: list[MetricVM] = []
+    alertas: list[AlertaAnalisisVM] = []
+    pareto: list[ParetoRowVM] = []
+    chart_donuts: list[tuple[str, tuple[BarItemVM, ...]]] = []
     chart_barras: list[tuple[str, tuple[BarItemVM, ...]]] = []
     chart_lineas: list[ChartSeriesVM] = []
     rankings: list[RankingBlockVM] = []
@@ -232,39 +279,63 @@ def _build_costes(
     if pestana == "Resumen":
         res = costes_service.resumen_ejecutivo_costes(desde, hasta)
         var = res.get("variacion_pct")
-        var_txt = f"{var:+.1f}% vs periodo anterior" if var is not None else "Sin periodo anterior"
+        var_txt = (
+            f"{var:+.1f}% vs periodo anterior" if var is not None else "Sin periodo anterior"
+        )
+        merma_exp = float(res["naturaleza"]["Merma"]) + float(
+            res["naturaleza"]["Expiración"]
+        )
+        merma_pct = (
+            round(100.0 * merma_exp / float(res["total"] or 1), 1) if res["total"] else 0.0
+        )
         metrics = [
-            MetricVM("Coste total", res["total_fmt"], var_txt),
             MetricVM(
-                "Coste medio / registro",
-                res["coste_medio_registro_fmt"],
-                f"{res['n_registros']} registros",
+                "Coste total",
+                res["total_fmt"],
+                var_txt,
+                delta_pct=var if isinstance(var, (int, float)) else None,
+                tone=_tone_from_delta(var if isinstance(var, (int, float)) else None),
             ),
             MetricVM(
                 "Coste/huésped (Desayuno)",
                 res.get("coste_huesped_desayuno_fmt") or "—",
                 "Solo Desayuno con huéspedes",
+                tone="neutral",
             ),
             MetricVM(
-                "Mayor coste (servicio)",
+                "Merma % del total",
+                f"{merma_pct:.1f}%",
+                f"Merma+Exp {repo.formato_precio(merma_exp)}",
+                tone=(
+                    "danger"
+                    if merma_pct >= 20
+                    else ("warn" if merma_pct >= 15 else "ok" if merma_pct > 0 else "neutral")
+                ),
+            ),
+            MetricVM(
+                "Mayor servicio",
                 res["categoria_mayor"],
                 repo.formato_precio(res["categoria_mayor_importe"]),
+                tone="neutral",
             ),
             MetricVM(
-                "Merma + Expiración",
-                repo.formato_precio(res["naturaleza"]["Merma"] + res["naturaleza"]["Expiración"]),
-                f"Merma {repo.formato_precio(res['naturaleza']['Merma'])}",
+                "Coste medio / registro",
+                res["coste_medio_registro_fmt"],
+                f"{res['n_registros']} registros",
             ),
         ]
+        alertas = list(_alertas_vm(costes_service.alertas_periodo_costes(desde, hasta)))
         nat_dist = [
             {
                 "categoria": k,
                 "importe": v,
-                "porcentaje": round((v / (res["total"] or 1)) * 100, 1) if res["total"] else 0,
+                "porcentaje": round((v / (res["total"] or 1)) * 100, 1)
+                if res["total"]
+                else 0,
             }
             for k, v in res["naturaleza"].items()
         ]
-        chart_barras.append(("Naturaleza del coste", _bars_from_dist(nat_dist)))
+        chart_donuts.append(("Naturaleza del coste", _bars_from_dist(nat_dist)))
         serv_dist = [
             {
                 "categoria": k,
@@ -276,7 +347,18 @@ def _build_costes(
             for k, v in res["servicios_consumo"].items()
             if k != "Total"
         ]
-        chart_barras.append(("Consumo por servicio", _bars_from_dist(serv_dist)))
+        chart_donuts.append(("Consumo por servicio", _bars_from_dist(serv_dist)))
+        pareto = list(
+            _pareto_vm(costes_service.pareto_generadores_coste(desde, hasta, limite=12))
+        )
+        rankings.append(
+            RankingBlockVM(
+                "Top 5 generadores",
+                _ranking_from_coste_rows(
+                    costes_service.top_generadores_coste(desde, hasta, limite=5)
+                ),
+            )
+        )
         evo = costes_service.evolucion_coste_naturaleza(desde, hasta)
         ch = _chart_from_evo(
             "Evolución del coste por naturaleza",
@@ -285,14 +367,6 @@ def _build_costes(
         )
         if ch:
             chart_lineas.append(ch)
-        rankings.append(
-            RankingBlockVM(
-                "Principales generadores de coste (productos)",
-                _ranking_from_coste_rows(
-                    costes_service.top_generadores_coste(desde, hasta, limite=8)
-                ),
-            )
-        )
         # Comparación A/B
         naturales = list(costes_service.NATURALEZAS)
         comparacion = costes_service.comparar_periodos(
@@ -302,17 +376,24 @@ def _build_costes(
             va = comparacion["periodo_a"]["costes"].get(cat, 0)
             var_c = comparacion["variaciones"].get(cat, 0)
             cmp_metrics.append(
-                MetricVM(cat, repo.formato_precio(va), f"vs B: {var_c:+.1f}%")
+                MetricVM(
+                    cat,
+                    repo.formato_precio(va),
+                    f"vs B: {var_c:+.1f}%",
+                    delta_pct=float(var_c),
+                    tone=_tone_from_delta(float(var_c)),
+                )
             )
         cmp_metrics.append(
             MetricVM(
                 "Total A",
                 comparacion["periodo_a"]["total_fmt"],
                 comparacion["variacion_total_fmt"],
+                delta_pct=float(comparacion["variacion_total"]),
+                tone=_tone_from_delta(float(comparacion["variacion_total"])),
             )
         )
         grafico = costes_service.datos_grafico_comparacion(comparacion)
-        # Flatten: show Periodo A and B as separate bars with labels
         for g in grafico:
             cmp_barras.append(
                 BarItemVM(
@@ -567,6 +648,9 @@ def _build_costes(
         hasta=hasta.isoformat(),
         aviso=aviso,
         metrics=tuple(metrics),
+        alertas=tuple(alertas),
+        pareto=tuple(pareto),
+        chart_donuts=tuple(chart_donuts),
         chart_barras=tuple(chart_barras),
         chart_lineas=tuple(chart_lineas),
         rankings=tuple(rankings),
@@ -593,6 +677,8 @@ def _build_consumo(
     repo = get_repository()
     pestana = pestana if pestana in CONSUMO_PESTANAS else "Resumen"
     metrics: list[MetricVM] = []
+    alertas: list[AlertaAnalisisVM] = []
+    chart_donuts: list[tuple[str, tuple[BarItemVM, ...]]] = []
     chart_barras: list[tuple[str, tuple[BarItemVM, ...]]] = []
     chart_lineas: list[ChartSeriesVM] = []
     rankings: list[RankingBlockVM] = []
@@ -617,14 +703,17 @@ def _build_consumo(
     if pestana == "Resumen":
         res = analitica.resumen_consumo(desde, hasta)
         var = res.get("variacion_pct")
+        var_f = float(var) if isinstance(var, (int, float)) else None
         var_txt = f"{var:+.1f}% vs periodo anterior" if var is not None else "Sin periodo anterior"
         metrics = [
-            MetricVM("Eventos de consumo", str(res["n_eventos_producto"]), "Líneas"),
             MetricVM(
                 "Coste de consumo",
                 repo.formato_precio(res["coste_consumo"]),
                 var_txt,
+                delta_pct=var_f,
+                tone=_tone_from_delta(var_f),
             ),
+            MetricVM("Eventos de consumo", str(res["n_eventos_producto"]), "Líneas"),
             MetricVM("Registros", str(res["n_registros"]), "Todos los servicios"),
             MetricVM(
                 "Mayor consumo",
@@ -632,6 +721,7 @@ def _build_consumo(
                 repo.formato_precio(res["categoria_mayor_importe"]),
             ),
         ]
+        alertas = list(_alertas_vm(costes_service.alertas_periodo_consumo(desde, hasta)))
         dist = [
             {
                 "categoria": k,
@@ -642,7 +732,7 @@ def _build_consumo(
             }
             for k, v in res["por_categoria"].items()
         ]
-        chart_barras.append(("Consumo por categoría", _bars_from_dist(dist)))
+        chart_donuts.append(("Consumo por categoría", _bars_from_dist(dist)))
         evo = dash.evolucion_por_categoria(desde, hasta, modo_desayuno=False)
         ch = _chart_from_evo(
             "Evolución del coste de consumo",
@@ -857,6 +947,8 @@ def _build_consumo(
         tipo_filtro=tipo,
         aviso=aviso,
         metrics=tuple(metrics),
+        alertas=tuple(alertas),
+        chart_donuts=tuple(chart_donuts),
         chart_barras=tuple(chart_barras),
         chart_lineas=tuple(chart_lineas),
         rankings=tuple(rankings),
@@ -874,6 +966,8 @@ def _build_merma(
     repo = get_repository()
     pestana = pestana if pestana in MERMA_PESTANAS else "Resumen"
     metrics: list[MetricVM] = []
+    alertas: list[AlertaAnalisisVM] = []
+    chart_donuts: list[tuple[str, tuple[BarItemVM, ...]]] = []
     chart_barras: list[tuple[str, tuple[BarItemVM, ...]]] = []
     chart_lineas: list[ChartSeriesVM] = []
     rankings: list[RankingBlockVM] = []
@@ -889,36 +983,61 @@ def _build_merma(
 
     if pestana == "Resumen":
         res = merma_an.resumen_merma(desde, hasta)
-        por = res["por_grupo"]
+        ant_d, ant_h = analitica.periodo_anterior(desde, hasta)
+        ant = merma_an.resumen_merma(ant_d, ant_h)
+        tot = float(res.get("total") or 0)
+        tot_ant = float(ant.get("total") or 0)
+        var_m = None
+        if tot_ant > 0:
+            var_m = round(((tot - tot_ant) / tot_ant) * 100.0, 1)
+        elif tot > 0:
+            var_m = 100.0
+        var_txt = (
+            f"{var_m:+.1f}% vs periodo anterior"
+            if var_m is not None
+            else "Sin periodo anterior"
+        )
+        exp_pct = round(100.0 * float(res.get("expiracion") or 0) / tot, 1) if tot else 0.0
         metrics = [
-            MetricVM("Merma total", res["total_fmt"], f"{res['n_registros']} registros"),
-            MetricVM("Merma (sin expiración)", res["merma_fmt"], ""),
-            MetricVM("Expiración", res["expiracion_fmt"], ""),
-            MetricVM("Suma por servicio", res["suma_grupos_fmt"], "Debe = total"),
             MetricVM(
-                "Sin desglose histórico",
-                repo.formato_precio(por.get(merma_an.BUCKET_SIN_DESGLOSE, 0.0)),
-                "Registros antiguos",
+                "Merma total",
+                res["total_fmt"],
+                f"{res['n_registros']} registros · {var_txt}",
+                delta_pct=var_m,
+                tone=_tone_from_delta(var_m),
             ),
+            MetricVM("Merma (sin expiración)", res["merma_fmt"], ""),
+            MetricVM(
+                "Expiración",
+                res["expiracion_fmt"],
+                f"{exp_pct:.1f}% del total",
+                tone="warn" if exp_pct >= 35 else "neutral",
+            ),
+            MetricVM("Suma por servicio", res["suma_grupos_fmt"], "Debe = total"),
         ]
+        alertas = list(_alertas_vm(costes_service.alertas_periodo_merma(desde, hasta)))
         dist = merma_an.distribucion_servicio(desde, hasta)
-        chart_barras.append(("Por servicio / área", _bars_from_dist(dist)))
+        chart_donuts.append(("Por servicio / área", _bars_from_dist(dist)))
         motivos = merma_an.coste_por_motivo(desde, hasta)
-        chart_barras.append(("Por motivo", _bars_from_dist(motivos, key_cat="categoria")))
-        # coste_por_motivo may use "motivo" key - check
         if motivos and "motivo" in motivos[0] and "categoria" not in motivos[0]:
-            chart_barras[-1] = (
-                "Por motivo",
-                _bars_from_dist(
-                    [
-                        {
-                            "categoria": m.get("motivo") or m.get("categoria"),
-                            "importe": m["importe"],
-                            "porcentaje": m.get("porcentaje", 0),
-                        }
-                        for m in motivos
-                    ]
-                ),
+            chart_donuts.append(
+                (
+                    "Por motivo",
+                    _bars_from_dist(
+                        [
+                            {
+                                "categoria": m.get("motivo") or m.get("categoria"),
+                                "importe": m["importe"],
+                                "porcentaje": m.get("porcentaje", 0),
+                            }
+                            for m in motivos
+                        ]
+                    ),
+                )
+            )
+        else:
+            chart_donuts.append(
+                ("Por motivo", _bars_from_dist(motivos, key_cat="categoria"))
             )
         evo = merma_an.evolucion_merma(desde, hasta)
         ch = _chart_from_evo(
@@ -931,7 +1050,7 @@ def _build_merma(
                 "Más merma (por coste)",
                 _ranking_from_merma(
                     merma_an.ranking_productos_merma(
-                        desde, hasta, ambito=merma_an.AMBITO_TODO, limite=10
+                        desde, hasta, ambito=merma_an.AMBITO_TODO, limite=5
                     )
                 ),
             )
@@ -986,6 +1105,8 @@ def _build_merma(
         hasta=hasta.isoformat(),
         aviso=aviso,
         metrics=tuple(metrics),
+        alertas=tuple(alertas),
+        chart_donuts=tuple(chart_donuts),
         chart_barras=tuple(chart_barras),
         chart_lineas=tuple(chart_lineas),
         rankings=tuple(rankings),

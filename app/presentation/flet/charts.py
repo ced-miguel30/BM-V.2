@@ -2,13 +2,184 @@
 
 from __future__ import annotations
 
+import math
+
 import flet as ft
+import flet.canvas as cv
 
 from app.presentation.flet.analisis_viewmodels import BarItemVM, ChartSeriesVM
 from app.presentation.flet import theme as t
 
 _COLORS = t.CHART_COLORS
 _BAR_MAX_WIDTH = 320.0
+
+
+def normalize_donut_slices(
+    items: tuple[BarItemVM, ...] | list[BarItemVM],
+    *,
+    min_pct: float = 3.0,
+    max_slices: int = 6,
+) -> list[BarItemVM]:
+    """Agrupa cola < min_pct (y exceso de sectores) en «Otros»."""
+    datos = [i for i in items if (i.importe or 0) > 0]
+    if not datos:
+        return []
+    total = sum(float(i.importe) for i in datos) or 1.0
+    enriched: list[tuple[BarItemVM, float]] = []
+    for i in datos:
+        pct = float(i.porcentaje) if i.porcentaje else round(100.0 * float(i.importe) / total, 1)
+        enriched.append(
+            (
+                BarItemVM(
+                    categoria=i.categoria,
+                    importe=float(i.importe),
+                    porcentaje=pct,
+                    importe_fmt=i.importe_fmt or f"{i.importe:.2f}",
+                ),
+                pct,
+            )
+        )
+    enriched.sort(key=lambda x: x[1], reverse=True)
+    keep: list[BarItemVM] = []
+    otros_imp = 0.0
+    for idx, (item, pct) in enumerate(enriched):
+        if idx < max_slices - 1 and pct >= min_pct:
+            keep.append(item)
+        else:
+            otros_imp += float(item.importe)
+    if otros_imp > 0:
+        keep.append(
+            BarItemVM(
+                categoria="Otros",
+                importe=otros_imp,
+                porcentaje=round(100.0 * otros_imp / total, 1),
+                importe_fmt=f"{otros_imp:.2f}",
+            )
+        )
+    # Recalcular % por si redondeos
+    tot2 = sum(float(i.importe) for i in keep) or 1.0
+    return [
+        BarItemVM(
+            categoria=i.categoria,
+            importe=float(i.importe),
+            porcentaje=round(100.0 * float(i.importe) / tot2, 1),
+            importe_fmt=i.importe_fmt,
+        )
+        for i in keep
+    ]
+
+
+def build_donut(
+    items: tuple[BarItemVM, ...] | list[BarItemVM],
+    *,
+    titulo: str = "",
+    size: float = 160,
+    empty_msg: str = "Sin datos en el periodo.",
+    centro_fmt: str = "",
+) -> ft.Control:
+    """Donut con Canvas (arcos) + leyenda con %."""
+    rows: list[ft.Control] = []
+    if titulo:
+        rows.append(ft.Text(titulo, size=15, weight=ft.FontWeight.BOLD))
+    slices = normalize_donut_slices(items)
+    if not slices:
+        rows.append(ft.Text(empty_msg, italic=True, color=ft.Colors.OUTLINE, size=13))
+        return ft.Column(spacing=6, tight=True, controls=rows)
+
+    pad = 8.0
+    stroke = max(18.0, size * 0.18)
+    diam = size
+    canvas_size = diam + pad * 2
+    total = sum(float(s.importe) for s in slices) or 1.0
+    # Empieza a las 12 en punto (Flutter: 0 = 3h; -pi/2 = 12h)
+    angle = -math.pi / 2
+    shapes: list[cv.Shape] = []
+    for idx, sl in enumerate(slices):
+        sweep = (float(sl.importe) / total) * 2 * math.pi
+        if sweep <= 0:
+            continue
+        color = _COLORS[idx % len(_COLORS)]
+        shapes.append(
+            cv.Arc(
+                x=pad,
+                y=pad,
+                width=diam,
+                height=diam,
+                start_angle=angle,
+                sweep_angle=sweep,
+                use_center=False,
+                paint=ft.Paint(
+                    color=color,
+                    style=ft.PaintingStyle.STROKE,
+                    stroke_width=stroke,
+                    stroke_cap=ft.StrokeCap.BUTT,
+                ),
+            )
+        )
+        angle += sweep
+
+    centro = centro_fmt
+    if not centro and total > 0:
+        # Preferir suma de importe_fmt numéricos si no hay centro
+        centro = f"{total:.0f}" if total >= 100 else f"{total:.2f}"
+
+    donut = ft.Stack(
+        width=canvas_size,
+        height=canvas_size,
+        controls=[
+            cv.Canvas(shapes=shapes, width=canvas_size, height=canvas_size),
+            ft.Container(
+                width=canvas_size,
+                height=canvas_size,
+                alignment=ft.Alignment.CENTER,
+                content=ft.Text(
+                    centro,
+                    size=13,
+                    weight=ft.FontWeight.W_600,
+                    color=t.DARK_TEXT,
+                    text_align=ft.TextAlign.CENTER,
+                ),
+            ),
+        ],
+    )
+
+    legend = ft.Column(
+        spacing=4,
+        tight=True,
+        expand=True,
+        controls=[
+            ft.Row(
+                spacing=6,
+                tight=True,
+                controls=[
+                    ft.Container(
+                        width=10,
+                        height=10,
+                        bgcolor=_COLORS[i % len(_COLORS)],
+                        border_radius=2,
+                    ),
+                    ft.Text(
+                        f"{sl.categoria}: {sl.importe_fmt or f'{sl.importe:.2f}'} "
+                        f"({sl.porcentaje:.1f}%)",
+                        size=12,
+                        color=ft.Colors.ON_SURFACE_VARIANT,
+                        expand=True,
+                    ),
+                ],
+            )
+            for i, sl in enumerate(slices)
+        ],
+    )
+
+    rows.append(
+        ft.Row(
+            spacing=16,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            wrap=True,
+            controls=[donut, legend],
+        )
+    )
+    return ft.Column(spacing=8, tight=True, controls=rows)
 
 
 def build_barras_horizontales(

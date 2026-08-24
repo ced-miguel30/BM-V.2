@@ -55,6 +55,8 @@ class MetricVM:
     etiqueta: str
     valor: str
     detalle: str = ""
+    delta_pct: float | None = None
+    tone: str = "neutral"  # ok | warn | danger | neutral
 
 
 @dataclass(frozen=True)
@@ -90,6 +92,21 @@ class RankingBlockVM:
 
 
 @dataclass(frozen=True)
+class AlertaAnalisisVM:
+    titulo: str
+    mensaje: str
+    severity: str = "warning"  # info | warning | danger
+
+
+@dataclass(frozen=True)
+class ParetoRowVM:
+    nombre: str
+    coste_fmt: str
+    pct: float
+    pct_acum: float
+
+
+@dataclass(frozen=True)
 class AnalisisPanelVM:
     hub: str = "costes"
     pestana: str = "Resumen"
@@ -100,6 +117,9 @@ class AnalisisPanelVM:
     tipo_filtro: str = "Todos"
     aviso: str = ""
     metrics: tuple[MetricVM, ...] = ()
+    alertas: tuple[AlertaAnalisisVM, ...] = ()
+    pareto: tuple[ParetoRowVM, ...] = ()
+    chart_donuts: tuple[tuple[str, tuple[BarItemVM, ...]], ...] = ()
     chart_barras: tuple[tuple[str, tuple[BarItemVM, ...]], ...] = ()
     chart_lineas: tuple[ChartSeriesVM, ...] = ()
     rankings: tuple[RankingBlockVM, ...] = ()

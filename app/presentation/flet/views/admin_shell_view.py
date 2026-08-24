@@ -33,6 +33,7 @@ from app.presentation.flet.analisis_viewmodels import (
 from app.presentation.flet.charts import (
     build_barras_agrupadas,
     build_barras_horizontales,
+    build_donut,
     build_lineas_series,
 )
 from app.presentation.flet import theme as ui_theme
@@ -760,25 +761,132 @@ def _panel_analisis_body(
     controls.append(ui.card_surface(*filters, title="Vista"))
 
     if panel.metrics:
+        metric_cards: list[ft.Control] = []
+        for m in panel.metrics:
+            accent = {
+                "ok": ui_theme.SUCCESS,
+                "warn": ui_theme.WARNING,
+                "danger": ui_theme.DANGER,
+                "neutral": ui_theme.NAVY,
+            }.get(m.tone or "neutral", ui_theme.NAVY)
+            detalle = m.detalle or ""
+            if m.delta_pct is not None:
+                chip = ui.status_chip(
+                    f"{m.delta_pct:+.1f}%",
+                    tone={
+                        "ok": "ok",
+                        "warn": "warn",
+                        "danger": "danger",
+                        "neutral": "neutral",
+                    }.get(m.tone or "neutral", "neutral"),
+                )
+                metric_cards.append(
+                    ft.Column(
+                        spacing=4,
+                        tight=True,
+                        controls=[
+                            ui.metric_card(m.etiqueta, m.valor, detalle, accent=accent),
+                            chip,
+                        ],
+                    )
+                )
+            else:
+                metric_cards.append(
+                    ui.metric_card(m.etiqueta, m.valor, detalle, accent=accent)
+                )
         controls.append(
-            ft.Row(
-                spacing=ui_theme.SPACE_SM,
-                wrap=True,
-                controls=[
-                    ui.metric_card(m.etiqueta, m.valor, m.detalle) for m in panel.metrics
-                ],
-            )
+            ft.Row(spacing=ui_theme.SPACE_SM, wrap=True, controls=metric_cards)
         )
 
+    if panel.alertas:
+        for al in panel.alertas:
+            sev_map = {"info": "info", "warning": "warning", "danger": "error"}
+            sev = sev_map.get(al.severity, "warning")
+            controls.append(
+                ui.alert_banner(f"{al.titulo}: {al.mensaje}", severity=sev)
+            )
+
     chart_blocks: list[ft.Control] = []
+    donut_row: list[ft.Control] = []
+    for titulo, items in panel.chart_donuts:
+        donut_row.append(
+            ft.Container(
+                content=build_donut(items, titulo=titulo),
+                expand=True,
+                padding=8,
+            )
+        )
+    if donut_row:
+        chart_blocks.append(ft.Row(wrap=True, spacing=12, controls=donut_row))
+
     for titulo, items in panel.chart_barras:
         chart_blocks.append(build_barras_horizontales(items, titulo=titulo))
     for ch in panel.chart_lineas:
         chart_blocks.append(build_lineas_series(ch))
     if chart_blocks:
-        controls.append(ui.card_surface(*chart_blocks, title="Gráficos"))
+        controls.append(ui.card_surface(*chart_blocks, title="Composición y evolución"))
 
-    if not panel.rankings and not panel.metrics and not chart_blocks:
+    if panel.pareto:
+        pareto_rows: list[ft.Control] = [
+            ft.Container(
+                padding=ft.Padding.symmetric(horizontal=12, vertical=8),
+                bgcolor=ui_theme.LIGHT_GRAY,
+                content=ft.Row(
+                    controls=[
+                        ft.Text("Producto", size=11, weight=ft.FontWeight.W_600, expand=True),
+                        ft.Text("Coste", size=11, weight=ft.FontWeight.W_600, width=90),
+                        ft.Text("%", size=11, weight=ft.FontWeight.W_600, width=50),
+                        ft.Text("Acum.", size=11, weight=ft.FontWeight.W_600, width=60),
+                    ]
+                ),
+            )
+        ]
+        for pr in panel.pareto:
+            bar_w = max(4.0, 180.0 * min(pr.pct_acum, 100.0) / 100.0)
+            pareto_rows.append(
+                ft.Container(
+                    padding=ft.Padding.symmetric(horizontal=12, vertical=6),
+                    border=ft.Border(bottom=ft.BorderSide(1, ui_theme.BORDER)),
+                    content=ft.Column(
+                        spacing=4,
+                        tight=True,
+                        controls=[
+                            ft.Row(
+                                controls=[
+                                    ft.Text(
+                                        pr.nombre,
+                                        size=13,
+                                        weight=ft.FontWeight.W_600,
+                                        expand=True,
+                                        max_lines=1,
+                                        overflow=ft.TextOverflow.ELLIPSIS,
+                                    ),
+                                    ft.Text(pr.coste_fmt, size=12, width=90),
+                                    ft.Text(f"{pr.pct:.1f}", size=12, width=50),
+                                    ft.Text(f"{pr.pct_acum:.1f}%", size=12, width=60),
+                                ]
+                            ),
+                            ft.Container(
+                                width=bar_w,
+                                height=8,
+                                bgcolor=ui_theme.TEAL,
+                                border_radius=3,
+                            ),
+                        ],
+                    ),
+                )
+            )
+        controls.append(
+            ui.card_surface(*pareto_rows, title="Pareto — drivers de coste (~80%)")
+        )
+
+    if (
+        not panel.rankings
+        and not panel.metrics
+        and not chart_blocks
+        and not panel.pareto
+        and not panel.alertas
+    ):
         controls.append(
             ui.empty_state(
                 "Sin datos en el periodo",

@@ -285,6 +285,220 @@ def top_recetas_coste(
     ]
 
 
+def pareto_generadores_coste(
+    inicio: date,
+    fin: date,
+    *,
+    limite: int = 12,
+    umbral: float = 80.0,
+) -> list[dict]:
+    """Top productos por coste con % y % acumulado hasta el umbral Pareto."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
+    repo = get_repository()
+    filas = top_generadores_coste(inicio, fin, limite=max(limite * 2, 20))
+    total = sum(float(f.get("coste") or 0) for f in filas)
+    if total <= 0:
+        return []
+    out: list[dict] = []
+    acum = 0.0
+    for f in filas:
+        coste = float(f.get("coste") or 0)
+        if coste <= 0:
+            continue
+        pct = round(100.0 * coste / total, 1)
+        acum = round(acum + pct, 1)
+        out.append(
+            {
+                "nombre": f.get("nombre") or "",
+                "coste": coste,
+                "coste_fmt": repo.formato_precio(coste),
+                "pct": pct,
+                "pct_acum": min(acum, 100.0),
+                "usos": f.get("usos", ""),
+                "cantidad_fmt": f.get("cantidad_fmt", ""),
+            }
+        )
+        if acum >= umbral or len(out) >= limite:
+            break
+    return out
+
+
+def alertas_periodo_costes(
+    inicio: date,
+    fin: date,
+    *,
+    umbral_var_pct: float = 10.0,
+    umbral_merma_pct: float = 15.0,
+    umbral_top_pct: float = 20.0,
+    max_alertas: int = 5,
+) -> list[dict]:
+    """Alertas accionables del periodo (variación, merma, concentración)."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
+    res = resumen_ejecutivo_costes(inicio, fin)
+    alertas: list[dict] = []
+    var = res.get("variacion_pct")
+    if var is not None and var >= umbral_var_pct:
+        alertas.append(
+            {
+                "titulo": "Coste total al alza",
+                "mensaje": f"Variación {var:+.1f}% vs periodo anterior (umbral {umbral_var_pct:.0f}%).",
+                "severity": "danger" if var >= umbral_var_pct * 1.5 else "warning",
+            }
+        )
+    elif var is not None and var <= -umbral_var_pct:
+        alertas.append(
+            {
+                "titulo": "Coste total a la baja",
+                "mensaje": f"Variación {var:+.1f}% vs periodo anterior.",
+                "severity": "info",
+            }
+        )
+
+    total = float(res.get("total") or 0)
+    merma_exp = float(res["naturaleza"].get("Merma", 0)) + float(
+        res["naturaleza"].get("Expiración", 0)
+    )
+    if total > 0:
+        merma_pct = round(100.0 * merma_exp / total, 1)
+        if merma_pct >= umbral_merma_pct:
+            alertas.append(
+                {
+                    "titulo": "Merma + expiración elevada",
+                    "mensaje": (
+                        f"Representa {merma_pct:.1f}% del coste total "
+                        f"(umbral {umbral_merma_pct:.0f}%)."
+                    ),
+                    "severity": "danger" if merma_pct >= umbral_merma_pct * 1.3 else "warning",
+                }
+            )
+
+    tops = top_generadores_coste(inicio, fin, limite=1)
+    consumo = float(res.get("consumo") or 0)
+    if tops and consumo > 0:
+        top = tops[0]
+        peso = round(100.0 * float(top.get("coste") or 0) / consumo, 1)
+        if peso >= umbral_top_pct:
+            alertas.append(
+                {
+                    "titulo": f"Concentración: {top.get('nombre') or 'producto'}",
+                    "mensaje": (
+                        f"Aporta {peso:.1f}% del coste de consumo "
+                        f"({top.get('coste_fmt') or ''})."
+                    ),
+                    "severity": "warning",
+                }
+            )
+
+    mayor = res.get("categoria_mayor") or "—"
+    mayor_imp = float(res.get("categoria_mayor_importe") or 0)
+    if mayor != "—" and mayor_imp > 0:
+        alertas.append(
+            {
+                "titulo": f"Mayor servicio: {mayor}",
+                "mensaje": f"Coste de consumo {get_repository().formato_precio(mayor_imp)} en el periodo.",
+                "severity": "info",
+            }
+        )
+
+    return alertas[:max_alertas]
+
+
+def alertas_periodo_consumo(
+    inicio: date,
+    fin: date,
+    *,
+    umbral_var_pct: float = 10.0,
+    umbral_cat_pct: float = 40.0,
+    max_alertas: int = 5,
+) -> list[dict]:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
+    res = analitica.resumen_consumo(inicio, fin)
+    alertas: list[dict] = []
+    var = res.get("variacion_pct")
+    if var is not None and abs(var) >= umbral_var_pct:
+        alertas.append(
+            {
+                "titulo": "Consumo vs periodo anterior",
+                "mensaje": f"Variación {var:+.1f}%.",
+                "severity": "danger"
+                if var >= umbral_var_pct
+                else ("info" if var < 0 else "warning"),
+            }
+        )
+    total = float(res.get("coste_consumo") or 0)
+    if total > 0:
+        for cat, imp in (res.get("por_categoria") or {}).items():
+            pct = round(100.0 * float(imp or 0) / total, 1)
+            if pct >= umbral_cat_pct:
+                alertas.append(
+                    {
+                        "titulo": f"Dominancia {cat}",
+                        "mensaje": f"{pct:.1f}% del coste de consumo en {cat}.",
+                        "severity": "warning",
+                    }
+                )
+                break
+    return alertas[:max_alertas]
+
+
+def alertas_periodo_merma(
+    inicio: date,
+    fin: date,
+    *,
+    umbral_var_pct: float = 10.0,
+    umbral_exp_pct: float = 35.0,
+    max_alertas: int = 5,
+) -> list[dict]:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+    from app.core.services import merma_analisis_service as merma_an
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
+    res = merma_an.resumen_merma(inicio, fin)
+    alertas: list[dict] = []
+    ant_d, ant_h = analitica.periodo_anterior(inicio, fin)
+    ant = merma_an.resumen_merma(ant_d, ant_h)
+    tot = float(res.get("total") or 0)
+    tot_ant = float(ant.get("total") or 0)
+    var = None
+    if tot_ant > 0:
+        var = round(((tot - tot_ant) / tot_ant) * 100.0, 1)
+    elif tot > 0:
+        var = 100.0
+    if var is not None and abs(var) >= umbral_var_pct:
+        alertas.append(
+            {
+                "titulo": "Merma vs periodo anterior",
+                "mensaje": f"Variación {var:+.1f}%.",
+                "severity": "danger" if var >= umbral_var_pct else "info",
+            }
+        )
+    if tot > 0:
+        exp_pct = round(100.0 * float(res.get("expiracion") or 0) / tot, 1)
+        if exp_pct >= umbral_exp_pct:
+            alertas.append(
+                {
+                    "titulo": "Expiración elevada",
+                    "mensaje": f"La expiración es {exp_pct:.1f}% de la merma total.",
+                    "severity": "warning",
+                }
+            )
+    return alertas[:max_alertas]
+
+
 def evolucion_coste_naturaleza(inicio: date, fin: date) -> list[dict]:
     from app.core.auth.permissions import Permiso
     from app.core.auth.usecase_guard import require_usecase
