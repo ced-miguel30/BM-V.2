@@ -116,10 +116,13 @@ class _Harness(unittest.TestCase):
 
 
 class TestRecuentosNav(_Harness):
-    def test_01_siete_espacios_orden(self) -> None:
+    def test_01_once_espacios_orden(self) -> None:
         self.assertEqual(
             ESPACIOS,
             (
+                "maestros",
+                "recepcion",
+                "documentos",
                 "alertas",
                 "caducidad",
                 "merma",
@@ -127,11 +130,12 @@ class TestRecuentosNav(_Harness):
                 "traslados",
                 "recuentos",
                 "ajustes",
+                "historial",
             ),
         )
         s = self._p().screen()
         self.assertEqual([e.id for e in s.espacios], list(ESPACIOS))
-        self.assertEqual(len(s.espacios), 7)
+        self.assertEqual(len(s.espacios), 11)
 
     def test_02_sin_sesion(self) -> None:
         p = TerminalInventarioPresenter()

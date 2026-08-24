@@ -79,12 +79,35 @@ MODS_PENDIENTES_KEY = "bm_receta_pendiente_mods"
 
 _cesta = crear_motor_cesta("desayuno")
 
-# Categorías de receta permitidas en el registro de desayuno (independiente
-# de tipo_servicio): Desayuno + Bebidas.
+# Categorías de receta permitidas en el registro de desayuno:
+# platos de desayuno + cafés/tés/Cola Cao (categoría Bebidas).
 from app.core.models import CategoriaReceta
 
-# Solo categoría Desayuno: las bebidas van al servicio Bebidas (y productos sueltos).
-CATEGORIAS_RECETA_DESAYUNO = [CategoriaReceta.DESAYUNO]
+CATEGORIAS_RECETA_DESAYUNO = [CategoriaReceta.DESAYUNO, CategoriaReceta.BEBIDAS]
+
+# Recetas de bebida que se ofrecen en Desayuno → Bebidas (nombres canónicos).
+RECETAS_BEBIDAS_DESAYUNO: frozenset[str] = frozenset(
+    {
+        "espresso",
+        "americano",
+        "cortado",
+        "cortado semi",
+        "cafe con leche",
+        "cafe con leche semi",
+        "capuchino",
+        "capuchino semi",
+        "cola cao",
+        "cola cao semi",
+        "espresso descafeinado",
+        "cafe con leche descafeinado",
+        "te negro",
+        "te verde",
+        "te rojo",
+        "te frutas del bosque",
+        "manzanilla",
+        "seleccion de te",
+    }
+)
 
 
 @dataclass
@@ -93,6 +116,47 @@ class ResultadoOperacion:
     mensaje: str
     codigo: str | None = None
     detalle_stock: list[str] | None = None
+
+
+@dataclass(frozen=True)
+class ExtraRapidoDesayuno:
+    label: str
+    producto_id: str
+    cantidad: float
+    cantidad_mostrar: float
+    unidad_mostrar: str
+
+
+_EXTRAS_RAPIDOS_DESAYUNO: tuple[ExtraRapidoDesayuno, ...] = (
+    ExtraRapidoDesayuno("Queso cheddar", "p44", 0.02, 20, "gr"),
+    ExtraRapidoDesayuno("Queso gouda", "p168", 0.02, 20, "gr"),
+    ExtraRapidoDesayuno("Bacon", "p14", 0.015, 15, "gr"),
+    ExtraRapidoDesayuno("Jamon cocido", "p102", 0.02, 20, "gr"),
+    ExtraRapidoDesayuno("Tostada", "p09", 1.0, 1, "Ud"),
+    ExtraRapidoDesayuno("Tostada integral", "p11", 1.0, 1, "Ud"),
+    ExtraRapidoDesayuno("Salchicha", "p20", 0.05, 50, "gr"),
+    ExtraRapidoDesayuno("Hashbrown", "p29", 0.07, 70, "gr"),
+    ExtraRapidoDesayuno("Champi", "p117", 0.006667, 20, "gr"),
+    ExtraRapidoDesayuno("Aguacate", "b05", 0.06, 60, "gr"),
+    ExtraRapidoDesayuno("Salmon", "p32", 0.04, 40, "gr"),
+    ExtraRapidoDesayuno("Tomate", "p51", 0.03, 30, "gr"),
+    ExtraRapidoDesayuno("Cebolla", "p59", 0.02, 20, "gr"),
+    ExtraRapidoDesayuno("Alubias", "p286", 0.006667, 20, "gr"),
+    ExtraRapidoDesayuno("Pimiento", "p56", 0.02, 20, "gr"),
+    ExtraRapidoDesayuno("Espinacas", "p185", 0.075, 15, "gr"),
+    ExtraRapidoDesayuno("Tomate cherry", "p52", 0.03, 30, "gr"),
+    ExtraRapidoDesayuno("Chorizo", "p146", 0.02, 20, "gr"),
+)
+
+# Leches sueltas para bebida vegetal / ajuste manual (equiv. espresso + ración).
+# Cantidad nativa: brik 1L en Ud → fracción de litro (0.12 = 120 ml).
+_LECHES_RAPIDAS_DESAYUNO: tuple[ExtraRapidoDesayuno, ...] = (
+    ExtraRapidoDesayuno("Leche entera", "p127", 0.12, 120, "ml"),
+    ExtraRapidoDesayuno("Leche semi", "p128", 0.12, 120, "ml"),
+    ExtraRapidoDesayuno("Leche de avena", "b43", 0.12, 120, "ml"),
+    ExtraRapidoDesayuno("Leche de soja", "b10", 0.12, 120, "ml"),
+    ExtraRapidoDesayuno("Leche de almendras", "b66", 0.12, 120, "ml"),
+)
 
 
 class _CompatSessionUow:
@@ -197,6 +261,49 @@ def productos_disponibles(
     ]
 
 
+def extras_rapidos_desayuno(*, ctx: AppContext | None = None) -> list[dict]:
+    return _extras_desde_tupla(_EXTRAS_RAPIDOS_DESAYUNO, ctx=ctx)
+
+
+def leches_rapidas_desayuno(*, ctx: AppContext | None = None) -> list[dict]:
+    """Raciones de leche (vaca / vegetal) para combinar con Espresso u otras bebidas."""
+    return _extras_desde_tupla(_LECHES_RAPIDAS_DESAYUNO, ctx=ctx)
+
+
+def es_receta_bebida_desayuno(nombre: str) -> bool:
+    import unicodedata
+
+    s = unicodedata.normalize("NFD", (nombre or "").lower().strip())
+    s = "".join(c for c in s if unicodedata.category(c) != "Mn")
+    return s in RECETAS_BEBIDAS_DESAYUNO
+
+
+def _extras_desde_tupla(
+    extras: tuple[ExtraRapidoDesayuno, ...],
+    *,
+    ctx: AppContext | None = None,
+) -> list[dict]:
+    data = _ctx(ctx).data()
+    repo = DataRepository(data)
+    out: list[dict] = []
+    for extra in extras:
+        producto = repo.get_producto(extra.producto_id)
+        if producto is None or not getattr(producto, "activo", True):
+            continue
+        out.append(
+            {
+                "label": extra.label,
+                "producto_id": extra.producto_id,
+                "cantidad": float(extra.cantidad),
+                "unidad": producto.unidad.value,
+                "nombre": producto.nombre,
+                "cantidad_mostrar": float(extra.cantidad_mostrar),
+                "unidad_mostrar": extra.unidad_mostrar,
+            }
+        )
+    return out
+
+
 def anadir_mod_pendiente_receta(producto_id: str, cantidad: float) -> ResultadoOperacion:
     r = _cesta.anadir_mod_pendiente_receta(producto_id, cantidad)
     return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
@@ -216,6 +323,15 @@ def anadir_receta_a_cesta(
     porciones: float,
     mods_pendientes: list[ModPendienteReceta] | None = None,
 ) -> ResultadoOperacion:
+    data = _ctx().data()
+    repo = DataRepository(data)
+    receta = repo.get_receta(receta_id)
+    if receta is not None and receta.categoria == CategoriaReceta.BEBIDAS:
+        if not es_receta_bebida_desayuno(receta.nombre):
+            return ResultadoOperacion(
+                False,
+                f"La bebida «{receta.nombre}» no está disponible en desayuno.",
+            )
     r = _cesta.anadir_receta_a_cesta(
         receta_id,
         porciones,
@@ -643,6 +759,7 @@ class DesayunoRegistroAdapter:
     def __init__(self) -> None:
         self.tipo_servicio = TipoServicio.DESAYUNO.value
         self.etiqueta = "Desayuno"
+        self.categorias_permitidas = list(CATEGORIAS_RECETA_DESAYUNO)
 
     def productos_catalogo(self, buscar: str = "") -> list[dict]:
         return productos_catalogo(buscar, servicio=self.tipo_servicio)
@@ -655,6 +772,12 @@ class DesayunoRegistroAdapter:
 
     def get_mods_pendientes(self):
         return get_mods_pendientes()
+
+    def extras_rapidos(self) -> list[dict]:
+        return extras_rapidos_desayuno()
+
+    def leches_rapidas(self) -> list[dict]:
+        return leches_rapidas_desayuno()
 
     def limpiar_cesta(self) -> None:
         limpiar_cesta()

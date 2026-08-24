@@ -2419,6 +2419,11 @@ def _panel_documentos(screen: AdminScreenVM, **cbs) -> ft.Control:
     return ft.Column(
         spacing=ui_theme.SPACE_MD,
         controls=[
+            ui.alert_banner(
+                "Deprecado: use Terminal Inventario → Documentos. "
+                "Este panel Admin queda como fallback.",
+                severity="warning",
+            ),
             ui.page_header(
                 "Documentos",
                 "Consulta, anulación, rectificativas y adjuntos",
@@ -2483,6 +2488,12 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
     on_sugerir = cbs.get("on_seleccionar_sugerencia_compra")
     on_cargar = cbs.get("on_cargar_borrador_compra")
     on_anular_borr = cbs.get("on_anular_borrador_compra")
+
+    deprecacion = ui.alert_banner(
+        "Deprecado: use Terminal Inventario → Recepción / Documentos "
+        "(paridad completa 13.5). Este panel Admin queda como fallback.",
+        severity="warning",
+    )
 
     activos_prov = [p for p in screen.proveedores if p.activo]
     activos_prod = [p for p in screen.productos if p.activo]
@@ -2706,6 +2717,7 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
     return ft.Column(
         spacing=ui_theme.SPACE_MD,
         controls=[
+            deprecacion,
             ui.page_header(
                 "Registro de compras",
                 f"Albarán / factura · búsqueda parcial · editar/anular borradores · {tipo_lbl}",

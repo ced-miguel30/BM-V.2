@@ -1205,6 +1205,7 @@ def appdata_to_dict(data: AppData) -> dict:
                     if getattr(u, "codigo", None) is not None
                     else {}
                 ),
+                "tipo": getattr(u, "tipo", None) or "otro",
             }
             for u in getattr(data, "ubicaciones", []) or []
         ],
@@ -1539,6 +1540,7 @@ def dict_to_appdata(payload: dict) -> AppData:
                 u["nombre"],
                 u.get("activo", True),
                 codigo=u.get("codigo"),
+                tipo=(u.get("tipo") or "otro"),
             )
             for u in payload.get("ubicaciones", [])
         ],

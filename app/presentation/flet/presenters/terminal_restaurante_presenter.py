@@ -757,6 +757,64 @@ class TerminalRestaurantePresenter:
         items: list[CatalogItemVM] = []
         q = self._busqueda
         tipo = self._catalogo_tipo or "recetas"
+
+        # Desayuno → Bebidas: cafés/tés/Cola Cao (recetas) + leches sueltas.
+        if bind.id == "desayuno" and tipo == "bebidas":
+            from app.core.models import CategoriaReceta
+            from app.core.services.desayuno_service import (
+                es_receta_bebida_desayuno,
+                leches_rapidas_desayuno,
+            )
+
+            recetas = listar_recetas(
+                categorias=[CategoriaReceta.BEBIDAS],
+                servicio_disponible="desayuno",
+                solo_activas=True,
+            )
+            for r in recetas:
+                if not es_receta_bebida_desayuno(r.nombre):
+                    continue
+                if q and not coincide_busqueda(r.nombre, q):
+                    continue
+                items.append(
+                    CatalogItemVM(
+                        id=r.id,
+                        nombre=r.nombre,
+                        tipo="receta",
+                        categoria="bebidas",
+                    )
+                )
+            stock_por_id = {
+                str(p["id"]): float(p["stock"]) if p.get("stock") is not None else 0.0
+                for p in bind.api.productos_catalogo("")
+            }
+            for ex in leches_rapidas_desayuno():
+                label = str(ex.get("label") or "")
+                nombre_prod = str(ex.get("nombre") or "")
+                if q and not (
+                    coincide_busqueda(label, q) or coincide_busqueda(nombre_prod, q)
+                ):
+                    continue
+                pid = str(ex["producto_id"])
+                cant = float(ex.get("cantidad") or 0)
+                cant_m = float(ex.get("cantidad_mostrar") or cant)
+                uni_m = str(ex.get("unidad_mostrar") or ex.get("unidad") or "")
+                items.append(
+                    CatalogItemVM(
+                        id=pid,
+                        nombre=label or nombre_prod,
+                        tipo="producto_directo",
+                        unidad=str(ex.get("unidad") or ""),
+                        stock_disponible=stock_por_id.get(pid),
+                        es_bebida=False,
+                        cantidad_default=cant if cant > 0 else None,
+                        hint_extra=(
+                            f"ración {cant_m:g} {uni_m} · con Espresso si es vegetal"
+                        ),
+                    )
+                )
+            return tuple(items)
+
         incluir_recetas = tipo in ("todas", "recetas")
         incluir_productos = tipo in ("todas", "productos", "bebidas")
         if incluir_recetas:
@@ -768,24 +826,40 @@ class TerminalRestaurantePresenter:
                 cats = [CategoriaReceta.DESAYUNO]
             if cats is not None:
                 allowed = set(cats)
+                # En «Recetas» de desayuno no mezclar cafés (van a Bebidas).
+                if bind.id == "desayuno" and tipo == "recetas":
+                    from app.core.models import CategoriaReceta
+
+                    allowed = {CategoriaReceta.DESAYUNO}
                 recetas = [r for r in recetas if r.categoria in allowed]
             # Desayuno: 7 tostadas weekday → una ficha «Tostada del dia».
             if bind.id == "desayuno":
                 del_dia = receta_tostada_del_dia(_date.today())
                 recetas = [r for r in recetas if not es_receta_tostada_weekday(r.nombre)]
-                if del_dia is not None:
-                    if not q or coincide_busqueda(ETIQUETA_TOSTADA_DEL_DIA, q):
-                        items.append(
-                            CatalogItemVM(
-                                id=del_dia.id,
-                                nombre=ETIQUETA_TOSTADA_DEL_DIA,
-                                tipo="receta",
-                                categoria=getattr(
-                                    del_dia.categoria, "value", str(del_dia.categoria)
-                                ),
-                            )
+                if del_dia is not None and (
+                    not q or coincide_busqueda(ETIQUETA_TOSTADA_DEL_DIA, q)
+                ):
+                    items.append(
+                        CatalogItemVM(
+                            id=del_dia.id,
+                            nombre=ETIQUETA_TOSTADA_DEL_DIA,
+                            tipo="receta",
+                            categoria=getattr(
+                                del_dia.categoria, "value", str(del_dia.categoria)
+                            ),
                         )
+                    )
             for r in recetas:
+                if bind.id == "desayuno" and tipo == "todas":
+                    from app.core.services.desayuno_service import (
+                        es_receta_bebida_desayuno,
+                    )
+                    from app.core.models import CategoriaReceta
+
+                    if r.categoria == CategoriaReceta.BEBIDAS and not es_receta_bebida_desayuno(
+                        r.nombre
+                    ):
+                        continue
                 if q and not coincide_busqueda(r.nombre, q):
                     continue
                 items.append(
@@ -797,11 +871,52 @@ class TerminalRestaurantePresenter:
                     )
                 )
         if incluir_productos:
+            # Desayuno: lista corta de extras con cantidad estándar (más cómoda).
+            if bind.id == "desayuno" and tipo in ("productos", "todas"):
+                from app.core.services.desayuno_service import extras_rapidos_desayuno
+
+                stock_por_id = {
+                    str(p["id"]): float(p["stock"]) if p.get("stock") is not None else 0.0
+                    for p in bind.api.productos_catalogo("")
+                }
+                ids_rapidos: set[str] = set()
+                for ex in extras_rapidos_desayuno():
+                    label = str(ex.get("label") or "")
+                    nombre_prod = str(ex.get("nombre") or "")
+                    if q and not (
+                        coincide_busqueda(label, q) or coincide_busqueda(nombre_prod, q)
+                    ):
+                        continue
+                    pid = str(ex["producto_id"])
+                    ids_rapidos.add(pid)
+                    unidad = str(ex.get("unidad") or "")
+                    cant = float(ex.get("cantidad") or 0)
+                    cant_m = float(ex.get("cantidad_mostrar") or cant)
+                    uni_m = str(ex.get("unidad_mostrar") or unidad)
+                    items.append(
+                        CatalogItemVM(
+                            id=pid,
+                            nombre=label or nombre_prod,
+                            tipo="producto_directo",
+                            unidad=unidad,
+                            stock_disponible=stock_por_id.get(pid),
+                            es_bebida=False,
+                            cantidad_default=cant if cant > 0 else None,
+                            hint_extra=f"porción {cant_m:g} {uni_m}",
+                        )
+                    )
+                # En «Extras / productos» de desayuno solo la lista rápida.
+                if tipo == "productos":
+                    return tuple(items)
+            else:
+                ids_rapidos = set()
             for p in bind.api.productos_catalogo(q):
                 es_bebida = bool(p.get("es_bebida"))
                 if tipo == "bebidas" and not es_bebida:
                     continue
                 if tipo == "productos" and es_bebida:
+                    continue
+                if bind.id == "desayuno" and tipo == "todas" and p["id"] in ids_rapidos:
                     continue
                 items.append(
                     CatalogItemVM(

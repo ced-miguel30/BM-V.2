@@ -384,6 +384,34 @@ def render_pagina_registro_servicio(
                     st.caption(f"Factor previsto: {factor_prev:g}")
 
                 with st.expander("Extras u omisiones (opcional)", expanded=False):
+                    extras_rapidos = []
+                    if getattr(servicio, "tipo_servicio", "") == "desayuno" and hasattr(
+                        servicio, "extras_rapidos"
+                    ):
+                        extras_rapidos = list(servicio.extras_rapidos() or [])
+                    if extras_rapidos:
+                        st.caption(
+                            "Accesos rapidos con la cantidad estandar. "
+                            "Si necesita otra cantidad, use el buscador manual."
+                        )
+                        cols = st.columns(3)
+                        for idx, extra in enumerate(extras_rapidos):
+                            with cols[idx % 3]:
+                                if st.button(
+                                    extra["label"],
+                                    key=f"{key_prefix}_extra_rapido_{extra['producto_id']}",
+                                    use_container_width=True,
+                                ):
+                                    resultado = servicio.anadir_mod_pendiente_receta(
+                                        extra["producto_id"],
+                                        float(extra["cantidad"]),
+                                    )
+                                    if resultado.ok:
+                                        st.success(resultado.mensaje)
+                                        st.rerun()
+                                    else:
+                                        st.error(resultado.mensaje)
+                        st.divider()
                     catalogo = servicio.productos_catalogo("")
                     producto_mod = render_buscador_producto(
                         catalogo,

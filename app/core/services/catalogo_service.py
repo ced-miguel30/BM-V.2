@@ -825,6 +825,7 @@ def crear_ubicacion(
     nombre: str,
     *,
     codigo: str,
+    tipo: str = "otro",
     ctx: AppContext | None = None,
 ) -> ResultadoOperacion:
     from app.core.auth.permissions import Permiso
@@ -842,6 +843,7 @@ def crear_ubicacion(
     codigo_n = normalizar_codigo_funcional(codigo)
     if not codigo_n:
         return ResultadoOperacion(False, "El código es obligatorio en altas nuevas.")
+    tipo_n = _normalizar_tipo_ubicacion(tipo)
     context = _ctx(ctx)
     data = context.data()
     clave = normalizar_nombre_catalogo(texto)
@@ -857,11 +859,50 @@ def crear_ubicacion(
         texto,
         True,
         codigo=codigo_n,
+        tipo=tipo_n,
     )
     data.ubicaciones.append(nuevo)
     _registrar_actividad(context, "Catálogo ubicación", f"Alta: {texto}")
     context.uow.commit(data)
     return ResultadoOperacion(True, f"Ubicación «{texto}» creada.")
+
+
+TIPOS_UBICACION = ("economato", "cocina", "bar", "camara", "otro")
+
+
+def _normalizar_tipo_ubicacion(tipo: str | None) -> str:
+    t = (tipo or "otro").strip().lower()
+    return t if t in TIPOS_UBICACION else "otro"
+
+
+def establecer_tipo_ubicacion(
+    ubicacion_id: str,
+    tipo: str,
+    *,
+    ctx: AppContext | None = None,
+) -> ResultadoOperacion:
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import usecase_deny_message
+
+    denied = usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+    if denied:
+        return ResultadoOperacion(False, denied)
+
+    tipo_n = _normalizar_tipo_ubicacion(tipo)
+    context = _ctx(ctx)
+    data = context.data()
+    actual = next((u for u in data.ubicaciones if u.id == ubicacion_id), None)
+    if not actual:
+        return ResultadoOperacion(False, "Ubicación no encontrada.")
+    anterior = getattr(actual, "tipo", None) or "otro"
+    actual.tipo = tipo_n
+    _registrar_actividad(
+        context,
+        "Catálogo ubicación",
+        f"Tipo: {actual.nombre} {anterior} → {tipo_n}",
+    )
+    context.uow.commit(data)
+    return ResultadoOperacion(True, f"Tipo de «{actual.nombre}» → {tipo_n}.")
 
 
 def renombrar_ubicacion(

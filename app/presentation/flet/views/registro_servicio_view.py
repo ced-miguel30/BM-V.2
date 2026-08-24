@@ -272,7 +272,18 @@ def build_registro_view(
                     color=ui_theme.NAVY,
                 ),
                 ft.Text(
-                    "Recetas del Excel · extras/productos por cantidad · pulse Añadir",
+                    (
+                        "Extras habituales de desayuno · una porción al añadir · ajuste en cesta"
+                        if (screen.servicio_activo == "desayuno" and tipo_activo == "productos")
+                        else (
+                            "Cafés, tés y Cola Cao · leche vegetal = Espresso + ración de leche"
+                            if (
+                                screen.servicio_activo == "desayuno"
+                                and tipo_activo == "bebidas"
+                            )
+                            else "Recetas del Excel · extras/productos por cantidad · pulse Añadir"
+                        )
+                    ),
                     size=14,
                     color=ui_theme.MID_GRAY,
                 ),
@@ -731,24 +742,35 @@ def _historial_section(
                             content=ft.Column(
                                 spacing=8,
                                 controls=[
-                                    *[
-                                        ft.Text(
-                                            linea,
-                                            size=12,
-                                            color=ui_theme.DARK_TEXT,
-                                        )
-                                        for linea in item.detalle_lineas
-                                    ],
-                                    *(
-                                        [
-                                            ft.Text(
-                                                f"Observaciones: {item.observaciones}",
-                                                size=12,
-                                                color=ui_theme.MID_GRAY,
-                                            )
-                                        ]
-                                        if item.observaciones
-                                        else []
+                                    ft.Container(
+                                        height=220,
+                                        bgcolor=ui_theme.WHITE,
+                                        border_radius=ui_theme.RADIUS_SM,
+                                        content=ft.Column(
+                                            spacing=8,
+                                            scroll=ft.ScrollMode.AUTO,
+                                            controls=[
+                                                *[
+                                                    ft.Text(
+                                                        linea,
+                                                        size=12,
+                                                        color=ui_theme.DARK_TEXT,
+                                                    )
+                                                    for linea in item.detalle_lineas
+                                                ],
+                                                *(
+                                                    [
+                                                        ft.Text(
+                                                            f"Observaciones: {item.observaciones}",
+                                                            size=12,
+                                                            color=ui_theme.MID_GRAY,
+                                                        )
+                                                    ]
+                                                    if item.observaciones
+                                                    else []
+                                                ),
+                                            ],
+                                        ),
                                     ),
                                     ft.Row(
                                         wrap=True,
@@ -818,7 +840,13 @@ def _historial_section(
         controls=[
             ft.Container(
                 padding=ft.Padding.only(left=8, right=8, bottom=12),
-                content=ft.Column(spacing=4, tight=True, controls=controls),
+                height=320,
+                content=ft.Column(
+                    spacing=4,
+                    tight=True,
+                    scroll=ft.ScrollMode.AUTO,
+                    controls=controls,
+                ),
             )
         ],
     )
@@ -830,7 +858,12 @@ def _catalog_tile(
     on_add_producto: Callable[..., None],
 ) -> ft.Control:
     is_receta = item.tipo == "receta"
-    if is_receta:
+    if is_receta and (item.categoria or "").lower() == "bebidas":
+        badge = "Bebida"
+        tone = "ok"
+        icon = ft.Icons.LOCAL_CAFE
+        hint = "1 ración al añadir · descuenta café/leche de la receta"
+    elif is_receta:
         badge = "Receta"
         tone = "info"
         icon = ft.Icons.RESTAURANT_MENU
@@ -845,16 +878,28 @@ def _catalog_tile(
             else (item.unidad or "Unidad")
         )
     else:
-        badge = "Extra / producto"
+        badge = "Extra"
         tone = "neutral"
         icon = ft.Icons.ADD_SHOPPING_CART
-        hint = (
-            f"Stock {item.stock_disponible:g} {item.unidad}".strip()
-            if item.stock_disponible is not None
-            else (item.unidad or "Por cantidad")
-        )
+        if item.hint_extra:
+            hint = item.hint_extra
+            if item.stock_disponible is not None:
+                hint = f"{hint} · stock {item.stock_disponible:g} {item.unidad}".strip()
+        else:
+            hint = (
+                f"Stock {item.stock_disponible:g} {item.unidad}".strip()
+                if item.stock_disponible is not None
+                else (item.unidad or "Por cantidad")
+            )
     if is_receta and item.categoria:
         hint = f"{item.categoria} · {hint}"
+
+    def _on_add(_e, it: CatalogItemVM = item) -> None:
+        if it.tipo == "receta":
+            on_add_receta(it.id)
+            return
+        qty = float(it.cantidad_default) if it.cantidad_default is not None else 1.0
+        on_add_producto(it.id, qty)
 
     return ft.Container(
         bgcolor=ui_theme.WHITE,
@@ -925,11 +970,7 @@ def _catalog_tile(
                         padding=ft.Padding.symmetric(horizontal=18, vertical=12),
                         shape=ft.RoundedRectangleBorder(radius=ui_theme.RADIUS_SM),
                     ),
-                    on_click=lambda _e, it=item: (
-                        on_add_receta(it.id)
-                        if it.tipo == "receta"
-                        else on_add_producto(it.id)
-                    ),
+                    on_click=_on_add,
                 ),
             ],
         ),

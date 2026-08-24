@@ -1780,7 +1780,12 @@ def _render_tab_documentos() -> None:
 
 
 def _render_tab_registro_135() -> None:
-    """Flujo canónico de compras (Fase 13.5 / C1): compra_registro_service."""
+    """Flujo canónico de compras (Fase 13.5 / C1). Preferente: Terminal Inventario Flet."""
+    st.info(
+        "**Flujo preferente:** use la **Terminal Inventario** Flet "
+        "(Maestros · Recepción · Documentos · Historial). "
+        "Este registro Streamlit 13.5 queda como fallback temporal."
+    )
     from app.ui.registro_compras_135 import render_registro_compras_135
 
     render_registro_compras_135()

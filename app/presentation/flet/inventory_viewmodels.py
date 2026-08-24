@@ -1,9 +1,10 @@
-"""Viewmodels Terminal Inventario — sin información económica."""
+"""Viewmodels Terminal Inventario — ops sin economía + slice economato opcional."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass, fields
 
+from app.presentation.flet.inventory_document_viewmodels import EconomatoPanelVM
 from app.presentation.flet.viewmodels import (
     CAMPOS_ECONOMICOS_PROHIBIDOS,
     FeedbackVM,
@@ -11,7 +12,11 @@ from app.presentation.flet.viewmodels import (
     assert_sin_campos_economicos,
 )
 
+# Orden NAV: maestros/recepción/documentos primero; ops planta; historial al final.
 ESPACIOS = (
+    "maestros",
+    "recepcion",
+    "documentos",
     "alertas",
     "caducidad",
     "merma",
@@ -19,6 +24,23 @@ ESPACIOS = (
     "traslados",
     "recuentos",
     "ajustes",
+    "historial",
+)
+
+ESPACIOS_OPS = frozenset(
+    {
+        "alertas",
+        "caducidad",
+        "merma",
+        "stock",
+        "traslados",
+        "recuentos",
+        "ajustes",
+    }
+)
+
+ESPACIOS_ECONOMATO = frozenset(
+    {"maestros", "recepcion", "documentos", "historial"}
 )
 
 ETIQUETA_SIN_UBICACION_HISTORICA = "Sin ubicación histórica"
@@ -232,15 +254,21 @@ class InventarioScreenVM:
     recuentos_recientes: tuple[RecuentoRecienteVM, ...]
     feedback: FeedbackVM | None
     confirmando: bool
+    economato: EconomatoPanelVM | None = None
 
 
 def assert_inventario_sin_economia(*objs: object) -> None:
+    """Valida VMs de planta. No aplicar a EconomatoPanelVM ni anidados documentales."""
     for obj in objs:
         if obj is None:
+            continue
+        if isinstance(obj, EconomatoPanelVM):
             continue
         if hasattr(obj, "__dataclass_fields__"):
             assert_sin_campos_economicos(obj)
             names = {f.name.lower() for f in fields(obj)}
+            # economato es un contenedor opcional; no es campo económico.
+            names.discard("economato")
             for bad in CAMPOS_ECONOMICOS_PROHIBIDOS:
                 if bad.lower() in names:
                     raise AssertionError(f"Campo económico en inventario: {bad}")

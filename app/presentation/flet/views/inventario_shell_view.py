@@ -33,7 +33,7 @@ def build_login_inventario(
         extras.append(volver)
     extras.append(
         ft.Text(
-            "Alertas, caducidad, merma, stock, traslados y recuentos · sin costes",
+            "Maestros · Recepción · Documentos · Stock · Traslados · Historial",
             size=11,
             color=ui_theme.MID_GRAY,
             text_align=ft.TextAlign.CENTER,
@@ -43,7 +43,7 @@ def build_login_inventario(
         ui.auth_card(
             *extras,
             titulo="Terminal Inventario",
-            subtitulo="Control de stock y merma operativa",
+            subtitulo="Economato hotelero unificado",
         )
     )
 
@@ -84,6 +84,7 @@ def build_inventario_shell(
     on_seleccionar_borrador: Callable[[str], None] | None = None,
     on_descartar_borrador: Callable[[], None] | None = None,
     on_abandonar_borrador: Callable[[], None] | None = None,
+    economato_callbacks: dict | None = None,
     narrow: bool = False,
 ) -> ft.Control:
     _ = narrow
@@ -217,6 +218,17 @@ def build_inventario_shell(
             on_descartar=on_descartar_borrador or (lambda: None),
             on_abandonar=on_abandonar_borrador or (lambda: None),
         )
+    elif screen.espacio_activo in (
+        "maestros",
+        "recepcion",
+        "documentos",
+        "historial",
+    ):
+        from app.presentation.flet.views.inventario_economato_view import (
+            build_economato_body,
+        )
+
+        body = build_economato_body(screen, economato_callbacks or {})
     else:
         body = _ajustes_body(screen, on_preview_ajuste, on_confirmar_ajuste)
 

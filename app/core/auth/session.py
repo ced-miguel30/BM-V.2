@@ -52,11 +52,12 @@ _DUMMY_HASH = (
 _TEST_SESSION: AuthSession | None = None
 _TEST_OVERRIDE: bool = False
 
+# Economato unificado: compras/documentos y maestros (configuración de
+# catálogo/proveedores/impuestos) se permiten en terminal_inventario.
+# Siguen bloqueados: costes de dashboard, gestor y settings globales.
 _PERMISOS_BLOQUEADOS_TERMINAL_INVENTARIO = frozenset({
     Permiso.CONSULTAR_COSTES,
-    Permiso.ACCEDER_CONFIGURACION,
     Permiso.ACCEDER_GESTOR,
-    Permiso.ACCEDER_COMPRAS_DOCUMENTOS,
 })
 
 
@@ -200,7 +201,7 @@ def logout() -> None:
 
 
 def _permiso_bloqueado_por_terminal(session: AuthSession | None, permiso: Permiso | str) -> bool:
-    """Terminal Inventario: denegación real (no solo UI) de economía/config."""
+    """Terminal Inventario: denegación real de gestor/costes (compras/maestros OK)."""
     if session is None or session.terminal_id != TERMINAL_INVENTARIO_ID:
         return False
     p = Permiso(permiso) if not isinstance(permiso, Permiso) else permiso

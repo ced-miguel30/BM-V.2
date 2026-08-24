@@ -56,27 +56,29 @@ class TestB5DenyTerminalInventario(unittest.TestCase):
             usecase_deny_message(Permiso.ACCEDER_INVENTARIO, deny_terminal=True)
         )
 
-    def test_inventario_no_consulta_costes(self) -> None:
+    def test_inventario_no_consulta_costes_ni_gestor(self) -> None:
         clear_test_session()
         set_test_session(iniciar_terminal_inventario())
         self.assertFalse(session_tiene_permiso(Permiso.CONSULTAR_COSTES))
+        self.assertFalse(session_tiene_permiso(Permiso.ACCEDER_GESTOR))
         with self.assertRaises(AuthorizationError):
             require_usecase(Permiso.CONSULTAR_COSTES)
         with self.assertRaises(AuthorizationError):
             costes_service.resumen_periodo(date(2026, 7, 1), date(2026, 7, 31), [])
 
-    def test_inventario_no_accede_administracion_ni_compras(self) -> None:
+    def test_inventario_puede_compras_y_config_maestros(self) -> None:
         clear_test_session()
         set_test_session(iniciar_terminal_inventario())
-        self.assertFalse(session_tiene_permiso(Permiso.ACCEDER_CONFIGURACION))
-        self.assertFalse(session_tiene_permiso(Permiso.ACCEDER_GESTOR))
-        self.assertFalse(session_tiene_permiso(Permiso.ACCEDER_COMPRAS_DOCUMENTOS))
-        self.assertIsNotNone(
-            usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
-        )
-        self.assertIsNotNone(
+        self.assertTrue(session_tiene_permiso(Permiso.ACCEDER_COMPRAS_DOCUMENTOS))
+        self.assertTrue(session_tiene_permiso(Permiso.ACCEDER_CONFIGURACION))
+        self.assertIsNone(
             usecase_deny_message(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
         )
+        self.assertIsNone(
+            usecase_deny_message(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
+        )
+        require_usecase(Permiso.ACCEDER_COMPRAS_DOCUMENTOS, deny_terminal=True)
+        require_usecase(Permiso.ACCEDER_CONFIGURACION, deny_terminal=True)
 
     def test_terminal_generico_no_recibe_permisos_nuevos(self) -> None:
         clear_test_session()

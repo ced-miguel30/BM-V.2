@@ -84,6 +84,7 @@ class TerminalInventarioShell:
                 on_seleccionar_borrador=self._on_rc_sel_borrador,
                 on_descartar_borrador=self._on_rc_descartar,
                 on_abandonar_borrador=self._on_rc_abandonar,
+                economato_callbacks=self._economato_callbacks(),
                 narrow=narrow,
             )
         self._root.content = content
@@ -224,6 +225,76 @@ class TerminalInventarioShell:
 
     def _on_rc_abandonar(self) -> None:
         self.presenter.abandonar_recuento_dejando_pendiente()
+        self.refresh()
+
+    def _economato_callbacks(self) -> dict:
+        p = self.presenter
+
+        def _go(fn, *a, **kw):
+            fn(*a, **kw)
+            self.refresh()
+
+        return {
+            "on_maestro_tab": lambda t: _go(p.set_maestro_tab, t),
+            "on_compra_tipo": lambda t: _go(p.set_compra_tipo, t),
+            "on_compra_cabecera": lambda **kw: _go(p.set_compra_cabecera, **kw),
+            "on_compra_busqueda": lambda t: _go(p.set_compra_prod_busqueda, t),
+            "on_add_linea": lambda pid, **kw: _go(p.añadir_linea_compra, pid, **kw),
+            "on_add_linea_busqueda": lambda t, **kw: _go(
+                p.añadir_linea_compra_por_busqueda, t, **kw
+            ),
+            "on_quitar_linea": lambda i: _go(p.quitar_linea_compra, i),
+            "on_guardar_borrador": lambda: _go(p.guardar_borrador_compra),
+            "on_confirmar_compra": lambda: _go(p.confirmar_compra_borrador),
+            "on_limpiar_compra": lambda: _go(p.limpiar_borrador_compra),
+            "on_toggle_albaran": lambda aid: _go(p.toggle_albaran_conciliacion, aid),
+            "on_incorporar_albaranes": lambda: _go(
+                p.incorporar_albaranes_seleccionados
+            ),
+            "on_cargar_borrador": lambda did: _go(p.cargar_borrador_compra, did),
+            "on_anular_borrador": lambda did: _go(p.anular_borrador_compra, did),
+            "on_doc_filtros": lambda **kw: _go(p.set_doc_filtros, **kw),
+            "on_sel_documento": lambda did: _go(p.seleccionar_documento, did),
+            "on_anular_doc": lambda did, m: _go(p.anular_documento_confirmado, did, m),
+            "on_rectificativa": lambda did, m: _go(p.crear_rectificativa, did, m),
+            "on_crear_depto": lambda n: _go(p.crear_departamento_maestro, n),
+            "on_crear_ubicacion": lambda n, c, t: _go(
+                p.crear_ubicacion_maestro, n, c, t
+            ),
+            "on_tipo_ubicacion": lambda uid, t: _go(
+                p.set_tipo_ubicacion_maestro, uid, t
+            ),
+            "on_crear_proveedor": lambda nf, c, nif: _go(
+                p.crear_proveedor_maestro, nf, c, nif_cif=nif
+            ),
+            "on_crear_impuesto": lambda n, pct: _go(p.crear_impuesto_maestro, n, pct),
+            "on_desactivar_impuesto": lambda iid: _go(
+                p.desactivar_impuesto_maestro, iid
+            ),
+            "on_vincular": lambda pid, prid, uc, fac, prec: _go(
+                p.vincular_producto_proveedor_maestro,
+                pid,
+                prid,
+                unidad_compra=uc,
+                factor_compra=fac,
+                ultimo_precio=prec,
+            ),
+            "on_hist_filtros": lambda **kw: _go(p.set_historial_filtros, **kw),
+            "on_export_hist": self._on_export_hist,
+        }
+
+    def _on_export_hist(self) -> None:
+        from app.presentation.flet.viewmodels import FeedbackVM
+
+        nombre, contenido = self.presenter.exportar_historial_csv()
+        from pathlib import Path
+        import tempfile
+
+        dest = Path(tempfile.gettempdir()) / nombre
+        dest.write_text(contenido, encoding="utf-8")
+        self.presenter._feedback = FeedbackVM(
+            ok=True, mensaje=f"CSV exportado: {dest}"
+        )
         self.refresh()
 
 

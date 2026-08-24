@@ -20,13 +20,14 @@ class UseCaseDenied(AuthorizationError):
     """Rechazo de caso de uso público."""
 
 
-# Mutaciones con deny_terminal=True que el Terminal Inventario sí puede ejecutar
-# (ajuste/alertas y demas entrypoints de inventario operativo). Restaurante y
-# terminales genericos/historicos siguen bloqueados. Economica/config/compras
-# siguen denegadas por session_tiene_permiso / matriz de terminal_id.
+# Mutaciones con deny_terminal=True que el Terminal Inventario sí puede ejecutar.
+# Incluye economato (compras/documentos + maestros vía ACCEDER_CONFIGURACION).
+# Restaurante y terminales genéricos/históricos siguen bloqueados.
 _PERMISOS_PERMITIDOS_TERMINAL_INVENTARIO_CON_DENY = frozenset({
     Permiso.ACCEDER_INVENTARIO,
     Permiso.ACCEDER_TERMINAL_INVENTARIO,
+    Permiso.ACCEDER_COMPRAS_DOCUMENTOS,
+    Permiso.ACCEDER_CONFIGURACION,
 })
 
 
@@ -62,14 +63,14 @@ def require_usecase(
 
     ``deny_terminal`` bloquea actores terminal salvo:
 
-    - Terminal Inventario cuando el permiso es de inventario operativo
-      (ACCEDER_INVENTARIO / ACCEDER_TERMINAL_INVENTARIO); o
+    - Terminal Inventario cuando el permiso está en la allowlist de economato
+      (inventario operativo, compras/documentos, configuración de maestros); o
     - un ``terminal_id`` listado explícitamente en ``allowed_terminals``
       para **esta** llamada (el permiso sigue siendo obligatorio).
 
-    Sin ``allowed_terminals``, el comportamiento es idéntico al histórico.
-    Compras, config, gestor y costes siguen denegados por la matriz de
-    ``terminal_id`` / permisos de rol.
+    Sin ``allowed_terminals``, el comportamiento es idéntico al histórico
+    salvo la allowlist de Terminal Inventario. Gestor y costes siguen
+    denegados por la matriz de ``terminal_id`` / permisos de rol.
     """
     session = require_permiso(permiso)
     if deny_terminal and _deny_terminal_blocks(

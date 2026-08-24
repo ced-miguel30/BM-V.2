@@ -47,6 +47,10 @@ class CatalogItemVM:
     stock_disponible: float | None = None
     es_bebida: bool = False
     categoria: str = ""
+    # Cantidad al pulsar Añadir (extras rápidos de desayuno).
+    cantidad_default: float | None = None
+    # Texto de ayuda operativo (p. ej. «porción 20 gr»).
+    hint_extra: str = ""
 
 
 @dataclass(frozen=True)

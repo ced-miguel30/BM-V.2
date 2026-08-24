@@ -50,3 +50,5 @@ class Ubicacion:
     activo: bool = True
     # A9 — código funcional; obligatorio en altas nuevas; legacy None admitido.
     codigo: str | None = None
+    # Tipificación física (economato/cocina/bar/camara/otro). Default legacy.
+    tipo: str = "otro"

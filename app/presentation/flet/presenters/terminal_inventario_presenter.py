@@ -1,7 +1,5 @@
-"""Presenter Terminal Inventario — orquesta alertas, caducidad, merma, stock,
-traslados, recuentos y ajustes.
-
-Sin cálculos FIFO/stock/coste. Sin información económica en viewmodels.
+"""Presenter Terminal Inventario ? alertas, caducidad, merma, stock,
+traslados, recuentos, ajustes y economato (recepci?n/documentos/maestros/historial).
 """
 
 from __future__ import annotations
@@ -38,6 +36,7 @@ from app.core.services.ubicacion_stock_service import (
 from app.presentation.flet import session_bridge
 from app.presentation.flet.inventory_viewmodels import (
     ESPACIOS,
+    ESPACIOS_OPS,
     ETIQUETA_SIN_UBICACION_HISTORICA,
     AlertaVM,
     AjustePreviewVM,
@@ -63,9 +62,15 @@ from app.presentation.flet.mappers import (
     map_merma_registro_feedback,
     map_resultado,
 )
+from app.presentation.flet.presenters.inventario_economato_mixin import (
+    InventarioEconomatoMixin,
+)
 from app.presentation.flet.viewmodels import FeedbackVM
 
 _ETIQUETAS = {
+    "maestros": "Maestros",
+    "recepcion": "Recepci?n",
+    "documentos": "Documentos",
     "alertas": "Alertas",
     "caducidad": "Caducidad",
     "merma": "Merma",
@@ -73,22 +78,23 @@ _ETIQUETAS = {
     "traslados": "Traslados",
     "recuentos": "Recuentos",
     "ajustes": "Ajustes",
+    "historial": "Historial",
 }
 
 _IDEMP_AJUSTE = "flet_inv_ajuste"
 _IDEMP_MERMA = "flet_inv_merma"
 _IDEMP_TRASLADO = "flet_inv_traslado"
-_IDEMP_RECUENTO = "flet_inv_recuento"  # solo anti doble clic UI; sin clave de sesión
+_IDEMP_RECUENTO = "flet_inv_recuento"  # solo anti doble clic UI; sin clave de sesi?n
 
 _COBERTURA_ETIQUETA = {
-    "sin_ubicacion_historica": "Sin ubicación histórica",
+    "sin_ubicacion_historica": "Sin ubicaci?n hist?rica",
     "cobertura_parcial": "Cobertura parcial",
     "cobertura_completa": "Cobertura completa",
-    "sin_movimientos": "Sin movimientos de ubicación",
+    "sin_movimientos": "Sin movimientos de ubicaci?n",
 }
 
 
-class TerminalInventarioPresenter:
+class TerminalInventarioPresenter(InventarioEconomatoMixin):
     def __init__(self) -> None:
         self._espacio = "alertas"
         self._feedback: FeedbackVM | None = None
@@ -98,6 +104,7 @@ class TerminalInventarioPresenter:
         self._responsable_seleccionado: str | None = None
         self._stock_busqueda = ""
         self._stock_filtro_ubicacion: str | None = None
+        self._init_economato_state()
         self._traslado_producto_id: str | None = None
         self._traslado_lote_id: str | None = None
         self._traslado_origen_id: str | None = None
@@ -148,7 +155,7 @@ class TerminalInventarioPresenter:
 
     def logout(self) -> InventarioScreenVM:
         session_bridge.logout_terminal()
-        self._feedback = FeedbackVM(ok=True, mensaje="Sesión cerrada.")
+        self._feedback = FeedbackVM(ok=True, mensaje="Sesi?n cerrada.")
         self._confirmando = False
         self._ajuste_preview = None
         self._ajuste_draft = None
@@ -163,7 +170,7 @@ class TerminalInventarioPresenter:
             self._feedback = map_error_recuperable("Espacio no reconocido.")
             return self.screen()
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         aviso_abandon: FeedbackVM | None = None
         if espacio_id != self._espacio:
@@ -184,7 +191,7 @@ class TerminalInventarioPresenter:
 
     def seleccionar_responsable(self, responsable_id: str | None) -> InventarioScreenVM:
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         rid = (responsable_id or "").strip() or None
         if rid is None:
@@ -204,7 +211,7 @@ class TerminalInventarioPresenter:
 
     def marcar_alerta(self, alerta_id: str, estado: str) -> InventarioScreenVM:
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         r = alert_service.cambiar_estado_alerta(alerta_id, estado)
         self._feedback = map_resultado(r.ok, r.mensaje)
@@ -225,7 +232,7 @@ class TerminalInventarioPresenter:
         comentario: str = "",
     ) -> InventarioScreenVM:
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         resp_id, resp_nombre = self._resolver_responsable(responsable_id)
         if not resp_id:
@@ -261,7 +268,7 @@ class TerminalInventarioPresenter:
         comentario: str = "",
     ) -> InventarioScreenVM:
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         resp_id, resp_nombre = self._resolver_responsable(responsable_id)
         if not resp_id:
@@ -290,18 +297,18 @@ class TerminalInventarioPresenter:
     def confirmar_merma(self, *, fecha: date | None = None) -> InventarioScreenVM:
         if self._confirmando:
             self._feedback = map_error_recuperable(
-                "Confirmación en curso.", codigo="CONFIRMANDO"
+                "Confirmaci?n en curso.", codigo="CONFIRMANDO"
             )
             return self.screen()
         if not session_bridge.puede_usar_terminal_inventario():
             self._feedback = map_error_recuperable(
-                "Sesión no autorizada.", codigo="DENEGADO"
+                "Sesi?n no autorizada.", codigo="DENEGADO"
             )
             return self.screen()
         cesta = merma_service.get_cesta_merma()
         if not cesta:
             self._feedback = map_merma_registro_feedback(
-                ok=False, mensaje_backend="La cesta está vacía."
+                ok=False, mensaje_backend="La cesta est? vac?a."
             )
             return self.screen()
         lineas_ops = tuple(
@@ -341,14 +348,14 @@ class TerminalInventarioPresenter:
 
     def set_stock_busqueda(self, texto: str) -> InventarioScreenVM:
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         self._stock_busqueda = (texto or "").strip()
         return self.screen()
 
     def set_stock_filtro_ubicacion(self, ubicacion_id: str | None) -> InventarioScreenVM:
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         uid = (ubicacion_id or "").strip() or None
         if uid == "__todas__":
@@ -360,7 +367,7 @@ class TerminalInventarioPresenter:
 
     def set_traslado_producto(self, producto_id: str | None) -> InventarioScreenVM:
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         self._traslado_producto_id = (producto_id or "").strip() or None
         self._traslado_lote_id = None
@@ -371,7 +378,7 @@ class TerminalInventarioPresenter:
 
     def set_traslado_lote(self, lote_id: str | None) -> InventarioScreenVM:
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         self._traslado_lote_id = (lote_id or "").strip() or None
         self._traslado_origen_id = None
@@ -381,7 +388,7 @@ class TerminalInventarioPresenter:
 
     def set_traslado_origen(self, ubicacion_id: str | None) -> InventarioScreenVM:
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         self._traslado_origen_id = (ubicacion_id or "").strip() or None
         if (
@@ -394,7 +401,7 @@ class TerminalInventarioPresenter:
 
     def set_traslado_destino(self, ubicacion_id: str | None) -> InventarioScreenVM:
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         dest = (ubicacion_id or "").strip() or None
         if dest and dest == self._traslado_origen_id:
@@ -408,7 +415,7 @@ class TerminalInventarioPresenter:
 
     def set_traslado_cantidad(self, cantidad: str) -> InventarioScreenVM:
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         self._traslado_cantidad = (cantidad or "").strip()
         self._limpiar_traslado_preview_only()
@@ -416,7 +423,7 @@ class TerminalInventarioPresenter:
 
     def previsualizar_traslado(self) -> InventarioScreenVM:
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         if not (
             self._traslado_lote_id
@@ -436,7 +443,7 @@ class TerminalInventarioPresenter:
             qty = float(self._traslado_cantidad or "0")
         except ValueError:
             self._feedback = map_error_recuperable(
-                "Cantidad no válida.", codigo="VALIDACION"
+                "Cantidad no v?lida.", codigo="VALIDACION"
             )
             return self.screen()
         data = get_container().app_data_store.get()
@@ -491,12 +498,12 @@ class TerminalInventarioPresenter:
     def confirmar_traslado(self, *, fecha: date | None = None) -> InventarioScreenVM:
         if self._confirmando:
             self._feedback = map_error_recuperable(
-                "Confirmación en curso.", codigo="CONFIRMANDO"
+                "Confirmaci?n en curso.", codigo="CONFIRMANDO"
             )
             return self.screen()
         if not session_bridge.puede_usar_terminal_inventario():
             self._feedback = map_error_recuperable(
-                "Sesión no autorizada.", codigo="DENEGADO"
+                "Sesi?n no autorizada.", codigo="DENEGADO"
             )
             return self.screen()
         if not self._traslado_draft or not self._traslado_preview:
@@ -506,7 +513,7 @@ class TerminalInventarioPresenter:
             return self.screen()
         self._confirmando = True
         try:
-            # Scope UI (doble envío). El servicio revalida saldo en confirmar_traslado
+            # Scope UI (doble env?o). El servicio revalida saldo en confirmar_traslado
             # y genera un traslado_id nuevo; no admite clave_idempotencia.
             _ = current_idempotency_token(_IDEMP_TRASLADO)
             draft = self._traslado_draft
@@ -531,12 +538,12 @@ class TerminalInventarioPresenter:
 
     def set_recuento_ubicacion(self, ubicacion_id: str | None) -> InventarioScreenVM:
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         uid = (ubicacion_id or "").strip() or None
         if uid == SIN_UBICACION_HISTORICA:
             self._feedback = map_error_recuperable(
-                "No se puede contar en «sin ubicación histórica».",
+                "No se puede contar en ?sin ubicaci?n hist?rica?.",
                 codigo="VALIDACION",
             )
             return self.screen()
@@ -550,7 +557,7 @@ class TerminalInventarioPresenter:
 
     def set_recuento_producto(self, producto_id: str | None) -> InventarioScreenVM:
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         self._rc_producto_id = (producto_id or "").strip() or None
         self._rc_lote_id = None
@@ -560,7 +567,7 @@ class TerminalInventarioPresenter:
 
     def set_recuento_lote(self, lote_id: str | None) -> InventarioScreenVM:
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         self._rc_lote_id = (lote_id or "").strip() or None
         self._rc_cantidad = ""
@@ -569,7 +576,7 @@ class TerminalInventarioPresenter:
 
     def set_recuento_cantidad(self, cantidad: str) -> InventarioScreenVM:
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         self._rc_cantidad = (cantidad or "").strip()
         self._rc_preview = None
@@ -577,24 +584,24 @@ class TerminalInventarioPresenter:
 
     def anadir_linea_recuento(self) -> InventarioScreenVM:
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         if self._rc_pendiente_id and self._rc_requiere_confirmacion_borrador:
             self._feedback = map_error_recuperable(
-                "Hay un borrador pendiente de confirmación autoritativa.",
+                "Hay un borrador pendiente de confirmaci?n autoritativa.",
                 codigo="VALIDACION",
             )
             return self.screen()
         if not (self._rc_ubicacion_id and self._rc_producto_id and self._rc_lote_id):
             self._feedback = map_error_recuperable(
-                "Seleccione ubicación, producto y lote.", codigo="VALIDACION"
+                "Seleccione ubicaci?n, producto y lote.", codigo="VALIDACION"
             )
             return self.screen()
         try:
             cont = float(self._rc_cantidad or "")
         except ValueError:
             self._feedback = map_error_recuperable(
-                "Cantidad contada no válida.", codigo="VALIDACION"
+                "Cantidad contada no v?lida.", codigo="VALIDACION"
             )
             return self.screen()
         if cont < 0:
@@ -606,7 +613,7 @@ class TerminalInventarioPresenter:
         for ln in self._rc_lineas:
             if ln["lote_id"] == self._rc_lote_id and ln["producto_id"] == self._rc_producto_id:
                 self._feedback = map_error_recuperable(
-                    "Esa combinación producto/lote ya está en el recuento.",
+                    "Esa combinaci?n producto/lote ya est? en el recuento.",
                     codigo="VALIDACION",
                 )
                 return self.screen()
@@ -637,12 +644,12 @@ class TerminalInventarioPresenter:
         self._rc_lote_id = None
         self._rc_cantidad = ""
         self._rc_preview = None
-        self._feedback = FeedbackVM(ok=True, mensaje="Línea añadida al recuento.")
+        self._feedback = FeedbackVM(ok=True, mensaje="L?nea a?adida al recuento.")
         return self.screen()
 
     def quitar_linea_recuento(self, lote_id: str) -> InventarioScreenVM:
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         self._rc_lineas = [ln for ln in self._rc_lineas if ln["lote_id"] != lote_id]
         self._rc_preview = None
@@ -651,7 +658,7 @@ class TerminalInventarioPresenter:
     def previsualizar_recuento(self) -> InventarioScreenVM:
         """Preview orientativo en memoria. No llama a crear_borrador."""
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         if self._rc_pendiente_id and self._rc_requiere_confirmacion_borrador:
             self._feedback = map_error_recuperable(
@@ -660,7 +667,7 @@ class TerminalInventarioPresenter:
             return self.screen()
         if not self._rc_ubicacion_id or not self._rc_lineas:
             self._feedback = map_error_recuperable(
-                "Añada al menos una línea de recuento.", codigo="VALIDACION"
+                "A?ada al menos una l?nea de recuento.", codigo="VALIDACION"
             )
             return self.screen()
         data = get_container().app_data_store.get()
@@ -671,7 +678,7 @@ class TerminalInventarioPresenter:
             lineas=lineas_vm,
             mensaje=(
                 "Preview en memoria (orientativo). No reserva stock ni crea borrador. "
-                "El dominio congelará el esperado al crear el borrador."
+                "El dominio congelar? el esperado al crear el borrador."
             ),
             en_memoria=True,
         )
@@ -685,7 +692,7 @@ class TerminalInventarioPresenter:
         if self._rc_pendiente_id:
             self._feedback = map_error_recuperable(
                 f"Hay un borrador persistido ({self._rc_pendiente_id}). "
-                "Confírmelo, descarte expresamente o abandone dejando el pendiente."
+                "Conf?rmelo, descarte expresamente o abandone dejando el pendiente."
             )
             return self.screen()
         self._limpiar_recuento_memoria()
@@ -695,12 +702,12 @@ class TerminalInventarioPresenter:
     def confirmar_recuento(self, *, fecha: date | None = None) -> InventarioScreenVM:
         if self._confirmando:
             self._feedback = map_error_recuperable(
-                "Confirmación en curso.", codigo="CONFIRMANDO"
+                "Confirmaci?n en curso.", codigo="CONFIRMANDO"
             )
             return self.screen()
         if not session_bridge.puede_usar_terminal_inventario():
             self._feedback = map_error_recuperable(
-                "Sesión no autorizada.", codigo="DENEGADO"
+                "Sesi?n no autorizada.", codigo="DENEGADO"
             )
             return self.screen()
         if self._rc_requiere_confirmacion_borrador and self._rc_pendiente_id:
@@ -711,7 +718,7 @@ class TerminalInventarioPresenter:
             )
             return self.screen()
         if not self._rc_lineas or not self._rc_ubicacion_id:
-            self._feedback = map_error_recuperable("No hay líneas para confirmar.")
+            self._feedback = map_error_recuperable("No hay l?neas para confirmar.")
             return self.screen()
 
         self._confirmando = True
@@ -738,7 +745,7 @@ class TerminalInventarioPresenter:
                 self._rc_aviso_borrador = (
                     f"Borrador {creado.sesion.id} creado. El esperado del dominio "
                     "difiere del preview en memoria. Revise los valores autoritativos "
-                    "y confirme de nuevo (aún no se ha ajustado el stock)."
+                    "y confirme de nuevo (a?n no se ha ajustado el stock)."
                 )
                 self._feedback = map_error_recuperable(self._rc_aviso_borrador)
                 return self.screen()
@@ -750,11 +757,11 @@ class TerminalInventarioPresenter:
                 self._feedback = map_resultado(True, conf.mensaje)
             else:
                 self._rc_aviso_borrador = (
-                    f"Confirmación fallida. Stock no ajustado. "
+                    f"Confirmaci?n fallida. Stock no ajustado. "
                     f"Borrador {creado.sesion.id} sigue pendiente: puede reintentar "
                     "o descartarlo expresamente."
                 )
-                self._feedback = map_resultado(False, f"{conf.mensaje} — {self._rc_aviso_borrador}")
+                self._feedback = map_resultado(False, f"{conf.mensaje} | {self._rc_aviso_borrador}")
         finally:
             self._confirmando = False
         return self.screen()
@@ -765,11 +772,11 @@ class TerminalInventarioPresenter:
         """Confirma un borrador ya persistido (reintento o tras preview obsoleto)."""
         if self._confirmando:
             self._feedback = map_error_recuperable(
-                "Confirmación en curso.", codigo="CONFIRMANDO"
+                "Confirmaci?n en curso.", codigo="CONFIRMANDO"
             )
             return self.screen()
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         rid = self._rc_pendiente_id
         if not rid:
@@ -785,9 +792,9 @@ class TerminalInventarioPresenter:
                 self._feedback = map_resultado(True, conf.mensaje)
             else:
                 self._rc_aviso_borrador = (
-                    f"Confirmación fallida. Borrador {rid} sigue pendiente."
+                    f"Confirmaci?n fallida. Borrador {rid} sigue pendiente."
                 )
-                self._feedback = map_resultado(False, f"{conf.mensaje} — {self._rc_aviso_borrador}")
+                self._feedback = map_resultado(False, f"{conf.mensaje} | {self._rc_aviso_borrador}")
         finally:
             self._confirmando = False
         return self.screen()
@@ -796,11 +803,11 @@ class TerminalInventarioPresenter:
         """Anula solo BORRADOR del flujo actual (no confirmados)."""
         if self._confirmando:
             self._feedback = map_error_recuperable(
-                "Operación en curso.", codigo="CONFIRMANDO"
+                "Operaci?n en curso.", codigo="CONFIRMANDO"
             )
             return self.screen()
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         rid = self._rc_pendiente_id
         if not rid:
@@ -816,14 +823,14 @@ class TerminalInventarioPresenter:
                 self._rc_aviso_borrador = (
                     f"No se pudo descartar el borrador {rid}. Sigue pendiente."
                 )
-                self._feedback = map_resultado(False, f"{an.mensaje} — {self._rc_aviso_borrador}")
+                self._feedback = map_resultado(False, f"{an.mensaje} | {self._rc_aviso_borrador}")
         finally:
             self._confirmando = False
         return self.screen()
 
     def seleccionar_borrador_pendiente(self, recuento_id: str) -> InventarioScreenVM:
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         data = get_container().app_data_store.get()
         sesion = next(
@@ -852,7 +859,7 @@ class TerminalInventarioPresenter:
         self._limpiar_recuento_memoria()
         if rid:
             self._rc_aviso_borrador = (
-                f"Se abandonó el formulario. El borrador {rid} sigue en Pendientes."
+                f"Se abandon? el formulario. El borrador {rid} sigue en Pendientes."
             )
             self._feedback = FeedbackVM(ok=True, mensaje=self._rc_aviso_borrador)
         else:
@@ -860,7 +867,7 @@ class TerminalInventarioPresenter:
         return self.screen()
 
     def preparar_salida(self) -> None:
-        """Antes de Volver al menú: limpia memoria; no confirma ni anula borradores."""
+        """Antes de Volver al men?: limpia memoria; no confirma ni anula borradores."""
         self._limpiar_traslado()
         self._al_abandonar_recuentos()
         self._ajuste_preview = None
@@ -872,7 +879,7 @@ class TerminalInventarioPresenter:
             rid = self._rc_pendiente_id
             self._limpiar_recuento_memoria()
             msg = (
-                f"Borrador {rid} permanece pendiente (no se confirmó ni anuló). "
+                f"Borrador {rid} permanece pendiente (no se confirm? ni anul?). "
                 "Disponible en Pendientes."
             )
             self._rc_aviso_borrador = msg
@@ -885,7 +892,7 @@ class TerminalInventarioPresenter:
         if conservar_aviso_pendiente and self._rc_pendiente_id:
             aviso = (
                 f"Borrador {self._rc_pendiente_id} sigue pendiente "
-                "(no se confirmó ni anuló al cerrar sesión)."
+                "(no se confirm? ni anul? al cerrar sesi?n)."
             )
         self._rc_ubicacion_id = None
         self._rc_producto_id = None
@@ -967,7 +974,7 @@ class TerminalInventarioPresenter:
         comentario: str = "",
     ) -> InventarioScreenVM:
         if not session_bridge.puede_usar_terminal_inventario():
-            self._feedback = map_error_recuperable("Sesión no autorizada.")
+            self._feedback = map_error_recuperable("Sesi?n no autorizada.")
             return self.screen()
         preview, error = ajuste_service.previsualizar_ajuste(
             lote_id, float(cantidad_despues), motivo, comentario or None
@@ -1000,7 +1007,7 @@ class TerminalInventarioPresenter:
     def confirmar_ajuste(self, *, fecha: date | None = None) -> InventarioScreenVM:
         if self._confirmando:
             self._feedback = map_error_recuperable(
-                "Confirmación en curso.", codigo="CONFIRMANDO"
+                "Confirmaci?n en curso.", codigo="CONFIRMANDO"
             )
             return self.screen()
         if not self._ajuste_draft or not self._ajuste_preview:
@@ -1031,7 +1038,7 @@ class TerminalInventarioPresenter:
 
         try:
             costes_service.resumen_periodo(date.today().replace(day=1), date.today(), [])
-            return FeedbackVM(ok=True, mensaje="ERROR: se permitió consulta económica")
+            return FeedbackVM(ok=True, mensaje="ERROR: se permiti? consulta econ?mica")
         except AuthorizationError as exc:
             return FeedbackVM(
                 ok=False, mensaje=str(getattr(exc, "mensaje", exc)) or "Denegado"
@@ -1112,6 +1119,15 @@ class TerminalInventarioPresenter:
                 rc_lineas = tuple(self._linea_vm_from_dict(ln) for ln in self._rc_lineas)
                 rc_pend = self._recuentos_pendientes_vm(data)
                 rc_rec = self._recuentos_recientes_vm(data)
+        economato = None
+        if session.authenticated and self._espacio in (
+            "maestros",
+            "recepcion",
+            "documentos",
+            "historial",
+        ):
+            data = get_container().app_data_store.get()
+            economato = self._build_economato_panel(data)
         vm = InventarioScreenVM(
             session=session,
             espacios=espacios,
@@ -1167,8 +1183,10 @@ class TerminalInventarioPresenter:
             recuentos_recientes=rc_rec,
             feedback=self._feedback,
             confirmando=self._confirmando,
+            economato=economato,
         )
-        assert_inventario_sin_economia(vm)
+        if self._espacio in ESPACIOS_OPS:
+            assert_inventario_sin_economia(vm)
         return vm
 
     def _limpiar_traslado_preview_only(self) -> None:
@@ -1276,7 +1294,7 @@ class TerminalInventarioPresenter:
                     unidad=row["unidad"],
                     restante=float(row["restante"]),
                     etiqueta=(
-                        f"{row['nombre']} · {row['id']} · "
+                        f"{row['nombre']} ? {row['id']} ? "
                         f"restante {float(row['restante']):g} {row['unidad']}"
                     ),
                 )
@@ -1333,14 +1351,14 @@ class TerminalInventarioPresenter:
             if not info.por_ubicacion:
                 if filtro:
                     continue
-                # Sin movimientos de ubicación: fila informativa (saldo 0).
+                # Sin movimientos de ubicaci?n: fila informativa (saldo 0).
                 filas.append(
                     StockSaldoVM(
                         producto_id=lote.producto_id,
                         producto_nombre=nombre,
                         lote_id=lote.id,
                         ubicacion_id="",
-                        ubicacion_etiqueta="—",
+                        ubicacion_etiqueta="-",
                         saldo=0.0,
                         unidad=unidad,
                         cobertura=cob_lbl,
@@ -1416,7 +1434,7 @@ class TerminalInventarioPresenter:
             out.append(
                 TrasladoOpcionVM(
                     lote.id,
-                    f"{lote.id} · disponible ubic. {disp:g} {unidad}".strip(),
+                    f"{lote.id} ? disponible ubic. {disp:g} {unidad}".strip(),
                 )
             )
         return tuple(out)
@@ -1433,7 +1451,7 @@ class TerminalInventarioPresenter:
             out.append(
                 TrasladoOpcionVM(
                     uid,
-                    f"{self._etiqueta_ubicacion(data, uid)} · {s.saldo:g}",
+                    f"{self._etiqueta_ubicacion(data, uid)} ? {s.saldo:g}",
                 )
             )
         out.sort(key=lambda o: o.etiqueta.lower())
@@ -1530,7 +1548,7 @@ class TerminalInventarioPresenter:
             out.append(
                 TrasladoOpcionVM(
                     lote.id,
-                    f"{lote.id} · esperado {esp:g} {unidad}".strip(),
+                    f"{lote.id} ? esperado {esp:g} {unidad}".strip(),
                 )
             )
         return tuple(out)
@@ -1545,7 +1563,7 @@ class TerminalInventarioPresenter:
                     recuento_id=s.id,
                     ubicacion_id=s.ubicacion_id,
                     ubicacion_etiqueta=self._etiqueta_ubicacion(data, s.ubicacion_id),
-                    resumen=f"{n} línea(s)",
+                    resumen=f"{n} l?nea(s)",
                     fecha=fecha,
                 )
             )
@@ -1574,7 +1592,7 @@ class TerminalInventarioPresenter:
                 RecuentoRecienteVM(
                     recuento_id=s.id,
                     ubicacion_etiqueta=self._etiqueta_ubicacion(data, s.ubicacion_id),
-                    resumen=f"{n} línea(s)",
+                    resumen=f"{n} l?nea(s)",
                     fecha=fecha,
                     estado=est,
                 )

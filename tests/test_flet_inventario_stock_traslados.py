@@ -99,11 +99,26 @@ class TestStockConsulta(_Harness):
     def test_espacios_incluyen_stock_traslados(self) -> None:
         self.assertEqual(
             ESPACIOS,
-            ("alertas", "caducidad", "merma", "stock", "traslados", "recuentos", "ajustes"),
+            (
+                "maestros",
+                "recepcion",
+                "documentos",
+                "alertas",
+                "caducidad",
+                "merma",
+                "stock",
+                "traslados",
+                "recuentos",
+                "ajustes",
+                "historial",
+            ),
         )
         s = self._p().screen()
         ids = [e.id for e in s.espacios]
         self.assertEqual(list(ids), list(ESPACIOS))
+        self.assertIn("stock", ids)
+        self.assertIn("traslados", ids)
+        self.assertIn("recepcion", ids)
 
     def test_stock_vacio_sin_movimientos_ubicacion(self) -> None:
         p = self._p()
