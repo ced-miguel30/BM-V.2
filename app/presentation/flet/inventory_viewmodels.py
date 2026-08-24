@@ -12,14 +12,12 @@ from app.presentation.flet.viewmodels import (
     assert_sin_campos_economicos,
 )
 
-# Orden NAV: compras Noray primero; ops planta al final.
+# Orden NAV: compras lean; ops planta al final.
 ESPACIOS = (
     "compras_panel",
     "compras_albaran",
     "compras_factura",
     "compras_documentos",
-    "compras_pendientes",
-    "compras_conciliacion",
     "compras_proveedores",
     "compras_historial",
     "alertas",
@@ -49,8 +47,6 @@ ESPACIOS_ECONOMATO = frozenset(
         "compras_albaran",
         "compras_factura",
         "compras_documentos",
-        "compras_pendientes",
-        "compras_conciliacion",
         "compras_proveedores",
         "compras_historial",
     }

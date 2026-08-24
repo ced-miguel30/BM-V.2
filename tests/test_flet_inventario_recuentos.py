@@ -124,8 +124,6 @@ class TestRecuentosNav(_Harness):
                 "compras_albaran",
                 "compras_factura",
                 "compras_documentos",
-                "compras_pendientes",
-                "compras_conciliacion",
                 "compras_proveedores",
                 "compras_historial",
                 "alertas",
@@ -139,7 +137,7 @@ class TestRecuentosNav(_Harness):
         )
         s = self._p().screen()
         self.assertEqual([e.id for e in s.espacios], list(ESPACIOS))
-        self.assertEqual(len(s.espacios), 15)
+        self.assertEqual(len(s.espacios), 13)
 
     def test_02_sin_sesion(self) -> None:
         p = TerminalInventarioPresenter()

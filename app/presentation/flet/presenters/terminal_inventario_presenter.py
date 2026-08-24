@@ -70,12 +70,10 @@ from app.presentation.flet.viewmodels import FeedbackVM
 
 _ETIQUETAS = {
     "compras_panel": "Panel",
-    "compras_albaran": "Nuevo albarán",
-    "compras_factura": "Nueva factura",
+    "compras_albaran": "Albarán",
+    "compras_factura": "Factura",
     "compras_documentos": "Documentos",
-    "compras_pendientes": "Pendientes",
-    "compras_conciliacion": "Conciliación",
-    "compras_proveedores": "Proveedores",
+    "compras_proveedores": "Maestros",
     "compras_historial": "Historial",
     "alertas": "Alertas",
     "caducidad": "Caducidad",

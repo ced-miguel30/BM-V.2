@@ -56,8 +56,6 @@ class TestEconomatoAuthEspacios(_Harness):
             "compras_albaran",
             "compras_factura",
             "compras_documentos",
-            "compras_pendientes",
-            "compras_conciliacion",
             "compras_proveedores",
             "compras_historial",
         ):

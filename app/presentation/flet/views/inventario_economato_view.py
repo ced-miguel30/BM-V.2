@@ -15,14 +15,60 @@ from app.presentation.flet.inventory_document_viewmodels import (
 )
 from app.presentation.flet.inventory_viewmodels import InventarioScreenVM
 
+
+def _dbg(hypothesis_id: str, location: str, message: str, data: dict) -> None:
+    # #region agent log
+    import json
+    import time
+    from pathlib import Path
+
+    try:
+        payload = {
+            "sessionId": "ec0c23",
+            "runId": "post-fix",
+            "hypothesisId": hypothesis_id,
+            "location": location,
+            "message": message,
+            "data": data,
+            "timestamp": int(time.time() * 1000),
+        }
+        with (Path(__file__).resolve().parents[3] / "debug-ec0c23.log").open(
+            "a", encoding="utf-8"
+        ) as f:
+            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+    # #endregion
+
+
+def _border_all(width: float, color: str) -> ft.Border:
+    return ft.Border.all(width, color)
+
+
+def _border_bottom(width: float, color: str) -> ft.Border:
+    return ft.Border.only(bottom=ft.BorderSide(width, color))
+
+
 def build_economato_body(
     screen: InventarioScreenVM,
     callbacks: dict[str, Any],
 ) -> ft.Control:
     eco = screen.economato
     if eco is None:
-        return ft.Text("Cargando economato…", color=ui_theme.MID_GRAY)
+        return ft.Text("Cargando…", color=ui_theme.MID_GRAY)
     espacio = screen.espacio_activo
+    # #region agent log
+    _dbg(
+        "A",
+        "inventario_economato_view.py:build_economato_body",
+        "espacio_entry",
+        {
+            "espacio": espacio,
+            "has_Border_all": hasattr(ft.Border, "all"),
+            "has_border_mod_all": hasattr(ft.border, "all"),
+        },
+    )
+    # #endregion
     try:
         if espacio == "compras_panel":
             body = _panel(screen, eco, callbacks)
@@ -30,19 +76,32 @@ def build_economato_body(
             body = _recepcion(screen, eco, callbacks)
         elif espacio == "compras_documentos":
             body = _documentos(screen, eco, callbacks)
-        elif espacio == "compras_pendientes":
-            body = _pendientes(screen, eco, callbacks)
-        elif espacio == "compras_conciliacion":
-            body = _conciliacion(screen, eco, callbacks)
         elif espacio == "compras_proveedores":
             body = _maestros(screen, eco, callbacks)
         elif espacio == "compras_historial":
             body = _historial(screen, eco, callbacks)
         else:
             body = ft.Text("Espacio no soportado", color=ui_theme.MID_GRAY)
+        # #region agent log
+        _dbg(
+            "C",
+            "inventario_economato_view.py:build_economato_body",
+            "espacio_ok",
+            {"espacio": espacio, "body_type": type(body).__name__},
+        )
+        # #endregion
         return body
-    except TypeError as exc:
+    except AttributeError as exc:
+        # #region agent log
+        _dbg(
+            "A",
+            "inventario_economato_view.py:build_economato_body",
+            "attribute_error",
+            {"espacio": espacio, "error": str(exc)},
+        )
+        # #endregion
         raise
+
 
 def _section_title(text: str) -> ft.Control:
     return ft.Text(text, size=18, weight=ft.FontWeight.BOLD, color=ui_theme.NAVY)
@@ -55,15 +114,20 @@ def _panel(
 
     def _kpi(label: str, value: int, espacio: str) -> ft.Control:
         return ft.Container(
-            padding=16,
+            padding=12,
             bgcolor=ui_theme.SURFACE_CARD,
             border_radius=ui_theme.RADIUS_SM,
-            border=ft.border.all(1, ui_theme.BORDER),
+            border=_border_all(1, ui_theme.BORDER),
             content=ft.Column(
-                spacing=4,
+                spacing=2,
                 controls=[
-                    ft.Text(str(value), size=28, weight=ft.FontWeight.BOLD, color=ui_theme.TEAL),
-                    ft.Text(label, size=13, color=ui_theme.MID_GRAY),
+                    ft.Text(
+                        str(value),
+                        size=24,
+                        weight=ft.FontWeight.BOLD,
+                        color=ui_theme.TEAL,
+                    ),
+                    ft.Text(label, size=12, color=ui_theme.MID_GRAY),
                 ],
             ),
             on_click=(lambda _e, eid=espacio: goto(eid)) if goto else None,
@@ -72,128 +136,28 @@ def _panel(
     return ft.Column(
         spacing=ui_theme.SPACE_MD,
         controls=[
-            _section_title("Panel de compras"),
-            ft.Text(
-                "Resumen operativo · pulse un KPI para ir al espacio",
-                size=12,
-                color=ui_theme.MID_GRAY,
-            ),
+            _section_title("Compras"),
             ft.Row(
                 wrap=True,
-                spacing=16,
+                spacing=12,
                 controls=[
                     _kpi("Borradores", eco.n_borradores, "compras_albaran"),
                     _kpi(
-                        "Albaranes pendientes de facturar",
+                        "Pend. facturar",
                         eco.n_albaranes_pendientes_facturar,
-                        "compras_pendientes",
+                        "compras_factura",
                     ),
-                    _kpi("Documentos del mes", eco.n_docs_mes, "compras_documentos"),
+                    _kpi("Docs mes", eco.n_docs_mes, "compras_documentos"),
                 ],
             ),
-        ],
-    )
-
-
-def _pendientes(
-    screen: InventarioScreenVM, eco: EconomatoPanelVM, cbs: dict[str, Any]
-) -> ft.Control:
-    rows: list[ft.Control] = []
-    if not eco.pendientes_filas:
-        rows.append(ft.Text("Sin pendientes de facturar.", color=ui_theme.MID_GRAY))
-    else:
-        for p in eco.pendientes_filas:
-            rows.append(
-                ft.Container(
-                    padding=8,
-                    border=ft.border.only(bottom=ft.BorderSide(1, ui_theme.BORDER)),
-                    content=ft.Row(
-                        controls=[
-                            ft.Text(p.albaran_etiqueta, width=160, weight=ft.FontWeight.W_600),
-                            ft.Text(p.producto, expand=True),
-                            ft.Text(f"Pend. {p.cantidad_pendiente}", width=100),
-                        ]
-                    ),
-                )
-            )
-    return ft.Column(
-        spacing=ui_theme.SPACE_MD,
-        controls=[
-            _section_title("Pendientes de facturar"),
-            ft.Text(
-                "Líneas de albarán confirmado aún no conciliadas en factura.",
-                size=12,
-                color=ui_theme.MID_GRAY,
-            ),
-            ft.Column(controls=rows),
-        ],
-    )
-
-
-def _conciliacion(
-    screen: InventarioScreenVM, eco: EconomatoPanelVM, cbs: dict[str, Any]
-) -> ft.Control:
-    lista: list[ft.Control] = []
-    for d in eco.documentos:
-        if (d.tipo or "").lower() != "factura":
-            continue
-        lista.append(
-            ft.ListTile(
-                title=ft.Text(f"FACTURA · {d.referencia or d.id}"),
-                subtitle=ft.Text(f"{d.proveedor} · {d.fecha} · {d.estado}"),
-                on_click=lambda _e, did=d.id: cbs["on_sel_documento"](did),
-            )
-        )
-    diffs: list[ft.Control] = []
-    if eco.documento_detalle:
-        diffs.append(
-            ft.Text(
-                f"Seleccionada: {eco.documento_detalle.referencia or eco.documento_detalle.id}",
-                weight=ft.FontWeight.W_600,
-            )
-        )
-    if not eco.diferencias_conciliacion:
-        diffs.append(
-            ft.Text(
-                "Sin diferencias (seleccione una factura o no hay vínculos).",
-                size=12,
-                color=ui_theme.MID_GRAY,
-            )
-        )
-    else:
-        for dif in eco.diferencias_conciliacion:
-            diffs.append(ft.Text(f"[{dif.tipo}] {dif.detalle}", size=13))
-    return ft.Column(
-        spacing=ui_theme.SPACE_MD,
-        controls=[
-            _section_title("Conciliación albarán ↔ factura"),
-            ft.Text(
-                "Seleccione una factura para ver diferencias.",
-                size=12,
-                color=ui_theme.MID_GRAY,
-            ),
-            ft.Column(controls=lista or [ft.Text("Sin facturas.", color=ui_theme.MID_GRAY)]),
-            _section_title("Diferencias"),
-            ft.Column(controls=diffs),
         ],
     )
 
 def _recepcion(
     screen: InventarioScreenVM, eco: EconomatoPanelVM, cbs: dict[str, Any]
 ) -> ft.Control:
-
     tipo_forzado = eco.compra_tipo or "albaran"
-    titulo = "Nuevo albarán" if tipo_forzado == "albaran" else "Nueva factura"
-    tipo_dd = ft.Dropdown(
-        label="Tipo documento",
-        value=tipo_forzado,
-        options=[
-            ft.dropdown.Option("albaran", "Albarán"),
-            ft.dropdown.Option("factura", "Factura"),
-        ],
-        width=180,
-        on_select=lambda e: cbs["on_compra_tipo"](e.control.value or "albaran"),
-    )
+    titulo = "Albarán" if tipo_forzado == "albaran" else "Factura"
     prov_dd = ft.Dropdown(
         label="Proveedor",
         value=eco.compra_proveedor_id or None,
@@ -206,48 +170,48 @@ def _recepcion(
         ),
     )
     ref_tf = ft.TextField(
-        label="Nº albarán / factura",
+        label="Nº documento",
         value=eco.compra_referencia,
-        width=200,
+        width=180,
         on_blur=lambda e: cbs["on_compra_cabecera"](referencia=e.control.value or ""),
     )
     dto_tf = ft.TextField(
-        label="Dto cabecera €",
+        label="Dto €",
         value=eco.compra_descuento_cabecera,
-        width=120,
+        width=90,
         on_blur=lambda e: cbs["on_compra_cabecera"](
             descuento_cabecera=e.control.value or "0"
         ),
     )
     ubi_dd = ft.Dropdown(
-        label="Ubicación entrada",
+        label="Ubicación",
         value=eco.compra_ubicacion_entrada_id or None,
         options=[
             ft.dropdown.Option(o.id, o.etiqueta) for o in eco.compra_ubicaciones
         ],
-        width=260,
+        width=220,
         on_select=lambda e: cbs["on_compra_cabecera"](
             ubicacion_entrada_id=e.control.value or ""
         ),
     )
     notas_tf = ft.TextField(
-        label="Observaciones",
+        label="Notas",
         value=eco.compra_notas,
         expand=True,
         on_blur=lambda e: cbs["on_compra_cabecera"](notas=e.control.value or ""),
     )
 
     busq = ft.TextField(
-        label="Buscar producto (código / nombre)",
+        label="Producto",
         value=eco.compra_prod_busqueda,
-        width=320,
+        width=280,
         on_change=lambda e: cbs["on_compra_busqueda"](e.control.value or ""),
         on_submit=lambda e: cbs["on_add_linea_busqueda"](e.control.value or ""),
     )
-    cant_tf = ft.TextField(label="Cant.", value="1", width=80)
-    prec_tf = ft.TextField(label="Precio ud.", value="0", width=100)
+    cant_tf = ft.TextField(label="Cant.", value="1", width=70)
+    prec_tf = ft.TextField(label="P.ud", value="0", width=80)
     igic_tf = ft.TextField(
-        label="IGIC %", value=eco.compra_impuestos_default, width=80
+        label="IGIC%", value=eco.compra_impuestos_default, width=70
     )
 
     def _add(_e=None):
@@ -273,7 +237,7 @@ def _recepcion(
                 ft.Text("Sin coincidencias", size=12, color=ui_theme.MID_GRAY)
             )
         else:
-            for p in eco.compra_prod_sugerencias:
+            for p in eco.compra_prod_sugerencias[:8]:
                 sugerencias.append(
                     ft.TextButton(
                         p.etiqueta,
@@ -293,9 +257,9 @@ def _recepcion(
         prec_ln = ft.TextField(
             value=ln.precio_unitario, width=80, dense=True, label="P.ud"
         )
-        dto_p_ln = ft.TextField(value=ln.dto_pct, width=60, dense=True, label="Dto%")
-        dto_e_ln = ft.TextField(value=ln.dto_eur, width=60, dense=True, label="Dto€")
-        igic_ln = ft.TextField(value=ln.igic_pct, width=60, dense=True, label="IGIC%")
+        dto_p_ln = ft.TextField(value=ln.dto_pct, width=55, dense=True, label="Dto%")
+        dto_e_ln = ft.TextField(value=ln.dto_eur, width=55, dense=True, label="Dto€")
+        igic_ln = ft.TextField(value=ln.igic_pct, width=55, dense=True, label="IGIC%")
 
         def _commit_ln(
             _e=None,
@@ -332,23 +296,24 @@ def _recepcion(
 
         lineas_rows.append(
             ft.Container(
-                padding=8,
-                border=ft.border.only(bottom=ft.BorderSide(1, ui_theme.BORDER)),
+                padding=6,
+                border=_border_bottom(1, ui_theme.BORDER),
                 content=ft.Row(
                     wrap=True,
-                    spacing=8,
+                    spacing=6,
                     controls=[
-                        ft.Text(ln.producto_nombre, width=160, weight=ft.FontWeight.W_600),
+                        ft.Text(ln.producto_nombre, width=150, weight=ft.FontWeight.W_600),
                         cant_ln,
-                        ft.Text(ln.unidad, width=40, size=12),
+                        ft.Text(ln.unidad, width=36, size=12),
                         prec_ln,
                         dto_p_ln,
                         dto_e_ln,
                         igic_ln,
-                        ft.Text(f"= {ln.total_linea} €", width=90),
+                        ft.Text(f"= {ln.total_linea} €", width=80),
                         ft.IconButton(
                             ft.Icons.DELETE_OUTLINE,
-                            icon_color=ui_theme.ERROR,
+                            icon_color=ui_theme.DANGER,
+                            tooltip="Quitar",
                             on_click=lambda _e, idx=i: cbs["on_quitar_linea"](idx),
                         ),
                     ],
@@ -359,65 +324,61 @@ def _recepcion(
     totales = eco.compra_totales
     tot_panel = ft.Container(
         bgcolor=ui_theme.SURFACE_CARD,
-        padding=12,
+        padding=10,
         border_radius=ui_theme.RADIUS_SM,
         content=ft.Row(
-            spacing=24,
+            spacing=20,
             controls=[
                 ft.Text(
-                    f"Base: {totales.base_imponible if totales else '0'} €",
+                    f"Base {totales.base_imponible if totales else '0'} €",
                     weight=ft.FontWeight.W_600,
                 ),
+                ft.Text(f"IGIC {totales.impuesto_total if totales else '0'} €"),
                 ft.Text(
-                    f"IGIC: {totales.impuesto_total if totales else '0'} €",
-                ),
-                ft.Text(
-                    f"Total: {totales.total if totales else '0'} €",
-                    size=16,
+                    f"Total {totales.total if totales else '0'} €",
+                    size=15,
                     weight=ft.FontWeight.BOLD,
                     color=ui_theme.TEAL,
-                ),
-                ft.Text(
-                    f"Doc: {eco.compra_documento_id or 'nuevo'}",
-                    size=12,
-                    color=ui_theme.MID_GRAY,
                 ),
             ],
         ),
     )
 
-    alb_panel: list[ft.Control] = []
-    if eco.compra_tipo == "factura":
-        alb_panel.append(_section_title("Conciliar albaranes"))
-        if not eco.albaranes_conciliables:
-            alb_panel.append(
+    extras: list[ft.Control] = []
+    if tipo_forzado == "factura":
+        if eco.pendientes_filas:
+            extras.append(
                 ft.Text(
-                    "No hay albaranes pendientes para este proveedor.",
-                    color=ui_theme.MID_GRAY,
+                    f"{eco.n_albaranes_pendientes_facturar} albarán(es) con cantidad pendiente",
                     size=12,
+                    color=ui_theme.MID_GRAY,
                 )
+            )
+        extras.append(_section_title("Albaranes a incorporar"))
+        if not eco.albaranes_conciliables:
+            extras.append(
+                ft.Text("Ninguno pendiente para este proveedor.", size=12, color=ui_theme.MID_GRAY)
             )
         else:
             for a in eco.albaranes_conciliables:
-                alb_panel.append(
+                extras.append(
                     ft.Checkbox(
                         label=f"{a.etiqueta} · {a.total} €",
                         value=a.seleccionado,
                         on_change=lambda _e, aid=a.id: cbs["on_toggle_albaran"](aid),
                     )
                 )
-            alb_panel.append(
+            extras.append(
                 ui.primary_button(
-                    "Incorporar albaranes seleccionados",
+                    "Incorporar seleccionados",
                     lambda: cbs["on_incorporar_albaranes"](),
                     icon=ft.Icons.MERGE_TYPE,
                 )
             )
 
-    borradores: list[ft.Control] = [_section_title("Borradores guardados")]
-    if not eco.compra_borradores:
-        borradores.append(ft.Text("Ninguno", size=12, color=ui_theme.MID_GRAY))
-    else:
+    borradores: list[ft.Control] = []
+    if eco.compra_borradores:
+        borradores.append(_section_title("Borradores"))
         for d in eco.compra_borradores:
             borradores.append(
                 ft.Row(
@@ -425,13 +386,14 @@ def _recepcion(
                         ft.Text(
                             f"{d.tipo} {d.referencia or d.id} · {d.proveedor} · {d.total}",
                             expand=True,
+                            size=12,
                         ),
                         ft.TextButton(
                             "Cargar",
                             on_click=lambda _e, did=d.id: cbs["on_cargar_borrador"](did),
                         ),
                         ft.TextButton(
-                            "Anular",
+                            "Descartar",
                             on_click=lambda _e, did=d.id: cbs["on_anular_borrador"](did),
                         ),
                     ]
@@ -442,12 +404,7 @@ def _recepcion(
         spacing=ui_theme.SPACE_MD,
         controls=[
             _section_title(titulo),
-            ft.Text(
-                "Cabecera + líneas editables · paridad 13.5",
-                size=12,
-                color=ui_theme.MID_GRAY,
-            ),
-            ft.Row(wrap=True, spacing=12, controls=[tipo_dd, prov_dd, ref_tf, dto_tf, ubi_dd]),
+            ft.Row(wrap=True, spacing=10, controls=[prov_dd, ref_tf, dto_tf, ubi_dd]),
             notas_tf,
             ft.Row(
                 wrap=True,
@@ -457,23 +414,23 @@ def _recepcion(
                     cant_tf,
                     prec_tf,
                     igic_tf,
-                    ui.primary_button("Añadir línea", _add, icon=ft.Icons.ADD),
+                    ui.primary_button("Añadir", _add, icon=ft.Icons.ADD),
                 ],
             ),
             ft.Row(wrap=True, controls=sugerencias),
             ft.Column(controls=lineas_rows or [ft.Text("Sin líneas", color=ui_theme.MID_GRAY)]),
             tot_panel,
-            ft.Column(controls=alb_panel),
+            *extras,
             ft.Row(
-                spacing=12,
+                spacing=10,
                 controls=[
                     ui.primary_button(
-                        "Guardar borrador",
+                        "Guardar",
                         lambda: cbs["on_guardar_borrador"](),
                         icon=ft.Icons.SAVE,
                     ),
                     ui.primary_button(
-                        "Confirmar compra",
+                        "Confirmar",
                         lambda: cbs["on_confirmar_compra"](),
                         icon=ft.Icons.CHECK_CIRCLE,
                     ),
@@ -483,7 +440,7 @@ def _recepcion(
                     ),
                 ],
             ),
-            ft.Column(controls=borradores),
+            *borradores,
         ],
     )
 
@@ -557,19 +514,23 @@ def _documentos(
                     + (f" ← {ln.origen_albaran}" if ln.origen_albaran else "")
                 )
             )
+        if eco.diferencias_conciliacion:
+            detalle_ctrls.append(ft.Text("Conciliación", weight=ft.FontWeight.W_600))
+            for dif in eco.diferencias_conciliacion:
+                detalle_ctrls.append(ft.Text(f"[{dif.tipo}] {dif.detalle}", size=12))
         motivo = ft.TextField(label="Motivo anulación / rectificativa", width=320)
         detalle_ctrls.append(
             ft.Row(
                 controls=[
                     motivo,
                     ft.OutlinedButton(
-                        "Anular confirmado",
+                        "Anular",
                         on_click=lambda _e: cbs["on_anular_doc"](
                             det.id, motivo.value or ""
                         ),
                     ),
                     ft.OutlinedButton(
-                        "Crear rectificativa",
+                        "Rectificativa",
                         on_click=lambda _e: cbs["on_rectificativa"](
                             det.id, motivo.value or "Rectificación"
                         ),

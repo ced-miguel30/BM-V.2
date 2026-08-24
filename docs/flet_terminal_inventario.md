@@ -5,13 +5,11 @@
 App única de economato hotelero (flujo Compras estilo Noray + planta):
 
 ### Compras / documentos (con economía documental)
-1. **Panel** — KPIs (borradores, albaranes pendientes de facturar, docs del mes)
-2. **Nuevo albarán** / **Nueva factura** — cabecera + **grid editable** (cantidad, precio, dto, IGIC) · borrador/confirmar vía `compra_registro_service` · factura multi-albarán con pendientes por cantidad
-3. **Documentos** — listado/filtro, detalle, anular, rectificativa
-4. **Pendientes** — residual qty a facturar por línea de albarán
-5. **Conciliación** — diferencias qty/precio/fiscal (consulta)
-6. **Proveedores** — maestros (deptos, ubicaciones tipificadas, impuestos, vínculos)
-7. **Historial** — timeline + export CSV
+1. **Panel** — KPIs (borradores, pendientes, docs del mes)
+2. **Albarán** / **Factura** — cabecera + grid editable · multi-albarán en factura
+3. **Documentos** — listado, detalle, conciliación, anular, rectificativa
+4. **Maestros** — proveedores, ubicaciones, impuestos, vínculos
+5. **Historial** — timeline + export CSV
 
 ### Operación de planta (sin precios en saldos)
 8. **Alertas** · **Caducidad** · **Merma** · **Stock** · **Traslados** · **Recuentos** · **Ajustes**

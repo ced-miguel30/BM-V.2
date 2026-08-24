@@ -1,0 +1,8 @@
+{"sessionId": "ec0c23", "runId": "post-lean", "hypothesisId": "C", "location": "smoke", "message": "ok", "data": {"espacio": "compras_albaran", "body": "Column"}, "timestamp": 1787578794379}
+{"sessionId": "ec0c23", "runId": "post-lean", "hypothesisId": "C", "location": "smoke", "message": "ok", "data": {"espacio": "compras_documentos", "body": "Column"}, "timestamp": 1787578794382}
+{"sessionId": "ec0c23", "runId": "post-lean", "hypothesisId": "C", "location": "smoke", "message": "ok", "data": {"espacio": "compras_factura", "body": "Column"}, "timestamp": 1787578794385}
+{"sessionId": "ec0c23", "runId": "post-lean", "hypothesisId": "C", "location": "smoke", "message": "ok", "data": {"espacio": "compras_historial", "body": "Column"}, "timestamp": 1787578794395}
+{"sessionId": "ec0c23", "runId": "post-lean", "hypothesisId": "C", "location": "smoke", "message": "ok", "data": {"espacio": "compras_panel", "body": "Column"}, "timestamp": 1787578794398}
+{"sessionId": "ec0c23", "runId": "post-lean", "hypothesisId": "C", "location": "smoke", "message": "ok", "data": {"espacio": "compras_proveedores", "body": "Column"}, "timestamp": 1787578794401}
+{"sessionId": "ec0c23", "runId": "post-lean", "hypothesisId": "C", "location": "smoke", "message": "albaran_with_line", "data": {"ok": true, "n": 1, "cant": "5,00"}, "timestamp": 1787578794419}
+{"sessionId": "ec0c23", "runId": "post-lean", "hypothesisId": "C", "location": "smoke", "message": "factura_ok", "data": {}, "timestamp": 1787578794423}

@@ -69,7 +69,7 @@ class TestInventarioAuthNav(_InvHarness):
         s = self._p().screen()
         self.assertTrue(s.session.authenticated)
         self.assertEqual(s.session.actor_id, "terminal_inventario")
-        self.assertEqual(len(s.espacios), 15)
+        self.assertEqual(len(s.espacios), 13)
 
     def test_entrada_denegada(self) -> None:
         p = TerminalInventarioPresenter()
@@ -84,8 +84,6 @@ class TestInventarioAuthNav(_InvHarness):
             "compras_albaran",
             "compras_factura",
             "compras_documentos",
-            "compras_pendientes",
-            "compras_conciliacion",
             "compras_proveedores",
             "compras_historial",
             "alertas",
