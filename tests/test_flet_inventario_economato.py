@@ -19,7 +19,7 @@ from app.core.storage.demo_files import (
     sha256_demo_file,
 )
 from app.presentation.flet.inventory_document_viewmodels import EconomatoPanelVM
-from app.presentation.flet.inventory_viewmodels import ESPACIOS, ESPACIOS_OPS
+from app.presentation.flet.inventory_viewmodels import ESPACIOS, ESPACIOS_ECONOMATO, ESPACIOS_OPS
 from app.presentation.flet.presenters.terminal_inventario_presenter import (
     TerminalInventarioPresenter,
 )
@@ -51,19 +51,36 @@ class _Harness(unittest.TestCase):
 
 class TestEconomatoAuthEspacios(_Harness):
     def test_espacios_incluyen_economato(self) -> None:
-        self.assertIn("recepcion", ESPACIOS)
-        self.assertIn("maestros", ESPACIOS)
-        self.assertIn("documentos", ESPACIOS)
-        self.assertIn("historial", ESPACIOS)
-        self.assertTrue(ESPACIOS_OPS.isdisjoint({"recepcion", "maestros"}))
+        for eid in (
+            "compras_panel",
+            "compras_albaran",
+            "compras_factura",
+            "compras_documentos",
+            "compras_pendientes",
+            "compras_conciliacion",
+            "compras_proveedores",
+            "compras_historial",
+        ):
+            self.assertIn(eid, ESPACIOS)
+            self.assertIn(eid, ESPACIOS_ECONOMATO)
+        self.assertTrue(ESPACIOS_OPS.isdisjoint(ESPACIOS_ECONOMATO))
 
     def test_recepcion_expone_economato_con_economia(self) -> None:
         p = self._p()
-        s = p.seleccionar_espacio("recepcion")
+        s = p.seleccionar_espacio("compras_albaran")
         self.assertIsInstance(s.economato, EconomatoPanelVM)
-        self.assertEqual(s.espacio_activo, "recepcion")
-        # Campos económicos viven en el slice documental, no en ops
+        self.assertEqual(s.espacio_activo, "compras_albaran")
+        self.assertEqual(s.economato.compra_tipo, TipoDocumento.ALBARAN.value)
         self.assertTrue(hasattr(s.economato, "compra_lineas"))
+        s2 = p.seleccionar_espacio("compras_factura")
+        self.assertEqual(s2.economato.compra_tipo, TipoDocumento.FACTURA.value)
+
+    def test_panel_expone_kpis(self) -> None:
+        p = self._p()
+        s = p.seleccionar_espacio("compras_panel")
+        self.assertIsNotNone(s.economato)
+        self.assertTrue(hasattr(s.economato, "n_borradores"))
+        self.assertTrue(hasattr(s.economato, "pendientes_filas"))
 
 
 class TestEconomatoRecepcion(_Harness):
@@ -92,6 +109,15 @@ class TestEconomatoRecepcion(_Harness):
         self.assertIsNotNone(s.economato.compra_totales)
         self.assertNotEqual(s.economato.compra_totales.total, "0,00")
 
+    def test_update_linea_compra_cambia_cantidad(self) -> None:
+        p = self._p()
+        prov, prod = self._ensure_prov_prod()
+        p.set_compra_cabecera(proveedor_id=prov.id, referencia="UPD-LN-1")
+        p.añadir_linea_compra(prod.id, cantidad="2", precio_unitario="10", igic_pct="7")
+        s = p.update_linea_compra(0, cantidad="5")
+        self.assertEqual(s.economato.compra_lineas[0].cantidad, "5,00")
+        self.assertEqual(s.espacio_activo, "compras_albaran")
+
     def test_guardar_borrador(self) -> None:
         p = self._p()
         prov, prod = self._ensure_prov_prod()
@@ -117,6 +143,7 @@ class TestEconomatoMaestros(_Harness):
         self.assertTrue(s.feedback.ok, s.feedback.mensaje if s.feedback else "")
         nombres = [d.nombre for d in s.economato.departamentos]
         self.assertIn("Cocina Test Eco", nombres)
+        self.assertEqual(s.espacio_activo, "compras_proveedores")
 
     def test_crear_ubicacion_con_tipo(self) -> None:
         p = self._p()
@@ -133,9 +160,9 @@ class TestEconomatoMaestros(_Harness):
 class TestEconomatoDocumentosHistorial(_Harness):
     def test_documentos_y_historial_cargan(self) -> None:
         p = self._p()
-        s = p.seleccionar_espacio("documentos")
+        s = p.seleccionar_espacio("compras_documentos")
         self.assertIsNotNone(s.economato)
-        s2 = p.seleccionar_espacio("historial")
+        s2 = p.seleccionar_espacio("compras_historial")
         self.assertIsNotNone(s2.economato)
         nombre, csv_txt = p.exportar_historial_csv()
         self.assertTrue(nombre.endswith(".csv"))

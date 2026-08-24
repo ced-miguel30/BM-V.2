@@ -12,7 +12,7 @@ from app.core.application.idempotency import (
     rotate_idempotency_token,
 )
 from app.core.auth.permissions import AuthorizationError
-from app.core.models import EstadoAlerta, MotivoAjuste, MotivoMerma
+from app.core.models import EstadoAlerta, MotivoAjuste, MotivoMerma, TipoDocumento
 from app.core.models.enums import (
     ORIGEN_SERVICIO_MERMA_LABEL,
     TURNO_MERMA_LABEL,
@@ -36,6 +36,7 @@ from app.core.services.ubicacion_stock_service import (
 from app.presentation.flet import session_bridge
 from app.presentation.flet.inventory_viewmodels import (
     ESPACIOS,
+    ESPACIOS_ECONOMATO,
     ESPACIOS_OPS,
     ETIQUETA_SIN_UBICACION_HISTORICA,
     AlertaVM,
@@ -68,9 +69,14 @@ from app.presentation.flet.presenters.inventario_economato_mixin import (
 from app.presentation.flet.viewmodels import FeedbackVM
 
 _ETIQUETAS = {
-    "maestros": "Maestros",
-    "recepcion": "Recepci?n",
-    "documentos": "Documentos",
+    "compras_panel": "Panel",
+    "compras_albaran": "Nuevo albarán",
+    "compras_factura": "Nueva factura",
+    "compras_documentos": "Documentos",
+    "compras_pendientes": "Pendientes",
+    "compras_conciliacion": "Conciliación",
+    "compras_proveedores": "Proveedores",
+    "compras_historial": "Historial",
     "alertas": "Alertas",
     "caducidad": "Caducidad",
     "merma": "Merma",
@@ -78,7 +84,6 @@ _ETIQUETAS = {
     "traslados": "Traslados",
     "recuentos": "Recuentos",
     "ajustes": "Ajustes",
-    "historial": "Historial",
 }
 
 _IDEMP_AJUSTE = "flet_inv_ajuste"
@@ -180,6 +185,13 @@ class TerminalInventarioPresenter(InventarioEconomatoMixin):
             if self._espacio == "recuentos" and espacio_id != "recuentos":
                 aviso_abandon = self._al_abandonar_recuentos()
         self._espacio = espacio_id
+        if espacio_id == "compras_albaran":
+            self._compra_tipo = TipoDocumento.ALBARAN.value
+            self._albaranes_seleccionados = []
+        elif espacio_id == "compras_factura":
+            self._compra_tipo = TipoDocumento.FACTURA.value
+        elif espacio_id == "compras_proveedores":
+            self._maestro_tab = "proveedores"
         self._ajuste_preview = None
         self._ajuste_draft = None
         self._feedback = aviso_abandon or FeedbackVM(
@@ -1120,12 +1132,7 @@ class TerminalInventarioPresenter(InventarioEconomatoMixin):
                 rc_pend = self._recuentos_pendientes_vm(data)
                 rc_rec = self._recuentos_recientes_vm(data)
         economato = None
-        if session.authenticated and self._espacio in (
-            "maestros",
-            "recepcion",
-            "documentos",
-            "historial",
-        ):
+        if session.authenticated and self._espacio in ESPACIOS_ECONOMATO:
             data = get_container().app_data_store.get()
             economato = self._build_economato_panel(data)
         vm = InventarioScreenVM(

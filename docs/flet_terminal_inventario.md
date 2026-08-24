@@ -1,21 +1,29 @@
-# Terminal Inventario — segunda vertical Flet (BM‑V.2)
+# Terminal Inventario — vertical Flet economato + ops (BM‑V.2)
 
 ## Alcance
 
-App única de economato hotelero (estilo Dynamics NAV):
+App única de economato hotelero (flujo Compras estilo Noray + planta):
 
-### Economato (con economía documental)
-1. **Maestros** — departamentos, ubicaciones tipificadas (`economato|cocina|bar|camara|otro`), proveedores, impuestos, vínculos producto–proveedor
-2. **Recepción** — cabecera + grid multilínea (precio, dto %, dto €, IGIC, ubicación) · borrador/confirmar vía `compra_registro_service` · multi-albarán → factura
-3. **Documentos** — listado/filtro, detalle, anular confirmado, rectificativa
-4. **Historial** — timeline movimientos + documentos · export CSV
+### Compras / documentos (con economía documental)
+1. **Panel** — KPIs (borradores, albaranes pendientes de facturar, docs del mes)
+2. **Nuevo albarán** / **Nueva factura** — cabecera + **grid editable** (cantidad, precio, dto, IGIC) · borrador/confirmar vía `compra_registro_service` · factura multi-albarán con pendientes por cantidad
+3. **Documentos** — listado/filtro, detalle, anular, rectificativa
+4. **Pendientes** — residual qty a facturar por línea de albarán
+5. **Conciliación** — diferencias qty/precio/fiscal (consulta)
+6. **Proveedores** — maestros (deptos, ubicaciones tipificadas, impuestos, vínculos)
+7. **Historial** — timeline + export CSV
 
 ### Operación de planta (sin precios en saldos)
-5. **Alertas** · **Caducidad** · **Merma** · **Stock** · **Traslados** · **Recuentos** · **Ajustes**
+8. **Alertas** · **Caducidad** · **Merma** · **Stock** · **Traslados** · **Recuentos** · **Ajustes**
 
-OCR, RBAC por ubicación y pedidos a proveedor: fuera de este alcance.
+### Dominio aditivo (Noray)
+- Factura **mixta**: líneas conciliadas sin stock; líneas directas sí (`compra_registro_service`).
+- Pendiente de facturar = qty recibida − Σ conciliada activa (`compra_pendientes_service`).
+- Situaciones derivadas de facturación/inventario (consulta; no rompen JSON).
 
-Streamlit Stock «Compras y documentos» y Admin Flet Compras/Documentos quedan como **fallback deprecado** (banner en UI).
+OCR, RBAC fino por acción, pegado Excel multi-fila: limitaciones conocidas.
+
+Streamlit Stock «Compras y documentos» y Admin Flet Compras/Documentos quedan como **fallback deprecado** (banner en UI). Camino canónico UI = Terminal Inventario Flet → B1 `compra_registro_service`.
 
 ## Arranque
 
@@ -34,41 +42,25 @@ Alternativa: `BM_FLET_TERMINAL=inventario python -m app.presentation.flet.main`
 
 ## Autenticación y permisos
 
-- Entrada: `iniciar_terminal_inventario()` (`terminal_id=terminal_inventario`, rol administración técnico).
+- Entrada: `iniciar_terminal_inventario()` (`terminal_id=terminal_inventario`).
 - Acceso: `ACCEDER_TERMINAL_INVENTARIO` o `ACCEDER_INVENTARIO`.
-- **Permitidos** en esta terminal: `ACCEDER_COMPRAS_DOCUMENTOS`, `ACCEDER_CONFIGURACION` (maestros), mutaciones con `deny_terminal` en allowlist.
-- **Siguen bloqueados** por `terminal_id`: `CONSULTAR_COSTES`, `ACCEDER_GESTOR`.
-- Stock/traslados/recuentos/merma: sin precios en VMs de planta (`assert_inventario_sin_economia`). Economía solo en `EconomatoPanelVM` (`inventory_document_viewmodels.py`).
+- **Permitidos**: `ACCEDER_COMPRAS_DOCUMENTOS`, `ACCEDER_CONFIGURACION` (maestros).
+- **Bloqueados** por `terminal_id`: `CONSULTAR_COSTES`, `ACCEDER_GESTOR`.
+- Sin matriz RBAC fina Ver/Confirmar/Anular (limitación documentada).
 
 ## Arquitectura
 
 ```
 UI Flet Inventario → presenter (+ InventarioEconomatoMixin)
-  → compra_registro / documento_consulta / catalogo / proveedor / anulacion / rectificativa
+  → compra_registro / compra_pendientes / documento_consulta / catalogo / …
   → ops: alert/caducidad/merma/ubicacion_stock/traslado/recuento/ajuste
   → AppContext / UoW → AppDataStore → JSON
 ```
 
-```
-app/presentation/flet/
-  main_inventario.py
-  app_shell_inventario.py
-  inventory_viewmodels.py
-  inventory_document_viewmodels.py
-  presenters/terminal_inventario_presenter.py
-  presenters/inventario_economato_mixin.py
-  views/inventario_shell_view.py
-  views/inventario_economato_view.py
-```
-
-Helpers de rejilla: `app/ui/compra_grid_helpers.py` (sin Streamlit; compartidos con 13.5).
-
-## Regla de dominio (UI)
-
-**Departamento** = centro de uso · **Ubicación** = dónde está el stock físico.
+Espacios nav: `compras_panel` … `compras_historial` + ops planta.
 
 ## Pruebas
 
 ```bash
-python -m unittest tests.test_b5_terminal_inventario_auth tests.test_flet_terminal_inventario tests.test_flet_inventario_stock_traslados tests.test_flet_inventario_recuentos tests.test_flet_inventario_economato -v
+python -m unittest tests.test_b1_b3_compra_registro tests.test_compra_pendientes tests.test_compra_grid_helpers tests.test_b5_terminal_inventario_auth tests.test_flet_terminal_inventario tests.test_flet_inventario_economato -v
 ```

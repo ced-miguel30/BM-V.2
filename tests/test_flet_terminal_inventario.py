@@ -69,7 +69,7 @@ class TestInventarioAuthNav(_InvHarness):
         s = self._p().screen()
         self.assertTrue(s.session.authenticated)
         self.assertEqual(s.session.actor_id, "terminal_inventario")
-        self.assertEqual(len(s.espacios), 11)
+        self.assertEqual(len(s.espacios), 15)
 
     def test_entrada_denegada(self) -> None:
         p = TerminalInventarioPresenter()
@@ -80,9 +80,14 @@ class TestInventarioAuthNav(_InvHarness):
     def test_navegacion_espacios(self) -> None:
         p = self._p()
         for eid in (
-            "maestros",
-            "recepcion",
-            "documentos",
+            "compras_panel",
+            "compras_albaran",
+            "compras_factura",
+            "compras_documentos",
+            "compras_pendientes",
+            "compras_conciliacion",
+            "compras_proveedores",
+            "compras_historial",
             "alertas",
             "caducidad",
             "merma",
@@ -90,7 +95,6 @@ class TestInventarioAuthNav(_InvHarness):
             "traslados",
             "recuentos",
             "ajustes",
-            "historial",
         ):
             s = p.seleccionar_espacio(eid)
             self.assertEqual(s.espacio_activo, eid)

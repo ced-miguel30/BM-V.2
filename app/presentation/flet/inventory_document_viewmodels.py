@@ -156,10 +156,33 @@ class HistorialEventoVM:
 
 
 @dataclass(frozen=True)
+class PendienteFacturarVM:
+    albaran_etiqueta: str
+    producto: str
+    cantidad_pendiente: str
+    albaran_id: str = ""
+    linea_id: str = ""
+
+
+@dataclass(frozen=True)
+class DiferenciaConciliacionVM:
+    tipo: str
+    detalle: str
+    linea_albaran_id: str = ""
+    linea_factura_id: str = ""
+
+
+@dataclass(frozen=True)
 class EconomatoPanelVM:
-    """Slice documental del screen (solo espacios maestros/recepcion/documentos/historial)."""
+    """Slice documental del screen (espacios compras_*)."""
 
     maestro_tab: str = "departamentos"
+    # Panel KPIs
+    n_borradores: int = 0
+    n_albaranes_pendientes_facturar: int = 0
+    n_docs_mes: int = 0
+    pendientes_filas: tuple[PendienteFacturarVM, ...] = ()
+    diferencias_conciliacion: tuple[DiferenciaConciliacionVM, ...] = ()
     # Recepción
     compra_tipo: str = "albaran"
     compra_proveedor_id: str = ""

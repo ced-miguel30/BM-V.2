@@ -16,30 +16,6 @@ from app.presentation.flet.views.admin_shell_view import (
 )
 
 
-def _agent_dbg(location: str, message: str, data: dict, hypothesis_id: str) -> None:
-    # #region agent log
-    try:
-        import json
-        import time
-        from pathlib import Path
-
-        payload = {
-            "sessionId": "ec0c23",
-            "runId": "pre-fix",
-            "hypothesisId": hypothesis_id,
-            "location": location,
-            "message": message,
-            "data": data,
-            "timestamp": int(time.time() * 1000),
-        }
-        log_path = Path(__file__).resolve().parents[3] / "debug-ec0c23.log"
-        with log_path.open("a", encoding="utf-8") as fh:
-            fh.write(json.dumps(payload, ensure_ascii=False) + "\n")
-    except Exception:
-        pass
-    # #endregion
-
-
 class TerminalAdministracionShell:
     def __init__(
         self,
@@ -68,17 +44,6 @@ class TerminalAdministracionShell:
 
         try:
             screen = self.presenter.screen()
-            _agent_dbg(
-                "app_shell_administracion.py:refresh",
-                "refresh_screen",
-                {
-                    "seccion": screen.seccion,
-                    "auth": bool(screen.session.authenticated),
-                    "n_productos": len(screen.productos),
-                    "n_recetas": len(screen.recetas),
-                },
-                "E",
-            )
             if not screen.session.authenticated:
                 msg = ""
                 if screen.feedback and not screen.feedback.ok:
@@ -171,39 +136,8 @@ class TerminalAdministracionShell:
                     on_cancelar=self._on_cancelar,
                 )
             self._root.content = content
-            try:
-                self.page.update()
-            except Exception as upd_exc:  # noqa: BLE001
-                _agent_dbg(
-                    "app_shell_administracion.py:refresh",
-                    "page_update_exception",
-                    {
-                        "type": type(upd_exc).__name__,
-                        "str": str(upd_exc)[:400],
-                    },
-                    "C",
-                )
-                raise
-            _agent_dbg(
-                "app_shell_administracion.py:refresh",
-                "refresh_ok",
-                {"seccion": screen.seccion},
-                "E",
-            )
+            self.page.update()
         except Exception as exc:  # noqa: BLE001
-            import traceback as _tb
-
-            _agent_dbg(
-                "app_shell_administracion.py:refresh",
-                "refresh_exception_soft",
-                {
-                    "type": type(exc).__name__,
-                    "repr": repr(exc),
-                    "str": str(exc),
-                    "tb": _tb.format_exc()[-2500:],
-                },
-                "E",
-            )
             # No re-lanzar: un raise aquí cierra la ventana Flet ("sale" al usuario).
             self._root.content = ft.Container(
                 expand=True,
@@ -250,12 +184,6 @@ class TerminalAdministracionShell:
         self.refresh()
 
     def _on_seccion(self, seccion: str) -> None:
-        _agent_dbg(
-            "app_shell_administracion.py:_on_seccion",
-            "nav_click",
-            {"seccion_arg": seccion},
-            "D",
-        )
         self.presenter.set_seccion(seccion)
         self.refresh()
 
@@ -268,45 +196,10 @@ class TerminalAdministracionShell:
         self.refresh()
 
     def _on_analisis_pestana(self, pestana: str) -> None:
-        # #region agent log
-        _agent_dbg(
-            "app_shell_administracion.py:_on_analisis_pestana",
-            "pestana_click",
-            {
-                "pestana": pestana,
-                "hub": getattr(self.presenter, "_analisis_hub", None),
-                "subtab_before": getattr(self.presenter, "_analisis_subtab", None),
-            },
-            "A",
-        )
-        # #endregion
         self.presenter.set_analisis_pestana(pestana)
-        # #region agent log
-        _agent_dbg(
-            "app_shell_administracion.py:_on_analisis_pestana",
-            "pestana_after_set",
-            {
-                "pestana": getattr(self.presenter, "_analisis_pestana", None),
-                "subtab_after": getattr(self.presenter, "_analisis_subtab", None),
-            },
-            "A",
-        )
-        # #endregion
         self.refresh()
 
     def _on_analisis_subtab(self, subtab: str) -> None:
-        # #region agent log
-        _agent_dbg(
-            "app_shell_administracion.py:_on_analisis_subtab",
-            "subtab_click",
-            {
-                "subtab": subtab,
-                "pestana": getattr(self.presenter, "_analisis_pestana", None),
-                "hub": getattr(self.presenter, "_analisis_hub", None),
-            },
-            "A",
-        )
-        # #endregion
         self.presenter.set_analisis_subtab(subtab)
         self.refresh()
 
@@ -660,7 +553,6 @@ class TerminalAdministracionShell:
     def _on_cancelar(self) -> None:
         self.presenter.cancelar_pendiente()
         self.refresh()
-
 
 def attach_terminal_administracion(page: ft.Page) -> TerminalAdministracionShell:
     shell = TerminalAdministracionShell(page)

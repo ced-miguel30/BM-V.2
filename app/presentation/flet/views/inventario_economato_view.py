@@ -1,8 +1,8 @@
-"""Paneles economato Flet — maestros, recepción, documentos, historial."""
+"""Paneles economato Flet — compras Noray (panel, albarán, factura, docs…)."""
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from typing import Any
 
 import flet as ft
 
@@ -15,138 +15,178 @@ from app.presentation.flet.inventory_document_viewmodels import (
 )
 from app.presentation.flet.inventory_viewmodels import InventarioScreenVM
 
-
 def build_economato_body(
     screen: InventarioScreenVM,
     callbacks: dict[str, Any],
 ) -> ft.Control:
-    # #region agent log
-    def _dbg(msg: str, data: dict, hyp: str = "A") -> None:
-        import json, time
-        try:
-            with open(
-                r"c:\Users\User\Desktop\HOTEL\BM V.2\debug-ec0c23.log",
-                "a",
-                encoding="utf-8",
-            ) as _f:
-                _f.write(
-                    json.dumps(
-                        {
-                            "sessionId": "ec0c23",
-                            "hypothesisId": hyp,
-                            "location": "inventario_economato_view.py:build_economato_body",
-                            "message": msg,
-                            "data": data,
-                            "timestamp": int(time.time() * 1000),
-                        },
-                        ensure_ascii=False,
-                    )
-                    + "\n"
-                )
-        except Exception:
-            pass
-
-    # #endregion
     eco = screen.economato
     if eco is None:
-        # #region agent log
-        _dbg("eco_none", {"espacio": screen.espacio_activo}, "B")
-        # #endregion
         return ft.Text("Cargando economato…", color=ui_theme.MID_GRAY)
     espacio = screen.espacio_activo
-    # #region agent log
-    _dbg("build_start", {"espacio": espacio}, "B")
-    # #endregion
     try:
-        if espacio == "recepcion":
+        if espacio == "compras_panel":
+            body = _panel(screen, eco, callbacks)
+        elif espacio in ("compras_albaran", "compras_factura"):
             body = _recepcion(screen, eco, callbacks)
-        elif espacio == "documentos":
+        elif espacio == "compras_documentos":
             body = _documentos(screen, eco, callbacks)
-        elif espacio == "maestros":
+        elif espacio == "compras_pendientes":
+            body = _pendientes(screen, eco, callbacks)
+        elif espacio == "compras_conciliacion":
+            body = _conciliacion(screen, eco, callbacks)
+        elif espacio == "compras_proveedores":
             body = _maestros(screen, eco, callbacks)
-        elif espacio == "historial":
+        elif espacio == "compras_historial":
             body = _historial(screen, eco, callbacks)
         else:
             body = ft.Text("Espacio no soportado", color=ui_theme.MID_GRAY)
-        # #region agent log
-        _dbg("build_ok", {"espacio": espacio, "type": type(body).__name__}, "A")
-        # #endregion
         return body
     except TypeError as exc:
-        # #region agent log
-        _dbg(
-            "build_typeerror",
-            {"espacio": espacio, "error": str(exc)},
-            "A",
-        )
-        # #endregion
         raise
-
 
 def _section_title(text: str) -> ft.Control:
     return ft.Text(text, size=18, weight=ft.FontWeight.BOLD, color=ui_theme.NAVY)
 
 
+def _panel(
+    screen: InventarioScreenVM, eco: EconomatoPanelVM, cbs: dict[str, Any]
+) -> ft.Control:
+    goto = cbs.get("on_goto_espacio")
+
+    def _kpi(label: str, value: int, espacio: str) -> ft.Control:
+        return ft.Container(
+            padding=16,
+            bgcolor=ui_theme.SURFACE_CARD,
+            border_radius=ui_theme.RADIUS_SM,
+            border=ft.border.all(1, ui_theme.BORDER),
+            content=ft.Column(
+                spacing=4,
+                controls=[
+                    ft.Text(str(value), size=28, weight=ft.FontWeight.BOLD, color=ui_theme.TEAL),
+                    ft.Text(label, size=13, color=ui_theme.MID_GRAY),
+                ],
+            ),
+            on_click=(lambda _e, eid=espacio: goto(eid)) if goto else None,
+        )
+
+    return ft.Column(
+        spacing=ui_theme.SPACE_MD,
+        controls=[
+            _section_title("Panel de compras"),
+            ft.Text(
+                "Resumen operativo · pulse un KPI para ir al espacio",
+                size=12,
+                color=ui_theme.MID_GRAY,
+            ),
+            ft.Row(
+                wrap=True,
+                spacing=16,
+                controls=[
+                    _kpi("Borradores", eco.n_borradores, "compras_albaran"),
+                    _kpi(
+                        "Albaranes pendientes de facturar",
+                        eco.n_albaranes_pendientes_facturar,
+                        "compras_pendientes",
+                    ),
+                    _kpi("Documentos del mes", eco.n_docs_mes, "compras_documentos"),
+                ],
+            ),
+        ],
+    )
+
+
+def _pendientes(
+    screen: InventarioScreenVM, eco: EconomatoPanelVM, cbs: dict[str, Any]
+) -> ft.Control:
+    rows: list[ft.Control] = []
+    if not eco.pendientes_filas:
+        rows.append(ft.Text("Sin pendientes de facturar.", color=ui_theme.MID_GRAY))
+    else:
+        for p in eco.pendientes_filas:
+            rows.append(
+                ft.Container(
+                    padding=8,
+                    border=ft.border.only(bottom=ft.BorderSide(1, ui_theme.BORDER)),
+                    content=ft.Row(
+                        controls=[
+                            ft.Text(p.albaran_etiqueta, width=160, weight=ft.FontWeight.W_600),
+                            ft.Text(p.producto, expand=True),
+                            ft.Text(f"Pend. {p.cantidad_pendiente}", width=100),
+                        ]
+                    ),
+                )
+            )
+    return ft.Column(
+        spacing=ui_theme.SPACE_MD,
+        controls=[
+            _section_title("Pendientes de facturar"),
+            ft.Text(
+                "Líneas de albarán confirmado aún no conciliadas en factura.",
+                size=12,
+                color=ui_theme.MID_GRAY,
+            ),
+            ft.Column(controls=rows),
+        ],
+    )
+
+
+def _conciliacion(
+    screen: InventarioScreenVM, eco: EconomatoPanelVM, cbs: dict[str, Any]
+) -> ft.Control:
+    lista: list[ft.Control] = []
+    for d in eco.documentos:
+        if (d.tipo or "").lower() != "factura":
+            continue
+        lista.append(
+            ft.ListTile(
+                title=ft.Text(f"FACTURA · {d.referencia or d.id}"),
+                subtitle=ft.Text(f"{d.proveedor} · {d.fecha} · {d.estado}"),
+                on_click=lambda _e, did=d.id: cbs["on_sel_documento"](did),
+            )
+        )
+    diffs: list[ft.Control] = []
+    if eco.documento_detalle:
+        diffs.append(
+            ft.Text(
+                f"Seleccionada: {eco.documento_detalle.referencia or eco.documento_detalle.id}",
+                weight=ft.FontWeight.W_600,
+            )
+        )
+    if not eco.diferencias_conciliacion:
+        diffs.append(
+            ft.Text(
+                "Sin diferencias (seleccione una factura o no hay vínculos).",
+                size=12,
+                color=ui_theme.MID_GRAY,
+            )
+        )
+    else:
+        for dif in eco.diferencias_conciliacion:
+            diffs.append(ft.Text(f"[{dif.tipo}] {dif.detalle}", size=13))
+    return ft.Column(
+        spacing=ui_theme.SPACE_MD,
+        controls=[
+            _section_title("Conciliación albarán ↔ factura"),
+            ft.Text(
+                "Seleccione una factura para ver diferencias.",
+                size=12,
+                color=ui_theme.MID_GRAY,
+            ),
+            ft.Column(controls=lista or [ft.Text("Sin facturas.", color=ui_theme.MID_GRAY)]),
+            _section_title("Diferencias"),
+            ft.Column(controls=diffs),
+        ],
+    )
+
 def _recepcion(
     screen: InventarioScreenVM, eco: EconomatoPanelVM, cbs: dict[str, Any]
 ) -> ft.Control:
-    # #region agent log
-    import json, time, inspect
 
-    try:
-        sig = inspect.signature(ft.Dropdown.__init__)
-        with open(
-            r"c:\Users\User\Desktop\HOTEL\BM V.2\debug-ec0c23.log",
-            "a",
-            encoding="utf-8",
-        ) as _f:
-            _f.write(
-                json.dumps(
-                    {
-                        "sessionId": "ec0c23",
-                        "hypothesisId": "A",
-                        "location": "inventario_economato_view.py:_recepcion",
-                        "message": "dropdown_api",
-                        "data": {
-                            "has_on_change": "on_change" in sig.parameters,
-                            "has_on_select": "on_select" in sig.parameters,
-                        },
-                        "timestamp": int(time.time() * 1000),
-                    },
-                    ensure_ascii=False,
-                )
-                + "\n"
-            )
-    except Exception:
-        pass
-    # #endregion
-    # #region agent log
-    try:
-        with open(
-            r"c:\Users\User\Desktop\HOTEL\BM V.2\debug-ec0c23.log",
-            "a",
-            encoding="utf-8",
-        ) as _f:
-            _f.write(
-                json.dumps(
-                    {
-                        "sessionId": "ec0c23",
-                        "hypothesisId": "A",
-                        "location": "inventario_economato_view.py:_recepcion",
-                        "message": "creating_tipo_dd_with_on_select",
-                        "data": {"kw": "on_select"},
-                        "timestamp": int(time.time() * 1000),
-                    },
-                    ensure_ascii=False,
-                )
-                + "\n"
-            )
-    except Exception:
-        pass
-    # #endregion
+    tipo_forzado = eco.compra_tipo or "albaran"
+    titulo = "Nuevo albarán" if tipo_forzado == "albaran" else "Nueva factura"
     tipo_dd = ft.Dropdown(
         label="Tipo documento",
-        value=eco.compra_tipo or "albaran",
+        value=tipo_forzado,
         options=[
             ft.dropdown.Option("albaran", "Albarán"),
             ft.dropdown.Option("factura", "Factura"),
@@ -246,8 +286,50 @@ def _recepcion(
                     )
                 )
 
+    on_update = cbs.get("on_update_linea")
     lineas_rows: list[ft.Control] = []
     for i, ln in enumerate(eco.compra_lineas):
+        cant_ln = ft.TextField(value=ln.cantidad, width=70, dense=True, label="Cant.")
+        prec_ln = ft.TextField(
+            value=ln.precio_unitario, width=80, dense=True, label="P.ud"
+        )
+        dto_p_ln = ft.TextField(value=ln.dto_pct, width=60, dense=True, label="Dto%")
+        dto_e_ln = ft.TextField(value=ln.dto_eur, width=60, dense=True, label="Dto€")
+        igic_ln = ft.TextField(value=ln.igic_pct, width=60, dense=True, label="IGIC%")
+
+        def _commit_ln(
+            _e=None,
+            idx=i,
+            c=cant_ln,
+            p=prec_ln,
+            dp=dto_p_ln,
+            de=dto_e_ln,
+            ig=igic_ln,
+            orig=ln,
+        ):
+            if on_update is None:
+                return
+            campos = {
+                "cantidad": c.value or "0",
+                "precio_unitario": p.value or "0",
+                "dto_pct": dp.value or "0",
+                "dto_eur": de.value or "0",
+                "igic_pct": ig.value or "0",
+            }
+            if (
+                campos["cantidad"] == orig.cantidad
+                and campos["precio_unitario"] == orig.precio_unitario
+                and campos["dto_pct"] == orig.dto_pct
+                and campos["dto_eur"] == orig.dto_eur
+                and campos["igic_pct"] == orig.igic_pct
+            ):
+                return
+            on_update(idx, **campos)
+
+        for tf in (cant_ln, prec_ln, dto_p_ln, dto_e_ln, igic_ln):
+            tf.on_blur = _commit_ln
+            tf.on_submit = _commit_ln
+
         lineas_rows.append(
             ft.Container(
                 padding=8,
@@ -256,12 +338,14 @@ def _recepcion(
                     wrap=True,
                     spacing=8,
                     controls=[
-                        ft.Text(ln.producto_nombre, width=180, weight=ft.FontWeight.W_600),
-                        ft.Text(f"{ln.cantidad} {ln.unidad}", width=90),
-                        ft.Text(f"{ln.precio_unitario} €", width=90),
-                        ft.Text(f"dto {ln.dto_pct}%/{ln.dto_eur}€", width=110),
-                        ft.Text(f"IGIC {ln.igic_pct}%", width=90),
-                        ft.Text(f"= {ln.total_linea} €", width=100),
+                        ft.Text(ln.producto_nombre, width=160, weight=ft.FontWeight.W_600),
+                        cant_ln,
+                        ft.Text(ln.unidad, width=40, size=12),
+                        prec_ln,
+                        dto_p_ln,
+                        dto_e_ln,
+                        igic_ln,
+                        ft.Text(f"= {ln.total_linea} €", width=90),
                         ft.IconButton(
                             ft.Icons.DELETE_OUTLINE,
                             icon_color=ui_theme.ERROR,
@@ -357,9 +441,9 @@ def _recepcion(
     return ft.Column(
         spacing=ui_theme.SPACE_MD,
         controls=[
-            _section_title("Recepción de compra"),
+            _section_title(titulo),
             ft.Text(
-                "Cabecera + líneas con impuestos/descuentos · paridad 13.5",
+                "Cabecera + líneas editables · paridad 13.5",
                 size=12,
                 color=ui_theme.MID_GRAY,
             ),
@@ -402,7 +486,6 @@ def _recepcion(
             ft.Column(controls=borradores),
         ],
     )
-
 
 def _documentos(
     screen: InventarioScreenVM, eco: EconomatoPanelVM, cbs: dict[str, Any]
@@ -520,7 +603,6 @@ def _documentos(
             ft.Column(controls=detalle_ctrls),
         ],
     )
-
 
 def _maestros(
     screen: InventarioScreenVM, eco: EconomatoPanelVM, cbs: dict[str, Any]
@@ -733,9 +815,8 @@ def _maestros(
 
     return ft.Column(
         spacing=ui_theme.SPACE_MD,
-        controls=[_section_title("Maestros economato"), tabs, body],
+        controls=[_section_title("Proveedores / maestros"), tabs, body],
     )
-
 
 def _historial(
     screen: InventarioScreenVM, eco: EconomatoPanelVM, cbs: dict[str, Any]

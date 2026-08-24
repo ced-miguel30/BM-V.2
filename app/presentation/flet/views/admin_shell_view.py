@@ -2420,7 +2420,7 @@ def _panel_documentos(screen: AdminScreenVM, **cbs) -> ft.Control:
         spacing=ui_theme.SPACE_MD,
         controls=[
             ui.alert_banner(
-                "Deprecado: use Terminal Inventario → Documentos. "
+                "Deprecado: use Terminal Inventario → Documentos / Pendientes. "
                 "Este panel Admin queda como fallback.",
                 severity="warning",
             ),
@@ -2490,8 +2490,8 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
     on_anular_borr = cbs.get("on_anular_borrador_compra")
 
     deprecacion = ui.alert_banner(
-        "Deprecado: use Terminal Inventario → Recepción / Documentos "
-        "(paridad completa 13.5). Este panel Admin queda como fallback.",
+        "Deprecado: use Terminal Inventario → Albarán / Factura / Documentos "
+        "(flujo Noray). Este panel Admin queda como fallback.",
         severity="warning",
     )
 

@@ -88,7 +88,13 @@ def impacto_stock_dominio(
     *,
     tiene_conciliaciones: bool,
 ) -> bool:
-    """D90: la UI no elige; el dominio decide."""
+    """D90: la UI no elige; el dominio decide (nivel documento, compat).
+
+    Facturas mixtas: el impacto real se decide **por línea** en
+    `_aplicar_confirmacion` (líneas conciliadas/origen sin stock; directas sí).
+    Este booleano solo indica si *puede* haber entrada a nivel documento
+    (factura 100 % conciliada ⇒ False).
+    """
     t = (tipo or "").lower()
     if t == TipoDocumento.ALBARAN.value:
         return True
@@ -98,6 +104,21 @@ def impacto_stock_dominio(
         return False
     if t == "devolucion":
         return True  # salida; B2 implementará efecto
+    return False
+
+
+def _linea_factura_sin_stock(
+    ln: LineaDocumento,
+    *,
+    lineas_conciliadas_ids: set[str],
+) -> bool:
+    """True si la línea no debe crear lote (vínculo a albarán / conciliación)."""
+    if ln.linea_origen_id:
+        return True
+    if ln.id in lineas_conciliadas_ids:
+        return True
+    if ln.client_line_key and ln.client_line_key in lineas_conciliadas_ids:
+        return True
     return False
 
 
@@ -327,8 +348,7 @@ def _aplicar_confirmacion(
         return ResultadoCompra(False, "client_line_key duplicada en el documento.")
 
     tiene_conc = bool(conciliaciones_propuestas)
-    entra_stock = impacto_stock_dominio(_tipo(doc), tiene_conciliaciones=tiene_conc)
-    doc.impacto_stock = entra_stock  # snapshot dominio (ignora UI)
+    tipo_doc = _tipo(doc)
 
     if not hasattr(data, "movimientos") or data.movimientos is None:
         data.movimientos = []
@@ -337,8 +357,10 @@ def _aplicar_confirmacion(
 
     avisos = alertas_subida_precio(data, doc)
 
-    # Conciliaciones (factura sin stock)
-    if tiene_conc and _tipo(doc) == TipoDocumento.FACTURA.value:
+    lineas_conciliadas_ids: set[str] = set()
+
+    # Conciliaciones (factura: líneas vinculadas sin stock; directas sí)
+    if tiene_conc and tipo_doc == TipoDocumento.FACTURA.value:
         for prop in conciliaciones_propuestas or []:
             lf = prop.get("linea_factura_id") or prop.get("linea_factura_client_key")
             la = prop.get("linea_albaran_id")
@@ -414,6 +436,9 @@ def _aplicar_confirmacion(
             )
             if sum_a + qty > qty_a or sum_f + qty > qty_f:
                 return ResultadoCompra(False, "Cantidad conciliada excede el tope.")
+            lineas_conciliadas_ids.add(ln_f.id)
+            if ln_f.client_line_key:
+                lineas_conciliadas_ids.add(ln_f.client_line_key)
             cid = next_id("con", [c.id for c in data.conciliaciones_documento])
             data.conciliaciones_documento.append(
                 ConciliacionLineaDocumento(
@@ -433,85 +458,99 @@ def _aplicar_confirmacion(
                 )
             )
 
-    # Entrada de stock (albarán / factura directa)
-    if entra_stock:
-        # Unicidad (documento_id, linea_id)
-        for ln in doc.lineas:
-            for m in data.movimientos:
-                if (
-                    m.origen_id == doc.id
-                    and m.origen_linea_id == ln.id
-                    and (
-                        m.tipo.value if hasattr(m.tipo, "value") else str(m.tipo)
-                    ).startswith("entrada")
-                ):
-                    return ResultadoCompra(
-                        False,
-                        f"Ya existe movimiento de entrada para línea {ln.id}.",
-                    )
-            qty = float(ln.cantidad_inventario or 0)
-            if qty <= 0:
-                return ResultadoCompra(False, f"cantidad_inventario inválida en {ln.id}")
-            coste = as_decimal(ln.coste_inventariable_linea or 0)
-            coste_unit = ln.coste_unitario_inventario
-            lote = LoteStock(
-                next_id("l", [l.id for l in data.lotes]),
-                ln.producto_id,
-                float(money_round(coste)),
-                qty,
-                qty,
-                doc.fecha_documento,
-                ln.fecha_expiracion,
-                doc.proveedor_nombre_snapshot,
-                None,
-                documento_origen_id=doc.id,
-                linea_documento_origen_id=ln.id,
-            )
-            data.lotes.append(lote)
-            tipo_mov = (
-                TipoMovimiento.ENTRADA_ALBARAN
-                if _tipo(doc) == TipoDocumento.ALBARAN.value
-                else TipoMovimiento.ENTRADA_FACTURA
-            )
-            from app.core.application.context import build_app_context
-            from app.core.application.unit_of_work import InMemoryUnitOfWork
+    # Entrada de stock: albarán todas; factura solo líneas directas (mixtas OK)
+    creo_stock = False
+    for ln in doc.lineas:
+        if tipo_doc == TipoDocumento.FACTURA.value and _linea_factura_sin_stock(
+            ln, lineas_conciliadas_ids=lineas_conciliadas_ids
+        ):
+            ln.lote_id = None
+            ln.movimiento_id = None
+            continue
+        if tipo_doc == TipoDocumento.RECTIFICATIVA.value:
+            continue
+        if tipo_doc not in (
+            TipoDocumento.ALBARAN.value,
+            TipoDocumento.FACTURA.value,
+        ):
+            continue
+        for m in data.movimientos:
+            if (
+                m.origen_id == doc.id
+                and m.origen_linea_id == ln.id
+                and (
+                    m.tipo.value if hasattr(m.tipo, "value") else str(m.tipo)
+                ).startswith("entrada")
+            ):
+                return ResultadoCompra(
+                    False,
+                    f"Ya existe movimiento de entrada para línea {ln.id}.",
+                )
+        qty = float(ln.cantidad_inventario or 0)
+        if qty <= 0:
+            return ResultadoCompra(False, f"cantidad_inventario inválida en {ln.id}")
+        coste = as_decimal(ln.coste_inventariable_linea or 0)
+        coste_unit = ln.coste_unitario_inventario
+        lote = LoteStock(
+            next_id("l", [l.id for l in data.lotes]),
+            ln.producto_id,
+            float(money_round(coste)),
+            qty,
+            qty,
+            doc.fecha_documento,
+            ln.fecha_expiracion,
+            doc.proveedor_nombre_snapshot,
+            None,
+            documento_origen_id=doc.id,
+            linea_documento_origen_id=ln.id,
+        )
+        data.lotes.append(lote)
+        tipo_mov = (
+            TipoMovimiento.ENTRADA_ALBARAN
+            if tipo_doc == TipoDocumento.ALBARAN.value
+            else TipoMovimiento.ENTRADA_FACTURA
+        )
+        from app.core.application.context import build_app_context
+        from app.core.application.unit_of_work import InMemoryUnitOfWork
 
-            ctx_local = build_app_context(uow=InMemoryUnitOfWork(data))
-            espejo = mov.crear_movimiento(
-                producto_id=ln.producto_id,
-                lote_id=lote.id,
-                tipo=tipo_mov,
-                direccion=DireccionMovimiento.ENTRADA,
-                cantidad=qty,
-                fecha=doc.fecha_documento,
-                origen_tipo=_tipo(doc),
-                origen_id=doc.id,
-                origen_linea_id=ln.id,
-                hora=doc.hora,
-                coste_unitario_snapshot=(
-                    float(coste_unit) if coste_unit is not None else None
-                ),
-                coste_total_snapshot=float(money_round(coste)),
-                ubicacion_destino_id=ln.ubicacion_destino_id
-                or getattr(doc, "ubicacion_entrada_id", None),
-                ctx=ctx_local,
-                commit=False,
-            )
-            if not espejo.ok and not getattr(espejo, "duplicado", False):
-                return ResultadoCompra(False, espejo.mensaje)
-            ln.lote_id = lote.id
-            ln.movimiento_id = espejo.movimiento.id if espejo.movimiento else None
-            # Actualizar último precio relación
-            if doc.proveedor_id and ln.precio_unitario_compra is not None:
-                for r in getattr(data, "relaciones_producto_proveedor", []) or []:
-                    if (
-                        r.producto_id == ln.producto_id
-                        and r.proveedor_id == doc.proveedor_id
-                        and r.activo
-                    ):
-                        r.ultimo_precio_unitario_compra = as_decimal(
-                            ln.precio_unitario_compra
-                        )
+        ctx_local = build_app_context(uow=InMemoryUnitOfWork(data))
+        espejo = mov.crear_movimiento(
+            producto_id=ln.producto_id,
+            lote_id=lote.id,
+            tipo=tipo_mov,
+            direccion=DireccionMovimiento.ENTRADA,
+            cantidad=qty,
+            fecha=doc.fecha_documento,
+            origen_tipo=tipo_doc,
+            origen_id=doc.id,
+            origen_linea_id=ln.id,
+            hora=doc.hora,
+            coste_unitario_snapshot=(
+                float(coste_unit) if coste_unit is not None else None
+            ),
+            coste_total_snapshot=float(money_round(coste)),
+            ubicacion_destino_id=ln.ubicacion_destino_id
+            or getattr(doc, "ubicacion_entrada_id", None),
+            ctx=ctx_local,
+            commit=False,
+        )
+        if not espejo.ok and not getattr(espejo, "duplicado", False):
+            return ResultadoCompra(False, espejo.mensaje)
+        ln.lote_id = lote.id
+        ln.movimiento_id = espejo.movimiento.id if espejo.movimiento else None
+        creo_stock = True
+        if doc.proveedor_id and ln.precio_unitario_compra is not None:
+            for r in getattr(data, "relaciones_producto_proveedor", []) or []:
+                if (
+                    r.producto_id == ln.producto_id
+                    and r.proveedor_id == doc.proveedor_id
+                    and r.activo
+                ):
+                    r.ultimo_precio_unitario_compra = as_decimal(
+                        ln.precio_unitario_compra
+                    )
+
+    doc.impacto_stock = creo_stock  # snapshot real (mixtas: True si alguna directa)
 
     doc.estado = EstadoDocumento.CONFIRMADO
     doc.confirmado_en = datetime.now()
@@ -524,7 +563,7 @@ def _aplicar_confirmacion(
             datetime.now(),
             "Sistema",
             "Confirmar compra",
-            f"{doc.id} token={confirmacion_id[:8]}… stock={entra_stock}",
+            f"{doc.id} token={confirmacion_id[:8]}… stock={creo_stock}",
         ),
     )
     return ResultadoCompra(

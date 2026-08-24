@@ -21,6 +21,7 @@ from app.core.services.text_search import contiene_texto
 from app.core.services import (
     anulacion_documento_service,
     catalogo_service,
+    compra_pendientes_service,
     compra_registro_service,
     documento_consulta_service,
     proveedor_service,
@@ -35,6 +36,7 @@ from app.presentation.flet.inventory_document_viewmodels import (
     AlbaranConciliableVM,
     CompraLineaDocVM,
     DepartamentoMaestroVM,
+    DiferenciaConciliacionVM,
     DocumentoDetalleLineaVM,
     DocumentoDetalleVM,
     DocumentoListaVM,
@@ -42,11 +44,13 @@ from app.presentation.flet.inventory_document_viewmodels import (
     HistorialEventoVM,
     ImpuestoMaestroVM,
     OpcionDocVM,
+    PendienteFacturarVM,
     ProveedorMaestroVM,
     TotalesCompraVM,
     UbicacionMaestroVM,
     VinculoMaestroVM,
 )
+from app.presentation.flet.inventory_viewmodels import ESPACIOS_ECONOMATO
 from app.presentation.flet.mappers import map_error_recuperable, map_resultado
 from app.presentation.flet.viewmodels import FeedbackVM
 from app.ui import compra_grid_helpers as grid
@@ -96,8 +100,13 @@ class InventarioEconomatoMixin:
             self._feedback = map_error_recuperable("Pestaña de maestros no válida.")
             return self.screen()
         self._maestro_tab = t
-        self._espacio = "maestros"
+        self._espacio = "compras_proveedores"
         return self.screen()
+
+    def _espacio_compra_edicion(self) -> str:
+        if self._compra_tipo == TipoDocumento.FACTURA.value:
+            return "compras_factura"
+        return "compras_albaran"
 
     # ── Recepción ─────────────────────────────────────────────────────────
 
@@ -126,7 +135,7 @@ class InventarioEconomatoMixin:
             self._compra_ubicacion_entrada_id = (ubicacion_entrada_id or "").strip()
         if tipo is not None:
             return self.set_compra_tipo(tipo)
-        self._espacio = "recepcion"
+        self._espacio = self._espacio_compra_edicion()
         return self.screen()
 
     def set_compra_tipo(self, tipo: str) -> InventarioScreenVM:
@@ -139,14 +148,14 @@ class InventarioEconomatoMixin:
         self._compra_tipo = t
         if t != TipoDocumento.FACTURA.value:
             self._albaranes_seleccionados = []
-        self._espacio = "recepcion"
+        self._espacio = self._espacio_compra_edicion()
         return self.screen()
 
     def set_compra_prod_busqueda(self, texto: str) -> InventarioScreenVM:
         if not self._gate_economato():
             return self.screen()
         self._compra_prod_busqueda = (texto or "").strip()
-        self._espacio = "recepcion"
+        self._espacio = self._espacio_compra_edicion()
         return self.screen()
 
     def añadir_linea_compra(
@@ -203,7 +212,7 @@ class InventarioEconomatoMixin:
         self._compra_lineas.append(row)
         self._compra_prod_busqueda = ""
         self._feedback = FeedbackVM(ok=True, mensaje=f"Línea «{prod.nombre}» añadida.")
-        self._espacio = "recepcion"
+        self._espacio = self._espacio_compra_edicion()
         return self.screen()
 
     def añadir_linea_compra_por_busqueda(
@@ -219,7 +228,7 @@ class InventarioEconomatoMixin:
         if prod is None:
             self._compra_prod_busqueda = (texto or "").strip()
             self._feedback = map_error_recuperable(err or "Producto no encontrado.")
-            self._espacio = "recepcion"
+            self._espacio = self._espacio_compra_edicion()
             return self.screen()
         return self.añadir_linea_compra(
             prod.id, cantidad=cantidad, precio_unitario=precio_unitario
@@ -261,7 +270,7 @@ class InventarioEconomatoMixin:
         if unidad is not None:
             row["unidad"] = (unidad or "").strip() or row.get("unidad") or "Ud"
         self._compra_lineas[index] = row
-        self._espacio = "recepcion"
+        self._espacio = self._espacio_compra_edicion()
         return self.screen()
 
     def quitar_linea_compra(self, index: int) -> InventarioScreenVM:
@@ -274,7 +283,7 @@ class InventarioEconomatoMixin:
         self._feedback = FeedbackVM(
             ok=True, mensaje=f"Línea «{quitada.get('producto', '')}» eliminada."
         )
-        self._espacio = "recepcion"
+        self._espacio = self._espacio_compra_edicion()
         return self.screen()
 
     def limpiar_borrador_compra(self) -> InventarioScreenVM:
@@ -282,7 +291,7 @@ class InventarioEconomatoMixin:
             return self.screen()
         self._reset_compra_draft()
         self._feedback = FeedbackVM(ok=True, mensaje="Borrador de compra limpiado.")
-        self._espacio = "recepcion"
+        self._espacio = self._espacio_compra_edicion()
         return self.screen()
 
     def toggle_albaran_conciliacion(self, albaran_id: str) -> InventarioScreenVM:
@@ -297,7 +306,7 @@ class InventarioEconomatoMixin:
             ]
         else:
             self._albaranes_seleccionados.append(aid)
-        self._espacio = "recepcion"
+        self._espacio = self._espacio_compra_edicion()
         return self.screen()
 
     def incorporar_albaranes_seleccionados(self) -> InventarioScreenVM:
@@ -354,7 +363,7 @@ class InventarioEconomatoMixin:
         self._feedback = FeedbackVM(
             ok=True, mensaje=f"Incorporadas {added} línea(s) de {len(albs)} albarán(es)."
         )
-        self._espacio = "recepcion"
+        self._espacio = self._espacio_compra_edicion()
         return self.screen()
 
     def guardar_borrador_compra(self) -> InventarioScreenVM:
@@ -372,7 +381,7 @@ class InventarioEconomatoMixin:
             self._feedback = map_resultado(True, r.mensaje or "Borrador guardado.")
         else:
             self._feedback = map_resultado(False, r.mensaje or "No se pudo guardar.")
-        self._espacio = "recepcion"
+        self._espacio = self._espacio_compra_edicion()
         return self.screen()
 
     def confirmar_compra_borrador(self) -> InventarioScreenVM:
@@ -432,7 +441,7 @@ class InventarioEconomatoMixin:
                     self._feedback = map_resultado(False, res.mensaje or "Error al confirmar.")
         finally:
             self._confirmando = False
-        self._espacio = "recepcion"
+        self._espacio = self._espacio_compra_edicion()
         return self.screen()
 
     def cargar_borrador_compra(self, documento_id: str) -> InventarioScreenVM:
@@ -469,7 +478,7 @@ class InventarioEconomatoMixin:
         )
         self._albaranes_seleccionados = []
         self._feedback = FeedbackVM(ok=True, mensaje=f"Borrador {doc.id} cargado.")
-        self._espacio = "recepcion"
+        self._espacio = self._espacio_compra_edicion()
         return self.screen()
 
     def anular_borrador_compra(self, documento_id: str) -> InventarioScreenVM:
@@ -507,7 +516,7 @@ class InventarioEconomatoMixin:
             self._feedback = FeedbackVM(ok=True, mensaje=holder["msg"])
         except RuntimeError as exc:
             self._feedback = map_error_recuperable(str(exc))
-        self._espacio = "recepcion"
+        self._espacio = self._espacio_compra_edicion()
         return self.screen()
 
     def crear_rectificativa(
@@ -525,7 +534,7 @@ class InventarioEconomatoMixin:
             self._documento_detalle_id = r.documento.id
         else:
             self._feedback = map_resultado(False, r.mensaje or "No se pudo rectificar.")
-        self._espacio = "documentos"
+        self._espacio = "compras_documentos"
         return self.screen()
 
     # ── Documentos ────────────────────────────────────────────────────────
@@ -545,14 +554,15 @@ class InventarioEconomatoMixin:
             self._doc_filtro_tipo = (tipo or "").strip().lower()
         if estado is not None:
             self._doc_filtro_estado = (estado or "").strip().lower()
-        self._espacio = "documentos"
+        self._espacio = "compras_documentos"
         return self.screen()
 
     def seleccionar_documento(self, documento_id: str) -> InventarioScreenVM:
         if not self._gate_economato():
             return self.screen()
         self._documento_detalle_id = (documento_id or "").strip() or None
-        self._espacio = "documentos"
+        if self._espacio != "compras_conciliacion":
+            self._espacio = "compras_documentos"
         return self.screen()
 
     def anular_documento_confirmado(
@@ -579,7 +589,7 @@ class InventarioEconomatoMixin:
                 self._documento_detalle_id = documento_id
         finally:
             self._confirmando = False
-        self._espacio = "documentos"
+        self._espacio = "compras_documentos"
         return self.screen()
 
     # ── Maestros ──────────────────────────────────────────────────────────
@@ -590,7 +600,7 @@ class InventarioEconomatoMixin:
         r = catalogo_service.crear_departamento(nombre)
         self._feedback = map_resultado(r.ok, r.mensaje)
         self._maestro_tab = "departamentos"
-        self._espacio = "maestros"
+        self._espacio = "compras_proveedores"
         return self.screen()
 
     def renombrar_departamento_maestro(
@@ -601,7 +611,7 @@ class InventarioEconomatoMixin:
         r = catalogo_service.renombrar_departamento(departamento_id, nombre)
         self._feedback = map_resultado(r.ok, r.mensaje)
         self._maestro_tab = "departamentos"
-        self._espacio = "maestros"
+        self._espacio = "compras_proveedores"
         return self.screen()
 
     def crear_ubicacion_maestro(
@@ -612,7 +622,7 @@ class InventarioEconomatoMixin:
         r = catalogo_service.crear_ubicacion(nombre, codigo=codigo, tipo=tipo)
         self._feedback = map_resultado(r.ok, r.mensaje)
         self._maestro_tab = "ubicaciones"
-        self._espacio = "maestros"
+        self._espacio = "compras_proveedores"
         return self.screen()
 
     def set_tipo_ubicacion_maestro(
@@ -623,7 +633,7 @@ class InventarioEconomatoMixin:
         r = catalogo_service.establecer_tipo_ubicacion(ubicacion_id, tipo)
         self._feedback = map_resultado(r.ok, r.mensaje)
         self._maestro_tab = "ubicaciones"
-        self._espacio = "maestros"
+        self._espacio = "compras_proveedores"
         return self.screen()
 
     def crear_proveedor_maestro(
@@ -636,7 +646,7 @@ class InventarioEconomatoMixin:
         )
         self._feedback = map_resultado(r.ok, r.mensaje)
         self._maestro_tab = "proveedores"
-        self._espacio = "maestros"
+        self._espacio = "compras_proveedores"
         return self.screen()
 
     def crear_impuesto_maestro(
@@ -647,7 +657,7 @@ class InventarioEconomatoMixin:
         r = proveedor_service.crear_impuesto(nombre, porcentaje)
         self._feedback = map_resultado(r.ok, r.mensaje)
         self._maestro_tab = "impuestos"
-        self._espacio = "maestros"
+        self._espacio = "compras_proveedores"
         return self.screen()
 
     def desactivar_impuesto_maestro(self, impuesto_id: str) -> InventarioScreenVM:
@@ -656,7 +666,7 @@ class InventarioEconomatoMixin:
         r = proveedor_service.desactivar_impuesto(impuesto_id)
         self._feedback = map_resultado(r.ok, r.mensaje)
         self._maestro_tab = "impuestos"
-        self._espacio = "maestros"
+        self._espacio = "compras_proveedores"
         return self.screen()
 
     def vincular_producto_proveedor_maestro(
@@ -679,7 +689,7 @@ class InventarioEconomatoMixin:
         )
         self._feedback = map_resultado(r.ok, r.mensaje)
         self._maestro_tab = "vinculos"
-        self._espacio = "maestros"
+        self._espacio = "compras_proveedores"
         return self.screen()
 
     # ── Historial ─────────────────────────────────────────────────────────
@@ -699,7 +709,7 @@ class InventarioEconomatoMixin:
             self._hist_ubicacion_id = (ubicacion_id or "").strip()
         if proveedor_id is not None:
             self._hist_proveedor_id = (proveedor_id or "").strip()
-        self._espacio = "historial"
+        self._espacio = "compras_historial"
         return self.screen()
 
     def exportar_historial_csv(self) -> tuple[str, str]:
@@ -719,12 +729,7 @@ class InventarioEconomatoMixin:
     # ── Build panel ───────────────────────────────────────────────────────
 
     def _build_economato_panel(self, data) -> EconomatoPanelVM:
-        if self._espacio not in (
-            "maestros",
-            "recepcion",
-            "documentos",
-            "historial",
-        ):
+        if self._espacio not in ESPACIOS_ECONOMATO:
             return EconomatoPanelVM()
 
         proveedores_op = tuple(
@@ -751,15 +756,18 @@ class InventarioEconomatoMixin:
         borradores = self._borradores_vm(data)
         albs = self._albaranes_vm(data)
         sug = self._sugerencias_producto(data)
+        n_borradores, n_alb_pend, n_docs_mes = self._panel_kpis(data)
+        pendientes = self._pendientes_filas_vm(data)
 
         docs: tuple[DocumentoListaVM, ...] = ()
         detalle: DocumentoDetalleVM | None = None
-        if self._espacio == "documentos":
+        diffs: tuple[DiferenciaConciliacionVM, ...] = ()
+        if self._espacio in ("compras_documentos", "compras_conciliacion"):
             docs = self._documentos_lista_vm(data)
             if self._documento_detalle_id:
                 detalle = self._documento_detalle_vm(data, self._documento_detalle_id)
+                diffs = self._diferencias_vm(data, self._documento_detalle_id)
 
-        deps = cats = ()  # noqa: F841 — departamentos only for maestros
         departamentos = tuple(
             DepartamentoMaestroVM(id=d.id, nombre=d.nombre, activo=d.activo)
             for d in (data.departamentos or [])
@@ -813,11 +821,16 @@ class InventarioEconomatoMixin:
         )
 
         historial: tuple[HistorialEventoVM, ...] = ()
-        if self._espacio == "historial":
+        if self._espacio == "compras_historial":
             historial = self._historial_vm(data)
 
         return EconomatoPanelVM(
             maestro_tab=self._maestro_tab,
+            n_borradores=n_borradores,
+            n_albaranes_pendientes_facturar=n_alb_pend,
+            n_docs_mes=n_docs_mes,
+            pendientes_filas=pendientes,
+            diferencias_conciliacion=diffs,
             compra_tipo=self._compra_tipo,
             compra_proveedor_id=self._compra_proveedor_id,
             compra_referencia=self._compra_referencia,
@@ -851,6 +864,80 @@ class InventarioEconomatoMixin:
             hist_proveedor_id=self._hist_proveedor_id,
             historial=historial,
         )
+
+    def _panel_kpis(self, data) -> tuple[int, int, int]:
+        hoy = date.today()
+        n_borr = 0
+        n_docs_mes = 0
+        alb_ids: set[str] = set()
+        for d in getattr(data, "documentos", []) or []:
+            tipo = d.tipo.value if hasattr(d.tipo, "value") else str(d.tipo)
+            estado = d.estado.value if hasattr(d.estado, "value") else str(d.estado)
+            if estado == EstadoDocumento.BORRADOR.value and tipo in (
+                TipoDocumento.ALBARAN.value,
+                TipoDocumento.FACTURA.value,
+            ):
+                n_borr += 1
+            fd = getattr(d, "fecha_documento", None)
+            if fd is not None and getattr(fd, "year", None) == hoy.year and fd.month == hoy.month:
+                n_docs_mes += 1
+            if (
+                tipo == TipoDocumento.ALBARAN.value
+                and estado == EstadoDocumento.CONFIRMADO.value
+            ):
+                if compra_pendientes_service.lineas_pendientes_albaran(data, d):
+                    alb_ids.add(d.id)
+        return n_borr, len(alb_ids), n_docs_mes
+
+    def _pendientes_filas_vm(self, data) -> tuple[PendienteFacturarVM, ...]:
+        mapa_prod = {p.id: p.nombre for p in (data.productos or [])}
+        filas: list[PendienteFacturarVM] = []
+        for d in getattr(data, "documentos", []) or []:
+            tipo = d.tipo.value if hasattr(d.tipo, "value") else str(d.tipo)
+            estado = d.estado.value if hasattr(d.estado, "value") else str(d.estado)
+            if tipo != TipoDocumento.ALBARAN.value:
+                continue
+            if estado != EstadoDocumento.CONFIRMADO.value:
+                continue
+            etiqueta = (getattr(d, "referencia_externa", None) or d.id or "").strip()
+            for ln, pend in compra_pendientes_service.lineas_pendientes_albaran(data, d):
+                prod = mapa_prod.get(ln.producto_id, ln.producto_id or "—")
+                filas.append(
+                    PendienteFacturarVM(
+                        albaran_etiqueta=etiqueta,
+                        producto=prod,
+                        cantidad_pendiente=f"{pend:g}",
+                        albaran_id=d.id,
+                        linea_id=ln.id,
+                    )
+                )
+        return tuple(filas[:200])
+
+    def _diferencias_vm(
+        self, data, factura_id: str
+    ) -> tuple[DiferenciaConciliacionVM, ...]:
+        doc = next(
+            (d for d in (getattr(data, "documentos", []) or []) if d.id == factura_id),
+            None,
+        )
+        if doc is None:
+            return ()
+        tipo = doc.tipo.value if hasattr(doc.tipo, "value") else str(doc.tipo)
+        if tipo != TipoDocumento.FACTURA.value:
+            return ()
+        out: list[DiferenciaConciliacionVM] = []
+        for dif in compra_pendientes_service.clasificar_diferencias_factura_albaran(
+            data, doc
+        ):
+            out.append(
+                DiferenciaConciliacionVM(
+                    tipo=dif.tipo,
+                    detalle=dif.detalle,
+                    linea_albaran_id=dif.linea_albaran_id or "",
+                    linea_factura_id=dif.linea_factura_id or "",
+                )
+            )
+        return tuple(out)
 
     # ── helpers privados ──────────────────────────────────────────────────
 

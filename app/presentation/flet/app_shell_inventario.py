@@ -243,6 +243,7 @@ class TerminalInventarioShell:
             "on_add_linea_busqueda": lambda t, **kw: _go(
                 p.añadir_linea_compra_por_busqueda, t, **kw
             ),
+            "on_update_linea": lambda i, **kw: _go(p.update_linea_compra, i, **kw),
             "on_quitar_linea": lambda i: _go(p.quitar_linea_compra, i),
             "on_guardar_borrador": lambda: _go(p.guardar_borrador_compra),
             "on_confirmar_compra": lambda: _go(p.confirmar_compra_borrador),
@@ -253,6 +254,7 @@ class TerminalInventarioShell:
             ),
             "on_cargar_borrador": lambda did: _go(p.cargar_borrador_compra, did),
             "on_anular_borrador": lambda did: _go(p.anular_borrador_compra, did),
+            "on_goto_espacio": lambda eid: _go(p.seleccionar_espacio, eid),
             "on_doc_filtros": lambda **kw: _go(p.set_doc_filtros, **kw),
             "on_sel_documento": lambda did: _go(p.seleccionar_documento, did),
             "on_anular_doc": lambda did, m: _go(p.anular_documento_confirmado, did, m),

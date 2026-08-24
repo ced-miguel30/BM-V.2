@@ -219,10 +219,14 @@ def build_inventario_shell(
             on_abandonar=on_abandonar_borrador or (lambda: None),
         )
     elif screen.espacio_activo in (
-        "maestros",
-        "recepcion",
-        "documentos",
-        "historial",
+        "compras_panel",
+        "compras_albaran",
+        "compras_factura",
+        "compras_documentos",
+        "compras_pendientes",
+        "compras_conciliacion",
+        "compras_proveedores",
+        "compras_historial",
     ):
         from app.presentation.flet.views.inventario_economato_view import (
             build_economato_body,

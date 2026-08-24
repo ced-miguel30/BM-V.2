@@ -12,11 +12,16 @@ from app.presentation.flet.viewmodels import (
     assert_sin_campos_economicos,
 )
 
-# Orden NAV: maestros/recepción/documentos primero; ops planta; historial al final.
+# Orden NAV: compras Noray primero; ops planta al final.
 ESPACIOS = (
-    "maestros",
-    "recepcion",
-    "documentos",
+    "compras_panel",
+    "compras_albaran",
+    "compras_factura",
+    "compras_documentos",
+    "compras_pendientes",
+    "compras_conciliacion",
+    "compras_proveedores",
+    "compras_historial",
     "alertas",
     "caducidad",
     "merma",
@@ -24,7 +29,6 @@ ESPACIOS = (
     "traslados",
     "recuentos",
     "ajustes",
-    "historial",
 )
 
 ESPACIOS_OPS = frozenset(
@@ -40,7 +44,16 @@ ESPACIOS_OPS = frozenset(
 )
 
 ESPACIOS_ECONOMATO = frozenset(
-    {"maestros", "recepcion", "documentos", "historial"}
+    {
+        "compras_panel",
+        "compras_albaran",
+        "compras_factura",
+        "compras_documentos",
+        "compras_pendientes",
+        "compras_conciliacion",
+        "compras_proveedores",
+        "compras_historial",
+    }
 )
 
 ETIQUETA_SIN_UBICACION_HISTORICA = "Sin ubicación histórica"

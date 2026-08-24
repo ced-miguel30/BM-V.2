@@ -12,7 +12,6 @@ from typing import Any
 
 from app.core.models import EstadoDocumento, TipoDocumento
 from app.core.models.conciliacion import EstadoConciliacion
-from app.core.services.factura_service import linea_albaran_ya_conciliada
 from app.core.services.money import (
     EntradaLineaCalculo,
     ResultadoDocumento,
@@ -774,15 +773,16 @@ def lineas_libres_albaran(
     *,
     excluir_factura_id: str | None = None,
 ) -> list[Any]:
+    """Líneas con cantidad pendiente de facturar > 0 (soporta parcial)."""
+    from app.core.services.compra_pendientes_service import cantidad_pendiente_facturar
+
     libres = []
     for ln in alb.lineas:
-        if linea_albaran_ya_conciliada(
-            data, ln.id, excluir_factura_id=excluir_factura_id
-        ):
-            continue
-        if _linea_conciliada_activa(data, ln.id):
-            continue
-        libres.append(ln)
+        pend = cantidad_pendiente_facturar(
+            data, ln.id, excluir_factura_id=excluir_factura_id, linea=ln
+        )
+        if pend > 0:
+            libres.append(ln)
     return libres
 
 
@@ -795,10 +795,12 @@ def expandir_albaranes_a_filas(
     excluir_factura_id: str | None = None,
     igic_default: float = 7.0,
 ) -> list[dict[str, Any]]:
-    """Una fila de factura por cada línea libre de los albaranes."""
+    """Una fila de factura por cada línea con pendiente (qty = residual)."""
+    from app.core.services.compra_pendientes_service import lineas_pendientes_albaran
+
     rows: list[dict[str, Any]] = []
     for alb in albaranes:
-        for ln in lineas_libres_albaran(
+        for ln, pend in lineas_pendientes_albaran(
             data, alb, excluir_factura_id=excluir_factura_id
         ):
             prod = mapa_prod_por_id.get(ln.producto_id)
@@ -806,13 +808,23 @@ def expandir_albaranes_a_filas(
                 ln.producto_id,
                 getattr(ln, "producto_nombre_snapshot", None) or ln.producto_id,
             )
-            qty = float(
-                as_decimal(
-                    ln.cantidad_compra
-                    if ln.cantidad_compra is not None
-                    else ln.cantidad
-                )
+            # Pendiente está en ud inventario; para grid usamos proporción compra
+            recibida_inv = as_decimal(
+                ln.cantidad_inventario
+                if ln.cantidad_inventario is not None
+                else (ln.cantidad_compra if ln.cantidad_compra is not None else ln.cantidad)
             )
+            qty_compra = as_decimal(
+                ln.cantidad_compra
+                if ln.cantidad_compra is not None
+                else ln.cantidad
+            )
+            if recibida_inv > 0 and qty_compra > 0:
+                qty = float(money_round(qty_compra * (pend / recibida_inv)))
+            else:
+                qty = float(pend)
+            if qty <= 0:
+                continue
             unit_p = float(
                 as_decimal(
                     ln.precio_unitario_compra
@@ -821,7 +833,6 @@ def expandir_albaranes_a_filas(
                 )
             )
             if unit_p <= 0 and qty > 0:
-                # legacy: precio_total es total de línea
                 unit_p = float(
                     money_round(as_decimal(ln.precio_total or 0) / as_decimal(qty))
                 )
@@ -838,6 +849,11 @@ def expandir_albaranes_a_filas(
             )
             rows.append(
                 {
+                    META_KEY: str(uuid.uuid4()),
+                    META_ALB_LN: ln.id,
+                    META_ALB_DOC: alb.id,
+                    META_PROD_ID: ln.producto_id,
+                    "producto_id": ln.producto_id,
                     "producto": label,
                     "cantidad": qty,
                     "unidad": unidad,
@@ -846,11 +862,9 @@ def expandir_albaranes_a_filas(
                     "dto_pct": float(as_decimal(ln.descuento_porcentaje or 0)),
                     "dto_eur": float(as_decimal(ln.descuento_importe or 0)),
                     "igic_pct": igic,
-                    "incluye_igic": bool(getattr(ln, "precio_incluye_igic", False)),
-                    META_KEY: str(uuid.uuid4()),
-                    META_ALB_LN: ln.id,
-                    META_ALB_DOC: alb.id,
-                    META_PROD_ID: ln.producto_id,
+                    "incluye_igic": bool(ln.precio_incluye_igic),
+                    "total": total,
+                    "pendiente_facturar": float(pend),
                 }
             )
     return rows

@@ -456,6 +456,100 @@ class TestB3CompraRegistro(unittest.TestCase):
             self.assertEqual(len(final.conciliaciones_documento), 1)
             self.assertFalse(final.documentos[-1].impacto_stock)
 
+    def test_factura_mixta_stock_solo_lineas_directas(self) -> None:
+        """Factura con línea conciliada + línea directa: stock solo en la directa."""
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "datos.json"
+
+            def seed(data: AppData) -> AppData:
+                _seed_catalog(data)
+                compra.guardar_borrador(
+                    data,
+                    tipo=TipoDocumento.ALBARAN.value,
+                    proveedor_id="prv1",
+                    referencia_externa="ALB-MIX",
+                    lineas=[
+                        {
+                            "producto_id": "p1",
+                            "client_line_key": "ka",
+                            "cantidad_compra": "10",
+                            "unidad_compra": "Ud",
+                            "precio_unitario_compra": "2",
+                            "impuesto_porcentaje": "0",
+                        }
+                    ],
+                )
+                return data
+
+            transactional_update_appdata(path, seed)
+            alb = read_appdata_json(path).documentos[0]
+            self.assertTrue(
+                compra.confirmar_compra(
+                    alb.id,
+                    confirmacion_id=str(uuid.uuid4()),
+                    contenido_hash=compra.construir_hash_documento(alb),
+                    json_path=path,
+                ).ok
+            )
+            ln_alb = read_appdata_json(path).documentos[0].lineas[0]
+            lotes_tras_alb = len(read_appdata_json(path).lotes)
+
+            def seed_fac(data: AppData) -> AppData:
+                compra.guardar_borrador(
+                    data,
+                    tipo=TipoDocumento.FACTURA.value,
+                    proveedor_id="prv1",
+                    referencia_externa="FAC-MIX",
+                    lineas=[
+                        {
+                            "producto_id": "p1",
+                            "client_line_key": "kf_conc",
+                            "cantidad_compra": "10",
+                            "unidad_compra": "Ud",
+                            "precio_unitario_compra": "2",
+                            "impuesto_porcentaje": "0",
+                        },
+                        {
+                            "producto_id": "p1",
+                            "client_line_key": "kf_dir",
+                            "cantidad_compra": "3",
+                            "unidad_compra": "Ud",
+                            "precio_unitario_compra": "2",
+                            "impuesto_porcentaje": "0",
+                        },
+                    ],
+                )
+                return data
+
+            transactional_update_appdata(path, seed_fac)
+            data = read_appdata_json(path)
+            fac = next(d for d in data.documentos if d.referencia_externa == "FAC-MIX")
+            props = [
+                {
+                    "linea_factura_client_key": "kf_conc",
+                    "linea_albaran_id": ln_alb.id,
+                    "cantidad_conciliada": "10",
+                }
+            ]
+            res = compra.confirmar_compra(
+                fac.id,
+                confirmacion_id=str(uuid.uuid4()),
+                contenido_hash=compra.construir_hash_documento(fac, props),
+                json_path=path,
+                conciliaciones_propuestas=props,
+            )
+            self.assertTrue(res.ok, res.mensaje)
+            final = read_appdata_json(path)
+            self.assertEqual(len(final.lotes), lotes_tras_alb + 1)
+            fac_f = next(d for d in final.documentos if d.referencia_externa == "FAC-MIX")
+            self.assertTrue(fac_f.impacto_stock)
+            ln_conc = next(x for x in fac_f.lineas if x.client_line_key == "kf_conc")
+            ln_dir = next(x for x in fac_f.lineas if x.client_line_key == "kf_dir")
+            self.assertIsNone(ln_conc.lote_id)
+            self.assertIsNotNone(ln_dir.lote_id)
+
 
 if __name__ == "__main__":
     unittest.main()
