@@ -845,19 +845,19 @@ def _panel_analisis_body(
     chart_blocks: list[ft.Control] = []
     donut_row: list[ft.Control] = []
     for titulo, items in panel.chart_donuts:
-        # Sin expand: expand dentro de Column con scroll corta el contenido.
         donut_row.append(
             ft.Container(
                 content=build_donut(items, titulo=titulo),
-                width=420,
-                padding=8,
+                width=340,
+                padding=ft.Padding.only(right=12, bottom=8),
             )
         )
     if donut_row:
         chart_blocks.append(
             ft.Row(
                 wrap=True,
-                spacing=12,
+                spacing=8,
+                run_spacing=12,
                 vertical_alignment=ft.CrossAxisAlignment.START,
                 controls=donut_row,
             )

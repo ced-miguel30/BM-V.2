@@ -156,6 +156,10 @@ def _to_nativa(data, producto_id: str, cantidad: float, unidad: str | None) -> f
     if unidad is None or unidad == prod.unidad.value:
         return qty
     u = "gr" if unidad == "g" else unidad
+    # 1 rebanada de molde = 1/31 Ud de paquete (p09 común / p11 integral)
+    if u in ("reb", "rebanada", "rebanadas") and producto_id in ("p09", "p11"):
+        if prod.unidad.value == "Ud":
+            return round(qty / 31.0, 6)
     if u in ("ml", "cl", "L") and prod.unidad.value == "Ud":
         litros = qty * {"ml": 0.001, "cl": 0.01, "L": 1.0}[u]
         pack = PACK_L.get(producto_id, 1.0)
@@ -819,7 +823,7 @@ def parse_desayuno_line(data, text: str, fecha: date) -> dict:
     if "DESAYUNO INGLES" in t or "DESAYUNO INGLÉS" in _norm(raw):
         extras = []
         if "EXTRA PAN" in t or ("PAN" in t and "EXTRA" in t):
-            extras.append(("pan_tostada", 1, "Ud"))
+            extras.append(("pan_tostada", 1, "reb"))
         if "EXTRA SALCHICHA" in t or "EXTAR SALCHICHA" in t:
             extras.append(("salchicha", 50, "gr"))
         add_rec("Desayuno ingles", 1, extras)
@@ -904,11 +908,11 @@ def parse_desayuno_line(data, text: str, fecha: date) -> dict:
         if "ALUBIA" in t or "JUDIA" in t:
             extras.append(("judias", 20, "gr"))
         if "INTEGRAL" in t:
-            extras.append(("pan_integral", 1, "Ud"))
+            extras.append(("pan_integral", 1, "reb"))
             # tostadas integrales sueltas
             m = re.search(r"(\d+)\s*TOSTADA", t)
             n = int(m.group(1)) if m else 1
-            products.append(("pan_integral", float(n), "Ud"))
+            products.append(("pan_integral", float(n), "reb"))
             if "ALUBIA" in t or "JUDIA" in t:
                 products.append(("judias", 20.0 * n, "gr"))
             return {"recipes": recipes, "products": products, "notes": notes, "raw": raw}
@@ -927,7 +931,7 @@ def parse_desayuno_line(data, text: str, fecha: date) -> dict:
             ("pimiento", ["PIMIENTO"], 20, "gr"),
             ("hashbrown", ["HASH", "HASBROWN"], 70, "gr"),
             ("espinaca", ["ESPINAC"], 15, "gr"),
-            ("pan_tostada", [" PAN", "Y PAN"], 1, "Ud"),
+            ("pan_tostada", [" PAN", "Y PAN"], 1, "reb"),
         ]:
             if any(n in t for n in needles):
                 extras.append((key, qty, unit))
@@ -953,10 +957,10 @@ def parse_desayuno_line(data, text: str, fecha: date) -> dict:
         if "SALMON" in t:
             extras.append(("salmon", 40, "gr"))
         if "PAN INTEGRAL" in t:
-            extras.append(("pan_integral", 1, "Ud"))
+            extras.append(("pan_integral", 1, "reb"))
         elif re.search(r"\bPAN\b", t) or "2 PAN" in t:
             np_ = re.search(r"(\d+)\s*PAN", t)
-            extras.append(("pan_tostada", int(np_.group(1)) if np_ else 1, "Ud"))
+            extras.append(("pan_tostada", int(np_.group(1)) if np_ else 1, "reb"))
         if "JUDIA" in t or "ALUBIA" in t:
             extras.append(("judias", 20, "gr"))
         if "SALCHICHA" in t:
@@ -982,9 +986,9 @@ def parse_desayuno_line(data, text: str, fecha: date) -> dict:
         if "SALMON" in t:
             products.append(("salmon", 40, "gr"))
         if "PAN INTEGRAL" in t:
-            products.append(("pan_integral", 1, "Ud"))
+            products.append(("pan_integral", 1, "reb"))
         elif "PAN" in t:
-            products.append(("pan_tostada", 1, "Ud"))
+            products.append(("pan_tostada", 1, "reb"))
         if "BACON" in t:
             products.append(("bacon", 15, "gr"))
         if "HASH" in t or "HASB" in t:

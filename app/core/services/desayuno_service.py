@@ -118,6 +118,12 @@ class ResultadoOperacion:
     detalle_stock: list[str] | None = None
 
 
+# Pan de molde: 1 Ud de catálogo = 1 paquete ≈ 31 rebanadas.
+# Una tostada / pan suelto en desayuno = 1 rebanada = 1/31 Ud.
+REBANADAS_POR_PAQUETE_MOLDE = 31.0
+PRODUCTOS_PAN_MOLDE_TOSTADA = frozenset({"p09", "p11"})  # común 800g + integral 1kg
+
+
 @dataclass(frozen=True)
 class ExtraRapidoDesayuno:
     label: str
@@ -127,14 +133,16 @@ class ExtraRapidoDesayuno:
     unidad_mostrar: str
 
 
+_REB_MOLDE = round(1.0 / REBANADAS_POR_PAQUETE_MOLDE, 6)
+
 _EXTRAS_RAPIDOS_DESAYUNO: tuple[ExtraRapidoDesayuno, ...] = (
     # --- Extras cocina / platos calientes ---
     ExtraRapidoDesayuno("Queso cheddar", "p44", 0.02, 20, "gr"),
     ExtraRapidoDesayuno("Queso gouda", "p168", 0.02, 20, "gr"),
     ExtraRapidoDesayuno("Bacon", "p14", 0.015, 15, "gr"),
     ExtraRapidoDesayuno("Jamon cocido", "p102", 0.02, 20, "gr"),
-    ExtraRapidoDesayuno("Tostada", "p09", 1.0, 1, "Ud"),
-    ExtraRapidoDesayuno("Tostada integral", "p11", 1.0, 1, "Ud"),
+    ExtraRapidoDesayuno("Tostada", "p09", _REB_MOLDE, 1, "reb"),
+    ExtraRapidoDesayuno("Tostada integral", "p11", _REB_MOLDE, 1, "reb"),
     ExtraRapidoDesayuno("Salchicha", "p20", 0.05, 50, "gr"),
     ExtraRapidoDesayuno("Hashbrown", "p29", 0.07, 70, "gr"),
     ExtraRapidoDesayuno("Champi", "p117", 0.006667, 20, "gr"),
