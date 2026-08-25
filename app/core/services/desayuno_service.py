@@ -128,6 +128,7 @@ class ExtraRapidoDesayuno:
 
 
 _EXTRAS_RAPIDOS_DESAYUNO: tuple[ExtraRapidoDesayuno, ...] = (
+    # --- Extras cocina / platos calientes ---
     ExtraRapidoDesayuno("Queso cheddar", "p44", 0.02, 20, "gr"),
     ExtraRapidoDesayuno("Queso gouda", "p168", 0.02, 20, "gr"),
     ExtraRapidoDesayuno("Bacon", "p14", 0.015, 15, "gr"),
@@ -146,6 +147,35 @@ _EXTRAS_RAPIDOS_DESAYUNO: tuple[ExtraRapidoDesayuno, ...] = (
     ExtraRapidoDesayuno("Espinacas", "p185", 0.075, 15, "gr"),
     ExtraRapidoDesayuno("Tomate cherry", "p52", 0.03, 30, "gr"),
     ExtraRapidoDesayuno("Chorizo", "p146", 0.02, 20, "gr"),
+    # --- Estándar buffet desayuno (productos individuales) ---
+    # Fruta
+    ExtraRapidoDesayuno("Kiwi", "p71", 0.08, 80, "gr"),
+    ExtraRapidoDesayuno("Papaya", "p70", 0.08, 80, "gr"),
+    ExtraRapidoDesayuno("Melon", "p69", 0.08, 80, "gr"),
+    ExtraRapidoDesayuno("Sandia", "p83", 0.08, 80, "gr"),
+    ExtraRapidoDesayuno("Pomelo", "p99", 0.08, 80, "gr"),
+    ExtraRapidoDesayuno("Naranja", "b06", 0.08, 80, "gr"),
+    ExtraRapidoDesayuno("Platano", "p66", 1.0, 1, "Ud"),
+    ExtraRapidoDesayuno("Pina", "p68", 0.08, 80, "gr"),
+    ExtraRapidoDesayuno("Melocoton almibar", "p122", 1.0, 1, "Ud"),
+    # Embutido / queso buffet
+    ExtraRapidoDesayuno("Paleta iberica", "p358", 0.02, 20, "gr"),
+    ExtraRapidoDesayuno("Mortadela", "p89", 0.02, 20, "gr"),
+    ExtraRapidoDesayuno("Salchichon iberico", "p34", 0.02, 20, "gr"),
+    ExtraRapidoDesayuno("Queso gofio", "p37", 0.02, 20, "gr"),
+    ExtraRapidoDesayuno("Queso pimenton", "b04", 0.02, 20, "gr"),
+    ExtraRapidoDesayuno("Queso fresco", "p38", 0.02, 20, "gr"),
+    # Panes y bollería buffet
+    ExtraRapidoDesayuno("Pan gallego", "p05", 1.0, 1, "Ud"),
+    ExtraRapidoDesayuno("Pan maiz", "p357", 1.0, 1, "Ud"),
+    ExtraRapidoDesayuno("Pan centeno", "p276", 1.0, 1, "Ud"),
+    ExtraRapidoDesayuno("Baguettina", "p252", 1.0, 1, "Ud"),
+    ExtraRapidoDesayuno("Napolitana cacao", "p251", 1.0, 1, "Ud"),
+    ExtraRapidoDesayuno("Chic crema", "p294", 1.0, 1, "Ud"),
+    ExtraRapidoDesayuno("Lazo cereal", "p250", 1.0, 1, "Ud"),
+    ExtraRapidoDesayuno("Croissant mantequilla", "p249", 1.0, 1, "Ud"),
+    ExtraRapidoDesayuno("Croissant chocolate", "b01", 1.0, 1, "Ud"),
+    ExtraRapidoDesayuno("Surtido reposteria", "p08", 0.05, 50, "gr"),
 )
 
 # Leches sueltas para bebida vegetal / ajuste manual (equiv. espresso + ración).
