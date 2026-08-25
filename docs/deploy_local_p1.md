@@ -16,7 +16,7 @@
 ## SO objetivo
 
 **Supuesto provisional:** Windows 10/11 x64 (PC del hotel).  
-La ruta de instancia no está fijada al hotel: se parametriza con `BM_INSTANCE_ROOT` (ejemplo provisional `%LOCALAPPDATA%\BM-V2`).
+La ruta de instancia (carpeta **BM-DATOS**) se parametriza con `BM_INSTANCE_ROOT`. Canónico exe / un PC: `%LOCALAPPDATA%\BM-V2-local`. Ver también [`hotel_dos_carpetas.md`](hotel_dos_carpetas.md).
 
 ## Contrato de directorios
 

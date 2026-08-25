@@ -1,6 +1,9 @@
 """Importación de productos + stock inicial desde Excel (Productos PRECIO).
 
-Coste unitario del Excel = aproximación; los albaranes posteriores lo corrigen.
+Coste unitario del Excel = provisional (lote sin documento de compra).
+El primer albarán/factura con entrada de stock (D60) revaloriza consumos
+ya registrados y el stock restante de esos lotes; entradas posteriores
+usan el coste de cada lote (FIFO).
 """
 
 from __future__ import annotations

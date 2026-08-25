@@ -1,5 +1,7 @@
 # Instalación multiordenador — BM‑V.2 (carpeta compartida)
 
+En un solo PC, las dos carpetas sustituibles (código vs datos) están en [`hotel_dos_carpetas.md`](hotel_dos_carpetas.md). Aquí BM-DATOS es la carpeta compartida UNC.
+
 ## Objetivo
 
 Tres PCs con la aplicación **instalada localmente**, apuntando a **una carpeta

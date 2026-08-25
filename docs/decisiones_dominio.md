@@ -66,6 +66,7 @@ Sin implementación de código en esta fase.
 | D57 | **Fase 11** — factura conciliación = metadatos (sin stock); directa = `entrada_factura` | P04 cerrado: sin movimiento neutro |
 | D58 | **Fase 12** — rectificativa total; original → `RECTIFICADO`; sin edición silenciosa | Confirmada append-only |
 | D59 | **Fase 13** — consulta/exportación documental solo lectura | CSV; sin OCR ni mutación |
+| D60 | **Revalorización única al primer precio de compra** | El primer albarán/factura con entrada de stock de un producto reescribe costes de consumos/mermas ya registrados y `precio_total` de lotes provisionales (sin documento). Entradas posteriores = lote FIFO con su coste; sin tocar histórico. Auditada (`Revalorización primer precio`). Excepción explícita a D11/D34/D35 |
 
 ## Decisiones pendientes (no bloquean F3)
 

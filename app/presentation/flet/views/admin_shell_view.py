@@ -407,11 +407,16 @@ def build_admin_shell(
                 expand=True,
                 bgcolor=ui_theme.SURFACE,
                 padding=ft.Padding.symmetric(horizontal=20, vertical=16),
+                clip_behavior=ft.ClipBehavior.HARD_EDGE,
                 content=ft.Column(
                     expand=True,
                     spacing=12,
                     scroll=ft.ScrollMode.AUTO,
-                    controls=[pending_box, panel],
+                    controls=[
+                        pending_box,
+                        panel,
+                        ft.Container(height=24),
+                    ],
                 ),
             ),
         ],
@@ -420,7 +425,11 @@ def build_admin_shell(
     return ft.Column(
         expand=True,
         spacing=0,
-        controls=[header, feedback, body],
+        controls=[
+            header,
+            feedback,
+            ft.Container(expand=True, content=body),
+        ],
     )
 
 
@@ -652,8 +661,21 @@ def _panel_analisis_body(
         "merma": MERMA_PESTANAS,
     }.get(hub_id, COSTES_PESTANAS)
 
-    desde_tf = ft.TextField(label="Desde (AAAA-MM-DD)", value=panel.desde, width=150)
-    hasta_tf = ft.TextField(label="Hasta (AAAA-MM-DD)", value=panel.hasta, width=150)
+    # Labels cortos + hint: evita solape del floating label con el borde de la card.
+    desde_tf = ft.TextField(
+        label="Desde",
+        hint_text="AAAA-MM-DD",
+        value=panel.desde,
+        expand=True,
+        dense=True,
+    )
+    hasta_tf = ft.TextField(
+        label="Hasta",
+        hint_text="AAAA-MM-DD",
+        value=panel.hasta,
+        expand=True,
+        dense=True,
+    )
 
     controls: list[ft.Control] = [
         ui.page_header(
@@ -665,29 +687,43 @@ def _panel_analisis_body(
             ],
         ),
         ui.card_surface(
-            _chip_row(
-                hub_labels,
-                ANALISIS_HUB_LABEL.get(hub_id, "Costes"),
-                lambda lab: (cbs.get("on_analisis_hub") or (lambda _x: None))(
-                    next(h for h, l in ANALISIS_HUB_LABEL.items() if l == lab)
-                ),
-            ),
-            ft.Row(
-                spacing=ui_theme.SPACE_SM,
-                wrap=True,
+            ft.Column(
+                spacing=ui_theme.SPACE_MD,
+                tight=True,
                 controls=[
-                    desde_tf,
-                    hasta_tf,
-                    ui.primary_button(
-                        "Aplicar periodo",
-                        lambda: (cbs.get("on_analisis_periodo") or (lambda a, b: None))(
-                            desde_tf.value or "", hasta_tf.value or ""
+                    _chip_row(
+                        hub_labels,
+                        ANALISIS_HUB_LABEL.get(hub_id, "Costes"),
+                        lambda lab: (cbs.get("on_analisis_hub") or (lambda _x: None))(
+                            next(h for h, l in ANALISIS_HUB_LABEL.items() if l == lab)
                         ),
-                        icon=ft.Icons.DATE_RANGE,
+                    ),
+                    ft.Container(
+                        padding=ft.Padding.only(top=6),
+                        content=ft.Row(
+                            spacing=ui_theme.SPACE_MD,
+                            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                            controls=[
+                                desde_tf,
+                                hasta_tf,
+                                ui.primary_button(
+                                    "Aplicar periodo",
+                                    lambda: (
+                                        cbs.get("on_analisis_periodo")
+                                        or (lambda a, b: None)
+                                    )(
+                                        desde_tf.value or "",
+                                        hasta_tf.value or "",
+                                    ),
+                                    icon=ft.Icons.DATE_RANGE,
+                                ),
+                            ],
+                        ),
                     ),
                 ],
             ),
             title="Periodo y hub",
+            padding=ui_theme.SPACE_LG,
         ),
     ]
 
@@ -809,15 +845,23 @@ def _panel_analisis_body(
     chart_blocks: list[ft.Control] = []
     donut_row: list[ft.Control] = []
     for titulo, items in panel.chart_donuts:
+        # Sin expand: expand dentro de Column con scroll corta el contenido.
         donut_row.append(
             ft.Container(
                 content=build_donut(items, titulo=titulo),
-                expand=True,
+                width=420,
                 padding=8,
             )
         )
     if donut_row:
-        chart_blocks.append(ft.Row(wrap=True, spacing=12, controls=donut_row))
+        chart_blocks.append(
+            ft.Row(
+                wrap=True,
+                spacing=12,
+                vertical_alignment=ft.CrossAxisAlignment.START,
+                controls=donut_row,
+            )
+        )
 
     for titulo, items in panel.chart_barras:
         chart_blocks.append(build_barras_horizontales(items, titulo=titulo))
@@ -993,7 +1037,13 @@ def _panel_analisis_body(
             ui.card_surface(*cmp_controls, title="Comparación Periodo A / B")
         )
 
-    return ft.Column(spacing=ui_theme.SPACE_MD, controls=controls)
+    # Spacer inferior: el último bloque no queda pegado al borde / clip.
+    controls.append(ft.Container(height=32))
+    return ft.Column(
+        spacing=ui_theme.SPACE_MD,
+        tight=True,
+        controls=controls,
+    )
 
 
 def _panel_inicio(screen: AdminScreenVM, **cbs) -> ft.Control:
@@ -2785,17 +2835,14 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
 
     total = sum(l.cantidad * l.precio_unitario for l in screen.compra_lineas)
     header = ft.Container(
-        padding=ft.Padding.symmetric(horizontal=12, vertical=8),
+        padding=ft.Padding.symmetric(horizontal=12, vertical=10),
         bgcolor=ui_theme.LIGHT_GRAY,
-        content=ft.Row(
-            controls=[
-                ft.Text("Producto", size=11, weight=ft.FontWeight.W_600, expand=True),
-                ft.Text("Ubicación", size=11, weight=ft.FontWeight.W_600, width=200),
-                ft.Text("Cant.", size=11, weight=ft.FontWeight.W_600, width=90),
-                ft.Text("P. unit.", size=11, weight=ft.FontWeight.W_600, width=110),
-                ft.Text("Subtotal", size=11, weight=ft.FontWeight.W_600, width=90),
-                ft.Container(width=70),
-            ]
+        content=ft.Text(
+            "Líneas del documento — producto, ubicación, cantidad (Ud/Kg), "
+            "precio unitario y total",
+            size=11,
+            weight=ft.FontWeight.W_600,
+            color=ui_theme.DARK_TEXT,
         ),
     )
     lineas: list[ft.Control] = [header]
@@ -2965,6 +3012,33 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
     )
 
 
+def _compra_campo_etiquetado(
+    etiqueta: str,
+    control: ft.Control,
+    *,
+    width: float | None = None,
+    expand: bool = False,
+) -> ft.Control:
+    """Etiqueta encima del control para que se sepa qué es cada caja."""
+    return ft.Container(
+        width=width,
+        expand=expand,
+        content=ft.Column(
+            spacing=2,
+            tight=True,
+            controls=[
+                ft.Text(
+                    etiqueta,
+                    size=10,
+                    weight=ft.FontWeight.W_600,
+                    color=ui_theme.MID_GRAY,
+                ),
+                control,
+            ],
+        ),
+    )
+
+
 def _compra_linea_row(
     index: int,
     ln: CompraLineaVM,
@@ -2979,27 +3053,29 @@ def _compra_linea_row(
     producto_options: list,
     disabled: bool,
 ) -> ft.Control:
+    unidad = (ln.unidad or "Ud").strip() or "Ud"
     cant_tf = ft.TextField(
         value=f"{ln.cantidad:g}",
-        width=90,
+        width=110,
         dense=True,
         text_align=ft.TextAlign.RIGHT,
         disabled=disabled or on_update is None,
     )
     prec_tf = ft.TextField(
         value=f"{ln.precio_unitario:.4g}",
-        width=110,
+        width=120,
         dense=True,
         text_align=ft.TextAlign.RIGHT,
         disabled=disabled or on_update is None,
+        prefix_text="€ ",
     )
     subtotal = ln.cantidad * ln.precio_unitario
     ubi_dd = ft.Dropdown(
         options=ubicacion_options,
         value=ln.ubicacion_destino_id or None,
-        width=180,
+        width=200,
         dense=True,
-        hint_text="Ubicación",
+        hint_text="Dónde se guarda",
         disabled=disabled or on_set_ubicacion is None or not ubicacion_options,
         on_select=lambda e, i=index: (
             on_set_ubicacion(i, getattr(e.control, "value", None) or "")
@@ -3010,9 +3086,9 @@ def _compra_linea_row(
     prod_dd = ft.Dropdown(
         options=producto_options,
         value=ln.producto_id or None,
-        width=220,
+        expand=True,
         dense=True,
-        hint_text="Producto catálogo",
+        hint_text="Elegir / cambiar producto",
         disabled=disabled or on_set_producto is None or not producto_options,
         on_select=lambda e, i=index: (
             on_set_producto(i, getattr(e.control, "value", None) or "")
@@ -3054,19 +3130,24 @@ def _compra_linea_row(
     noray_nom = ln.nombre_noray or ln.nombre
     noray_cod = ln.codigo_noray or "—"
     cat_cod = ln.producto_codigo or "—"
+
+    # Nombre completo visible (sin ellipsis de 1 línea).
+    titulo_noray = f"Noray: {noray_nom}"
+    if noray_cod and noray_cod != "—":
+        titulo_noray = f"{titulo_noray}  ·  código {noray_cod}"
     detalle_cols: list[ft.Control] = [
         ft.Row(
             spacing=8,
+            wrap=True,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
             controls=[
                 ui.status_chip(etiq, tone=tone),
                 ft.Text(
-                    f"Noray: {noray_nom} [{noray_cod}]",
-                    size=12,
+                    titulo_noray,
+                    size=13,
                     weight=ft.FontWeight.W_600,
                     color=ui_theme.DARK_TEXT,
-                    expand=True,
-                    max_lines=1,
-                    overflow=ft.TextOverflow.ELLIPSIS,
+                    selectable=True,
                 ),
             ],
         ),
@@ -3074,29 +3155,29 @@ def _compra_linea_row(
     if ln.producto_id:
         detalle_cols.append(
             ft.Text(
-                f"Catálogo: {ln.nombre} [{cat_cod}]",
-                size=11,
+                f"Catálogo: {ln.nombre}"
+                + (f"  ·  código {cat_cod}" if cat_cod != "—" else ""),
+                size=12,
                 color=ui_theme.MID_GRAY,
-                max_lines=1,
-                overflow=ft.TextOverflow.ELLIPSIS,
+                selectable=True,
             )
         )
-    extra = " · ".join(
+    meta_bits = [
         x
         for x in (
-            f"Alm. {ln.almacen_noray}" if ln.almacen_noray else "",
+            f"Almacén Noray: {ln.almacen_noray}" if ln.almacen_noray else "",
+            f"Unidad: {unidad}",
             ln.aviso,
         )
         if x
-    )
-    if extra:
+    ]
+    if meta_bits:
         detalle_cols.append(
             ft.Text(
-                extra,
-                size=10,
+                " · ".join(meta_bits),
+                size=11,
                 color=ui_theme.MID_GRAY,
-                max_lines=2,
-                overflow=ft.TextOverflow.ELLIPSIS,
+                selectable=True,
             )
         )
 
@@ -3125,34 +3206,73 @@ def _compra_linea_row(
         )
     )
 
+    total_box = ft.Container(
+        width=120,
+        padding=ft.Padding.symmetric(horizontal=8, vertical=10),
+        bgcolor=ui_theme.LIGHT_GRAY,
+        border_radius=ui_theme.RADIUS_SM,
+        content=ft.Column(
+            spacing=2,
+            tight=True,
+            horizontal_alignment=ft.CrossAxisAlignment.END,
+            controls=[
+                ft.Text(
+                    "Total línea",
+                    size=10,
+                    weight=ft.FontWeight.W_600,
+                    color=ui_theme.MID_GRAY,
+                ),
+                ft.Text(
+                    f"{subtotal:.2f} €",
+                    size=14,
+                    weight=ft.FontWeight.BOLD,
+                    color=ui_theme.DARK_TEXT,
+                ),
+            ],
+        ),
+    )
+
     return ft.Container(
-        padding=ft.Padding.symmetric(horizontal=12, vertical=8),
+        padding=ft.Padding.symmetric(horizontal=12, vertical=10),
         border=ft.Border(bottom=ft.BorderSide(1, ui_theme.BORDER)),
         bgcolor=ui_theme.WARNING_BG
         if estado in ("revisar", "ambiguo")
         else (ui_theme.DANGER_BG if estado in ("sin_match", "conflicto") else None),
         content=ft.Column(
-            spacing=6,
+            spacing=8,
             tight=True,
             controls=[
                 ft.Column(spacing=2, tight=True, controls=detalle_cols),
                 ft.Row(
                     wrap=True,
-                    spacing=8,
-                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                    spacing=12,
+                    vertical_alignment=ft.CrossAxisAlignment.START,
                     controls=[
-                        prod_dd,
-                        ubi_dd,
-                        cant_tf,
-                        prec_tf,
-                        ft.Text(
-                            f"{subtotal:.2f}",
-                            size=12,
-                            width=70,
-                            weight=ft.FontWeight.W_600,
-                            color=ui_theme.DARK_TEXT,
+                        _compra_campo_etiquetado(
+                            "Producto (catálogo)",
+                            prod_dd,
+                            expand=True,
                         ),
-                        *acciones,
+                        _compra_campo_etiquetado(
+                            "Ubicación de guardado",
+                            ubi_dd,
+                            width=200,
+                        ),
+                        _compra_campo_etiquetado(
+                            f"Cantidad ({unidad})",
+                            cant_tf,
+                            width=120,
+                        ),
+                        _compra_campo_etiquetado(
+                            "Precio unitario",
+                            prec_tf,
+                            width=130,
+                        ),
+                        total_box,
+                        ft.Container(
+                            padding=ft.Padding.only(top=14),
+                            content=ft.Row(spacing=4, tight=True, controls=acciones),
+                        ),
                     ],
                 ),
             ],

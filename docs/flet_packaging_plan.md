@@ -87,7 +87,7 @@ Motivos: el launcher ya unifica Flet; el riesgo real del hotel es **datos y oper
 
 1. **SO / hardware** — Windows x64; disco local; UPS recomendable.
 2. **Entrypoint** — launcher Flet como acceso diario; Streamlit para Settings.
-3. **JSON productivo** — ruta fija fuera del repo (p. ej. `%ProgramData%\BM-V2\datos_hotel.json` o carpeta del hotel).
+3. **JSON productivo** — fuera del instalable: `%LOCALAPPDATA%\BM-V2-local\data\datos_hotel.json` (carpeta **BM-DATOS**). Ver [`hotel_dos_carpetas.md`](hotel_dos_carpetas.md).
 4. **Demo vs real** — demo canónico intacto en el árbol de instalación de solo lectura; productivo solo vía variable/path de datos.
 5. **Permisos FS** — usuario de servicio con RW en carpeta de datos; resto RO.
 6. **Backup / restore** — copia diaria del JSON + procedimiento documentado (Settings Streamlit ya tiene restauración; no ampliar aquí).

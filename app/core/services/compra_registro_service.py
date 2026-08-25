@@ -491,6 +491,24 @@ def _aplicar_confirmacion(
             return ResultadoCompra(False, f"cantidad_inventario inválida en {ln.id}")
         coste = as_decimal(ln.coste_inventariable_linea or 0)
         coste_unit = ln.coste_unitario_inventario
+        # D60: primer albarán/factura con stock → revalorizar consumos históricos
+        from app.core.services.revalorizacion_primer_precio_service import (
+            producto_tiene_lote_de_compra,
+            revalorizar_producto_primer_precio,
+        )
+
+        if not producto_tiene_lote_de_compra(data, ln.producto_id):
+            unit = coste_unit
+            if unit is None and qty > 0:
+                unit = as_decimal(coste) / as_decimal(qty)
+            if unit is not None:
+                revalorizar_producto_primer_precio(
+                    data,
+                    ln.producto_id,
+                    unit,
+                    doc_id=doc.id,
+                    actor="Sistema",
+                )
         lote = LoteStock(
             next_id("l", [l.id for l in data.lotes]),
             ln.producto_id,

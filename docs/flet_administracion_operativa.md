@@ -12,13 +12,13 @@ Streamlit permanece como referencia para BI y algunas UIs legado.
 2. Navegación por secciones (`ADMIN_SECCIONES`): dashboard (`inicio`), **análisis** (costes/consumo/merma), productos, recetas, usuarios, responsables, **catálogos**, proveedores, compras, documentos, inventario_inicial, **actividad**, backup, configuración, **servidor**, **zona_peligro** (solo Dir).
 3. **Dashboard** — KPIs accionables (consumos, mermas, stock bajo, caducidades), alerta de desayuno, atajos, totales de catálogo, revisión JSON y ruta de datos; botón *Actualizar* → `refresh_if_stale()`. Navegación lateral **agrupada y con scroll** (`ADMIN_NAV_GROUPS`: Resumen / Catálogo / Compras e inventario / Personas / Sistema).
 4. **Análisis** — visible con `CONSULTAR_COSTES`. Hubs **Costes / Consumo / Merma** (sin BI). Reutiliza `costes_service`, `analitica_consumo_service`, `consumo_service`, `merma_analisis_service`, `dashboard_service`. Gráficos con helpers Flet (`app/presentation/flet/charts.py`), no Altair. Export Excel de comparación de costes.
-5. **Productos** — listado denso paginado (40/página), alta en panel colapsable, import PRECIO; `stock_service.crear_producto` / desactivar·reactivar.
+5. **Productos** — listado denso paginado (40/página), alta en panel colapsable, import PRECIO (coste Excel = **provisional** hasta el primer albarán/factura con stock, D60); `stock_service.crear_producto` / desactivar·reactivar.
 6. **Recetas** — `receta_service.crear_receta` / desactivar·reactivar.
 7. **Usuarios** — `settings_service` crear / editar / cambiar_rol / set_activo / restablecer_password.
 8. **Responsables de merma** — CRUD existente (sin regresión).
 9. **Catálogos** — departamentos / categorías / ubicaciones vía `catalogo_service` (alta + listado activo).
 10. **Proveedores** — `proveedor_service` crear / editar / desactivar·reactivar.
-11. **Compras** — borrador → `confirmar_compra`. Precio solo en `CompraLineaVM.precio_unitario`.
+11. **Compras** — borrador → `confirmar_compra`. Precio solo en `CompraLineaVM.precio_unitario`. Primer albarán/factura con entrada de stock de un producto **revaloriza** consumos ya registrados (D60); siguientes entradas = lote FIFO con su coste.
 12. **Documentos** — listado + export CSV (`documento_consulta_service.exportar_documentos_csv`) con feedback de ruta; nº de líneas en lista.
 13. **Actividad** — últimas 50 entradas de `data.actividades` (solo lectura).
 14. **Inventario inicial** — `registrar_lote` con `LoteAltaVM.precio_total`.

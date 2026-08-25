@@ -12,5 +12,8 @@ python -m PyInstaller packaging\bm_launcher.spec --noconfirm --clean
 if errorlevel 1 exit /b 1
 echo.
 echo Artefacto: %CD%\dist\BM-Launcher\BM-Launcher.exe
-echo Datos productivos: %%LOCALAPPDATA%%\BM-V2-local (runtime hook)
+echo Carpeta CODIGO tipica: C:\Apps\BM-V2  (copiar dist\BM-Launcher ahi)
+echo Carpeta DATOS: %%LOCALAPPDATA%%\BM-V2-local  (runtime hook; no tocar al actualizar)
+echo Ver docs\hotel_dos_carpetas.md
+echo Marcadores: deploy\windows\marcar_carpetas_hotel.cmd
 endlocal
