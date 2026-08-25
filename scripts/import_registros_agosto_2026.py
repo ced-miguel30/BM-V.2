@@ -156,10 +156,12 @@ def _to_nativa(data, producto_id: str, cantidad: float, unidad: str | None) -> f
     if unidad is None or unidad == prod.unidad.value:
         return qty
     u = "gr" if unidad == "g" else unidad
-    # 1 rebanada de molde = 1/31 Ud de paquete (p09 común / p11 integral)
-    if u in ("reb", "rebanada", "rebanadas") and producto_id in ("p09", "p11"):
-        if prod.unidad.value == "Ud":
-            return round(qty / 31.0, 6)
+    # 1 rebanada / 1 pieza de molde o bollería empaquetada
+    if u in ("reb", "rebanada", "rebanadas", "pieza", "piezas", "ud_pieza"):
+        from app.core.services.pack_unidades import UNIDADES_POR_PAQUETE, piezas_a_ud_paquete
+
+        if producto_id in UNIDADES_POR_PAQUETE and prod.unidad.value == "Ud":
+            return piezas_a_ud_paquete(producto_id, qty)
     if u in ("ml", "cl", "L") and prod.unidad.value == "Ud":
         litros = qty * {"ml": 0.001, "cl": 0.01, "L": 1.0}[u]
         pack = PACK_L.get(producto_id, 1.0)
@@ -264,6 +266,13 @@ def ensure_recipes_and_flags(report: dict) -> None:
     report["recipes_ensured"] = created
 
 
+# Precio real bolsa Cubiton (resto de reposiciones siguen con placeholder 2,50 €/Ud).
+_PRECIOS_UNITARIOS_CONOCIDOS = {
+    "p17": 0.80,   # CUBITON
+    "p148": 0.90,  # CUBITON PICADO
+}
+
+
 def ensure_stock(producto_id: str, minimo: float, fecha: date) -> str | None:
     data = get_container().app_data_store.get()
     have = stock_disponible(data, producto_id)
@@ -273,7 +282,11 @@ def ensure_stock(producto_id: str, minimo: float, fecha: date) -> str | None:
     prod = next((p for p in data.productos if p.id == producto_id), None)
     if prod and prod.unidad.value == "Ud" and falta < 1:
         falta = max(1.0, round(falta + 0.49))
-    precio = max(1.0, round(falta * 2.5, 2))
+    unit = _PRECIOS_UNITARIOS_CONOCIDOS.get(producto_id)
+    if unit is not None:
+        precio = max(0.01, round(falta * unit, 2))
+    else:
+        precio = max(1.0, round(falta * 2.5, 2))
     r = stock_svc.registrar_lote(
         producto_id,
         precio_total=precio,

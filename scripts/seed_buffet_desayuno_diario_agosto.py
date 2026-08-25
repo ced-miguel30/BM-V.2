@@ -193,16 +193,17 @@ def build_specs(data) -> list[tuple[str, list[IngredienteReceta]]]:
     ]
 
     panes_bolleria = [
-        I("p05", 2, "Ud"),    # pan grande (gallego barra)
-        I("p357", 2, "Ud"),   # pan millo / maíz
-        I("p276", 4, "Ud"),   # centeno
-        I("p252", 8, "Ud"),   # baguettes
-        I("p251", 6, "Ud"),   # nap chocolate
-        I("p294", 12, "Ud"),  # 6 crema + 6 cremas (chic crema)
-        I("p250", 8, "Ud"),   # lazos
-        I("p249", 9, "Ud"),   # croissant mantequilla
-        I("b01", 9, "Ud"),    # croissant chocolate
-        I("p08", 0.4, "Kg"),  # surtido repostería ≈ 5–6 piezas
+        # Cantidades = piezas individuales → Ud nativa = piezas / uds_por_caja
+        I("p05", 2 / 20, "Ud"),     # 2 barras / caja 20
+        I("p357", 2 / 10, "Ud"),    # 2 / caja 10
+        I("p276", 4 / 20, "Ud"),    # 4 / caja 20
+        I("p252", 8 / 66, "Ud"),    # 8 baguettinas / caja 66
+        I("p251", 6 / 100, "Ud"),   # 6 napolitanas / 100
+        I("p294", 12 / 325, "Ud"),  # 12 chic crema / 325
+        I("p250", 8 / 194, "Ud"),   # 8 lazos / 194
+        I("p249", 9 / 280, "Ud"),   # 9 croissants / 280
+        I("b01", 9 / 198, "Ud"),    # 9 croissants choco / 198
+        I("p08", 0.4, "Kg"),        # surtido ya en Kg
     ]
 
     return [

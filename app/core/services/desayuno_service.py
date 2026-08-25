@@ -118,10 +118,11 @@ class ResultadoOperacion:
     detalle_stock: list[str] | None = None
 
 
+from app.core.services.pack_unidades import piezas_a_ud_paquete, UNIDADES_POR_PAQUETE
+
 # Pan de molde: 1 Ud de catálogo = 1 paquete ≈ 31 rebanadas.
-# Una tostada / pan suelto en desayuno = 1 rebanada = 1/31 Ud.
-REBANADAS_POR_PAQUETE_MOLDE = 31.0
-PRODUCTOS_PAN_MOLDE_TOSTADA = frozenset({"p09", "p11"})  # común 800g + integral 1kg
+REBANADAS_POR_PAQUETE_MOLDE = UNIDADES_POR_PAQUETE["p09"]
+PRODUCTOS_PAN_MOLDE_TOSTADA = frozenset({"p09", "p11"})
 
 
 @dataclass(frozen=True)
@@ -133,7 +134,19 @@ class ExtraRapidoDesayuno:
     unidad_mostrar: str
 
 
-_REB_MOLDE = round(1.0 / REBANADAS_POR_PAQUETE_MOLDE, 6)
+_REB_MOLDE = piezas_a_ud_paquete("p09", 1.0)
+
+
+def _extra_pieza(label: str, producto_id: str) -> ExtraRapidoDesayuno:
+    """1 pieza individual → fracción de caja/paquete (no 1 Ud-caja)."""
+    return ExtraRapidoDesayuno(
+        label,
+        producto_id,
+        piezas_a_ud_paquete(producto_id, 1.0),
+        1,
+        "ud",
+    )
+
 
 _EXTRAS_RAPIDOS_DESAYUNO: tuple[ExtraRapidoDesayuno, ...] = (
     # --- Extras cocina / platos calientes ---
@@ -156,7 +169,6 @@ _EXTRAS_RAPIDOS_DESAYUNO: tuple[ExtraRapidoDesayuno, ...] = (
     ExtraRapidoDesayuno("Tomate cherry", "p52", 0.03, 30, "gr"),
     ExtraRapidoDesayuno("Chorizo", "p146", 0.02, 20, "gr"),
     # --- Estándar buffet desayuno (productos individuales) ---
-    # Fruta
     ExtraRapidoDesayuno("Kiwi", "p71", 0.08, 80, "gr"),
     ExtraRapidoDesayuno("Papaya", "p70", 0.08, 80, "gr"),
     ExtraRapidoDesayuno("Melon", "p69", 0.08, 80, "gr"),
@@ -166,23 +178,22 @@ _EXTRAS_RAPIDOS_DESAYUNO: tuple[ExtraRapidoDesayuno, ...] = (
     ExtraRapidoDesayuno("Platano", "p66", 1.0, 1, "Ud"),
     ExtraRapidoDesayuno("Pina", "p68", 0.08, 80, "gr"),
     ExtraRapidoDesayuno("Melocoton almibar", "p122", 1.0, 1, "Ud"),
-    # Embutido / queso buffet
     ExtraRapidoDesayuno("Paleta iberica", "p358", 0.02, 20, "gr"),
     ExtraRapidoDesayuno("Mortadela", "p89", 0.02, 20, "gr"),
     ExtraRapidoDesayuno("Salchichon iberico", "p34", 0.02, 20, "gr"),
     ExtraRapidoDesayuno("Queso gofio", "p37", 0.02, 20, "gr"),
     ExtraRapidoDesayuno("Queso pimenton", "b04", 0.02, 20, "gr"),
     ExtraRapidoDesayuno("Queso fresco", "p38", 0.02, 20, "gr"),
-    # Panes y bollería buffet
-    ExtraRapidoDesayuno("Pan gallego", "p05", 1.0, 1, "Ud"),
-    ExtraRapidoDesayuno("Pan maiz", "p357", 1.0, 1, "Ud"),
-    ExtraRapidoDesayuno("Pan centeno", "p276", 1.0, 1, "Ud"),
-    ExtraRapidoDesayuno("Baguettina", "p252", 1.0, 1, "Ud"),
-    ExtraRapidoDesayuno("Napolitana cacao", "p251", 1.0, 1, "Ud"),
-    ExtraRapidoDesayuno("Chic crema", "p294", 1.0, 1, "Ud"),
-    ExtraRapidoDesayuno("Lazo cereal", "p250", 1.0, 1, "Ud"),
-    ExtraRapidoDesayuno("Croissant mantequilla", "p249", 1.0, 1, "Ud"),
-    ExtraRapidoDesayuno("Croissant chocolate", "b01", 1.0, 1, "Ud"),
+    # Panes y bollería buffet: 1 pieza (no 1 caja)
+    _extra_pieza("Pan gallego", "p05"),
+    _extra_pieza("Pan maiz", "p357"),
+    _extra_pieza("Pan centeno", "p276"),
+    _extra_pieza("Baguettina", "p252"),
+    _extra_pieza("Napolitana cacao", "p251"),
+    _extra_pieza("Chic crema", "p294"),
+    _extra_pieza("Lazo cereal", "p250"),
+    _extra_pieza("Croissant mantequilla", "p249"),
+    _extra_pieza("Croissant chocolate", "b01"),
     ExtraRapidoDesayuno("Surtido reposteria", "p08", 0.05, 50, "gr"),
 )
 
