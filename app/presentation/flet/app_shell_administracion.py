@@ -96,6 +96,7 @@ class TerminalAdministracionShell:
                     on_desactivar_proveedor=self._on_desactivar_proveedor,
                     on_reactivar_proveedor=self._on_reactivar_proveedor,
                     on_set_compra_cabecera=self._on_set_compra_cabecera,
+                    on_set_compra_fecha=self._on_set_compra_fecha,
                     on_añadir_linea_compra=self._on_añadir_linea_compra,
                     on_añadir_linea_compra_busqueda=self._on_añadir_linea_compra_busqueda,
                     on_update_linea_compra=self._on_update_linea_compra,
@@ -111,6 +112,7 @@ class TerminalAdministracionShell:
                     on_importar_noray=self._on_importar_noray,
                     on_set_compra_linea_ubicacion=self._on_set_compra_linea_ubicacion,
                     on_set_compra_linea_producto=self._on_set_compra_linea_producto,
+                    on_reasignar_linea_compra=self._on_reasignar_linea_compra,
                     on_verificar_linea_compra=self._on_verificar_linea_compra,
                     on_crear_producto_linea_noray=self._on_crear_producto_linea_noray,
                     on_generar_backup=self._on_generar_backup,
@@ -423,6 +425,14 @@ class TerminalAdministracionShell:
         self, proveedor_id: str, referencia: str, tipo: str = ""
     ) -> None:
         self.presenter.set_compra_cabecera(proveedor_id, referencia, tipo)
+        self.refresh()
+
+    def _on_set_compra_fecha(self, fecha: str) -> None:
+        self.presenter.set_compra_fecha(fecha)
+        self.refresh()
+
+    def _on_reasignar_linea_compra(self, index: int, texto: str) -> None:
+        self.presenter.reasignar_linea_compra_por_texto(index, texto)
         self.refresh()
 
     def _on_añadir_linea_compra(

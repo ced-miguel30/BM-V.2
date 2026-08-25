@@ -999,6 +999,25 @@ class TerminalAdministracionPresenter:
             self.set_compra_tipo(tipo)
         return self.screen()
 
+    def set_compra_fecha(self, fecha: str) -> AdminScreenVM:
+        """Fecha del documento (AAAA-MM-DD). Vacío limpia la fecha."""
+        if not self._gate_admin():
+            return self.screen()
+        raw = (fecha or "").strip()
+        if not raw:
+            self._compra_fecha_documento = None
+            return self.screen()
+        try:
+            from datetime import date as _date
+
+            self._compra_fecha_documento = _date.fromisoformat(raw[:10])
+        except ValueError:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False,
+                mensaje_backend="Fecha inválida. Use AAAA-MM-DD.",
+            )
+        return self.screen()
+
     def set_compra_tipo(self, tipo: str) -> AdminScreenVM:
         if not self._gate_admin():
             return self.screen()
@@ -1219,6 +1238,19 @@ class TerminalAdministracionPresenter:
         self._seccion = "compras"
         return self.screen()
 
+    def reasignar_linea_compra_por_texto(self, index: int, texto: str) -> AdminScreenVM:
+        """Reasigna producto de una línea buscando por código/nombre parcial."""
+        if not self._gate_admin():
+            return self.screen()
+        prod, err = self._resolver_producto_compra(texto)
+        if err or prod is None:
+            self._feedback = map_admin_operacion_feedback(
+                ok=False, mensaje_backend=err or "Producto no encontrado."
+            )
+            self._seccion = "compras"
+            return self.screen()
+        return self.set_compra_linea_producto(index, prod.id)
+
     def confirmar_match_linea_compra(self, index: int) -> AdminScreenVM:
         """Marca una línea en «revisar» como verificada (OK) por el usuario."""
         if not self._gate_admin():
@@ -1412,6 +1444,13 @@ class TerminalAdministracionPresenter:
         self._compra_fecha_documento = parsed.fecha_documento
         if parsed.referencia_sugerida and not self._compra_referencia:
             self._compra_referencia = parsed.referencia_sugerida
+        # Si solo hay un proveedor activo y no hay uno elegido, preseleccionarlo.
+        if not self._compra_proveedor_id:
+            activos_p = [
+                p for p in (data.proveedores or []) if getattr(p, "activo", True)
+            ]
+            if len(activos_p) == 1:
+                self._compra_proveedor_id = activos_p[0].id
         sin_ubi = sum(1 for x in lineas if not x.ubicacion_destino_id)
         partes = [
             f"Import Noray: {len(lineas)} línea(s)",
@@ -2980,6 +3019,11 @@ class TerminalAdministracionPresenter:
             compra_lineas=tuple(self._compra_lineas) if auth else (),
             compra_proveedor_id=self._compra_proveedor_id if auth else "",
             compra_referencia=self._compra_referencia if auth else "",
+            compra_fecha=(
+                self._compra_fecha_documento.isoformat()
+                if auth and self._compra_fecha_documento
+                else ""
+            ),
             compra_documento_id=self._compra_documento_id if auth else "",
             compra_tipo=self._compra_tipo if auth else "albaran",
             compra_albaran_id=self._compra_albaran_id if auth else "",

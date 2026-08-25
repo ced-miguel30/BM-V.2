@@ -211,6 +211,7 @@ def build_admin_shell(
     on_desactivar_proveedor: Callable[[str], None],
     on_reactivar_proveedor: Callable[[str], None],
     on_set_compra_cabecera: Callable[..., None],
+    on_set_compra_fecha: Callable[[str], None] | None = None,
     on_añadir_linea_compra: Callable[..., None],
     on_añadir_linea_compra_busqueda: Callable[..., None] | None = None,
     on_update_linea_compra: Callable[..., None] | None = None,
@@ -237,6 +238,7 @@ def build_admin_shell(
     on_importar_noray: Callable[[], None] | None = None,
     on_set_compra_linea_ubicacion: Callable[[int, str], None] | None = None,
     on_set_compra_linea_producto: Callable[[int, str], None] | None = None,
+    on_reasignar_linea_compra: Callable[[int, str], None] | None = None,
     on_verificar_linea_compra: Callable[[int], None] | None = None,
     on_crear_producto_linea_noray: Callable[[int], None] | None = None,
     on_proponer_anular_documento: Callable[[str, str], None] | None = None,
@@ -354,6 +356,7 @@ def build_admin_shell(
         on_desactivar_proveedor=on_desactivar_proveedor,
         on_reactivar_proveedor=on_reactivar_proveedor,
         on_set_compra_cabecera=on_set_compra_cabecera,
+        on_set_compra_fecha=on_set_compra_fecha,
         on_añadir_linea_compra=on_añadir_linea_compra,
         on_añadir_linea_compra_busqueda=on_añadir_linea_compra_busqueda,
         on_update_linea_compra=on_update_linea_compra,
@@ -369,6 +372,7 @@ def build_admin_shell(
         on_importar_noray=on_importar_noray,
         on_set_compra_linea_ubicacion=on_set_compra_linea_ubicacion,
         on_set_compra_linea_producto=on_set_compra_linea_producto,
+        on_reasignar_linea_compra=on_reasignar_linea_compra,
         on_verificar_linea_compra=on_verificar_linea_compra,
         on_crear_producto_linea_noray=on_crear_producto_linea_noray,
         on_generar_backup=on_generar_backup,
@@ -2646,6 +2650,7 @@ def _panel_documentos(screen: AdminScreenVM, **cbs) -> ft.Control:
 
 def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
     on_set_cab = cbs["on_set_compra_cabecera"]
+    on_set_fecha = cbs.get("on_set_compra_fecha")
     on_add = cbs["on_añadir_linea_compra"]
     on_add_busq = cbs.get("on_añadir_linea_compra_busqueda")
     on_update = cbs.get("on_update_linea_compra")
@@ -2659,33 +2664,29 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
     on_anular_borr = cbs.get("on_anular_borrador_compra")
     on_import_noray = cbs.get("on_importar_noray")
     on_set_ubi = cbs.get("on_set_compra_linea_ubicacion")
-    on_set_prod = cbs.get("on_set_compra_linea_producto")
+    on_reasignar = cbs.get("on_reasignar_linea_compra")
     on_verificar = cbs.get("on_verificar_linea_compra")
     on_crear_prod_ln = cbs.get("on_crear_producto_linea_noray")
 
     deprecacion = ui.alert_banner(
-        "Deprecado: use Terminal Inventario → Albarán / Factura / Documentos "
-        "(flujo Noray). Este panel Admin queda como fallback.",
-        severity="warning",
+        "Revise cada línea: almacén (Economato / Cocina / Restaurante), "
+        "cantidad, unidad y precio. Complete proveedor, nº de documento y fecha "
+        "antes de confirmar.",
+        severity="info",
     )
 
     activos_prov = [p for p in screen.proveedores if p.activo]
     activos_ubi = [u for u in screen.ubicaciones if u.activo]
-    activos_prod = [p for p in screen.productos if p.activo]
-    ubi_options = [
-        ft.dropdown.Option(
-            key=u.id,
-            text=f"{u.codigo} · {u.nombre}" if u.codigo else u.nombre,
-        )
-        for u in activos_ubi
-    ]
-    prod_options = [
-        ft.dropdown.Option(
-            key=p.id,
-            text=f"{p.nombre}" + (f" [{p.codigo}]" if p.codigo else ""),
-        )
-        for p in activos_prod[:400]
-    ]
+
+    def _ubi_options() -> list:
+        # Cada Dropdown necesita sus propias Option (no reutilizar Controls).
+        return [
+            ft.dropdown.Option(
+                key=u.id,
+                text=f"{u.codigo} · {u.nombre}" if u.codigo else u.nombre,
+            )
+            for u in activos_ubi
+        ]
 
     def _parse_num(raw: str | None, default: float = 0.0) -> float:
         try:
@@ -2703,7 +2704,7 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
             ft.dropdown.Option(key="factura", text="Factura"),
         ],
         value=screen.compra_tipo or "albaran",
-        width=140,
+        width=160,
         on_select=lambda e: _sync_cab(
             getattr(e.control, "value", None) or "albaran",
             prov.value or "",
@@ -2711,7 +2712,8 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
         ),
     )
     prov = ft.Dropdown(
-        label="Proveedor",
+        label="Proveedor *",
+        hint_text="Seleccione proveedor",
         options=[
             ft.dropdown.Option(
                 key=p.id,
@@ -2720,7 +2722,7 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
             for p in activos_prov
         ],
         value=screen.compra_proveedor_id or None,
-        expand=True,
+        width=280,
         on_select=lambda e: _sync_cab(
             tipo.value or "albaran",
             getattr(e.control, "value", None) or "",
@@ -2728,9 +2730,10 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
         ),
     )
     ref = ft.TextField(
-        label="Referencia / nº doc.",
+        label="Nº albarán / factura",
+        hint_text="Si falta, rellénelo aquí",
         value=screen.compra_referencia,
-        width=180,
+        width=220,
         on_blur=lambda e: _sync_cab(
             tipo.value or "albaran",
             prov.value or "",
@@ -2742,14 +2745,21 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
             e.control.value or "",
         ),
     )
+    fecha_tf = ft.TextField(
+        label="Fecha documento",
+        hint_text="AAAA-MM-DD",
+        value=screen.compra_fecha or "",
+        width=160,
+        on_blur=lambda e: on_set_fecha(e.control.value or "") if on_set_fecha else None,
+        on_submit=lambda e: on_set_fecha(e.control.value or "") if on_set_fecha else None,
+    )
 
     busqueda = ft.TextField(
         label="Buscar producto (parcial)",
         hint_text="Ej. huevo → opciones con «huevo»",
         prefix_icon=ft.Icons.SEARCH,
         value=screen.compra_prod_busqueda,
-        expand=True,
-        autofocus=True,
+        width=360,
         on_change=lambda e: on_busq(e.control.value or "") if on_busq else None,
     )
     cantidad = ft.TextField(label="Cant.", width=100, value="1")
@@ -2801,17 +2811,11 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
                     )
                 )
             sugerencias.append(ft.Row(wrap=True, spacing=4, controls=chips))
-            sugerencias.append(
-                ui_theme.text_help(
-                    "Pulse una opción para añadirla al borrador (cant. 1; ajuste en la tabla)."
-                )
-            )
 
     noray_help = (
         f"Archivo: {screen.compra_noray_archivo}"
         if screen.compra_noray_archivo
-        else "Suba el Excel de líneas Noray/BC. Empareja por nombre y verifica "
-        "código; si no cuadran puede reasignar, verificar o crear producto."
+        else "Suba el Excel de líneas Noray/BC. Luego revise almacén y precios."
     )
     if screen.compra_noray_omitidas:
         noray_help += (
@@ -2834,15 +2838,27 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
     )
 
     total = sum(l.cantidad * l.precio_unitario for l in screen.compra_lineas)
+    sin_ubi = sum(1 for l in screen.compra_lineas if not (l.ubicacion_destino_id or "").strip())
     header = ft.Container(
         padding=ft.Padding.symmetric(horizontal=12, vertical=10),
         bgcolor=ui_theme.LIGHT_GRAY,
-        content=ft.Text(
-            "Líneas del documento — producto, ubicación, cantidad (Ud/Kg), "
-            "precio unitario y total",
-            size=11,
-            weight=ft.FontWeight.W_600,
-            color=ui_theme.DARK_TEXT,
+        content=ft.Row(
+            alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+            controls=[
+                ft.Text(
+                    "Líneas — producto · almacén · cantidad (Ud/Kg/L) · P. unit. · total",
+                    size=11,
+                    weight=ft.FontWeight.W_600,
+                    color=ui_theme.DARK_TEXT,
+                    expand=True,
+                ),
+                ft.Text(
+                    f"Total documento: {total:.2f} €",
+                    size=13,
+                    weight=ft.FontWeight.BOLD,
+                    color=ui_theme.TEAL,
+                ),
+            ],
         ),
     )
     lineas: list[ft.Control] = [header]
@@ -2855,37 +2871,78 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
                     on_quitar,
                     on_update=on_update,
                     on_set_ubicacion=on_set_ubi,
-                    on_set_producto=on_set_prod,
+                    on_reasignar=on_reasignar,
                     on_verificar=on_verificar,
                     on_crear_producto=on_crear_prod_ln,
-                    ubicacion_options=ubi_options,
-                    producto_options=prod_options,
+                    ubicacion_options=_ubi_options(),
                     disabled=screen.mutando,
                 )
             )
+        lineas.append(
+            ft.Container(
+                padding=ft.Padding.symmetric(horizontal=12, vertical=12),
+                bgcolor=ui_theme.LIGHT_GRAY,
+                content=ft.Row(
+                    alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                    controls=[
+                        ft.Text(
+                            (
+                                f"{len(screen.compra_lineas)} línea(s)"
+                                + (f" · {sin_ubi} sin almacén" if sin_ubi else "")
+                            ),
+                            size=12,
+                            color=ui_theme.MID_GRAY,
+                        ),
+                        ft.Text(
+                            f"TOTAL ALBARÁN / FACTURA: {total:.2f} €",
+                            size=15,
+                            weight=ft.FontWeight.BOLD,
+                            color=ui_theme.DARK_TEXT,
+                        ),
+                    ],
+                ),
+            )
+        )
     else:
         lineas.append(
             ui.empty_state(
                 "Borrador vacío",
-                "Suba un Excel Noray o escriba parte del nombre y elija una opción.",
+                "Suba un Excel Noray o añada líneas manualmente abajo.",
             )
         )
 
     tipo_lbl = "factura" if (screen.compra_tipo or "") == "factura" else "albarán"
-    alb_dd = ft.Dropdown(
-        label="Albarán a conciliar",
-        options=[
-            ft.dropdown.Option(
-                key=a.id,
-                text=f"{a.referencia or a.id} · {a.proveedor}",
+    cabecera_controls: list[ft.Control] = [
+        ft.Row(
+            wrap=True,
+            spacing=10,
+            controls=[tipo, prov, ref, fecha_tf],
+        ),
+    ]
+    if (screen.compra_tipo or "") == "factura":
+        cabecera_controls.append(
+            ft.Dropdown(
+                label="Albarán a conciliar",
+                options=[
+                    ft.dropdown.Option(
+                        key=a.id,
+                        text=f"{a.referencia or a.id} · {a.proveedor}",
+                    )
+                    for a in screen.albaranes_conciliables
+                ],
+                value=screen.compra_albaran_id or None,
+                width=420,
+                on_select=lambda e: cbs.get("on_set_compra_albaran")
+                and cbs["on_set_compra_albaran"](
+                    getattr(e.control, "value", None) or ""
+                ),
             )
-            for a in screen.albaranes_conciliables
-        ],
-        value=screen.compra_albaran_id or None,
-        expand=True,
-        visible=(screen.compra_tipo or "") == "factura",
-        on_select=lambda e: cbs.get("on_set_compra_albaran")
-        and cbs["on_set_compra_albaran"](getattr(e.control, "value", None) or ""),
+        )
+    cabecera_controls.append(
+        ui_theme.text_help(
+            "Proveedor, nº de documento y fecha se guardan con el borrador/confirmación. "
+            "Si el Excel no los trae, rellénelos aquí."
+        )
     )
 
     borradores_ui: list[ft.Control] = []
@@ -2936,14 +2993,14 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
             deprecacion,
             ui.page_header(
                 "Registro de compras",
-                f"Albarán / factura · import Noray · ubicación por línea · {tipo_lbl}",
+                f"Revise líneas del {tipo_lbl}: almacén, cantidades y precios",
                 actions=[
                     ui.status_chip(
                         f"{len(screen.compra_lineas)} línea(s)",
                         tone="info",
                     ),
                     ui.status_chip(
-                        f"Total {total:.2f}",
+                        f"Total {total:.2f} €",
                         tone="ok" if total else "neutral",
                     ),
                     ui.status_chip(
@@ -2954,22 +3011,52 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
                     ),
                 ],
             ),
+            ui.card_surface(
+                *cabecera_controls,
+                title="Cabecera del documento",
+            ),
+            ft.Container(
+                bgcolor=ui_theme.SURFACE_CARD,
+                border_radius=ui_theme.RADIUS_MD,
+                border=ft.Border.all(1, ui_theme.BORDER),
+                content=ft.Column(spacing=0, tight=True, controls=lineas),
+            ),
+            ft.Row(
+                wrap=True,
+                controls=[
+                    ui.secondary_button(
+                        "Guardar borrador",
+                        on_guardar,
+                        icon=ft.Icons.SAVE_OUTLINED,
+                        disabled=screen.mutando,
+                    ),
+                    ui.primary_button(
+                        "Confirmar documento",
+                        on_confirmar,
+                        icon=ft.Icons.CHECK_CIRCLE_OUTLINE,
+                        disabled=screen.mutando or not screen.compra_lineas,
+                    ),
+                    ft.TextButton(
+                        "Limpiar pantalla",
+                        disabled=screen.mutando,
+                        on_click=lambda _e: on_limpiar(),
+                    ),
+                ],
+            ),
             noray_card,
             ui.card_surface(
-                *borradores_ui,
-                title=f"Borradores guardados ({len(screen.compra_borradores)})",
-            ),
-            ui.card_surface(
-                ft.Row(controls=[tipo, prov, ref]),
-                alb_dd,
-                title="Cabecera",
-            ),
-            ui.card_surface(
                 ui_theme.text_help(
-                    "Escriba parte del nombre o código (≥2 letras). "
-                    "Elija una sugerencia o pulse Enter si hay coincidencia única."
+                    "Añadir línea manual: escriba parte del nombre (≥2 letras) o pulse Enter."
                 ),
-                ft.Row(controls=[busqueda, cantidad, precio]),
+                ft.Row(
+                    wrap=True,
+                    spacing=10,
+                    controls=[
+                        ft.Container(content=busqueda, width=360),
+                        cantidad,
+                        precio,
+                    ],
+                ),
                 *sugerencias,
                 ft.Row(
                     wrap=True,
@@ -2980,33 +3067,13 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
                             icon=ft.Icons.ADD,
                             disabled=screen.mutando,
                         ),
-                        ui.secondary_button(
-                            "Guardar borrador",
-                            on_guardar,
-                            icon=ft.Icons.SAVE_OUTLINED,
-                            disabled=screen.mutando,
-                        ),
-                        ui.primary_button(
-                            "Confirmar documento",
-                            on_confirmar,
-                            icon=ft.Icons.CHECK_CIRCLE_OUTLINE,
-                            disabled=screen.mutando or not screen.compra_lineas,
-                        ),
-                        ft.TextButton(
-                            "Limpiar pantalla",
-                            disabled=screen.mutando,
-                            on_click=lambda _e: on_limpiar(),
-                        ),
                     ],
                 ),
-                title="Captura de líneas",
+                title="Captura manual",
             ),
-            ft.Container(
-                bgcolor=ui_theme.SURFACE_CARD,
-                border_radius=ui_theme.RADIUS_MD,
-                border=ft.Border.all(1, ui_theme.BORDER),
-                clip_behavior=ft.ClipBehavior.HARD_EDGE,
-                content=ft.Column(spacing=0, scroll=ft.ScrollMode.AUTO, controls=lineas),
+            ui.card_surface(
+                *borradores_ui,
+                title=f"Borradores guardados ({len(screen.compra_borradores)})",
             ),
         ],
     )
@@ -3046,15 +3113,15 @@ def _compra_linea_row(
     *,
     on_update: Callable[..., None] | None,
     on_set_ubicacion: Callable[[int, str], None] | None,
-    on_set_producto: Callable[[int, str], None] | None,
+    on_reasignar: Callable[[int, str], None] | None,
     on_verificar: Callable[[int], None] | None,
     on_crear_producto: Callable[[int], None] | None,
     ubicacion_options: list,
-    producto_options: list,
     disabled: bool,
 ) -> ft.Control:
     unidad = (ln.unidad or "Ud").strip() or "Ud"
     cant_tf = ft.TextField(
+        label=f"Cant. ({unidad})",
         value=f"{ln.cantidad:g}",
         width=110,
         dense=True,
@@ -3062,20 +3129,22 @@ def _compra_linea_row(
         disabled=disabled or on_update is None,
     )
     prec_tf = ft.TextField(
+        label="P. unit. €",
         value=f"{ln.precio_unitario:.4g}",
         width=120,
         dense=True,
         text_align=ft.TextAlign.RIGHT,
         disabled=disabled or on_update is None,
-        prefix_text="€ ",
     )
     subtotal = ln.cantidad * ln.precio_unitario
+    sin_ubi = not (ln.ubicacion_destino_id or "").strip()
     ubi_dd = ft.Dropdown(
+        label="Almacén *",
         options=ubicacion_options,
         value=ln.ubicacion_destino_id or None,
-        width=200,
+        width=220,
         dense=True,
-        hint_text="Dónde se guarda",
+        hint_text="Economato / Cocina / Rest.",
         disabled=disabled or on_set_ubicacion is None or not ubicacion_options,
         on_select=lambda e, i=index: (
             on_set_ubicacion(i, getattr(e.control, "value", None) or "")
@@ -3083,17 +3152,14 @@ def _compra_linea_row(
             else None
         ),
     )
-    prod_dd = ft.Dropdown(
-        options=producto_options,
-        value=ln.producto_id or None,
-        expand=True,
+    reasignar_tf = ft.TextField(
+        label="Cambiar producto",
+        hint_text="Código o nombre + Enter",
         dense=True,
-        hint_text="Elegir / cambiar producto",
-        disabled=disabled or on_set_producto is None or not producto_options,
-        on_select=lambda e, i=index: (
-            on_set_producto(i, getattr(e.control, "value", None) or "")
-            if on_set_producto
-            else None
+        width=200,
+        disabled=disabled or on_reasignar is None,
+        on_submit=lambda e, i=index: (
+            on_reasignar(i, e.control.value or "") if on_reasignar else None
         ),
     )
 
@@ -3128,60 +3194,21 @@ def _compra_linea_row(
     }.get(estado, "neutral")
 
     noray_nom = ln.nombre_noray or ln.nombre
-    noray_cod = ln.codigo_noray or "—"
-    cat_cod = ln.producto_codigo or "—"
+    noray_cod = ln.codigo_noray or ""
+    cat_cod = ln.producto_codigo or ""
+    titulo = ln.nombre if ln.producto_id else noray_nom
+    cod_mostrar = cat_cod or noray_cod or "—"
 
-    # Nombre completo visible (sin ellipsis de 1 línea).
-    titulo_noray = f"Noray: {noray_nom}"
-    if noray_cod and noray_cod != "—":
-        titulo_noray = f"{titulo_noray}  ·  código {noray_cod}"
-    detalle_cols: list[ft.Control] = [
-        ft.Row(
-            spacing=8,
-            wrap=True,
-            vertical_alignment=ft.CrossAxisAlignment.CENTER,
-            controls=[
-                ui.status_chip(etiq, tone=tone),
-                ft.Text(
-                    titulo_noray,
-                    size=13,
-                    weight=ft.FontWeight.W_600,
-                    color=ui_theme.DARK_TEXT,
-                    selectable=True,
-                ),
-            ],
+    acciones: list[ft.Control] = [
+        ft.Text(
+            f"{subtotal:.2f} €",
+            size=14,
+            weight=ft.FontWeight.BOLD,
+            color=ui_theme.DARK_TEXT,
+            width=90,
+            text_align=ft.TextAlign.RIGHT,
         ),
     ]
-    if ln.producto_id:
-        detalle_cols.append(
-            ft.Text(
-                f"Catálogo: {ln.nombre}"
-                + (f"  ·  código {cat_cod}" if cat_cod != "—" else ""),
-                size=12,
-                color=ui_theme.MID_GRAY,
-                selectable=True,
-            )
-        )
-    meta_bits = [
-        x
-        for x in (
-            f"Almacén Noray: {ln.almacen_noray}" if ln.almacen_noray else "",
-            f"Unidad: {unidad}",
-            ln.aviso,
-        )
-        if x
-    ]
-    if meta_bits:
-        detalle_cols.append(
-            ft.Text(
-                " · ".join(meta_bits),
-                size=11,
-                color=ui_theme.MID_GRAY,
-                selectable=True,
-            )
-        )
-
-    acciones: list[ft.Control] = []
     if estado in ("revisar", "conflicto") and ln.producto_id and on_verificar:
         acciones.append(
             ft.TextButton(
@@ -3193,7 +3220,7 @@ def _compra_linea_row(
     if estado in ("sin_match", "conflicto", "ambiguo", "revisar") and on_crear_producto:
         acciones.append(
             ft.TextButton(
-                "Crear producto",
+                "Crear",
                 disabled=disabled or not (ln.codigo_noray or "").strip(),
                 on_click=lambda _e, i=index: on_crear_producto(i),
             )
@@ -3206,74 +3233,43 @@ def _compra_linea_row(
         )
     )
 
-    total_box = ft.Container(
-        width=120,
-        padding=ft.Padding.symmetric(horizontal=8, vertical=10),
-        bgcolor=ui_theme.LIGHT_GRAY,
-        border_radius=ui_theme.RADIUS_SM,
-        content=ft.Column(
-            spacing=2,
-            tight=True,
-            horizontal_alignment=ft.CrossAxisAlignment.END,
-            controls=[
-                ft.Text(
-                    "Total línea",
-                    size=10,
-                    weight=ft.FontWeight.W_600,
-                    color=ui_theme.MID_GRAY,
-                ),
-                ft.Text(
-                    f"{subtotal:.2f} €",
-                    size=14,
-                    weight=ft.FontWeight.BOLD,
-                    color=ui_theme.DARK_TEXT,
-                ),
-            ],
-        ),
-    )
+    meta_parts = [f"Unidad: {unidad}"]
+    if ln.almacen_noray:
+        meta_parts.append(f"Noray almacén: {ln.almacen_noray}")
+    if noray_nom and ln.producto_id and noray_nom != ln.nombre:
+        meta_parts.append(f"Noray: {noray_nom}")
+    if ln.aviso:
+        meta_parts.append(ln.aviso)
 
     return ft.Container(
-        padding=ft.Padding.symmetric(horizontal=12, vertical=10),
+        padding=ft.Padding.symmetric(horizontal=10, vertical=8),
         border=ft.Border(bottom=ft.BorderSide(1, ui_theme.BORDER)),
-        bgcolor=ui_theme.WARNING_BG
-        if estado in ("revisar", "ambiguo")
-        else (ui_theme.DANGER_BG if estado in ("sin_match", "conflicto") else None),
+        bgcolor=(
+            ui_theme.WARNING_BG
+            if estado in ("revisar", "ambiguo") or sin_ubi
+            else (ui_theme.DANGER_BG if estado in ("sin_match", "conflicto") else None)
+        ),
         content=ft.Column(
-            spacing=8,
+            spacing=6,
             tight=True,
             controls=[
-                ft.Column(spacing=2, tight=True, controls=detalle_cols),
+                ft.Text(
+                    f"#{index + 1}  [{etiq}]  {titulo}  ·  {cod_mostrar}  ·  {unidad}",
+                    size=13,
+                    weight=ft.FontWeight.W_600,
+                    color=ui_theme.DARK_TEXT,
+                    selectable=True,
+                ),
                 ft.Row(
                     wrap=True,
-                    spacing=12,
-                    vertical_alignment=ft.CrossAxisAlignment.START,
-                    controls=[
-                        _compra_campo_etiquetado(
-                            "Producto (catálogo)",
-                            prod_dd,
-                            expand=True,
-                        ),
-                        _compra_campo_etiquetado(
-                            "Ubicación de guardado",
-                            ubi_dd,
-                            width=200,
-                        ),
-                        _compra_campo_etiquetado(
-                            f"Cantidad ({unidad})",
-                            cant_tf,
-                            width=120,
-                        ),
-                        _compra_campo_etiquetado(
-                            "Precio unitario",
-                            prec_tf,
-                            width=130,
-                        ),
-                        total_box,
-                        ft.Container(
-                            padding=ft.Padding.only(top=14),
-                            content=ft.Row(spacing=4, tight=True, controls=acciones),
-                        ),
-                    ],
+                    spacing=8,
+                    controls=[ubi_dd, cant_tf, prec_tf, reasignar_tf, *acciones],
+                ),
+                ft.Text(
+                    " · ".join(meta_parts),
+                    size=11,
+                    color=ui_theme.MID_GRAY,
+                    selectable=True,
                 ),
             ],
         ),

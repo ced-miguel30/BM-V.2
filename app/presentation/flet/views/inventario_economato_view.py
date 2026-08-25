@@ -16,31 +16,6 @@ from app.presentation.flet.inventory_document_viewmodels import (
 from app.presentation.flet.inventory_viewmodels import InventarioScreenVM
 
 
-def _dbg(hypothesis_id: str, location: str, message: str, data: dict) -> None:
-    # #region agent log
-    import json
-    import time
-    from pathlib import Path
-
-    try:
-        payload = {
-            "sessionId": "ec0c23",
-            "runId": "post-fix",
-            "hypothesisId": hypothesis_id,
-            "location": location,
-            "message": message,
-            "data": data,
-            "timestamp": int(time.time() * 1000),
-        }
-        with (Path(__file__).resolve().parents[3] / "debug-ec0c23.log").open(
-            "a", encoding="utf-8"
-        ) as f:
-            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
-    except Exception:
-        pass
-    # #endregion
-
-
 def _border_all(width: float, color: str) -> ft.Border:
     return ft.Border.all(width, color)
 
@@ -57,51 +32,17 @@ def build_economato_body(
     if eco is None:
         return ft.Text("Cargando…", color=ui_theme.MID_GRAY)
     espacio = screen.espacio_activo
-    # #region agent log
-    _dbg(
-        "A",
-        "inventario_economato_view.py:build_economato_body",
-        "espacio_entry",
-        {
-            "espacio": espacio,
-            "has_Border_all": hasattr(ft.Border, "all"),
-            "has_border_mod_all": hasattr(ft.border, "all"),
-        },
-    )
-    # #endregion
-    try:
-        if espacio == "compras_panel":
-            body = _panel(screen, eco, callbacks)
-        elif espacio in ("compras_albaran", "compras_factura"):
-            body = _recepcion(screen, eco, callbacks)
-        elif espacio == "compras_documentos":
-            body = _documentos(screen, eco, callbacks)
-        elif espacio == "compras_proveedores":
-            body = _maestros(screen, eco, callbacks)
-        elif espacio == "compras_historial":
-            body = _historial(screen, eco, callbacks)
-        else:
-            body = ft.Text("Espacio no soportado", color=ui_theme.MID_GRAY)
-        # #region agent log
-        _dbg(
-            "C",
-            "inventario_economato_view.py:build_economato_body",
-            "espacio_ok",
-            {"espacio": espacio, "body_type": type(body).__name__},
-        )
-        # #endregion
-        return body
-    except AttributeError as exc:
-        # #region agent log
-        _dbg(
-            "A",
-            "inventario_economato_view.py:build_economato_body",
-            "attribute_error",
-            {"espacio": espacio, "error": str(exc)},
-        )
-        # #endregion
-        raise
-
+    if espacio == "compras_panel":
+        return _panel(screen, eco, callbacks)
+    if espacio in ("compras_albaran", "compras_factura"):
+        return _recepcion(screen, eco, callbacks)
+    if espacio == "compras_documentos":
+        return _documentos(screen, eco, callbacks)
+    if espacio == "compras_proveedores":
+        return _maestros(screen, eco, callbacks)
+    if espacio == "compras_historial":
+        return _historial(screen, eco, callbacks)
+    return ft.Text("Espacio no soportado", color=ui_theme.MID_GRAY)
 
 def _section_title(text: str) -> ft.Control:
     return ft.Text(text, size=18, weight=ft.FontWeight.BOLD, color=ui_theme.NAVY)

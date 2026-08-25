@@ -279,6 +279,7 @@ class AdminScreenVM:
     compra_lineas: tuple[CompraLineaVM, ...] = ()
     compra_proveedor_id: str = ""
     compra_referencia: str = ""
+    compra_fecha: str = ""
     compra_documento_id: str = ""
     compra_tipo: str = "albaran"
     compra_albaran_id: str = ""
