@@ -17,8 +17,10 @@ def build_catalog_result_controls(
     *,
     on_add_receta: Callable[[str], None],
     on_add_producto: Callable[..., None],
+    on_add_extra: Callable[..., None] | None = None,
 ) -> list[ft.Control]:
     """Solo filas del catálogo (sin campo de búsqueda)."""
+    on_add_extra = on_add_extra or on_add_producto
     if not screen.catalogo:
         vacio = (
             "Ningún resultado para la búsqueda."
@@ -36,7 +38,7 @@ def build_catalog_result_controls(
         ft.Container(
             col={"xs": 12, "md": 12, "lg": 6, "xl": 6},
             padding=ft.Padding.only(right=8, bottom=10),
-            content=_catalog_tile(item, on_add_receta, on_add_producto),
+            content=_catalog_tile(item, on_add_receta, on_add_producto, on_add_extra),
         )
         for item in screen.catalogo
     ]
@@ -67,6 +69,12 @@ def build_registro_view(
     on_catalogo_tipo: Callable[[str], None] | None = None,
     on_upload_documento: Callable[[], None] | None = None,
     on_cerrar_importacion_tpv: Callable[[], None] | None = None,
+    on_add_extra: Callable[..., None] | None = None,
+    on_iniciar_edicion: Callable[[str], None] | None = None,
+    on_cancelar_edicion: Callable[[], None] | None = None,
+    on_guardar_edicion: Callable[[], None] | None = None,
+    on_ajustar_edicion: Callable[[str, float], None] | None = None,
+    on_quitar_edicion: Callable[[str], None] | None = None,
     narrow: bool = False,
     search_field: ft.TextField | None = None,
     catalog_results: ft.Column | None = None,
@@ -78,6 +86,7 @@ def build_registro_view(
     on_confirmar_anulacion = on_confirmar_anulacion or (lambda: None)
     on_confirmar_revision_historial = on_confirmar_revision_historial or (lambda _rid: None)
     on_catalogo_tipo = on_catalogo_tipo or (lambda _t: None)
+    on_add_extra = on_add_extra or on_add_producto
     on_upload_documento = on_upload_documento or (lambda: None)
     on_cerrar_importacion_tpv = on_cerrar_importacion_tpv or (lambda: None)
     activo = next((s for s in screen.servicios if s.activo), None)
@@ -258,7 +267,10 @@ def build_registro_view(
         ]
 
     result_controls = build_catalog_result_controls(
-        screen, on_add_receta=on_add_receta, on_add_producto=on_add_producto
+        screen,
+        on_add_receta=on_add_receta,
+        on_add_producto=on_add_producto,
+        on_add_extra=on_add_extra,
     )
     if catalog_results is None:
         catalog_results = ft.Column(
@@ -342,6 +354,14 @@ def build_registro_view(
                         on_remove=lambda _e, gid=lin.line_id: on_remove_receta(gid),
                     )
                 )
+            elif lin.kind == "mod":
+                basket_inner.append(
+                    ft.Text(
+                        f"{lin.nombre} — {lin.cantidad:g} {lin.unidad}".strip(),
+                        size=13,
+                        color=ui_theme.MID_GRAY,
+                    )
+                )
             else:
                 basket_inner.append(
                     _basket_row(
@@ -363,14 +383,27 @@ def build_registro_view(
                 )
             )
             for ex in extras:
-                label = f"+ {ex.nombre} ({ex.cantidad:g} {ex.unidad})".strip()
                 basket_inner.append(
-                    ft.OutlinedButton(
-                        label,
-                        height=40,
-                        on_click=lambda _e, pid=ex.producto_id, c=ex.cantidad: on_add_producto(
-                            pid, c
-                        ),
+                    ft.Row(
+                        spacing=8,
+                        controls=[
+                            ft.OutlinedButton(
+                                f"+ {ex.nombre}",
+                                height=40,
+                                expand=True,
+                                on_click=lambda _e, pid=ex.producto_id, c=ex.cantidad: on_add_extra(
+                                    pid, c
+                                ),
+                            ),
+                            ft.OutlinedButton(
+                                f"Sin {ex.nombre}",
+                                height=40,
+                                expand=True,
+                                on_click=lambda _e, pid=ex.producto_id, c=ex.cantidad: on_add_extra(
+                                    pid, -abs(c)
+                                ),
+                            ),
+                        ],
                     )
                 )
         basket_inner.append(
@@ -434,6 +467,11 @@ def build_registro_view(
         on_cancelar_anulacion=on_cancelar_anulacion,
         on_confirmar_anulacion=on_confirmar_anulacion,
         on_confirmar_revision_historial=on_confirmar_revision_historial,
+        on_iniciar_edicion=on_iniciar_edicion,
+        on_cancelar_edicion=on_cancelar_edicion,
+        on_guardar_edicion=on_guardar_edicion,
+        on_ajustar_edicion=on_ajustar_edicion,
+        on_quitar_edicion=on_quitar_edicion,
         items_extra=screen.importacion_tpv.historial if screen.importacion_tpv else (),
     )
 
@@ -656,10 +694,86 @@ def _historial_section(
     on_cancelar_anulacion: Callable[[], None],
     on_confirmar_anulacion: Callable[[], None],
     on_confirmar_revision_historial: Callable[[str], None],
+    on_iniciar_edicion: Callable[[str], None] | None = None,
+    on_cancelar_edicion: Callable[[], None] | None = None,
+    on_guardar_edicion: Callable[[], None] | None = None,
+    on_ajustar_edicion: Callable[[str, float], None] | None = None,
+    on_quitar_edicion: Callable[[str], None] | None = None,
+    on_anadir_edicion: Callable[[str, float], None] | None = None,
     items_extra: tuple = (),
 ) -> ft.Control:
-    bloqueado = screen.confirmando or screen.anulando
+    bloqueado = screen.confirmando or screen.anulando or screen.editando
+    on_iniciar_edicion = on_iniciar_edicion or (lambda _rid: None)
+    on_cancelar_edicion = on_cancelar_edicion or (lambda: None)
+    on_guardar_edicion = on_guardar_edicion or (lambda: None)
+    on_ajustar_edicion = on_ajustar_edicion or (lambda _pid, _d: None)
+    on_quitar_edicion = on_quitar_edicion or (lambda _pid: None)
+    on_anadir_edicion = on_anadir_edicion or (lambda _pid, _c: None)
     controls: list[ft.Control] = []
+
+    if screen.edicion is not None:
+        ed = screen.edicion
+        edit_rows: list[ft.Control] = []
+        for ln in ed.lineas:
+            edit_rows.append(
+                _basket_row(
+                    ln.nombre,
+                    f"{ln.cantidad:g} {ln.unidad}".strip(),
+                    on_minus=lambda _e, pid=ln.producto_id: on_ajustar_edicion(pid, -1),
+                    on_plus=lambda _e, pid=ln.producto_id: on_ajustar_edicion(pid, 1),
+                    on_remove=lambda _e, pid=ln.producto_id: on_quitar_edicion(pid),
+                )
+            )
+        add_field = ft.TextField(
+            label="Añadir producto (id o buscar en catálogo y pulse Añadir)",
+            hint_text="Use el catálogo de arriba y el botón «Añadir a edición»",
+            dense=True,
+            visible=False,
+        )
+        controls.append(
+            ft.Container(
+                bgcolor=ui_theme.INFO_BG,
+                padding=ui_theme.SPACE_MD,
+                border_radius=ui_theme.RADIUS_MD,
+                border=ft.Border.all(1, ui_theme.INFO),
+                content=ft.Column(
+                    spacing=ui_theme.SPACE_SM,
+                    controls=[
+                        ft.Text(
+                            f"Editar registro — {ed.etiqueta_corta}",
+                            weight=ft.FontWeight.BOLD,
+                            color=ui_theme.NAVY,
+                        ),
+                        ft.Text(
+                            "Sume, reste o quite líneas. Para añadir: pulse un producto del catálogo "
+                            "con la edición abierta (se suma a este registro).",
+                            size=12,
+                            color=ui_theme.MID_GRAY,
+                        ),
+                        *edit_rows,
+                        add_field,
+                        ft.Row(
+                            controls=[
+                                ft.FilledButton(
+                                    "Guardar cambios",
+                                    disabled=bloqueado or not ed.lineas,
+                                    style=ft.ButtonStyle(
+                                        bgcolor=ui_theme.NAVY,
+                                        color=ui_theme.WHITE,
+                                    ),
+                                    on_click=lambda _e: on_guardar_edicion(),
+                                ),
+                                ft.TextButton(
+                                    "Cancelar",
+                                    disabled=bloqueado,
+                                    on_click=lambda _e: on_cancelar_edicion(),
+                                ),
+                            ]
+                        ),
+                    ],
+                ),
+            )
+        )
 
     if screen.anulacion_pendiente:
         p = screen.anulacion_pendiente
@@ -801,6 +915,24 @@ def _historial_section(
                                         controls=[
                                             *(
                                                 [
+                                                    ft.OutlinedButton(
+                                                        "Editar",
+                                                        disabled=(
+                                                            bloqueado
+                                                            or screen.anulacion_pendiente is not None
+                                                            or screen.edicion is not None
+                                                        ),
+                                                        on_click=lambda _e, rid=item.registro_id: on_iniciar_edicion(
+                                                            rid
+                                                        ),
+                                                    )
+                                                ]
+                                                if getattr(item, "puede_editar", False)
+                                                and item.estado == "activo"
+                                                else []
+                                            ),
+                                            *(
+                                                [
                                                     ft.FilledButton(
                                                         "Confirmar revisión",
                                                         disabled=(
@@ -880,7 +1012,9 @@ def _catalog_tile(
     item: CatalogItemVM,
     on_add_receta: Callable[[str], None],
     on_add_producto: Callable[..., None],
+    on_add_extra: Callable[..., None] | None = None,
 ) -> ft.Control:
+    on_add_extra = on_add_extra or on_add_producto
     is_receta = item.tipo == "receta"
     if is_receta and (item.categoria or "").lower() == "bebidas":
         badge = "Bebida"
@@ -918,12 +1052,54 @@ def _catalog_tile(
     if is_receta and item.categoria:
         hint = f"{item.categoria} · {hint}"
 
+    es_extra_rapido = (
+        not is_receta
+        and item.cantidad_default is not None
+        and float(item.cantidad_default) > 0
+    )
+
     def _on_add(_e, it: CatalogItemVM = item) -> None:
         if it.tipo == "receta":
             on_add_receta(it.id)
             return
         qty = float(it.cantidad_default) if it.cantidad_default is not None else 1.0
-        on_add_producto(it.id, qty)
+        if es_extra_rapido:
+            on_add_extra(it.id, qty)
+        else:
+            on_add_producto(it.id, qty)
+
+    def _on_sin(_e, it: CatalogItemVM = item) -> None:
+        qty = float(it.cantidad_default) if it.cantidad_default is not None else 1.0
+        on_add_extra(it.id, -abs(qty))
+
+    actions: list[ft.Control] = [
+        ft.FilledButton(
+            "Añadir",
+            icon=ft.Icons.ADD,
+            height=48,
+            style=ft.ButtonStyle(
+                bgcolor=ui_theme.TEAL,
+                color=ui_theme.WHITE,
+                text_style=ft.TextStyle(size=16, weight=ft.FontWeight.W_600),
+                padding=ft.Padding.symmetric(horizontal=18, vertical=12),
+                shape=ft.RoundedRectangleBorder(radius=ui_theme.RADIUS_SM),
+            ),
+            on_click=_on_add,
+        ),
+    ]
+    if es_extra_rapido:
+        actions.append(
+            ft.OutlinedButton(
+                "Sin",
+                height=48,
+                style=ft.ButtonStyle(
+                    text_style=ft.TextStyle(size=15, weight=ft.FontWeight.W_600),
+                    padding=ft.Padding.symmetric(horizontal=12, vertical=12),
+                    shape=ft.RoundedRectangleBorder(radius=ui_theme.RADIUS_SM),
+                ),
+                on_click=_on_sin,
+            )
+        )
 
     return ft.Container(
         bgcolor=ui_theme.WHITE,
@@ -983,19 +1159,7 @@ def _catalog_tile(
                         ft.Text(hint, size=15, color=ui_theme.MID_GRAY),
                     ],
                 ),
-                ft.FilledButton(
-                    "Añadir",
-                    icon=ft.Icons.ADD,
-                    height=48,
-                    style=ft.ButtonStyle(
-                        bgcolor=ui_theme.TEAL,
-                        color=ui_theme.WHITE,
-                        text_style=ft.TextStyle(size=16, weight=ft.FontWeight.W_600),
-                        padding=ft.Padding.symmetric(horizontal=18, vertical=12),
-                        shape=ft.RoundedRectangleBorder(radius=ui_theme.RADIUS_SM),
-                    ),
-                    on_click=_on_add,
-                ),
+                ft.Row(spacing=8, tight=True, controls=actions),
             ],
         ),
     )

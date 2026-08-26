@@ -358,6 +358,18 @@ def anadir_mod_pendiente_receta(producto_id: str, cantidad: float) -> ResultadoO
     return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
 
 
+def anadir_mod_a_receta_en_cesta(
+    producto_id: str,
+    cantidad: float,
+    *,
+    grupo_id: str | None = None,
+) -> ResultadoOperacion:
+    r = _cesta.anadir_mod_a_receta_en_cesta(
+        producto_id, cantidad, grupo_id=grupo_id,
+    )
+    return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
+
+
 def quitar_mod_pendiente(mod_id: str) -> None:
     _cesta.quitar_mod_pendiente(mod_id)
 
@@ -537,7 +549,8 @@ def registrar_desayuno(
 ) -> ResultadoOperacion:
     """Registra el desayuno con descuento atómico.
 
-    `ignorar_stock` queda deshabilitado (Fase 9): se ignora el bypass.
+    Permite stock negativo (se ajustará por reconteo físico).
+    `ignorar_stock` se conserva por compatibilidad (ya no bloquea).
     `clave_idempotencia`: si ya existe un registro con la misma clave, no duplica.
     """
     from app.core.auth.permissions import Permiso
@@ -548,7 +561,7 @@ def registrar_desayuno(
     if denied:
         return ResultadoOperacion(False, denied)
 
-    _ = ignorar_stock  # Bypass retirado; no permitir stock negativo.
+    _ = ignorar_stock  # Compat: el registro operativo siempre permite negativo.
 
     if cesta_vacia():
         return ResultadoOperacion(
@@ -587,15 +600,6 @@ def registrar_desayuno(
     grupos = list(get_cesta_recetas())
     cesta_suelta = list(get_cesta())
 
-    plan = _plan_stock_fusionado(data, fusionado)
-    if not plan.ok:
-        return ResultadoOperacion(
-            False,
-            "Stock insuficiente para registrar el desayuno. No se ha modificado nada.",
-            codigo="STOCK_INSUFICIENTE",
-            detalle_stock=plan.deficits,
-        )
-
     registro_id = next_id("d", [d.id for d in data.desayunos])
     demandas = {pid: cant for pid, (cant, _) in fusionado.items() if cant > 0}
     extras = {pid: es_extra for pid, (cant, es_extra) in fusionado.items() if cant > 0}
@@ -611,7 +615,9 @@ def registrar_desayuno(
             aplicar_descuento_atomico as aplicar_descuento_ctx,
         )
 
-        resultado_desc = aplicar_descuento_ctx(context, demandas)
+        resultado_desc = aplicar_descuento_ctx(
+            context, demandas, permitir_negativo=True,
+        )
         costes_agregados = resultado_desc.costes
         lineas = [
             LineaDesayuno(pid, demandas[pid], costes_agregados.get(pid, 0.0), extras[pid])
@@ -836,6 +842,17 @@ class DesayunoRegistroAdapter:
 
     def anadir_mod_pendiente_receta(self, producto_id: str, cantidad: float) -> ResultadoOperacion:
         return anadir_mod_pendiente_receta(producto_id, cantidad)
+
+    def anadir_mod_a_receta_en_cesta(
+        self,
+        producto_id: str,
+        cantidad: float,
+        *,
+        grupo_id: str | None = None,
+    ) -> ResultadoOperacion:
+        return anadir_mod_a_receta_en_cesta(
+            producto_id, cantidad, grupo_id=grupo_id,
+        )
 
     def quitar_mod_pendiente(self, mod_id: str) -> None:
         quitar_mod_pendiente(mod_id)

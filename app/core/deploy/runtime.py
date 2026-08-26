@@ -60,7 +60,23 @@ def prepare_runtime(
     """Valida perfil y, en hotel, adquiere el candado de escritor único.
 
     En ``dev`` es casi no-op (solo carga config). No altera el demo.
+    Antes de cargar el perfil hotel, reaplica ``shared_root`` del config de
+    cliente de este PC (si existe), para no quedarse en BM-V2-local vacío.
     """
+    from app.core.storage.instance_config import (
+        InstanceConfigError,
+        bootstrap_client_shared_root,
+    )
+
+    try:
+        applied = bootstrap_client_shared_root()
+        if applied is not None:
+            _log.info("client_shared_root_applied root=%s", applied)
+    except InstanceConfigError:
+        raise
+    except Exception as exc:  # noqa: BLE001
+        _log.warning("bootstrap_client_shared_root: %s", exc)
+
     cfg = load_deploy_config()
     if not cfg.is_hotel:
         return cfg

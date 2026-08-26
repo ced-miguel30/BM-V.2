@@ -188,6 +188,18 @@ class ServicioRegistro:
         r = self._cesta.anadir_mod_pendiente_receta(producto_id, cantidad)
         return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
 
+    def anadir_mod_a_receta_en_cesta(
+        self,
+        producto_id: str,
+        cantidad: float,
+        *,
+        grupo_id: str | None = None,
+    ) -> ResultadoOperacion:
+        r = self._cesta.anadir_mod_a_receta_en_cesta(
+            producto_id, cantidad, grupo_id=grupo_id,
+        )
+        return ResultadoOperacion(r.ok, r.mensaje, r.codigo, r.detalle_stock)
+
     def quitar_mod_pendiente(self, mod_id: str) -> None:
         self._cesta.quitar_mod_pendiente(mod_id)
 
@@ -354,7 +366,7 @@ class ServicioRegistro:
         observaciones: str = "",
         ctx: AppContext | None = None,
     ) -> ResultadoOperacion:
-        """Registra con descuento atómico. `ignorar_stock` deshabilitado (Fase 9)."""
+        """Registra con descuento atómico. Permite stock negativo (reconteo físico)."""
         from app.core.auth.permissions import Permiso
         from app.core.auth.session import session_tiene_permiso
         from app.core.auth.usecase_guard import usecase_deny_message
@@ -363,7 +375,7 @@ class ServicioRegistro:
         if denied:
             return ResultadoOperacion(False, denied)
 
-        _ = ignorar_stock
+        _ = ignorar_stock  # Compat: el registro operativo siempre permite negativo.
 
         if self.cesta_vacia():
             return ResultadoOperacion(
@@ -398,16 +410,6 @@ class ServicioRegistro:
         grupos = list(self.get_cesta_recetas())
         cesta_suelta = list(self.get_cesta())
 
-        plan = self._plan_stock(data, fusionado)
-        if not plan.ok:
-            return ResultadoOperacion(
-                False,
-                f"Stock insuficiente para registrar {self.etiqueta.lower()}. "
-                "No se ha modificado nada.",
-                codigo="STOCK_INSUFICIENTE",
-                detalle_stock=plan.deficits,
-            )
-
         existentes = [r.id for r in data.registros_servicio if r.tipo_servicio == self.tipo_servicio]
         existentes += [r.id for r in data.registros_servicio]
         registro_id = next_id(self._id_prefix, existentes)
@@ -426,7 +428,9 @@ class ServicioRegistro:
                 aplicar_descuento_atomico as aplicar_descuento_ctx,
             )
 
-            resultado_desc = aplicar_descuento_ctx(context, demandas)
+            resultado_desc = aplicar_descuento_ctx(
+                context, demandas, permitir_negativo=True,
+            )
             costes_agregados = resultado_desc.costes
             lineas = [
                 LineaServicio(pid, demandas[pid], costes_agregados.get(pid, 0.0), extras[pid])

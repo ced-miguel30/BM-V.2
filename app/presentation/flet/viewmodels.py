@@ -90,6 +90,23 @@ class FeedbackVM:
 
 
 @dataclass(frozen=True)
+class EdicionLineaVM:
+    producto_id: str
+    nombre: str
+    cantidad: float
+    unidad: str = ""
+
+
+@dataclass(frozen=True)
+class EdicionRegistroVM:
+    registro_id: str
+    tipo_registro: str
+    etiqueta_corta: str
+    lineas: tuple[EdicionLineaVM, ...]
+    busqueda_producto: str = ""
+
+
+@dataclass(frozen=True)
 class HistorialRegistroVM:
     """Registro operativo sanitizado (sin economía).
 
@@ -110,6 +127,7 @@ class HistorialRegistroVM:
     observaciones: str = ""
     puede_confirmar_revision: bool = False
     revision_confirmada: bool = False
+    puede_editar: bool = False
 
 
 @dataclass(frozen=True)
@@ -152,6 +170,8 @@ class TerminalScreenVM:
     importacion_tpv: ImportacionTpvVM | None = None
     anulacion_pendiente: AnulacionPendienteVM | None = None
     anulando: bool = False
+    edicion: EdicionRegistroVM | None = None
+    editando: bool = False
 
 
 def assert_sin_campos_economicos(obj: object) -> None:

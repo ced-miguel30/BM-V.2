@@ -203,6 +203,92 @@ class MotorCesta:
         etiqueta = "c/ extra" if cantidad > 0 else "s/"
         return ResultadoOperacionCesta(True, f"{etiqueta} {producto.nombre} añadido a la receta pendiente.")
 
+    def anadir_mod_a_receta_en_cesta(
+        self,
+        producto_id: str,
+        cantidad: float,
+        *,
+        grupo_id: str | None = None,
+    ) -> ResultadoOperacionCesta:
+        """Añade extra (+) u omisión (−) a una receta ya en cesta, o deja pendiente.
+
+        Si hay grupos de receta, aplica al ``grupo_id`` indicado o al último.
+        Las omisiones restan del ingrediente base (así el stock y el detalle
+        coinciden). Si la cesta no tiene recetas, deja el mod pendiente.
+        """
+        error = validar_cantidad_operativa(cantidad, permitir_negativo=True)
+        if error:
+            return ResultadoOperacionCesta(False, error)
+
+        grupos = self.get_cesta_recetas()
+        if not grupos:
+            return self.anadir_mod_pendiente_receta(producto_id, cantidad)
+
+        grupo = None
+        if grupo_id:
+            grupo = self._buscar_grupo(grupo_id)
+            if grupo is None:
+                return ResultadoOperacionCesta(False, "Grupo de receta no encontrado.")
+        else:
+            grupo = grupos[-1]
+
+        data = get_data()
+        repo = DataRepository(data)
+        producto = repo.get_producto(producto_id)
+        if not producto:
+            return ResultadoOperacionCesta(False, "Producto no encontrado.")
+
+        if cantidad < 0:
+            restante = abs(float(cantidad))
+            reducido = 0.0
+            for ing in grupo.ingredientes:
+                if ing.producto_id != producto_id or float(ing.cantidad) <= 0:
+                    continue
+                tomar = min(float(ing.cantidad), restante)
+                ing.cantidad = round(float(ing.cantidad) - tomar, 4)
+                if ing.cantidad_mostrar is not None and tomar > 0:
+                    # Ajuste proporcional de presentación si existe.
+                    factor = tomar / (tomar + ing.cantidad) if (tomar + ing.cantidad) > 0 else 1.0
+                    try:
+                        ing.cantidad_mostrar = round(
+                            float(ing.cantidad_mostrar) * (1.0 - factor), 4,
+                        )
+                    except (TypeError, ValueError):
+                        pass
+                restante = round(restante - tomar, 4)
+                reducido = round(reducido + tomar, 4)
+                if restante <= 1e-9:
+                    break
+            grupo.ingredientes = [
+                i for i in grupo.ingredientes if float(i.cantidad) > 1e-9
+            ]
+            self._guardar_cesta_recetas(self.get_cesta_recetas())
+            if reducido <= 0:
+                return ResultadoOperacionCesta(
+                    False,
+                    f"«{producto.nombre}» no está en «{grupo.nombre_receta}» para omitir.",
+                )
+            return ResultadoOperacionCesta(
+                True,
+                f"s/ {producto.nombre} en «{grupo.nombre_receta}» (−{reducido:g}).",
+            )
+
+        mod = ModPendienteReceta(
+            self._nueva_linea_id(),
+            producto.id,
+            producto.nombre,
+            producto.unidad.value,
+            cantidad,
+            es_extra=True,
+            es_omision=False,
+        )
+        grupo.ingredientes.append(self._linea_ingrediente_desde_mod(mod))
+        self._guardar_cesta_recetas(self.get_cesta_recetas())
+        return ResultadoOperacionCesta(
+            True,
+            f"c/ extra {producto.nombre} en «{grupo.nombre_receta}».",
+        )
+
     def quitar_mod_pendiente(self, mod_id: str) -> None:
         mods = [m for m in self.get_mods_pendientes() if m.mod_id != mod_id]
         self.store.set_list(self.keys["mods"], mods)
@@ -345,7 +431,20 @@ class MotorCesta:
             else list(self.get_mods_pendientes())
         )
         for mod in mods:
-            ingredientes.append(self._linea_ingrediente_desde_mod(mod))
+            if float(mod.cantidad) < 0:
+                # Omisiones: restar del base (misma semántica que anadir_mod_a_receta_en_cesta).
+                restante = abs(float(mod.cantidad))
+                for ing in ingredientes:
+                    if ing.producto_id != mod.producto_id or float(ing.cantidad) <= 0:
+                        continue
+                    tomar = min(float(ing.cantidad), restante)
+                    ing.cantidad = round(float(ing.cantidad) - tomar, 4)
+                    restante = round(restante - tomar, 4)
+                    if restante <= 1e-9:
+                        break
+                ingredientes[:] = [i for i in ingredientes if float(i.cantidad) > 1e-9]
+            else:
+                ingredientes.append(self._linea_ingrediente_desde_mod(mod))
 
         grupo = GrupoRecetaCesta(
             self._nuevo_grupo_id(),

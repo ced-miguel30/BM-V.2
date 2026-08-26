@@ -187,7 +187,7 @@ class TestFletConfirmacionDominio(_FletHarness):
         p = self._presenter()
         p.seleccionar_servicio("desayuno")
         p.set_num_huespedes(10)
-        # Vaciar stock de leche para forzar STOCK_INSUFICIENTE
+        # Vaciar stock de leche: el registro debe permitir negativo y limpiar cesta
         data = get_container().app_data_store.get()
         for lote in data.lotes:
             if lote.producto_id == "bp_leche":
@@ -196,8 +196,8 @@ class TestFletConfirmacionDominio(_FletHarness):
         p.anadir_receta("br_porridge", 4.0)
         self.assertFalse(p.screen().cesta.vacia)
         screen = p.confirmar(fecha=date.today())
-        self.assertFalse(screen.feedback.ok)
-        self.assertFalse(screen.cesta.vacia)
+        self.assertTrue(screen.feedback.ok, screen.feedback.mensaje if screen.feedback else "")
+        self.assertTrue(screen.cesta.vacia)
 
     def test_producto_directo_en_servicio_activo(self) -> None:
         p = self._presenter()

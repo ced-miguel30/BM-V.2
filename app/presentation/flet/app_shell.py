@@ -78,6 +78,7 @@ class TerminalRestauranteShell:
                 on_search=self._on_search,
                 on_add_receta=self._on_add_receta,
                 on_add_producto=self._on_add_producto,
+                on_add_extra=self._on_add_extra,
                 on_qty_receta=self._on_qty_receta,
                 on_qty_producto=self._on_qty_producto,
                 on_remove_receta=self._on_remove_receta,
@@ -95,6 +96,11 @@ class TerminalRestauranteShell:
                 on_catalogo_tipo=self._on_catalogo_tipo,
                 on_upload_documento=self._on_upload_documento,
                 on_cerrar_importacion_tpv=self._on_cerrar_importacion_tpv,
+                on_iniciar_edicion=self._on_iniciar_edicion,
+                on_cancelar_edicion=self._on_cancelar_edicion,
+                on_guardar_edicion=self._on_guardar_edicion,
+                on_ajustar_edicion=self._on_ajustar_edicion,
+                on_quitar_edicion=self._on_quitar_edicion,
                 narrow=narrow,
                 search_field=None,
                 catalog_results=None,
@@ -115,6 +121,7 @@ class TerminalRestauranteShell:
             screen,
             on_add_receta=self._on_add_receta,
             on_add_producto=self._on_add_producto,
+            on_add_extra=self._on_add_extra,
         )
         self._last_refresh_kind = "catalog"
         self.page.update()
@@ -151,6 +158,10 @@ class TerminalRestauranteShell:
 
     def _on_add_producto(self, pid: str, cantidad: float = 1.0) -> None:
         self.presenter.anadir_producto_directo(pid, float(cantidad))
+        self.refresh()
+
+    def _on_add_extra(self, pid: str, cantidad: float = 1.0) -> None:
+        self.presenter.anadir_extra_o_omision(pid, float(cantidad))
         self.refresh()
 
     def _on_qty_receta(self, gid: str, delta: float) -> None:
@@ -205,6 +216,26 @@ class TerminalRestauranteShell:
         self.presenter.cerrar_panel_importacion_tpv()
         self.refresh()
 
+    def _on_iniciar_edicion(self, rid: str) -> None:
+        self.presenter.iniciar_edicion(rid)
+        self.refresh()
+
+    def _on_cancelar_edicion(self) -> None:
+        self.presenter.cancelar_edicion()
+        self.refresh()
+
+    def _on_guardar_edicion(self) -> None:
+        self.presenter.guardar_edicion()
+        self.refresh()
+
+    def _on_ajustar_edicion(self, pid: str, delta: float) -> None:
+        self.presenter.ajustar_linea_edicion(pid, delta)
+        self.refresh()
+
+    def _on_quitar_edicion(self, pid: str) -> None:
+        self.presenter.quitar_linea_edicion(pid)
+        self.refresh()
+
     def _on_upload_documento(self) -> None:
         async def _pick_and_import() -> None:
             picker = self._file_picker
@@ -244,9 +275,11 @@ class TerminalRestauranteShell:
             self._import_bloqueado = True
             self.page.on_resize = None
             self._refresh_full()
-            hotel_path = (
-                Path(os.environ["LOCALAPPDATA"]) / "BM-V2-local" / "data" / "datos_hotel.json"
-            )
+            from app.core.storage.demo_files import get_demo_file
+
+            # Misma instancia que el resto de la app (shared root / BM_DEMO_FILE),
+            # nunca hardcodear BM-V2-local (rompe la carpeta 2-BM-DATOS del servidor).
+            hotel_path = get_demo_file()
             try:
                 from app.core.services.tpv_documento_service import (
                     importar_documento_tpv_aislado,
@@ -258,6 +291,13 @@ class TerminalRestauranteShell:
                     hotel_path=hotel_path,
                 )
                 self.presenter.aplicar_resultado_importacion_tpv(resultado)
+                # El worker escribe en otro proceso: recargar JSON en el store del UI.
+                try:
+                    from app.bootstrap import get_container
+
+                    get_container().app_data_store.reload_from_disk()
+                except Exception:  # noqa: BLE001
+                    pass
             except Exception as exc:  # noqa: BLE001
                 self.presenter._confirmando = False
                 self.presenter._feedback = FeedbackVM(

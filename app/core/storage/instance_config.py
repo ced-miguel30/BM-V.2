@@ -136,6 +136,56 @@ def resolve_shared_root() -> Path | None:
     return None
 
 
+def _default_local_instance_root() -> Path:
+    if sys.platform == "win32":
+        base = os.environ.get("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
+        return Path(base) / "BM-V2-local"
+    return Path.home() / "BM-V2-local"
+
+
+def _is_default_local_instance(root: Path | str) -> bool:
+    try:
+        return Path(root).expanduser().resolve() == _default_local_instance_root().resolve()
+    except OSError:
+        return False
+
+
+def bootstrap_client_shared_root() -> Path | None:
+    """Aplica al arranque el ``shared_root`` guardado en este PC (BM-V2-client).
+
+    Cada ordenador guarda su propia config en ``%LOCALAPPDATA%\\BM-V2-client\\config.json``.
+    La ruta final (p. ej. ``D:\\Jose Manuel\\...\\2-BM-DATOS`` o UNC) puede ser la misma
+    en todos; lo que cambia es el usuario/PC donde vive el config.
+
+    El runtime hook del exe fija por defecto ``BM-V2-local``; si hay ``shared_root``
+    de cliente, lo pisa (salvo ``BM_SHARED_ROOT`` explícito o un
+    ``BM_INSTANCE_ROOT`` que ya no sea el default local).
+    """
+    forced_shared = (os.environ.get(ENV_SHARED_ROOT) or "").strip()
+    if forced_shared:
+        return apply_shared_root(forced_shared)
+
+    cfg = load_client_config()
+    shared = cfg.get("shared_root")
+    if not isinstance(shared, str) or not shared.strip():
+        return None
+
+    current = (os.environ.get(ENV_INSTANCE_ROOT) or "").strip()
+    if current:
+        try:
+            cur = Path(os.path.expandvars(os.path.expanduser(current)))
+            want = Path(os.path.expandvars(os.path.expanduser(shared.strip())))
+            if cur.resolve() == want.resolve():
+                return apply_shared_root(want)
+        except OSError:
+            pass
+        if not _is_default_local_instance(current):
+            # Atajo / soporte ya apuntó a otra carpeta: no pisar.
+            return None
+
+    return apply_shared_root(shared.strip())
+
+
 def apply_shared_root(path: Path | str) -> Path:
     """Valida y fija env de proceso a la instancia compartida.
 

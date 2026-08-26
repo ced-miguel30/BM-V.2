@@ -256,7 +256,7 @@ class TestRegistroDesayunoOperativo(unittest.TestCase):
 
     # --- Stock / coste -----------------------------------------------------
 
-    def test_16_stock_insuficiente_bloquea_sin_parcial(self) -> None:
+    def test_16_stock_insuficiente_permite_negativo(self) -> None:
         self.data = _datos_porridge(leche_restante=0.1)
         for p in self._patches:
             p.stop()
@@ -273,20 +273,13 @@ class TestRegistroDesayunoOperativo(unittest.TestCase):
 
         fresh_memory_container()
 
-        snap_lotes = [(l.id, l.cantidad_restante) for l in self.data.lotes]
         self.assertTrue(desayuno_service.anadir_receta_a_cesta("r1", 4.0).ok)
         r = desayuno_service.registrar_desayuno(date(2026, 7, 21), 5)
-        self.assertFalse(r.ok)
-        self.assertEqual(r.codigo, "STOCK_INSUFICIENTE")
-        self.assertTrue(any("Leche" in d for d in (r.detalle_stock or [])))
-        self.assertTrue(any("No hay suficiente" in d for d in (r.detalle_stock or [])))
-        self.assertEqual(len(self.data.desayunos), 0)
-        self.assertEqual(
-            [(l.id, l.cantidad_restante) for l in self.data.lotes],
-            snap_lotes,
-        )
-        # Carrito se mantiene para corregir
-        self.assertFalse(desayuno_service.cesta_vacia())
+        self.assertTrue(r.ok, r.mensaje)
+        self.assertEqual(len(self.data.desayunos), 1)
+        from app.core.services.inventory_batch_service import stock_disponible
+
+        self.assertLess(stock_disponible(self.data, "pa"), 0)
 
     def test_17_coste_incompleto_identificado(self) -> None:
         # Lote sin precio útil: precio_total 0 → valoración incompleta a efectos prácticos

@@ -257,17 +257,30 @@ def descontar_lotes(
 
     if restante > 0 and permitir_negativo:
         lote_destino = ultimo_lote_tocado or _ultimo_lote_producto(data, producto_id)
-        if lote_destino:
-            # Misma semántica previa: el restante negativo no suma coste.
-            lote_destino.cantidad_restante = round(
-                lote_destino.cantidad_restante - restante, 4,
+        if lote_destino is None:
+            # Sin lote previo: crear lote sintético a 0 para poder dejar stock negativo.
+            from app.core.application.id_generator import next_id
+
+            lote_destino = LoteStock(
+                next_id("l", [l.id for l in data.lotes]),
+                producto_id,
+                0.0,
+                0.0,
+                0.0,
+                fecha_compra=date.today(),
+                marca_proveedor="AJUSTE-NEGATIVO",
             )
-            movimientos.append(MovimientoDescuentoLote(
-                lote_id=lote_destino.id,
-                producto_id=producto_id,
-                cantidad=round(restante, 4),
-                coste=0.0,
-            ))
+            data.lotes.append(lote_destino)
+        # Misma semántica previa: el restante negativo no suma coste.
+        lote_destino.cantidad_restante = round(
+            lote_destino.cantidad_restante - restante, 4,
+        )
+        movimientos.append(MovimientoDescuentoLote(
+            lote_id=lote_destino.id,
+            producto_id=producto_id,
+            cantidad=round(restante, 4),
+            coste=0.0,
+        ))
 
     # Reconciliar coste agregado vs suma de trozos (residuo en el último).
     coste_total = round(coste, 2)
@@ -284,14 +297,19 @@ def descontar_lotes(
 def aplicar_descuento_atomico(
     data: AppData,
     demandas: dict[str, float],
+    *,
+    permitir_negativo: bool = False,
 ) -> ResultadoDescuentoAtomico:
     """Descuenta todos los productos o ninguno. Devuelve costes y movimientos.
 
-    Requiere stock suficiente (sin negativos). Si falla a mitad, restaura lotes.
+    Por defecto requiere stock suficiente. Con ``permitir_negativo=True``
+    deja registrar aunque el stock quede negativo (reconteo físico).
+    Si falla a mitad, restaura lotes.
     """
-    plan = planificar_descuento(data, demandas)
-    if not plan.ok:
-        raise ValueError("Stock insuficiente; no se aplica ningún descuento.")
+    if not permitir_negativo:
+        plan = planificar_descuento(data, demandas)
+        if not plan.ok:
+            raise ValueError("Stock insuficiente; no se aplica ningún descuento.")
 
     snap = snapshot_cantidades_restantes(data)
     costes: dict[str, float] = {}
@@ -301,7 +319,10 @@ def aplicar_descuento_atomico(
             if cantidad <= 0:
                 continue
             resultado = descontar_lotes(
-                data, producto_id, cantidad, permitir_negativo=False,
+                data,
+                producto_id,
+                cantidad,
+                permitir_negativo=permitir_negativo,
             )
             costes[producto_id] = resultado.coste
             movimientos.extend(resultado.movimientos)

@@ -59,3 +59,14 @@ deploy\windows\marcar_carpetas_hotel.cmd "C:\Apps\BM-V2" "%LOCALAPPDATA%\BM-V2-l
 | `BM_DEMO_FILE` | JSON efectivo (`…\data\datos_hotel.json`); el exe lo fija el runtime hook |
 
 Default del exe (sin env previo): `%LOCALAPPDATA%\BM-V2-local` — **independiente** de la ruta de BM-CODIGO, para que sustituir el código no “pierda” los datos.
+
+## Config de cliente (por ordenador)
+
+Al guardar la ruta en **Administración → Servidor**, cada PC guarda solo la referencia en:
+
+`%LOCALAPPDATA%\BM-V2-client\config.json` → `shared_root`
+
+- **Primera parte (por PC / usuario):** esa carpeta `BM-V2-client` vive en el AppData del usuario de ese ordenador.
+- **Dirección final (misma en todos):** p. ej. `D:\Jose Manuel\...\2-BM-DATOS` o `\\SERVIDOR\...`.
+
+Al arrancar, el runtime reaplica ese `shared_root` y pisa el default vacío de `BM-V2-local`, para que no haya que volver a configurar tras cada reinicio.

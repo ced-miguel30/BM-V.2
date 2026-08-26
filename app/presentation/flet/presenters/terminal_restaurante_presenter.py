@@ -28,6 +28,8 @@ from app.presentation.flet.viewmodels import (
     BasketLineVM,
     BasketVM,
     CatalogItemVM,
+    EdicionLineaVM,
+    EdicionRegistroVM,
     FeedbackVM,
     HistorialRegistroVM,
     ImportacionTpvVM,
@@ -88,6 +90,8 @@ class TerminalRestaurantePresenter:
         self._importacion_tpv: ImportacionTpvVM | None = None
         self._historial_expandido: bool = False
         self._importacion_tpv_activa: bool = False
+        self._edicion: dict | None = None  # {registro_id, tipo, etiqueta, lineas: list[dict]}
+        self._editando: bool = False
         assert_sin_campos_economicos(CatalogItemVM)
         assert_sin_campos_economicos(BasketLineVM)
         assert_sin_campos_economicos(BasketVM)
@@ -282,7 +286,33 @@ class TerminalRestaurantePresenter:
         bind = self._require_bind()
         if bind is None:
             return self.screen()
-        resultado = bind.api.anadir_a_cesta(producto_id, float(cantidad))
+        # Si hay edición abierta, el catálogo alimenta el registro en edición.
+        if self._edicion is not None:
+            return self.anadir_producto_edicion(producto_id, float(cantidad))
+        qty = float(cantidad)
+        # Cantidad negativa = omisión «Sin …» sobre la receta en cesta (o pendiente).
+        if qty < 0 and hasattr(bind.api, "anadir_mod_a_receta_en_cesta"):
+            resultado = bind.api.anadir_mod_a_receta_en_cesta(producto_id, qty)
+        else:
+            resultado = bind.api.anadir_a_cesta(producto_id, qty)
+        self._feedback = map_resultado(resultado.ok, resultado.mensaje, resultado.codigo)
+        return self.screen()
+
+    def anadir_extra_o_omision(
+        self, producto_id: str, cantidad: float
+    ) -> TerminalScreenVM:
+        """Extra (+) u omisión (−) ligada a la receta en cesta."""
+        bind = self._require_bind()
+        if bind is None:
+            return self.screen()
+        if hasattr(bind.api, "anadir_mod_a_receta_en_cesta"):
+            resultado = bind.api.anadir_mod_a_receta_en_cesta(
+                producto_id, float(cantidad),
+            )
+        else:
+            resultado = bind.api.anadir_mod_pendiente_receta(
+                producto_id, float(cantidad),
+            )
         self._feedback = map_resultado(resultado.ok, resultado.mensaje, resultado.codigo)
         return self.screen()
 
@@ -540,9 +570,167 @@ class TerminalRestaurantePresenter:
             importacion_tpv=self._importacion_tpv,
             anulacion_pendiente=self._anulacion_pendiente,
             anulando=self._anulando,
+            edicion=self._edicion_vm(),
+            editando=self._editando,
         )
         assert_sin_campos_economicos(vm)
         return vm
+
+    def _edicion_vm(self) -> EdicionRegistroVM | None:
+        if not self._edicion:
+            return None
+        lineas = tuple(
+            EdicionLineaVM(
+                producto_id=str(ln["producto_id"]),
+                nombre=str(ln.get("nombre") or ln["producto_id"]),
+                cantidad=float(ln["cantidad"]),
+                unidad=str(ln.get("unidad") or ""),
+            )
+            for ln in self._edicion.get("lineas") or []
+            if float(ln.get("cantidad") or 0) > 0
+        )
+        return EdicionRegistroVM(
+            registro_id=str(self._edicion["registro_id"]),
+            tipo_registro=str(self._edicion["tipo_registro"]),
+            etiqueta_corta=str(self._edicion.get("etiqueta") or ""),
+            lineas=lineas,
+            busqueda_producto=str(self._edicion.get("busqueda") or ""),
+        )
+
+    def iniciar_edicion(self, registro_id: str) -> TerminalScreenVM:
+        from app.core.services.rectificacion_registro_service import (
+            lineas_actuales_registro,
+        )
+
+        bind = self._require_bind()
+        if bind is None:
+            return self.screen()
+        data = get_container().app_data_store.get()
+        tipo = self._tipo_registro_bind(bind)
+        reg = self._buscar_registro(data, registro_id, tipo)
+        if reg is None:
+            self._feedback = map_error_recuperable("Registro no encontrado.")
+            return self.screen()
+        puede = anul.puede_anular_registro(data, reg, tipo=tipo)
+        if not puede.ok or anul.registro_esta_anulado(reg):
+            self._feedback = map_error_recuperable(
+                "No se puede editar: "
+                + (" ".join(puede.motivos_bloqueo) if not puede.ok else "anulado.")
+            )
+            return self.screen()
+        lineas = lineas_actuales_registro(registro_id, tipo_registro=tipo)
+        etiqueta = f"{bind.etiqueta} · {getattr(reg, 'fecha', '')}"
+        self._edicion = {
+            "registro_id": registro_id,
+            "tipo_registro": tipo,
+            "etiqueta": etiqueta,
+            "busqueda": "",
+            "lineas": [
+                {
+                    "producto_id": ln.producto_id,
+                    "nombre": ln.nombre,
+                    "cantidad": ln.cantidad,
+                    "unidad": ln.unidad,
+                }
+                for ln in lineas
+            ],
+        }
+        self._historial_expandido = True
+        self._feedback = FeedbackVM(
+            ok=True,
+            mensaje="Edición abierta: sume, reste o añada productos y pulse Guardar.",
+        )
+        return self.screen()
+
+    def cancelar_edicion(self) -> TerminalScreenVM:
+        self._edicion = None
+        self._editando = False
+        self._feedback = FeedbackVM(ok=True, mensaje="Edición cancelada.")
+        return self.screen()
+
+    def ajustar_linea_edicion(self, producto_id: str, delta: float) -> TerminalScreenVM:
+        if not self._edicion:
+            return self.screen()
+        lineas = list(self._edicion.get("lineas") or [])
+        found = False
+        for ln in lineas:
+            if ln["producto_id"] == producto_id:
+                ln["cantidad"] = round(float(ln["cantidad"]) + float(delta), 4)
+                found = True
+                break
+        if found:
+            self._edicion["lineas"] = [
+                ln for ln in lineas if float(ln.get("cantidad") or 0) > 0
+            ]
+        return self.screen()
+
+    def quitar_linea_edicion(self, producto_id: str) -> TerminalScreenVM:
+        if not self._edicion:
+            return self.screen()
+        self._edicion["lineas"] = [
+            ln
+            for ln in (self._edicion.get("lineas") or [])
+            if ln["producto_id"] != producto_id
+        ]
+        return self.screen()
+
+    def anadir_producto_edicion(
+        self, producto_id: str, cantidad: float = 1.0
+    ) -> TerminalScreenVM:
+        if not self._edicion:
+            return self.screen()
+        from app.core.services.data_service import get_repository
+
+        repo = get_repository()
+        prod = repo.get_producto(producto_id)
+        if prod is None:
+            self._feedback = map_error_recuperable("Producto no encontrado.")
+            return self.screen()
+        qty = max(float(cantidad), 0.0)
+        if qty <= 0:
+            return self.screen()
+        lineas = list(self._edicion.get("lineas") or [])
+        for ln in lineas:
+            if ln["producto_id"] == producto_id:
+                ln["cantidad"] = round(float(ln["cantidad"]) + qty, 4)
+                self._edicion["lineas"] = lineas
+                return self.screen()
+        lineas.append(
+            {
+                "producto_id": producto_id,
+                "nombre": prod.nombre,
+                "cantidad": qty,
+                "unidad": prod.unidad.value,
+            }
+        )
+        self._edicion["lineas"] = lineas
+        return self.screen()
+
+    def guardar_edicion(self) -> TerminalScreenVM:
+        from app.core.services.rectificacion_registro_service import (
+            rectificar_lineas_registro,
+        )
+
+        if not self._edicion:
+            return self.screen()
+        self._editando = True
+        try:
+            lineas = [
+                (str(ln["producto_id"]), float(ln["cantidad"]))
+                for ln in (self._edicion.get("lineas") or [])
+                if float(ln.get("cantidad") or 0) > 0
+            ]
+            r = rectificar_lineas_registro(
+                str(self._edicion["registro_id"]),
+                lineas,
+                tipo_registro=str(self._edicion["tipo_registro"]),
+            )
+            self._feedback = map_resultado(r.ok, r.mensaje, r.codigo)
+            if r.ok:
+                self._edicion = None
+        finally:
+            self._editando = False
+        return self.screen()
 
     def _require_bind(self) -> _ServicioBind | None:
         if not session_bridge.puede_usar_terminal():
@@ -629,6 +817,7 @@ class TerminalRestaurantePresenter:
                 not anulado and not bool(getattr(registro, "revision_confirmada", False))
             ),
             revision_confirmada=bool(getattr(registro, "revision_confirmada", False)),
+            puede_editar=puede,
         )
 
     def _detalle_historial_lineas(self, data, registro) -> tuple[str, ...]:
@@ -1033,6 +1222,28 @@ class TerminalRestaurantePresenter:
                     unidad="raciones",
                 )
             )
+            for ing in getattr(g, "ingredientes", None) or []:
+                if getattr(ing, "es_base_receta", False) and not (
+                    getattr(ing, "es_omision", False) or float(ing.cantidad) < 0
+                ):
+                    continue
+                if not (
+                    getattr(ing, "es_extra", False)
+                    or getattr(ing, "es_omision", False)
+                    or float(ing.cantidad) < 0
+                    or (not getattr(ing, "es_base_receta", True) and float(ing.cantidad) != 0)
+                ):
+                    continue
+                pref = "s/" if (getattr(ing, "es_omision", False) or float(ing.cantidad) < 0) else "c/"
+                lineas.append(
+                    BasketLineVM(
+                        kind="mod",
+                        line_id=str(getattr(ing, "linea_id", "") or ""),
+                        nombre=f"{pref} {ing.nombre}",
+                        cantidad=abs(float(ing.cantidad)),
+                        unidad=str(getattr(ing, "unidad", "") or ""),
+                    )
+                )
             rec = obtener_receta(getattr(g, "receta_id", "") or "")
             if rec is None:
                 continue

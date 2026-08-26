@@ -52,6 +52,8 @@ def descontar_lotes(
 def aplicar_descuento_atomico(
     ctx: AppContext,
     demandas: dict[str, float],
+    *,
+    permitir_negativo: bool = False,
 ) -> ResultadoDescuentoAtomico:
     """Mutará `ctx.data()`; no persiste solo."""
-    return _aplicar(ctx.data(), demandas)
+    return _aplicar(ctx.data(), demandas, permitir_negativo=permitir_negativo)

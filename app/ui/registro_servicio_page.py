@@ -428,7 +428,8 @@ def render_pagina_registro_servicio(
                             format=formato_number_input(unidad_mod),
                             key=f"{key_prefix}_cant_mod",
                         )
-                        cant_mod = normalizar_cantidad(cant_mod, unidad_mod)
+                        # No normalizar: los negativos son omisiones («Sin …»).
+                        cant_mod = float(cant_mod)
                         if st.button(
                             "Añadir extra/omisión",
                             key=f"{key_prefix}_btn_mod",
@@ -596,7 +597,7 @@ def render_pagina_registro_servicio(
         confirma = st.checkbox(
             f"Confirmo el registro de {etiqueta.lower()}",
             key=f"{key_prefix}_confirma_reg",
-            disabled=servicio.cesta_vacia() or bool(plan_stock is not None and not plan_stock.ok),
+            disabled=servicio.cesta_vacia(),
         )
         if st.button(
             f"Registrar {etiqueta.lower()}",
@@ -606,7 +607,6 @@ def render_pagina_registro_servicio(
             disabled=(
                 not confirma
                 or servicio.cesta_vacia()
-                or bool(plan_stock is not None and not plan_stock.ok)
             ),
         ):
             token = _token_idempotencia(key_prefix)

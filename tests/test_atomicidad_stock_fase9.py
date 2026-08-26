@@ -114,25 +114,20 @@ class TestRegistroDesayunoAtomico(unittest.TestCase):
         for p in reversed(self._patches):
             p.stop()
 
-    def test_receta_corta_no_mueve_nada(self) -> None:
-        snap = snapshot_cantidades_restantes(self.data)
+    def test_receta_corta_permite_stock_negativo(self) -> None:
         self.assertTrue(desayuno_service.anadir_receta_a_cesta("r1", 1.0).ok)
         r = desayuno_service.registrar_desayuno(date(2026, 7, 21), 5)
-        self.assertFalse(r.ok)
-        self.assertEqual(r.codigo, "STOCK_INSUFICIENTE")
-        self.assertEqual(snapshot_cantidades_restantes(self.data), snap)
-        self.assertEqual(len(self.data.desayunos), 0)
+        self.assertTrue(r.ok, r.mensaje)
+        self.assertEqual(len(self.data.desayunos), 1)
+        self.assertLess(stock_disponible(self.data, "p2"), 0)
 
-    def test_ignorar_stock_ya_no_permite_negativo(self) -> None:
-        snap = snapshot_cantidades_restantes(self.data)
+    def test_ignorar_stock_tambien_permite_negativo(self) -> None:
         self.assertTrue(desayuno_service.anadir_receta_a_cesta("r1", 1.0).ok)
         r = desayuno_service.registrar_desayuno(
             date(2026, 7, 21), 5, ignorar_stock=True,
         )
-        self.assertFalse(r.ok)
-        self.assertEqual(r.codigo, "STOCK_INSUFICIENTE")
-        self.assertEqual(snapshot_cantidades_restantes(self.data), snap)
-        self.assertGreaterEqual(stock_disponible(self.data, "p2"), 0)
+        self.assertTrue(r.ok, r.mensaje)
+        self.assertLess(stock_disponible(self.data, "p2"), 0)
 
     def test_registro_valido_ok(self) -> None:
         self.data.lotes[1].cantidad_restante = 10.0
