@@ -1,0 +1,17 @@
+Carpeta de aplicacion / codigo fuente (BM-CODIGO — desarrollo).
+
+Esta es la carpeta del PROGRAMA en Cursor/desarrollo:
+  C:\Users\User\Desktop\HOTEL\BM V.2\
+
+Al actualizar como exe en el hotel se usa en su lugar:
+  C:\Apps\BM-V2\
+
+Sustituir COMPLETA al cambiar version / pantallas / logica.
+No borrar ni mezclar con BM-DATOS.
+
+Datos productivos (NO estan aqui):
+  C:\Users\User\AppData\Local\BM-V2-local\
+  (archivo BM-DATOS.txt)
+
+Ver: docs\hotel_dos_carpetas.md
+     ..\LEEME_DOS_CARPETAS.txt

@@ -2,10 +2,13 @@
 
 En el hotel solo hay que conocer **dos carpetas**. El acceso directo al `.exe` **no cambia** al actualizar versión o al traer/llevar la base.
 
-| Marca | Ruta típica (1 PC) | Qué es | Al actualizar |
-|-------|--------------------|--------|---------------|
-| **BM-CODIGO** | `C:\Apps\BM-V2\` | `BM-Launcher.exe` + `_internal\` | Sustituir **entera** por la nueva versión |
-| **BM-DATOS** | `%LOCALAPPDATA%\BM-V2-local\` | Toda la base operativa | Sustituir/copiar **entera** (casa ↔ hotel); **nunca** mezclar con un update de código |
+| Marca | Ruta en ESTE PC | Qué es | Al actualizar |
+|-------|-----------------|--------|---------------|
+| **BM-CODIGO** (desarrollo) | `C:\Users\User\Desktop\HOTEL\BM V.2\` | Código fuente / Cursor | Editas aquí; empaquetas y despliegas |
+| **BM-CODIGO** (exe hotel) | `C:\Apps\BM-V2\` | `BM-Launcher.exe` + `_internal\` | Sustituir **entera** por la nueva versión |
+| **BM-DATOS** | `C:\Users\User\AppData\Local\BM-V2-local\` | Toda la base operativa | Sustituir/copiar **entera** (casa ↔ hotel); **nunca** mezclar con un update de código |
+
+Resumen visible: `C:\Users\User\Desktop\HOTEL\LEEME_DOS_CARPETAS.txt`.
 
 Marcadores en disco: `BM-CODIGO.txt` y `BM-DATOS.txt` (los crea el runtime del exe o `deploy\windows\marcar_carpetas_hotel.cmd`).
 
