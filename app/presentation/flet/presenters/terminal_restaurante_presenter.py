@@ -1119,6 +1119,31 @@ class TerminalRestaurantePresenter:
                                 ),
                             )
                         )
+                # Bebidas: calendario semanal → una ficha «Cóctel del día».
+                if bind.id == "bebidas":
+                    from app.core.services.receta_service import (
+                        ETIQUETA_COCTEL_DEL_DIA,
+                        es_receta_coctel_del_calendario,
+                        receta_coctel_del_dia,
+                    )
+
+                    coctel = receta_coctel_del_dia(_date.today())
+                    # No ocultar los cócteles del calendario: siguen listables.
+                    # Solo prioriza la ficha del día arriba.
+                    if coctel is not None and (
+                        not q or coincide_busqueda(ETIQUETA_COCTEL_DEL_DIA, q)
+                        or coincide_busqueda(coctel.nombre, q)
+                    ):
+                        items.append(
+                            CatalogItemVM(
+                                id=coctel.id,
+                                nombre=f"{ETIQUETA_COCTEL_DEL_DIA} ({coctel.nombre})",
+                                tipo="receta",
+                                categoria=getattr(
+                                    coctel.categoria, "value", str(coctel.categoria)
+                                ),
+                            )
+                        )
                 for r in recetas:
                     if bind.id == "desayuno" and tipo == "todas":
                         from app.core.services.desayuno_service import (

@@ -291,11 +291,40 @@ NOMBRES_TOSTADA_POR_WEEKDAY: tuple[str, ...] = (
 
 ETIQUETA_TOSTADA_DEL_DIA = "Tostada del dia"
 
+ETIQUETA_COCTEL_DEL_DIA = "Cóctel del día"
+
+# Fallback si `configuracion.cocteles_del_dia` no está completo (lunes=0 … domingo=6).
+NOMBRES_COCTEL_POR_WEEKDAY_DEFAULT: tuple[str, ...] = (
+    "Espresso Martini",
+    "Margarita",
+    "Piña Colada",
+    "Blue Hawaii",
+    "Caipirinha",
+    "Sex on the Beach",
+    "Royal Marina",
+)
+
 
 def es_receta_tostada_weekday(nombre: str) -> bool:
     """True si es una de las 7 tostadas por día (no la ficha virtual del catálogo)."""
     n = (nombre or "").strip().lower()
     return n in {x.lower() for x in NOMBRES_TOSTADA_POR_WEEKDAY}
+
+
+def nombres_coctel_por_weekday() -> tuple[str, ...]:
+    """7 nombres de receta (lun–dom) desde configuración o default."""
+    data = get_data()
+    cfg = getattr(data, "configuracion", None)
+    raw = tuple(getattr(cfg, "cocteles_del_dia", ()) or ()) if cfg else ()
+    if len(raw) >= 7:
+        return tuple(str(x).strip() for x in raw[:7])
+    return NOMBRES_COCTEL_POR_WEEKDAY_DEFAULT
+
+
+def es_receta_coctel_del_calendario(nombre: str) -> bool:
+    """True si el nombre es uno de los cócteles del calendario semanal."""
+    n = (nombre or "").strip().lower()
+    return n in {x.lower() for x in nombres_coctel_por_weekday()}
 
 
 def receta_tostada_del_dia(fecha: date | None = None) -> Receta | None:
@@ -309,6 +338,30 @@ def receta_tostada_del_dia(fecha: date | None = None) -> Receta | None:
             for r in data.recetas
             if getattr(r, "activo", True)
             and r.nombre.strip().lower() == nombre.lower()
+        ),
+        None,
+    )
+
+
+def receta_coctel_del_dia(fecha: date | None = None) -> Receta | None:
+    """Receta de cóctel del día según weekday de `fecha` (hoy si None)."""
+    dia = fecha or date.today()
+    nombres = nombres_coctel_por_weekday()
+    nombre = nombres[dia.weekday()]
+    data = get_data()
+    # Match exacto; fallback por normalización suave (ñ/accents).
+    import unicodedata
+
+    def _norm(s: str) -> str:
+        s = unicodedata.normalize("NFD", (s or "").lower().strip())
+        return "".join(c for c in s if unicodedata.category(c) != "Mn")
+
+    target = _norm(nombre)
+    return next(
+        (
+            r
+            for r in data.recetas
+            if getattr(r, "activo", True) and _norm(r.nombre) == target
         ),
         None,
     )

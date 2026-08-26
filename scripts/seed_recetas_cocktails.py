@@ -27,6 +27,7 @@ PACK_L: dict[str, float] = {
     "p240": 0.75,  # Cava Roger de Flor 75 cl
     "b14": 0.70,  # Triple seco típico 70 cl
     "b16": 0.70,  # Licor melocotón
+    "b03": 0.70,  # Kahlúa típico 70 cl
     "p182": 0.05,  # Menta: ~50 g/Ud hoja → gramos vía PACK_KG abajo
 }
 
@@ -243,6 +244,26 @@ def _specs(data) -> list[tuple[str, list[IngredienteReceta], list[tuple[str, flo
         (
             "Margarita",
             [I("tequila", 40, "ml"), I("triple_seco", 20, "ml"), I("lima", 30, "gr")],
+            None,
+        ),
+        (
+            "Blue Hawaii",
+            [
+                I("ron", 40, "ml"),
+                I("jarabe_blue", 20, "ml"),
+                I("nectar_pina", 90, "ml"),
+                I("leche_coco", 20, "ml"),
+            ],
+            None,
+        ),
+        (
+            "Espresso Martini",
+            [
+                I("vodka", 40, "ml"),
+                # Kahlúa + 1 cápsula espresso (aprox. un shot).
+                _ing(data, "b03", 20, "ml"),
+                _ing(data, "p267", 1.0, None),
+            ],
             None,
         ),
         (

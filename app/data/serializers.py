@@ -129,6 +129,7 @@ def _decimal_from_json(raw):
 
 
 def _configuracion_to_dict(cfg: ConfiguracionHotel) -> dict:
+    cocteles = tuple(getattr(cfg, "cocteles_del_dia", ()) or ())
     return {
         "nombre_establecimiento": cfg.nombre_establecimiento,
         "moneda": cfg.moneda,
@@ -144,6 +145,7 @@ def _configuracion_to_dict(cfg: ConfiguracionHotel) -> dict:
         "ledger_qty_tolerance": float(
             getattr(cfg, "ledger_qty_tolerance", 1e-4) or 1e-4
         ),
+        "cocteles_del_dia": [str(x) for x in cocteles],
     }
 
 
@@ -162,6 +164,10 @@ def _configuracion_from_dict(raw: dict | None) -> ConfiguracionHotel | None:
         tol = float(raw.get("ledger_qty_tolerance", 1e-4))
     except (TypeError, ValueError):
         tol = 1e-4
+    raw_cocteles = raw.get("cocteles_del_dia") or ()
+    cocteles: tuple[str, ...] = ()
+    if isinstance(raw_cocteles, (list, tuple)):
+        cocteles = tuple(str(x).strip() for x in raw_cocteles if str(x).strip())
     return ConfiguracionHotel(
         nombre_establecimiento=raw.get("nombre_establecimiento", "Hotel Boutique"),
         moneda=raw.get("moneda", "EUR"),
@@ -171,6 +177,7 @@ def _configuracion_from_dict(raw: dict | None) -> ConfiguracionHotel | None:
         ledger_activation_iso=raw.get("ledger_activation_iso"),
         ledger_balance_mode=mode,
         ledger_qty_tolerance=tol,
+        cocteles_del_dia=cocteles,
     )
 
 

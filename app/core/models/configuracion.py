@@ -21,3 +21,6 @@ class ConfiguracionHotel:
     # legacy | shadow | ledger
     ledger_balance_mode: str = "shadow"
     ledger_qty_tolerance: float = LEDGER_QTY_TOLERANCE_DEFAULT
+    # Cóctel del día por weekday Python (lunes=0 … domingo=6). Nombres de receta.
+    # Vacío / incompleto → sin cóctel del día configurado.
+    cocteles_del_dia: tuple[str, ...] = ()

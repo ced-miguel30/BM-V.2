@@ -117,6 +117,8 @@ COCTEL_RECIPES = {
     "Copa de sangria",
     "Sangria 1L",
     "Sangria de cava 1L",
+    "Blue Hawaii",
+    "Espresso Martini",
 }
 
 
@@ -617,7 +619,22 @@ def import_tpv(
             if TPV_FECHA_MAX and f > TPV_FECHA_MAX:
                 continue
             if kind == "special" and token == "pending_cocktail":
-                pending.append({"fecha": f.isoformat(), "qty": qty, "importe": imp, "nombre": raw or name})
+                from app.core.services.receta_service import receta_coctel_del_dia
+
+                rec_dia = receta_coctel_del_dia(f)
+                if rec_dia is not None:
+                    bebida[f]["recipes"][rec_dia.id] += qty
+                    if rec_dia.nombre in COCTEL_RECIPES:
+                        cocktails[f] += int(qty)
+                else:
+                    pending.append(
+                        {
+                            "fecha": f.isoformat(),
+                            "qty": qty,
+                            "importe": imp,
+                            "nombre": raw or name,
+                        }
+                    )
                 continue
             if kind == "special" and token == "smoothie":
                 for _ in range(int(qty)):
