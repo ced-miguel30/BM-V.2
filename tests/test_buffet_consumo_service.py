@@ -68,7 +68,7 @@ def _datos() -> AppData:
                 tipo_linea=TIPO_LINEA_SIMPLE,
             ),
             LineaConfigBuffet(
-                "cb2", "Jarras", 2, "Jarra zumo naranja", "b06", "Ud", 1.0,
+                "cb2", "Jarras", 2, "Jarra zumo naranja", "b06", "kg", 1.2,
                 tipo_linea="jarra_zumo", producto_bote_id="b28",
             ),
         ],
@@ -142,21 +142,27 @@ class TestBuffetConsumoService(unittest.TestCase):
         self.assertEqual(len(self.data.mermas), 1)
         self.assertEqual(len(self.data.registros_buffet), 1)
 
-    def test_jarra_naranja_y_bote(self) -> None:
+    def test_jarra_naranja_calcula_kg_desde_litros(self) -> None:
         r = importar_lineas_buffet(
             date(2026, 8, 11),
             [
                 LineaBuffetEntrada(
-                    None, "Jarra zumo naranja", "Jarras", 1.0, MOTIVO_BUFFET_CONSUMO,
-                    naranjas=0.5, zumo_bote=1.0,
+                    None, "Jarra zumo naranja", "Jarras", 2.0, MOTIVO_BUFFET_CONSUMO,
+                    zumo_bote=1.0,
                 ),
             ],
             ctx=self.ctx,
         )
         self.assertTrue(r.ok, r.mensaje)
+        qty_b06 = sum(
+            ln.cantidad for d in self.data.desayunos for ln in d.lineas if ln.producto_id == "b06"
+        )
+        self.assertAlmostEqual(qty_b06, 2.4)
         pids = {ln.producto_id for d in self.data.desayunos for ln in d.lineas}
-        self.assertIn("b06", pids)
         self.assertIn("b28", pids)
+        self.assertAlmostEqual(
+            self.data.registros_buffet[0].lineas[0].naranjas_cantidad or 0, 2.4,
+        )
 
     def test_idempotencia(self) -> None:
         lineas = [LineaBuffetEntrada(None, "Pan gallego", "Pan", 1.0, MOTIVO_BUFFET_CONSUMO)]

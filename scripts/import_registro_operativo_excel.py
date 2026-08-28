@@ -24,7 +24,7 @@ from openpyxl import load_workbook
 from app.bootstrap import configure_for_flet, get_container, reset_container
 from app.core.auth.roles import ROL_DIRECCION
 from app.core.auth.session import ACTOR_TYPE_USUARIO, AuthSession, save_auth_session
-from app.core.services import cena_service, comida_service, desayuno_service as des
+from app.core.services import bebida_service, cena_service, comida_service, desayuno_service as des
 from app.core.services.buffet_config_service import sincronizar_desde_excel
 from app.core.services.buffet_consumo_service import LineaBuffetEntrada, importar_lineas_buffet
 from app.core.services.pack_unidades import piezas_a_ud_paquete, ud_paquete_a_piezas
@@ -41,7 +41,12 @@ CLAVE_PREFIX_COMIDA = "comida-xlsx"
 CLAVE_PREFIX_CENA = "cena-xlsx"
 CLAVE_VER_SERVICIO = "v1"
 
-HOJAS_IMPORT = ("Registro", "RegistroComida", "RegistroCena", "ConsumoBuffet", "ConfigBuffet")
+CLAVE_PREFIX_BEBIDAS_DESAYUNO = "bebidas-desayuno-xlsx"
+
+HOJAS_IMPORT = (
+    "Registro", "RegistroBebidasDesayuno", "RegistroComida", "RegistroCena",
+    "ConsumoBuffet", "ConfigBuffet",
+)
 
 # Labels de Extra/Omitir que son «tipo de huevo» (sustituyen el frito de Desayuno inglés).
 _TIPOS_HUEVO = frozenset(
@@ -734,6 +739,40 @@ class DiaPlanServicio:
     row_indices: list[int] = field(default_factory=list)
 
 
+def _mapa_recetas_bebidas_desayuno(data) -> dict[str, object]:
+    m: dict[str, object] = {}
+    for r in data.recetas:
+        if not getattr(r, "activo", True):
+            continue
+        cat = r.categoria.value if hasattr(r.categoria, "value") else str(r.categoria)
+        if cat == "bebidas" and des.es_receta_bebida_desayuno(r.nombre):
+            m[_norm(r.nombre)] = r
+        elif "roger de flor" in _norm(r.nombre):
+            m[_norm(r.nombre)] = r
+    # Alias «Cava Roger de Flor» → receta Botella Roger de Flor si existe.
+    roger = m.get(_norm("Botella Roger de Flor")) or m.get(_norm("Cava Roger de Flor"))
+    if roger is not None:
+        for alias in ("cava roger de flor", "roger de flor", "botella roger de flor"):
+            m.setdefault(_norm(alias), roger)
+    return m
+
+
+def _mapa_productos_bebidas_desayuno(data) -> dict[str, object]:
+    m: dict[str, object] = {}
+    for p in data.productos:
+        if not getattr(p, "activo", True) or not getattr(p, "es_bebida", False):
+            continue
+        servicios = [s for s in (getattr(p, "servicios_disponibles", None) or []) if isinstance(s, str)]
+        if servicios and "desayuno" not in servicios:
+            continue
+        m[_norm(p.nombre)] = p
+        codigo = getattr(p, "codigo", None) or ""
+        if codigo:
+            m[_norm(codigo)] = p
+        m[_norm(p.id)] = p
+    return m
+
+
 def _mapa_recetas_tipo(data, tipo: str) -> dict[str, object]:
     from app.core.models import CategoriaReceta
 
@@ -952,7 +991,6 @@ def _leer_consumo_buffet(path: Path) -> list[DiaPlanBuffet]:
                 seccion=str(cell("Seccion") or "").strip(),
                 cantidad=float(cant),
                 motivo=motivo,
-                naranjas=_parse_float(cell("Naranjas"), None),
                 zumo_bote=_parse_float(cell("ZumoBote"), None),
                 notas=str(cell("Notas") or "").strip(),
             )
@@ -1006,7 +1044,10 @@ def main() -> int:
     )
     parser.add_argument(
         "--solo",
-        choices=["Registro", "RegistroComida", "RegistroCena", "ConsumoBuffet", "ConfigBuffet"],
+        choices=[
+            "Registro", "RegistroBebidasDesayuno", "RegistroComida", "RegistroCena",
+            "ConsumoBuffet", "ConfigBuffet",
+        ],
         action="append",
         help="Importar solo las hojas indicadas (repetible)",
     )
@@ -1103,16 +1144,39 @@ def main() -> int:
         if not args.dry_run and por_fila:
             _escribir_estados_hoja(args.xlsx, "Registro", por_fila)
 
-    for hoja, svc, tipo, prefix in (
-        ("RegistroComida", comida_service, "comida", CLAVE_PREFIX_COMIDA),
-        ("RegistroCena", cena_service, "cena", CLAVE_PREFIX_CENA),
+    for hoja, svc, tipo, prefix, rec_map_fn, prod_map_fn in (
+        (
+            "RegistroBebidasDesayuno",
+            bebida_service,
+            "bebidas",
+            CLAVE_PREFIX_BEBIDAS_DESAYUNO,
+            _mapa_recetas_bebidas_desayuno,
+            _mapa_productos_bebidas_desayuno,
+        ),
+        (
+            "RegistroComida",
+            comida_service,
+            "comida",
+            CLAVE_PREFIX_COMIDA,
+            lambda d: _mapa_recetas_tipo(d, "comida"),
+            _mapa_productos,
+        ),
+        (
+            "RegistroCena",
+            cena_service,
+            "cena",
+            CLAVE_PREFIX_CENA,
+            lambda d: _mapa_recetas_tipo(d, "cena"),
+            _mapa_productos,
+        ),
     ):
         if hoja not in hojas:
             continue
         lineas_s = _leer_hoja_servicio(args.xlsx, hoja)
         dias_s = _agrupar_servicio(lineas_s)
         print(f"{hoja}: lineas={len(lineas_s)} dias={len(dias_s)}")
-        rec_map = _mapa_recetas_tipo(data, tipo)
+        rec_map = rec_map_fn(data)
+        prod_map_local = prod_map_fn(data)
         por_fila_s: dict[int, str] = {}
         for dia in dias_s:
             result = _importar_dia_servicio(
@@ -1123,7 +1187,7 @@ def main() -> int:
                 dry_run=args.dry_run,
                 rec_map=rec_map,
                 extra_map=extra_map,
-                prod_map=prod_map,
+                prod_map=prod_map_local,
             )
             print(f"  {tipo.capitalize()} {dia.fecha}: {result.get('mensaje')}")
             status = result.get("status") or ("OK" if result.get("ok") else "ERROR")

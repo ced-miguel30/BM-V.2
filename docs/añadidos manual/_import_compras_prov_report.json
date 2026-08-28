@@ -1,0 +1,5896 @@
+{
+  "fecha": "2026-08-28T13:46:01",
+  "pdf": "C:\\Users\\User\\Desktop\\HOTEL\\BM V.2\\docs\\añadidos manual\\Compras prov.pdf",
+  "dry_run": false,
+  "proveedores_pdf": {
+    "PR0000002": "COMESA LANZAROTE SLU",
+    "PR0000003": "SMOKEHOUSE CANARIAS SLU",
+    "PR0000004": "COCA-COLA",
+    "PR0000006": "CAFE ORTEA SA",
+    "PR0000009": "QUESO FLOR VALSEQUILLO",
+    "PR0000010": "CANARY MEAT AND FISH S.A.",
+    "PR0000011": "ALCRUZ CANARIAS S.L.",
+    "PR0000012": "EMICELA SA",
+    "PR0000014": "YAFEDUMAR SL",
+    "PR0000015": "COMERCIAL GUADALUPE",
+    "PR0000016": "GRISALEÑA SL",
+    "PR0000017": "DISTRIBUCIONES VIERA SL",
+    "PR0000018": "AFRILAN SL",
+    "PR0000019": "GM LANZAROTE",
+    "PR0000021": "PROMOCIONES EL CHARCO SL",
+    "PR0000027": "ILLY CANARIAS SL",
+    "PR0000028": "COMERCIAL RAFAEL RIBAS SL",
+    "PR0000030": "DIMANALANZA CANARIAS SL",
+    "PR0000031": "PANIFICADORA SAN ANTONIO DE",
+    "PR0000033": "GERBELAN SL",
+    "PR0000035": "COFALANZ SL",
+    "PR0000037": "GUERRA Y FERNANDEZ SL",
+    "PR0000042": "SARTON CANARIAS",
+    "PR0000044": "BRICEJ HOSTELERIA SL",
+    "PR0000045": "TOP NIMBOS SL",
+    "PR0000046": "FERRETERIA TIAS SL",
+    "PR0000047": "COMPAÑIA CERVECERA DE",
+    "PR0000051": "EUROP FOODS CANARIAS SLU",
+    "PR0000052": "LPA BROKERS CANARIAS SL",
+    "PR0000056": "CERVEZA DE LANZAROTE SL",
+    "PR0000057": "PROVEEDORES VARIOS",
+    "PR0000058": "SERCATE",
+    "PR0000065": "MILO CANARIAS ALIMENTACION",
+    "PR0000066": "CAVAS CATALANAS MEPROLIM",
+    "PR0000068": "MERCADONA SA",
+    "PR0000069": "ROPER  FRIMANCHA CANARIAS",
+    "PR0000075": "FRONERI IBERIA SLU",
+    "PR0000082": "DISTRIBUCIONES TIERNEY SL",
+    "PR0000083": "HORTOFRUTICOLA ALTAVISTA",
+    "PR0000084": "ARGAL ALIMENTACION SA",
+    "PR0000085": "BODEGA GAYDA SL"
+  },
+  "stats": {
+    "proveedores_nuevos": 41,
+    "productos_actualizados": 273,
+    "sin_match": 163,
+    "relaciones_creadas": 273,
+    "relaciones_actualizadas": 0,
+    "lotes_revalorizados": 788
+  },
+  "actualizados": [
+    {
+      "codigo": "C00000001",
+      "producto_id": "b01",
+      "nombre_bm": "CROISSANT MINI CHOCOLATE CREMOSO 198UD 31G",
+      "match": "codigo",
+      "cantidad": 990.0,
+      "importe": 329.48,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.332808,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000009",
+      "producto_id": "p04",
+      "nombre_bm": "PANECILLO S/GLUTEN BETINA 55GRS 45 UND",
+      "match": "codigo",
+      "cantidad": 24.0,
+      "importe": 40.94,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.705833,
+      "proveedor": "COMERCIAL GUADALUPE",
+      "avisos": [],
+      "proveedor_id": "prv11",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000011",
+      "producto_id": "p05",
+      "nombre_bm": "PAN GALLEGO BARRA 280GR 20 UND",
+      "match": "codigo",
+      "cantidad": 267.0,
+      "importe": 363.44,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.361199,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000012",
+      "producto_id": "p06",
+      "nombre_bm": "PAN PIPAS CALABAZA 750GRS 12UDN",
+      "match": "codigo",
+      "cantidad": 1.0,
+      "importe": 0.79,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.79,
+      "proveedor": "PROVEEDORES VARIOS",
+      "avisos": [],
+      "proveedor_id": "prv32",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000013",
+      "producto_id": "p07",
+      "nombre_bm": "SMOOTHIE B6 PITA-MANG-FRESA",
+      "match": "codigo",
+      "cantidad": 60.0,
+      "importe": 66.0,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.1,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000014",
+      "producto_id": "p08",
+      "nombre_bm": "SURTIDO DE REPOSTERIA",
+      "match": "codigo",
+      "cantidad": 1080.0,
+      "importe": 725.58,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 0.671833,
+      "proveedor": "COMERCIAL GUADALUPE",
+      "avisos": [],
+      "proveedor_id": "prv11",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000020",
+      "producto_id": "p09",
+      "nombre_bm": "MOLDE COMUN S/C 800GRS",
+      "match": "codigo",
+      "cantidad": 71.0,
+      "importe": 199.57,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 2.810845,
+      "proveedor": "PANIFICADORA SAN ANTONIO DE",
+      "avisos": [],
+      "proveedor_id": "prv20",
+      "relacion": "creado",
+      "lotes": 29
+    },
+    {
+      "codigo": "C00000024",
+      "producto_id": "p11",
+      "nombre_bm": "MOLDE INTEGRAL S/C 1000 GRS",
+      "match": "codigo",
+      "cantidad": 39.0,
+      "importe": 114.1,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 2.925641,
+      "proveedor": "PANIFICADORA SAN ANTONIO DE",
+      "avisos": [],
+      "proveedor_id": "prv20",
+      "relacion": "creado",
+      "lotes": 10
+    },
+    {
+      "codigo": "C00000025",
+      "producto_id": "p12",
+      "nombre_bm": "PAPA BRAVA EUROFRIT 4X2,5",
+      "match": "codigo",
+      "cantidad": 8.0,
+      "importe": 44.76,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 5.595,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 2
+    },
+    {
+      "codigo": "C00000026",
+      "producto_id": "p13",
+      "nombre_bm": "MANTEQUILLA EN PORCIONES 200UDS 8G",
+      "match": "codigo",
+      "cantidad": 3576.0,
+      "importe": 946.41,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.264656,
+      "proveedor": "MILO CANARIAS ALIMENTACION",
+      "avisos": [],
+      "proveedor_id": "prv34",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000028",
+      "producto_id": "p14",
+      "nombre_bm": "BACON SELECTED PREMIUM 4-2,27KG",
+      "match": "codigo",
+      "cantidad": 72.64,
+      "importe": 479.68,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 6.603524,
+      "proveedor": "DISTRIBUCIONES TIERNEY SL",
+      "avisos": [],
+      "proveedor_id": "prv39",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000031",
+      "producto_id": "b02",
+      "nombre_bm": "SMOOTHIES VIERA B7 COLADA",
+      "match": "codigo",
+      "cantidad": 40.0,
+      "importe": 44.4,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.11,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 3
+    },
+    {
+      "codigo": "C00000033",
+      "producto_id": "p17",
+      "nombre_bm": "CUBITON",
+      "match": "codigo",
+      "cantidad": 164.0,
+      "importe": 190.68,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.162683,
+      "proveedor": "ALCRUZ CANARIAS S.L.",
+      "avisos": [],
+      "proveedor_id": "prv08",
+      "relacion": "creado",
+      "lotes": 6
+    },
+    {
+      "codigo": "C00000034",
+      "producto_id": "p18",
+      "nombre_bm": "ARTIS MINI TOSCANA CENTENO 200UD 40GR",
+      "match": "codigo",
+      "cantidad": 600.0,
+      "importe": 186.0,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.31,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000037",
+      "producto_id": "p20",
+      "nombre_bm": "SALCHICHA INGLESA 4,54KG",
+      "match": "codigo",
+      "cantidad": 880.0,
+      "importe": 173.25,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 0.196875,
+      "proveedor": "DISTRIBUCIONES TIERNEY SL",
+      "avisos": [],
+      "proveedor_id": "prv39",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000044",
+      "producto_id": "p24",
+      "nombre_bm": "NACHOS 12*500GRS CJ",
+      "match": "codigo",
+      "cantidad": 12.0,
+      "importe": 38.64,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 3.22,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000045",
+      "producto_id": "p25",
+      "nombre_bm": "MANGO CUBOS 4*2,5KG",
+      "match": "codigo",
+      "cantidad": 40.0,
+      "importe": 150.4,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 3.76,
+      "proveedor": "ALCRUZ CANARIAS S.L.",
+      "avisos": [],
+      "proveedor_id": "prv08",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000047",
+      "producto_id": "p26",
+      "nombre_bm": "MINI PANBAO 8B*45UND 700GRS",
+      "match": "codigo",
+      "cantidad": 24.0,
+      "importe": 122.1,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 5.0875,
+      "proveedor": "PROVEEDORES VARIOS",
+      "avisos": [],
+      "proveedor_id": "prv32",
+      "relacion": "creado",
+      "lotes": 4
+    },
+    {
+      "codigo": "C00000049",
+      "producto_id": "p28",
+      "nombre_bm": "PAN PERRITO",
+      "match": "codigo",
+      "cantidad": 27.0,
+      "importe": 7.3,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.27037,
+      "proveedor": "PANIFICADORA SAN ANTONIO DE",
+      "avisos": [],
+      "proveedor_id": "prv20",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00000050",
+      "producto_id": "p29",
+      "nombre_bm": "PAPA HASH BROWN FARM FRITES",
+      "match": "codigo",
+      "cantidad": 30.0,
+      "importe": 170.69,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 5.689667,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000053",
+      "producto_id": "p30",
+      "nombre_bm": "BROWNIE NUECES",
+      "match": "codigo",
+      "cantidad": 4.0,
+      "importe": 106.96,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 26.74,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000056",
+      "producto_id": "p31",
+      "nombre_bm": "PECHUGA POLLO B/2 KG",
+      "match": "codigo",
+      "cantidad": 30.7,
+      "importe": 134.73,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 4.388599,
+      "proveedor": "CANARY MEAT AND FISH S.A.",
+      "avisos": [],
+      "proveedor_id": "prv07",
+      "relacion": "creado",
+      "lotes": 3
+    },
+    {
+      "codigo": "C00000057",
+      "producto_id": "p32",
+      "nombre_bm": "SALMON AHUMADO PRECORT 3%",
+      "match": "codigo",
+      "cantidad": 7.42,
+      "importe": 153.97,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 20.750674,
+      "proveedor": "CANARY MEAT AND FISH S.A.",
+      "avisos": [],
+      "proveedor_id": "prv07",
+      "relacion": "creado",
+      "lotes": 2
+    },
+    {
+      "codigo": "C00000058",
+      "producto_id": "p33",
+      "nombre_bm": "CHORIZO IBERICO CULAR BELL CARRASCO",
+      "match": "codigo",
+      "cantidad": 5.374,
+      "importe": 153.02,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 28.474135,
+      "proveedor": "PROVEEDORES VARIOS",
+      "avisos": [],
+      "proveedor_id": "prv32",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000059",
+      "producto_id": "p34",
+      "nombre_bm": "SALCHICHON IBERICO CULAR BELL CARRASCO",
+      "match": "codigo",
+      "cantidad": 5.955,
+      "importe": 103.41,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 17.365239,
+      "proveedor": "ROPER  FRIMANCHA CANARIAS",
+      "avisos": [],
+      "proveedor_id": "prv37",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000061",
+      "producto_id": "p36",
+      "nombre_bm": "LANGOSTINOS Nº 2 SALVAJE",
+      "match": "codigo",
+      "cantidad": 8.0,
+      "importe": 30.0,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 3.75,
+      "proveedor": "CANARY MEAT AND FISH S.A.",
+      "avisos": [],
+      "proveedor_id": "prv07",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000062",
+      "producto_id": "p37",
+      "nombre_bm": "QUESO CANARIO SEMICURADO AL GOFIO",
+      "match": "codigo",
+      "cantidad": 8.63,
+      "importe": 70.89,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 8.214368,
+      "proveedor": "QUESO FLOR VALSEQUILLO",
+      "avisos": [],
+      "proveedor_id": "prv06",
+      "relacion": "creado",
+      "lotes": 38
+    },
+    {
+      "codigo": "C00000064",
+      "producto_id": "p38",
+      "nombre_bm": "QUESO FRESCO VALSEQUILLO",
+      "match": "codigo",
+      "cantidad": 18.792,
+      "importe": 141.67,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 7.538846,
+      "proveedor": "QUESO FLOR VALSEQUILLO",
+      "avisos": [],
+      "proveedor_id": "prv06",
+      "relacion": "creado",
+      "lotes": 22
+    },
+    {
+      "codigo": "C00000065",
+      "producto_id": "p39",
+      "nombre_bm": "DORADA 400/600 KG",
+      "match": "codigo",
+      "cantidad": 20.364,
+      "importe": 195.81,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 9.615498,
+      "proveedor": "PROVEEDORES VARIOS",
+      "avisos": [],
+      "proveedor_id": "prv32",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000067",
+      "producto_id": "p40",
+      "nombre_bm": "GOFRE BELGA 24UN",
+      "match": "codigo",
+      "cantidad": 100.0,
+      "importe": 90.0,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.9,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000068",
+      "producto_id": "p41",
+      "nombre_bm": "SALSA SETAS",
+      "match": "codigo",
+      "cantidad": 3.0,
+      "importe": 4.59,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.53,
+      "proveedor": "PROVEEDORES VARIOS",
+      "avisos": [],
+      "proveedor_id": "prv32",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00000069",
+      "producto_id": "p42",
+      "nombre_bm": "PASTRAMI PIEZA",
+      "match": "codigo",
+      "cantidad": 30.0,
+      "importe": 58.05,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.935,
+      "proveedor": "SMOKEHOUSE CANARIAS SLU",
+      "avisos": [],
+      "proveedor_id": "prv03",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C0000007",
+      "producto_id": "p43",
+      "nombre_bm": "MAYONESA BOCA ABAJO",
+      "match": "codigo",
+      "cantidad": 4.0,
+      "importe": 12.81,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 3.2025,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000070",
+      "producto_id": "p44",
+      "nombre_bm": "QUESO CHEDAR NARANJA",
+      "match": "codigo",
+      "cantidad": 6.2,
+      "importe": 43.04,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 6.941935,
+      "proveedor": "QUESO FLOR VALSEQUILLO",
+      "avisos": [],
+      "proveedor_id": "prv06",
+      "relacion": "creado",
+      "lotes": 8
+    },
+    {
+      "codigo": "C00000071",
+      "producto_id": "p45",
+      "nombre_bm": "QUESO GRANA PADANO",
+      "match": "codigo",
+      "cantidad": 7.0,
+      "importe": 27.41,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 3.915714,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000072",
+      "producto_id": "p46",
+      "nombre_bm": "HUEVO LIQUIDO REFRIGERADO GR5L",
+      "match": "codigo",
+      "cantidad": 176.0,
+      "importe": 700.44,
+      "unidad_pdf": "LT",
+      "unidad_bm": "L",
+      "coste_unitario": 3.979773,
+      "proveedor": "QUESO FLOR VALSEQUILLO",
+      "avisos": [],
+      "proveedor_id": "prv06",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000079",
+      "producto_id": "p47",
+      "nombre_bm": "QUESO SEMICURADO AHUMADO",
+      "match": "codigo",
+      "cantidad": 6.0,
+      "importe": 50.63,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 8.438333,
+      "proveedor": "QUESO FLOR VALSEQUILLO",
+      "avisos": [],
+      "proveedor_id": "prv06",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00000080",
+      "producto_id": "p48",
+      "nombre_bm": "HUEVO CASCARA",
+      "match": "codigo",
+      "cantidad": 3530.0,
+      "importe": 1083.9,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.307054,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 57
+    },
+    {
+      "codigo": "C00000082",
+      "producto_id": "b04",
+      "nombre_bm": "QUESO KRONOS CANARIO SEMICURADO AL PIMENTON",
+      "match": "codigo",
+      "cantidad": 1.06,
+      "importe": 8.75,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 8.254717,
+      "proveedor": "QUESO FLOR VALSEQUILLO",
+      "avisos": [],
+      "proveedor_id": "prv06",
+      "relacion": "creado",
+      "lotes": 38
+    },
+    {
+      "codigo": "C00000083",
+      "producto_id": "p49",
+      "nombre_bm": "QUESO RULO DE CABRA 1KG",
+      "match": "codigo",
+      "cantidad": 24.0,
+      "importe": 62.2,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 2.591667,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000086",
+      "producto_id": "p50",
+      "nombre_bm": "G.A.T",
+      "match": "codigo",
+      "cantidad": 1.0,
+      "importe": 3.0,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 3.0,
+      "proveedor": "FRONERI IBERIA SLU",
+      "avisos": [],
+      "proveedor_id": "prv38",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000087",
+      "producto_id": "p51",
+      "nombre_bm": "TOMATE ENSALADA",
+      "match": "codigo",
+      "cantidad": 65.4,
+      "importe": 186.12,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 2.845872,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 32
+    },
+    {
+      "codigo": "C00000088",
+      "producto_id": "p52",
+      "nombre_bm": "TOMATE CHERRY ENSALADA",
+      "match": "codigo",
+      "cantidad": 35.1,
+      "importe": 159.89,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 4.555271,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000091",
+      "producto_id": "p54",
+      "nombre_bm": "ZANAHORIA",
+      "match": "codigo",
+      "cantidad": 12.9,
+      "importe": 20.07,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 1.555814,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000092",
+      "producto_id": "p55",
+      "nombre_bm": "PEPINO",
+      "match": "codigo",
+      "cantidad": 4.6,
+      "importe": 8.67,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 1.884783,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000093",
+      "producto_id": "p56",
+      "nombre_bm": "PIMIENTO ROJO",
+      "match": "codigo",
+      "cantidad": 10.08,
+      "importe": 31.47,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 3.122024,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000094",
+      "producto_id": "p57",
+      "nombre_bm": "PIMIENTO VERDE",
+      "match": "codigo",
+      "cantidad": 9.56,
+      "importe": 25.24,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 2.640167,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000095",
+      "producto_id": "b05",
+      "nombre_bm": "AGUACATE HASS",
+      "match": "codigo",
+      "cantidad": 13.5,
+      "importe": 61.12,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 4.527407,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000096",
+      "producto_id": "p58",
+      "nombre_bm": "CEBOLLA ROJA",
+      "match": "codigo",
+      "cantidad": 9.8,
+      "importe": 17.28,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 1.763265,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000097",
+      "producto_id": "p59",
+      "nombre_bm": "CEBOLLA",
+      "match": "codigo",
+      "cantidad": 16.7,
+      "importe": 29.33,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 1.756287,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000099",
+      "producto_id": "p60",
+      "nombre_bm": "LECHUGA LOLLO ROSA",
+      "match": "codigo",
+      "cantidad": 39.0,
+      "importe": 50.85,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.303846,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000100",
+      "producto_id": "p61",
+      "nombre_bm": "LECHUGA HOJA DE ROBLE",
+      "match": "codigo",
+      "cantidad": 41.0,
+      "importe": 52.89,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.29,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000102",
+      "producto_id": "p62",
+      "nombre_bm": "FIAMBRE CARNE DE CERDO TULIP",
+      "match": "codigo",
+      "cantidad": 2.0,
+      "importe": 7.1,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 3.55,
+      "proveedor": "PROVEEDORES VARIOS",
+      "avisos": [],
+      "proveedor_id": "prv32",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00000104",
+      "producto_id": "p63",
+      "nombre_bm": "AJO MORADO",
+      "match": "codigo",
+      "cantidad": 1.0,
+      "importe": 4.32,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 4.32,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000105",
+      "producto_id": "p64",
+      "nombre_bm": "PEREJIL",
+      "match": "codigo",
+      "cantidad": 13.0,
+      "importe": 7.7,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.592308,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000107",
+      "producto_id": "p66",
+      "nombre_bm": "PLATANO",
+      "match": "codigo",
+      "cantidad": 35.6,
+      "importe": 54.3,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.525281,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 35
+    },
+    {
+      "codigo": "C00000110",
+      "producto_id": "b06",
+      "nombre_bm": "NARANJA ZUMO",
+      "match": "codigo",
+      "cantidad": 1936.0,
+      "importe": 2951.75,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 1.524664,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000111",
+      "producto_id": "p67",
+      "nombre_bm": "LIMA",
+      "match": "codigo",
+      "cantidad": 18.4,
+      "importe": 75.15,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 4.084239,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 18
+    },
+    {
+      "codigo": "C00000112",
+      "producto_id": "p68",
+      "nombre_bm": "PIÑA TROPICAL",
+      "match": "codigo",
+      "cantidad": 55.3,
+      "importe": 406.13,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 7.344123,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 28
+    },
+    {
+      "codigo": "C00000113",
+      "producto_id": "p69",
+      "nombre_bm": "MELON VERDE",
+      "match": "codigo",
+      "cantidad": 63.3,
+      "importe": 236.64,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 3.738389,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000114",
+      "producto_id": "p70",
+      "nombre_bm": "PAPAYA",
+      "match": "codigo",
+      "cantidad": 51.8,
+      "importe": 139.7,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 2.696911,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000115",
+      "producto_id": "p71",
+      "nombre_bm": "KIWI",
+      "match": "codigo",
+      "cantidad": 69.65,
+      "importe": 213.36,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 3.063317,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000116",
+      "producto_id": "p72",
+      "nombre_bm": "LIMON",
+      "match": "codigo",
+      "cantidad": 21.15,
+      "importe": 54.71,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 2.586761,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000117",
+      "producto_id": "p73",
+      "nombre_bm": "CILANTRO",
+      "match": "codigo",
+      "cantidad": 13.0,
+      "importe": 9.15,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.703846,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000118",
+      "producto_id": "p74",
+      "nombre_bm": "LECHUGA BATAVIA",
+      "match": "codigo",
+      "cantidad": 6.0,
+      "importe": 7.5,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.25,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00000119",
+      "producto_id": "p75",
+      "nombre_bm": "HIERBA HUERTO",
+      "match": "codigo",
+      "cantidad": 18.0,
+      "importe": 13.65,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.758333,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000120",
+      "producto_id": "p76",
+      "nombre_bm": "UVA NEGRA",
+      "match": "codigo",
+      "cantidad": 16.3,
+      "importe": 68.36,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 4.193865,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000122",
+      "producto_id": "p77",
+      "nombre_bm": "RABANITO",
+      "match": "codigo",
+      "cantidad": 3.0,
+      "importe": 3.3,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.1,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000123",
+      "producto_id": "p78",
+      "nombre_bm": "MANZANA GOLDEN",
+      "match": "codigo",
+      "cantidad": 14.6,
+      "importe": 26.87,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 1.840411,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000125",
+      "producto_id": "p80",
+      "nombre_bm": "PERA CONFERENCE",
+      "match": "codigo",
+      "cantidad": 11.8,
+      "importe": 21.97,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 1.861864,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000126",
+      "producto_id": "p81",
+      "nombre_bm": "TAJASTE ROSCA",
+      "match": "codigo",
+      "cantidad": 15.0,
+      "importe": 23.15,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.543333,
+      "proveedor": "PROVEEDORES VARIOS",
+      "avisos": [],
+      "proveedor_id": "prv32",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000128",
+      "producto_id": "p83",
+      "nombre_bm": "SANDIA BLANCA",
+      "match": "codigo",
+      "cantidad": 87.69,
+      "importe": 264.68,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 3.01836,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000131",
+      "producto_id": "p86",
+      "nombre_bm": "HELADO VAINILLA 5L",
+      "match": "codigo",
+      "cantidad": 2.0,
+      "importe": 22.94,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 11.47,
+      "proveedor": "FRONERI IBERIA SLU",
+      "avisos": [],
+      "proveedor_id": "prv38",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000132",
+      "producto_id": "b07",
+      "nombre_bm": "HELADO CHOCOLATE 5L",
+      "match": "codigo",
+      "cantidad": 1.0,
+      "importe": 23.37,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 23.37,
+      "proveedor": "FRONERI IBERIA SLU",
+      "avisos": [],
+      "proveedor_id": "prv38",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000135",
+      "producto_id": "p87",
+      "nombre_bm": "PANKO / PAN RALLADO 1KG",
+      "match": "codigo",
+      "cantidad": 2.0,
+      "importe": 9.9,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 4.95,
+      "proveedor": "PROVEEDORES VARIOS",
+      "avisos": [],
+      "proveedor_id": "prv32",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000141",
+      "producto_id": "p89",
+      "nombre_bm": "MORTADELA PIEZA",
+      "match": "codigo",
+      "cantidad": 6.0,
+      "importe": 21.6,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 3.6,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 31
+    },
+    {
+      "codigo": "C00000142",
+      "producto_id": "p90",
+      "nombre_bm": "AZUCAR EN SOBRES C/10KG",
+      "match": "codigo",
+      "cantidad": 1700.0,
+      "importe": 18.87,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 0.0111,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000143",
+      "producto_id": "p91",
+      "nombre_bm": "EDULCORANTE SOBRES 200UND",
+      "match": "codigo",
+      "cantidad": 800.0,
+      "importe": 13.36,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.0167,
+      "proveedor": "CAFE ORTEA SA",
+      "avisos": [],
+      "proveedor_id": "prv05",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000144",
+      "producto_id": "p92",
+      "nombre_bm": "TE VERDE 200UND",
+      "match": "codigo",
+      "cantidad": 15.0,
+      "importe": 0.52,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.034667,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000146",
+      "producto_id": "p94",
+      "nombre_bm": "TE ROJO 200 UND",
+      "match": "codigo",
+      "cantidad": 200.0,
+      "importe": 7.99,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.03995,
+      "proveedor": "CAFE ORTEA SA",
+      "avisos": [],
+      "proveedor_id": "prv05",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000149",
+      "producto_id": "p96",
+      "nombre_bm": "KETCHUP GOURMET 12G 200 UND",
+      "match": "codigo",
+      "cantidad": 500.0,
+      "importe": 28.92,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.05784,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000150",
+      "producto_id": "p97",
+      "nombre_bm": "MAYONESA GOURMET 15ML 200 UND",
+      "match": "codigo",
+      "cantidad": 300.0,
+      "importe": 19.43,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.064767,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000152",
+      "producto_id": "p99",
+      "nombre_bm": "POMELO",
+      "match": "codigo",
+      "cantidad": 55.3,
+      "importe": 96.83,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 1.750995,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000153",
+      "producto_id": "p100",
+      "nombre_bm": "SEMILLAS DE CHIA 250GRS",
+      "match": "codigo",
+      "cantidad": 16.0,
+      "importe": 26.48,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 1.655,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000157",
+      "producto_id": "p101",
+      "nombre_bm": "POLLO EMPANADO",
+      "match": "codigo",
+      "cantidad": 16.0,
+      "importe": 78.4,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 4.9,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000159",
+      "producto_id": "p102",
+      "nombre_bm": "JAMON COCIDO EXTRA",
+      "match": "codigo",
+      "cantidad": 30.4,
+      "importe": 218.53,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 7.188487,
+      "proveedor": "ARGAL ALIMENTACION SA",
+      "avisos": [],
+      "proveedor_id": "prv41",
+      "relacion": "creado",
+      "lotes": 27
+    },
+    {
+      "codigo": "C00000165",
+      "producto_id": "p103",
+      "nombre_bm": "PIÑA EN SU JUGO",
+      "match": "codigo",
+      "cantidad": 40.0,
+      "importe": 76.0,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.9,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000172",
+      "producto_id": "p105",
+      "nombre_bm": "FRESA CONGELADA",
+      "match": "codigo",
+      "cantidad": 40.0,
+      "importe": 106.4,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 2.66,
+      "proveedor": "ALCRUZ CANARIAS S.L.",
+      "avisos": [],
+      "proveedor_id": "prv08",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000239",
+      "producto_id": "p109",
+      "nombre_bm": "ARROZ BASMATI 1KG",
+      "match": "codigo",
+      "cantidad": 3.0,
+      "importe": 9.45,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 3.15,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000240",
+      "producto_id": "p111",
+      "nombre_bm": "CARNE PICADA PERSONAL",
+      "match": "codigo",
+      "cantidad": 11.0,
+      "importe": 90.3,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 8.209091,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00000241",
+      "producto_id": "p112",
+      "nombre_bm": "ESPAGUETI 5KG",
+      "match": "codigo",
+      "cantidad": 7.0,
+      "importe": 6.8,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.971429,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000242",
+      "producto_id": "p113",
+      "nombre_bm": "CALDO SOLUBLE COCIDO/VERDURA",
+      "match": "codigo",
+      "cantidad": 2.0,
+      "importe": 1.8,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.9,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00000243",
+      "producto_id": "p114",
+      "nombre_bm": "ARROZ BOMBA EXTRA 1KG",
+      "match": "codigo",
+      "cantidad": 2.0,
+      "importe": 11.76,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 5.88,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000244",
+      "producto_id": "p115",
+      "nombre_bm": "CORN FLAKES 1KG",
+      "match": "codigo",
+      "cantidad": 2.0,
+      "importe": 6.96,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 3.48,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000245",
+      "producto_id": "p116",
+      "nombre_bm": "MUESLI CON 5 FRUTAS 1KG",
+      "match": "codigo",
+      "cantidad": 66.0,
+      "importe": 188.18,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 2.851212,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000247",
+      "producto_id": "p117",
+      "nombre_bm": "CHAMPIÑON LAMINADO 3KG",
+      "match": "codigo",
+      "cantidad": 62.0,
+      "importe": 330.51,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 5.330806,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 17
+    },
+    {
+      "codigo": "C00000248",
+      "producto_id": "p118",
+      "nombre_bm": "SAL MARINA FINA 1KG",
+      "match": "codigo",
+      "cantidad": 4.0,
+      "importe": 2.04,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.51,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000254",
+      "producto_id": "p122",
+      "nombre_bm": "MELOCOTON EN SU JUGO",
+      "match": "codigo",
+      "cantidad": 36.0,
+      "importe": 71.0,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.972222,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000258",
+      "producto_id": "p123",
+      "nombre_bm": "MARGARINA 192X10GRS",
+      "match": "codigo",
+      "cantidad": 576.0,
+      "importe": 26.13,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.045365,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000259",
+      "producto_id": "p124",
+      "nombre_bm": "NATA CREME DECOR SPRAY 500ML",
+      "match": "codigo",
+      "cantidad": 7.0,
+      "importe": 13.64,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.948571,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000261",
+      "producto_id": "p125",
+      "nombre_bm": "NECTAR PIÑA",
+      "match": "codigo",
+      "cantidad": 96.0,
+      "importe": 130.56,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.36,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000262",
+      "producto_id": "p126",
+      "nombre_bm": "MIEL DE FLORES 1KG",
+      "match": "codigo",
+      "cantidad": 6.0,
+      "importe": 63.69,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 10.615,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 3
+    },
+    {
+      "codigo": "C00000263",
+      "producto_id": "p127",
+      "nombre_bm": "LECHE ENTERA BRIK 1L",
+      "match": "codigo",
+      "cantidad": 506.0,
+      "importe": 493.33,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.97496,
+      "proveedor": "PROVEEDORES VARIOS",
+      "avisos": [],
+      "proveedor_id": "prv32",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000266",
+      "producto_id": "p128",
+      "nombre_bm": "LECHE SEMIDESNATADA BRIK 1L",
+      "match": "codigo",
+      "cantidad": 180.0,
+      "importe": 158.76,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.882,
+      "proveedor": "PROVEEDORES VARIOS",
+      "avisos": [],
+      "proveedor_id": "prv32",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000268",
+      "producto_id": "p130",
+      "nombre_bm": "TE NEGRO 100% NATURAL",
+      "match": "codigo",
+      "cantidad": 1520.0,
+      "importe": 65.31,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.042967,
+      "proveedor": "DISTRIBUCIONES TIERNEY SL",
+      "avisos": [],
+      "proveedor_id": "prv39",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000269",
+      "producto_id": "p131",
+      "nombre_bm": "CAFE DESCAFEINADO 100X2GR",
+      "match": "codigo",
+      "cantidad": 100.0,
+      "importe": 10.08,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.1008,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000273",
+      "producto_id": "b11",
+      "nombre_bm": "SIROPE CHOCOLATE 1,2KG",
+      "match": "codigo",
+      "cantidad": 1.0,
+      "importe": 6.14,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 6.14,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000275",
+      "producto_id": "p134",
+      "nombre_bm": "AZUCAR MORENO SOBRES 7GRS",
+      "match": "codigo",
+      "cantidad": 1400.0,
+      "importe": 21.9,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.015643,
+      "proveedor": "EMICELA SA",
+      "avisos": [],
+      "proveedor_id": "prv09",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000276",
+      "producto_id": "b12",
+      "nombre_bm": "VODKA SMIRNOFF RED 1L",
+      "match": "codigo",
+      "cantidad": 8.0,
+      "importe": 71.2,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 8.9,
+      "proveedor": "GRISALEÑA SL",
+      "avisos": [],
+      "proveedor_id": "prv12",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000277",
+      "producto_id": "p135",
+      "nombre_bm": "TINTO FIGUERO 12 CRIANZA 2020",
+      "match": "codigo",
+      "cantidad": 12.0,
+      "importe": 225.0,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 18.75,
+      "proveedor": "BODEGA GAYDA SL",
+      "avisos": [],
+      "proveedor_id": "prv42",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000279",
+      "producto_id": "b13",
+      "nombre_bm": "TEQUILA JALISCO DORADO 35º 70CL",
+      "match": "codigo",
+      "cantidad": 5.0,
+      "importe": 52.5,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 10.5,
+      "proveedor": "GRISALEÑA SL",
+      "avisos": [],
+      "proveedor_id": "prv12",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000280",
+      "producto_id": "b14",
+      "nombre_bm": "LICOR TRIPLE SECO ORANGEAU",
+      "match": "codigo",
+      "cantidad": 7.0,
+      "importe": 31.15,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 4.45,
+      "proveedor": "GRISALEÑA SL",
+      "avisos": [],
+      "proveedor_id": "prv12",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000282",
+      "producto_id": "p138",
+      "nombre_bm": "PUREE FRUTA PASION MONIN",
+      "match": "codigo",
+      "cantidad": 1.0,
+      "importe": 17.78,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 17.78,
+      "proveedor": "GRISALEÑA SL",
+      "avisos": [],
+      "proveedor_id": "prv12",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000284",
+      "producto_id": "p140",
+      "nombre_bm": "CV ANNA C.BLANC DE BLANC B. 200ML",
+      "match": "codigo",
+      "cantidad": 72.0,
+      "importe": 293.76,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 4.08,
+      "proveedor": "GRISALEÑA SL",
+      "avisos": [],
+      "proveedor_id": "prv12",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000286",
+      "producto_id": "p141",
+      "nombre_bm": "APEROL 11º 1L",
+      "match": "codigo",
+      "cantidad": 12.0,
+      "importe": 161.4,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 13.45,
+      "proveedor": "GRISALEÑA SL",
+      "avisos": [],
+      "proveedor_id": "prv12",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000288",
+      "producto_id": "b16",
+      "nombre_bm": "LICOR MELOCOTON",
+      "match": "codigo",
+      "cantidad": 2.0,
+      "importe": 8.8,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 4.4,
+      "proveedor": "GRISALEÑA SL",
+      "avisos": [],
+      "proveedor_id": "prv12",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000291",
+      "producto_id": "b18",
+      "nombre_bm": "LICOR MALIBU COCO 1L",
+      "match": "codigo",
+      "cantidad": 21.0,
+      "importe": 261.45,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 12.45,
+      "proveedor": "GRISALEÑA SL",
+      "avisos": [],
+      "proveedor_id": "prv12",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000293",
+      "producto_id": "b20",
+      "nombre_bm": "BRANDY JEREZ RVA MAGNO 70CL",
+      "match": "codigo",
+      "cantidad": 1.0,
+      "importe": 10.2,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 10.2,
+      "proveedor": "GRISALEÑA SL",
+      "avisos": [],
+      "proveedor_id": "prv12",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000296",
+      "producto_id": "p143",
+      "nombre_bm": "GORDONS DRY GIN",
+      "match": "codigo",
+      "cantidad": 6.0,
+      "importe": 60.24,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 10.04,
+      "proveedor": "GM LANZAROTE",
+      "avisos": [],
+      "proveedor_id": "prv15",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000297",
+      "producto_id": "p144",
+      "nombre_bm": "MARTIN MILLERS 70CL",
+      "match": "codigo",
+      "cantidad": 4.0,
+      "importe": 92.97,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 23.2425,
+      "proveedor": "GM LANZAROTE",
+      "avisos": [],
+      "proveedor_id": "prv15",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000298",
+      "producto_id": "p145",
+      "nombre_bm": "GIN NORDES 70CL",
+      "match": "codigo",
+      "cantidad": 2.0,
+      "importe": 37.06,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 18.53,
+      "proveedor": "GM LANZAROTE",
+      "avisos": [],
+      "proveedor_id": "prv15",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000305",
+      "producto_id": "p146",
+      "nombre_bm": "CHORIZO EXTRA",
+      "match": "codigo",
+      "cantidad": 2.0,
+      "importe": 5.6,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 2.8,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 21
+    },
+    {
+      "codigo": "C00000310",
+      "producto_id": "p148",
+      "nombre_bm": "CUBITON PICADO",
+      "match": "codigo",
+      "cantidad": 105.0,
+      "importe": 110.25,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.05,
+      "proveedor": "ALCRUZ CANARIAS S.L.",
+      "avisos": [],
+      "proveedor_id": "prv08",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000312",
+      "producto_id": "p149",
+      "nombre_bm": "BUEN LUGAR GOFIO DE MILLO",
+      "match": "codigo",
+      "cantidad": 3.0,
+      "importe": 3.72,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.24,
+      "proveedor": "PROVEEDORES VARIOS",
+      "avisos": [],
+      "proveedor_id": "prv32",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00000313",
+      "producto_id": "p150",
+      "nombre_bm": "HEINEKEN 1/3 NR LONG NECK",
+      "match": "codigo",
+      "cantidad": 72.0,
+      "importe": 55.5,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.770833,
+      "proveedor": "GERBELAN SL",
+      "avisos": [],
+      "proveedor_id": "prv21",
+      "relacion": "creado",
+      "lotes": 2
+    },
+    {
+      "codigo": "C00000314",
+      "producto_id": "b26",
+      "nombre_bm": "GARRAFA AGUA 8L",
+      "match": "codigo",
+      "cantidad": 314.0,
+      "importe": 582.82,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 1.856115,
+      "proveedor": "GERBELAN SL",
+      "avisos": [],
+      "proveedor_id": "prv21",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000316",
+      "producto_id": "p152",
+      "nombre_bm": "MANTEQUILLA 1KG CAJA 10KG",
+      "match": "codigo",
+      "cantidad": 3.0,
+      "importe": 48.15,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 16.05,
+      "proveedor": "ALCRUZ CANARIAS S.L.",
+      "avisos": [],
+      "proveedor_id": "prv08",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000324",
+      "producto_id": "p156",
+      "nombre_bm": "CANELA MOLIDA 710GRS",
+      "match": "codigo",
+      "cantidad": 1.0,
+      "importe": 4.31,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 4.31,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00000325",
+      "producto_id": "p157",
+      "nombre_bm": "COLORANTE NATURAL 700GRS",
+      "match": "codigo",
+      "cantidad": 5.0,
+      "importe": 4.75,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.95,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00000328",
+      "producto_id": "p160",
+      "nombre_bm": "ACEITE GIRASOL 5L",
+      "match": "codigo",
+      "cantidad": 2.0,
+      "importe": 18.94,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 9.47,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 2
+    },
+    {
+      "codigo": "C00000329",
+      "producto_id": "p161",
+      "nombre_bm": "ACEITE OLIVA SUAVE 5L",
+      "match": "codigo",
+      "cantidad": 3.0,
+      "importe": 94.26,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 31.42,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 3
+    },
+    {
+      "codigo": "C00000330",
+      "producto_id": "p163",
+      "nombre_bm": "VINAGRE DE MANZANA 500ML",
+      "match": "codigo",
+      "cantidad": 11.0,
+      "importe": 16.06,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.46,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 3
+    },
+    {
+      "codigo": "C00000334",
+      "producto_id": "p164",
+      "nombre_bm": "PASAS SULTANAS 5KG",
+      "match": "codigo",
+      "cantidad": 9.0,
+      "importe": 58.32,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 6.48,
+      "proveedor": "EMICELA SA",
+      "avisos": [],
+      "proveedor_id": "prv09",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000339",
+      "producto_id": "b28",
+      "nombre_bm": "ZUMO NARANJA 1L BRIK",
+      "match": "codigo",
+      "cantidad": 12.0,
+      "importe": 18.84,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.57,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000340",
+      "producto_id": "b29",
+      "nombre_bm": "CRISPIES HINCHADOS CHOCOLATEADOS 1KG",
+      "match": "codigo",
+      "cantidad": 3.0,
+      "importe": 12.09,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 4.03,
+      "proveedor": "EMICELA SA",
+      "avisos": [],
+      "proveedor_id": "prv09",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000345",
+      "producto_id": "p166",
+      "nombre_bm": "TARTA ZANAHORIA",
+      "match": "codigo",
+      "cantidad": 3.0,
+      "importe": 59.73,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 19.91,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00000347",
+      "producto_id": "p167",
+      "nombre_bm": "LOMO DE BACALAO C/P",
+      "match": "codigo",
+      "cantidad": 5.0,
+      "importe": 99.75,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 19.95,
+      "proveedor": "CANARY MEAT AND FISH S.A.",
+      "avisos": [],
+      "proveedor_id": "prv07",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000348",
+      "producto_id": "p168",
+      "nombre_bm": "QUESO GOUDA BARRA",
+      "match": "codigo",
+      "cantidad": 30.42,
+      "importe": 223.31,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 7.340894,
+      "proveedor": "EUROP FOODS CANARIAS SLU",
+      "avisos": [],
+      "proveedor_id": "prv29",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000350",
+      "producto_id": "p170",
+      "nombre_bm": "YONATUR NATURAL CUBO 10LTS",
+      "match": "codigo",
+      "cantidad": 19.0,
+      "importe": 237.5,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 12.5,
+      "proveedor": "QUESO FLOR VALSEQUILLO",
+      "avisos": [],
+      "proveedor_id": "prv06",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000353",
+      "producto_id": "p172",
+      "nombre_bm": "NECTARINA",
+      "match": "codigo",
+      "cantidad": 6.9,
+      "importe": 20.63,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 2.989855,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00000355",
+      "producto_id": "p173",
+      "nombre_bm": "TARTA DE QUESO",
+      "match": "codigo",
+      "cantidad": 4.0,
+      "importe": 80.2,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 20.05,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000357",
+      "producto_id": "p174",
+      "nombre_bm": "PAPA ARRUGAR",
+      "match": "codigo",
+      "cantidad": 28.4,
+      "importe": 62.75,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 2.209507,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000359",
+      "producto_id": "p175",
+      "nombre_bm": "CALABACIN",
+      "match": "codigo",
+      "cantidad": 6.3,
+      "importe": 13.16,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 2.088889,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000360",
+      "producto_id": "p177",
+      "nombre_bm": "BERENJENA",
+      "match": "codigo",
+      "cantidad": 4.5,
+      "importe": 7.27,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 1.615556,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000365",
+      "producto_id": "p180",
+      "nombre_bm": "MANDARINAS",
+      "match": "codigo",
+      "cantidad": 8.6,
+      "importe": 18.59,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 2.161628,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00000370",
+      "producto_id": "p184",
+      "nombre_bm": "PAPA DEL PAIS",
+      "match": "codigo",
+      "cantidad": 10.6,
+      "importe": 14.84,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 1.4,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000371",
+      "producto_id": "p185",
+      "nombre_bm": "ESPINACAS",
+      "match": "codigo",
+      "cantidad": 30.0,
+      "importe": 70.5,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 2.35,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 9
+    },
+    {
+      "codigo": "C00000380",
+      "producto_id": "p187",
+      "nombre_bm": "ARTIS MINI ARLEQUIN 160UD 40GRS",
+      "match": "codigo",
+      "cantidad": 800.0,
+      "importe": 240.0,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.3,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00000415",
+      "producto_id": "p189",
+      "nombre_bm": "ESPARRAGOS TRIGUEROS",
+      "match": "codigo",
+      "cantidad": 4.0,
+      "importe": 9.2,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 2.3,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000471",
+      "producto_id": "p191",
+      "nombre_bm": "MINI TRENZA MPCAN 100UD 40GRS",
+      "match": "codigo",
+      "cantidad": 300.0,
+      "importe": 173.55,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.5785,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000486",
+      "producto_id": "p194",
+      "nombre_bm": "HELADO DE FRESA 5L",
+      "match": "codigo",
+      "cantidad": 1.0,
+      "importe": 20.05,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 20.05,
+      "proveedor": "FRONERI IBERIA SLU",
+      "avisos": [],
+      "proveedor_id": "prv38",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000490",
+      "producto_id": "b32",
+      "nombre_bm": "CERVEZA ESTRELLA GALICIA 20CL",
+      "match": "codigo",
+      "cantidad": 312.0,
+      "importe": 154.04,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.493718,
+      "proveedor": "GM LANZAROTE",
+      "avisos": [],
+      "proveedor_id": "prv15",
+      "relacion": "creado",
+      "lotes": 8
+    },
+    {
+      "codigo": "C00000496",
+      "producto_id": "b34",
+      "nombre_bm": "CERVEZA CORONA BOT 35,5CL",
+      "match": "codigo",
+      "cantidad": 48.0,
+      "importe": 49.24,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.025833,
+      "proveedor": "COMPAÑIA CERVECERA DE",
+      "avisos": [],
+      "proveedor_id": "prv28",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000497",
+      "producto_id": "b35",
+      "nombre_bm": "CERVEZA DORADA ESPECIAL NEGRA 33CL",
+      "match": "codigo",
+      "cantidad": 24.0,
+      "importe": 20.38,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.849167,
+      "proveedor": "COMPAÑIA CERVECERA DE",
+      "avisos": [],
+      "proveedor_id": "prv28",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000498",
+      "producto_id": "b36",
+      "nombre_bm": "CERVEZA ESTRELLA GALICIA 0,0 25CL",
+      "match": "codigo",
+      "cantidad": 48.0,
+      "importe": 25.17,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.524375,
+      "proveedor": "GM LANZAROTE",
+      "avisos": [],
+      "proveedor_id": "prv15",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000499",
+      "producto_id": "b37",
+      "nombre_bm": "CERVEZA ESTRELLA DAMM 25CL",
+      "match": "codigo",
+      "cantidad": 168.0,
+      "importe": 87.92,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.523333,
+      "proveedor": "GM LANZAROTE",
+      "avisos": [],
+      "proveedor_id": "prv15",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000504",
+      "producto_id": "b38",
+      "nombre_bm": "RON AREHUCAS CARTA BLANCA 1L",
+      "match": "codigo",
+      "cantidad": 16.0,
+      "importe": 161.6,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 10.1,
+      "proveedor": "GRISALEÑA SL",
+      "avisos": [],
+      "proveedor_id": "prv12",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000508",
+      "producto_id": "p199",
+      "nombre_bm": "BATIDA MANGAROCA COCO 70CL",
+      "match": "codigo",
+      "cantidad": 20.0,
+      "importe": 192.0,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 9.6,
+      "proveedor": "GRISALEÑA SL",
+      "avisos": [],
+      "proveedor_id": "prv12",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000509",
+      "producto_id": "p200",
+      "nombre_bm": "MUESLI FRUTOS ROJOS S/G",
+      "match": "codigo",
+      "cantidad": 1.0,
+      "importe": 2.25,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 2.25,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00000511",
+      "producto_id": "p201",
+      "nombre_bm": "NECTAR BRIK FRUTAS TROPICALES 1L",
+      "match": "codigo",
+      "cantidad": 60.0,
+      "importe": 64.2,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.07,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000514",
+      "producto_id": "p204",
+      "nombre_bm": "BANDAMA CUBANITOS 90GRS",
+      "match": "codigo",
+      "cantidad": 2.0,
+      "importe": 1.76,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.88,
+      "proveedor": "PROVEEDORES VARIOS",
+      "avisos": [],
+      "proveedor_id": "prv32",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00000515",
+      "producto_id": "p205",
+      "nombre_bm": "ARROZ GRANO LARGO 1KG",
+      "match": "codigo",
+      "cantidad": 19.0,
+      "importe": 36.48,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 1.92,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000518",
+      "producto_id": "p206",
+      "nombre_bm": "ACEITE OLIVA VIRGEN EXTRA 250ML",
+      "match": "codigo",
+      "cantidad": 6.0,
+      "importe": 16.44,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 2.74,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000519",
+      "producto_id": "p207",
+      "nombre_bm": "PAN RALLADO 500GRS",
+      "match": "codigo",
+      "cantidad": 10.0,
+      "importe": 11.2,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.12,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000520",
+      "producto_id": "p208",
+      "nombre_bm": "CREMA CACAO 60X15GRS NUTELLA",
+      "match": "codigo",
+      "cantidad": 180.0,
+      "importe": 44.28,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.246,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000521",
+      "producto_id": "p209",
+      "nombre_bm": "CREMA LECHE 240X7GRS",
+      "match": "codigo",
+      "cantidad": 2184.0,
+      "importe": 130.99,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.059977,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 3
+    },
+    {
+      "codigo": "C00000522",
+      "producto_id": "p210",
+      "nombre_bm": "NATA ORIGINAL BRIK 1L",
+      "match": "codigo",
+      "cantidad": 17.0,
+      "importe": 21.11,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.241765,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000526",
+      "producto_id": "p214",
+      "nombre_bm": "HARINA TRIGO 1KG",
+      "match": "codigo",
+      "cantidad": 10.0,
+      "importe": 9.89,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 0.989,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000528",
+      "producto_id": "p215",
+      "nombre_bm": "SALSA BROWN HP 255GRS",
+      "match": "codigo",
+      "cantidad": 16.0,
+      "importe": 39.36,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 2.46,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000535",
+      "producto_id": "p222",
+      "nombre_bm": "AZUCAR BLANCA 1KG",
+      "match": "codigo",
+      "cantidad": 1.0,
+      "importe": 1.42,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 1.42,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000537",
+      "producto_id": "p224",
+      "nombre_bm": "SALSA COCKTAIL",
+      "match": "codigo",
+      "cantidad": 10.0,
+      "importe": 15.0,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.5,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00000542",
+      "producto_id": "p228",
+      "nombre_bm": "TOMATE FRITO 500GRS",
+      "match": "codigo",
+      "cantidad": 23.0,
+      "importe": 20.15,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.876087,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000544",
+      "producto_id": "p229",
+      "nombre_bm": "LENTEJA LANZAROTE 1KG",
+      "match": "codigo",
+      "cantidad": 10.0,
+      "importe": 24.6,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 2.46,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000548",
+      "producto_id": "b40",
+      "nombre_bm": "MACARRON RAYADO 450GRS",
+      "match": "codigo",
+      "cantidad": 7.0,
+      "importe": 6.8,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.971429,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000551",
+      "producto_id": "p231",
+      "nombre_bm": "ATUN EN ACEITE GIRASOL",
+      "match": "codigo",
+      "cantidad": 6.0,
+      "importe": 35.01,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 5.835,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000555",
+      "producto_id": "b43",
+      "nombre_bm": "BEBIDA DE AVENA BRIK 1L",
+      "match": "codigo",
+      "cantidad": 48.0,
+      "importe": 47.04,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.98,
+      "proveedor": "PROVEEDORES VARIOS",
+      "avisos": [],
+      "proveedor_id": "prv32",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000557",
+      "producto_id": "p234",
+      "nombre_bm": "MONTECILLO CRIANZA 75CL",
+      "match": "codigo",
+      "cantidad": 24.0,
+      "importe": 101.52,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 4.23,
+      "proveedor": "COFALANZ SL",
+      "avisos": [],
+      "proveedor_id": "prv22",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000559",
+      "producto_id": "p236",
+      "nombre_bm": "MONTECILLO BLANCO 75CL",
+      "match": "codigo",
+      "cantidad": 96.0,
+      "importe": 620.16,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 6.46,
+      "proveedor": "COFALANZ SL",
+      "avisos": [],
+      "proveedor_id": "prv22",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000560",
+      "producto_id": "p237",
+      "nombre_bm": "MONTECILLO ROSADO 75CL",
+      "match": "codigo",
+      "cantidad": 117.0,
+      "importe": 542.85,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 4.639744,
+      "proveedor": "COFALANZ SL",
+      "avisos": [],
+      "proveedor_id": "prv22",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000577",
+      "producto_id": "p238",
+      "nombre_bm": "PROFITEROLES 2KG",
+      "match": "codigo",
+      "cantidad": 8.0,
+      "importe": 46.9,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 5.8625,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000587",
+      "producto_id": "b48",
+      "nombre_bm": "TIRMA AMBROSIA CHOCOLATE - LECHE",
+      "match": "codigo",
+      "cantidad": 2.0,
+      "importe": 11.63,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 5.815,
+      "proveedor": "PROVEEDORES VARIOS",
+      "avisos": [],
+      "proveedor_id": "prv32",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00000593",
+      "producto_id": "b49",
+      "nombre_bm": "ZUMO MANZANA",
+      "match": "codigo",
+      "cantidad": 38.0,
+      "importe": 60.8,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.6,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000594",
+      "producto_id": "p240",
+      "nombre_bm": "CV ROGER DE FLOR BN",
+      "match": "codigo",
+      "cantidad": 240.0,
+      "importe": 724.8,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 3.02,
+      "proveedor": "GRISALEÑA SL",
+      "avisos": [],
+      "proveedor_id": "prv12",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000597",
+      "producto_id": "p241",
+      "nombre_bm": "TANQUERAY LONDON GIN",
+      "match": "codigo",
+      "cantidad": 22.0,
+      "importe": 260.7,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 11.85,
+      "proveedor": "GRISALEÑA SL",
+      "avisos": [],
+      "proveedor_id": "prv12",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000604",
+      "producto_id": "p245",
+      "nombre_bm": "JARABE DE AZUCAR SANZ 1L",
+      "match": "codigo",
+      "cantidad": 5.0,
+      "importe": 32.42,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 6.484,
+      "proveedor": "GRISALEÑA SL",
+      "avisos": [],
+      "proveedor_id": "prv12",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000605",
+      "producto_id": "b53",
+      "nombre_bm": "BRANDY JEREZ SOLERA FELIPE II",
+      "match": "codigo",
+      "cantidad": 4.0,
+      "importe": 24.4,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 6.1,
+      "proveedor": "GRISALEÑA SL",
+      "avisos": [],
+      "proveedor_id": "prv12",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000608",
+      "producto_id": "p246",
+      "nombre_bm": "CACHACA 1892 1L",
+      "match": "codigo",
+      "cantidad": 5.0,
+      "importe": 35.0,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 7.0,
+      "proveedor": "GRISALEÑA SL",
+      "avisos": [],
+      "proveedor_id": "prv12",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000609",
+      "producto_id": "p247",
+      "nombre_bm": "JARABE TROPICAL BLUE REYTHOR 1L",
+      "match": "codigo",
+      "cantidad": 6.0,
+      "importe": 26.52,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 4.42,
+      "proveedor": "MILO CANARIAS ALIMENTACION",
+      "avisos": [],
+      "proveedor_id": "prv34",
+      "relacion": "creado",
+      "lotes": 2
+    },
+    {
+      "codigo": "C00000610",
+      "producto_id": "p248",
+      "nombre_bm": "JARABE GRANADINA REYTHOR 1L",
+      "match": "codigo",
+      "cantidad": 3.0,
+      "importe": 14.22,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 4.74,
+      "proveedor": "GRISALEÑA SL",
+      "avisos": [],
+      "proveedor_id": "prv12",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000614",
+      "producto_id": "p249",
+      "nombre_bm": "MINI CROISSANT RECTO MANTQUILLA 280UN",
+      "match": "codigo",
+      "cantidad": 1560.0,
+      "importe": 314.34,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.2015,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000616",
+      "producto_id": "p250",
+      "nombre_bm": "MINI LAZO VITALCEREAL 194UD 18GRS",
+      "match": "codigo",
+      "cantidad": 1358.0,
+      "importe": 301.49,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.22201,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 15
+    },
+    {
+      "codigo": "C00000618",
+      "producto_id": "p251",
+      "nombre_bm": "MINI NAPOLITANA CACAO CREMA 100UND",
+      "match": "codigo",
+      "cantidad": 736.0,
+      "importe": 117.4,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.159511,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000678",
+      "producto_id": "p254",
+      "nombre_bm": "ARTIS MALTA 100GRS 30UD",
+      "match": "codigo",
+      "cantidad": 150.0,
+      "importe": 94.05,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.627,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00000732",
+      "producto_id": "p257",
+      "nombre_bm": "ROYAL BLISS YUZ VR20 C24",
+      "match": "codigo",
+      "cantidad": 144.0,
+      "importe": 56.81,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.394514,
+      "proveedor": "COCA-COLA",
+      "avisos": [],
+      "proveedor_id": "prv04",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000733",
+      "producto_id": "b56",
+      "nombre_bm": "COCACOLA VR237 C24",
+      "match": "codigo",
+      "cantidad": 216.0,
+      "importe": 67.76,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.313704,
+      "proveedor": "COCA-COLA",
+      "avisos": [],
+      "proveedor_id": "prv04",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000734",
+      "producto_id": "b57",
+      "nombre_bm": "FANTA NARANJA VR237 C24",
+      "match": "codigo",
+      "cantidad": 144.0,
+      "importe": 32.93,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.228681,
+      "proveedor": "COCA-COLA",
+      "avisos": [],
+      "proveedor_id": "prv04",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000735",
+      "producto_id": "b58",
+      "nombre_bm": "COCACOLA ZERO VR237 C24",
+      "match": "codigo",
+      "cantidad": 192.0,
+      "importe": 96.88,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.504583,
+      "proveedor": "COCA-COLA",
+      "avisos": [],
+      "proveedor_id": "prv04",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000741",
+      "producto_id": "p259",
+      "nombre_bm": "AQUABONA VR50 C20",
+      "match": "codigo",
+      "cantidad": 820.0,
+      "importe": 183.03,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.223207,
+      "proveedor": "COCA-COLA",
+      "avisos": [],
+      "proveedor_id": "prv04",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000742",
+      "producto_id": "p260",
+      "nombre_bm": "AQUABONA SINGULAR VR365 C20",
+      "match": "codigo",
+      "cantidad": 60.0,
+      "importe": 11.4,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.19,
+      "proveedor": "COCA-COLA",
+      "avisos": [],
+      "proveedor_id": "prv04",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000752",
+      "producto_id": "p264",
+      "nombre_bm": "AQUABONA PET50 C24",
+      "match": "codigo",
+      "cantidad": 1824.0,
+      "importe": 337.5,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.185033,
+      "proveedor": "COCA-COLA",
+      "avisos": [],
+      "proveedor_id": "prv04",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000763",
+      "producto_id": "p266",
+      "nombre_bm": "CAFE ILLY EN GRANO TUESTE INTENSO LATA 1,5KG",
+      "match": "codigo",
+      "cantidad": 54.0,
+      "importe": 2344.2,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 43.411111,
+      "proveedor": "ILLY CANARIAS SL",
+      "avisos": [],
+      "proveedor_id": "prv17",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00000776",
+      "producto_id": "p267",
+      "nombre_bm": "CAFE ILLY CAPSULA TUESTE INTENSO PACK INDIVIDUAL",
+      "match": "codigo",
+      "cantidad": 1600.0,
+      "importe": 951.6,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.59475,
+      "proveedor": "ILLY CANARIAS SL",
+      "avisos": [],
+      "proveedor_id": "prv17",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001027",
+      "producto_id": "p272",
+      "nombre_bm": "BROCOLI",
+      "match": "codigo",
+      "cantidad": 2.0,
+      "importe": 3.5,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.75,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001083",
+      "producto_id": "b62",
+      "nombre_bm": "SPRITE PET1,5L C8",
+      "match": "codigo",
+      "cantidad": 16.0,
+      "importe": 21.2,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.325,
+      "proveedor": "COCA-COLA",
+      "avisos": [],
+      "proveedor_id": "prv04",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001113",
+      "producto_id": "p276",
+      "nombre_bm": "PAN MONTAÑEZ CENTENO 20UD 320G",
+      "match": "codigo",
+      "cantidad": 184.0,
+      "importe": 196.74,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.069239,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 35
+    },
+    {
+      "codigo": "C00001139",
+      "producto_id": "p282",
+      "nombre_bm": "NECTAR CRANBERRY ( ARANDANOS ) 1L",
+      "match": "codigo",
+      "cantidad": 48.0,
+      "importe": 104.64,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 2.18,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001144",
+      "producto_id": "p284",
+      "nombre_bm": "NUEZ MONDADA PAQ 1KG",
+      "match": "codigo",
+      "cantidad": 9.0,
+      "importe": 100.32,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 11.146667,
+      "proveedor": "EMICELA SA",
+      "avisos": [],
+      "proveedor_id": "prv09",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001145",
+      "producto_id": "p285",
+      "nombre_bm": "ACEITUNAS S/H",
+      "match": "codigo",
+      "cantidad": 4.0,
+      "importe": 27.96,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 6.99,
+      "proveedor": "CAFE ORTEA SA",
+      "avisos": [],
+      "proveedor_id": "prv05",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001146",
+      "producto_id": "p286",
+      "nombre_bm": "ALUBIA CON TOMATE LATA 3KG",
+      "match": "codigo",
+      "cantidad": 42.0,
+      "importe": 251.58,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 5.99,
+      "proveedor": "DISTRIBUCIONES TIERNEY SL",
+      "avisos": [],
+      "proveedor_id": "prv39",
+      "relacion": "creado",
+      "lotes": 12
+    },
+    {
+      "codigo": "C00001149",
+      "producto_id": "p288",
+      "nombre_bm": "JOHNNIE WALKER ETIQUETA NEGRA 1L",
+      "match": "codigo",
+      "cantidad": 1.0,
+      "importe": 12.9,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 12.9,
+      "proveedor": "GRISALEÑA SL",
+      "avisos": [],
+      "proveedor_id": "prv12",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001163",
+      "producto_id": "p290",
+      "nombre_bm": "SOLOMILLO TERNERA",
+      "match": "codigo",
+      "cantidad": 6.658,
+      "importe": 187.88,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 28.218684,
+      "proveedor": "CANARY MEAT AND FISH S.A.",
+      "avisos": [],
+      "proveedor_id": "prv07",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001174",
+      "producto_id": "p291",
+      "nombre_bm": "RISSO CESAR",
+      "match": "codigo",
+      "cantidad": 6.0,
+      "importe": 50.8,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 8.466667,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001178",
+      "producto_id": "p293",
+      "nombre_bm": "CIINTA DE LOMO DE CERDO TIERNO",
+      "match": "codigo",
+      "cantidad": 2.48,
+      "importe": 21.17,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 8.53629,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001179",
+      "producto_id": "p294",
+      "nombre_bm": "CHIC CREMA 325UN 20GRS",
+      "match": "codigo",
+      "cantidad": 325.0,
+      "importe": 42.9,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.132,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 7
+    },
+    {
+      "codigo": "C00001197",
+      "producto_id": "p295",
+      "nombre_bm": "PECHUGA PAVO",
+      "match": "codigo",
+      "cantidad": 3.802,
+      "importe": 31.28,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 8.227249,
+      "proveedor": "ARGAL ALIMENTACION SA",
+      "avisos": [],
+      "proveedor_id": "prv41",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00001199",
+      "producto_id": "p297",
+      "nombre_bm": "QUESO PARMESANO",
+      "match": "codigo",
+      "cantidad": 2.0,
+      "importe": 8.96,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 4.48,
+      "proveedor": "PROVEEDORES VARIOS",
+      "avisos": [],
+      "proveedor_id": "prv32",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00001202",
+      "producto_id": "p300",
+      "nombre_bm": "BACON AHUMADO",
+      "match": "codigo",
+      "cantidad": 55.595,
+      "importe": 391.46,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 7.041281,
+      "proveedor": "SMOKEHOUSE CANARIAS SLU",
+      "avisos": [],
+      "proveedor_id": "prv03",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001205",
+      "producto_id": "b64",
+      "nombre_bm": "COLA CAO 50 SOBRES 18GR",
+      "match": "codigo",
+      "cantidad": 50.0,
+      "importe": 23.03,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.4606,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001206",
+      "producto_id": "p303",
+      "nombre_bm": "PAPAS FRITAS LISA 6X500GRS",
+      "match": "codigo",
+      "cantidad": 24.0,
+      "importe": 112.3,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 4.679167,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001207",
+      "producto_id": "b65",
+      "nombre_bm": "MANISES FRITOS SAL 1KG",
+      "match": "codigo",
+      "cantidad": 14.0,
+      "importe": 63.76,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 4.554286,
+      "proveedor": "CAFE ORTEA SA",
+      "avisos": [],
+      "proveedor_id": "prv05",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001211",
+      "producto_id": "p306",
+      "nombre_bm": "FRESAS NATURALES",
+      "match": "codigo",
+      "cantidad": 26.0,
+      "importe": 72.65,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 2.794231,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001215",
+      "producto_id": "p309",
+      "nombre_bm": "UVA BLANCA",
+      "match": "codigo",
+      "cantidad": 2.0,
+      "importe": 9.2,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 4.6,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001220",
+      "producto_id": "p313",
+      "nombre_bm": "GALLETA ACARAMELADA 5,6GRS 300UD",
+      "match": "codigo",
+      "cantidad": 301.0,
+      "importe": 22.22,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.073821,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001221",
+      "producto_id": "p314",
+      "nombre_bm": "MINI HOOPS AZUCAR 35GRS 80UND",
+      "match": "codigo",
+      "cantidad": 80.0,
+      "importe": 224.0,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 2.8,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00001224",
+      "producto_id": "p317",
+      "nombre_bm": "MERMELADA DE TOMATE 140GRS",
+      "match": "codigo",
+      "cantidad": 2.0,
+      "importe": 4.8,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 2.4,
+      "proveedor": "PROVEEDORES VARIOS",
+      "avisos": [],
+      "proveedor_id": "prv32",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001232",
+      "producto_id": "p319",
+      "nombre_bm": "GARBANZOS COCIDOS 3KG",
+      "match": "codigo",
+      "cantidad": 6.0,
+      "importe": 18.0,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 3.0,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001242",
+      "producto_id": "p325",
+      "nombre_bm": "QUESO SEMI BLANCO VALSEQUILLO",
+      "match": "codigo",
+      "cantidad": 1.44,
+      "importe": 12.24,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 8.5,
+      "proveedor": "QUESO FLOR VALSEQUILLO",
+      "avisos": [],
+      "proveedor_id": "prv06",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00001244",
+      "producto_id": "p326",
+      "nombre_bm": "QUESO CURADO VALSEQUILLO",
+      "match": "codigo",
+      "cantidad": 8.97,
+      "importe": 101.2,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 11.282051,
+      "proveedor": "QUESO FLOR VALSEQUILLO",
+      "avisos": [],
+      "proveedor_id": "prv06",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00001246",
+      "producto_id": "p328",
+      "nombre_bm": "QUESO SEMI ROJO",
+      "match": "codigo",
+      "cantidad": 6.82,
+      "importe": 57.97,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 8.5,
+      "proveedor": "QUESO FLOR VALSEQUILLO",
+      "avisos": [],
+      "proveedor_id": "prv06",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00001252",
+      "producto_id": "p333",
+      "nombre_bm": "SMOOTHIE PALM BEACH MANGO/BANANA",
+      "match": "codigo",
+      "cantidad": 20.0,
+      "importe": 21.4,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.07,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 12
+    },
+    {
+      "codigo": "C00001253",
+      "producto_id": "p334",
+      "nombre_bm": "SMOOTHIE TROPIC",
+      "match": "codigo",
+      "cantidad": 20.0,
+      "importe": 23.0,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.15,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 9
+    },
+    {
+      "codigo": "C00001254",
+      "producto_id": "p335",
+      "nombre_bm": "SMOOTIE GREEN NATURAL 150",
+      "match": "codigo",
+      "cantidad": 64.0,
+      "importe": 110.39,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.724844,
+      "proveedor": "FRONERI IBERIA SLU",
+      "avisos": [],
+      "proveedor_id": "prv38",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001255",
+      "producto_id": "p336",
+      "nombre_bm": "SMOOTHIES B2 CERE-MAN-FRE-ARAN",
+      "match": "codigo",
+      "cantidad": 60.0,
+      "importe": 67.4,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.123333,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001256",
+      "producto_id": "p337",
+      "nombre_bm": "COSTILLAS CERDO",
+      "match": "codigo",
+      "cantidad": 10.458,
+      "importe": 70.26,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 6.718302,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00001257",
+      "producto_id": "p338",
+      "nombre_bm": "ACEITE SIN PALMA 10LT",
+      "match": "codigo",
+      "cantidad": 14.0,
+      "importe": 381.22,
+      "unidad_pdf": "LT",
+      "unidad_bm": "L",
+      "coste_unitario": 27.23,
+      "proveedor": "ALCRUZ CANARIAS S.L.",
+      "avisos": [],
+      "proveedor_id": "prv08",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001260",
+      "producto_id": "p340",
+      "nombre_bm": "SOLES CACAO MINI 30GRS 80UD",
+      "match": "codigo",
+      "cantidad": 80.0,
+      "importe": 192.0,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 2.4,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00001262",
+      "producto_id": "p341",
+      "nombre_bm": "MERMELADA ARANDANOS",
+      "match": "codigo",
+      "cantidad": 180.0,
+      "importe": 42.89,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.238278,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001263",
+      "producto_id": "p342",
+      "nombre_bm": "MERMELADA FRESA CRISTAL 48UD",
+      "match": "codigo",
+      "cantidad": 432.0,
+      "importe": 193.86,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.44875,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001265",
+      "producto_id": "p343",
+      "nombre_bm": "PANECILLO CHEF 25GRS 150UND",
+      "match": "codigo",
+      "cantidad": 600.0,
+      "importe": 138.6,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.231,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001266",
+      "producto_id": "p344",
+      "nombre_bm": "MIEL TARRO CRISTAL 30GR 48UN",
+      "match": "codigo",
+      "cantidad": 672.0,
+      "importe": 441.99,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.657723,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001267",
+      "producto_id": "p345",
+      "nombre_bm": "MERMELADA NARANJA TARRO CRISTAL 30GRS 48UD",
+      "match": "codigo",
+      "cantidad": 432.0,
+      "importe": 193.86,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.44875,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001273",
+      "producto_id": "p348",
+      "nombre_bm": "ANGUS CARNE",
+      "match": "codigo",
+      "cantidad": 1.947,
+      "importe": 38.98,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 20.020544,
+      "proveedor": "CANARY MEAT AND FISH S.A.",
+      "avisos": [],
+      "proveedor_id": "prv07",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00001279",
+      "producto_id": "p351",
+      "nombre_bm": "KAKI",
+      "match": "codigo",
+      "cantidad": 6.0,
+      "importe": 21.0,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 3.5,
+      "proveedor": "HORTOFRUTICOLA ALTAVISTA",
+      "avisos": [],
+      "proveedor_id": "prv40",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00001302",
+      "producto_id": "b76",
+      "nombre_bm": "NATA KRONA PASTELERIA 1L",
+      "match": "codigo",
+      "cantidad": 1.0,
+      "importe": 1.6,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.6,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00001340",
+      "producto_id": "p354",
+      "nombre_bm": "SMOOTHIE B4 BLUE LIGHTNING",
+      "match": "codigo",
+      "cantidad": 20.0,
+      "importe": 21.4,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.07,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001344",
+      "producto_id": "p357",
+      "nombre_bm": "PAN MAIZ 350GRS BERLYS 10UN",
+      "match": "codigo",
+      "cantidad": 140.0,
+      "importe": 273.42,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.953,
+      "proveedor": "COMERCIAL GUADALUPE",
+      "avisos": [],
+      "proveedor_id": "prv11",
+      "relacion": "creado",
+      "lotes": 19
+    },
+    {
+      "codigo": "C00001347",
+      "producto_id": "p358",
+      "nombre_bm": "CENTRO PALETA CEBO IBERICA 50% RAZA",
+      "match": "codigo",
+      "cantidad": 18.07,
+      "importe": 691.94,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 38.292197,
+      "proveedor": "ROPER  FRIMANCHA CANARIAS",
+      "avisos": [],
+      "proveedor_id": "prv37",
+      "relacion": "creado",
+      "lotes": 9
+    },
+    {
+      "codigo": "C00001353",
+      "producto_id": "p359",
+      "nombre_bm": "HIGOS PREMIUN CAJA 5KG",
+      "match": "codigo",
+      "cantidad": 1.0,
+      "importe": 19.01,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 19.01,
+      "proveedor": "EMICELA SA",
+      "avisos": [],
+      "proveedor_id": "prv09",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00001355",
+      "producto_id": "p361",
+      "nombre_bm": "MERMELADA MELOCOTON CRISTAL 48UN",
+      "match": "codigo",
+      "cantidad": 168.0,
+      "importe": 75.39,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.44875,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001367",
+      "producto_id": "p365",
+      "nombre_bm": "CABEZON CABELLO 232UD 28GR",
+      "match": "codigo",
+      "cantidad": 928.0,
+      "importe": 150.32,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.161983,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001373",
+      "producto_id": "p366",
+      "nombre_bm": "NAO MARINERA 33CL",
+      "match": "codigo",
+      "cantidad": 240.0,
+      "importe": 492.0,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 2.05,
+      "proveedor": "CERVEZA DE LANZAROTE SL",
+      "avisos": [],
+      "proveedor_id": "prv31",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001387",
+      "producto_id": "p368",
+      "nombre_bm": "MEJILLON JUGOSON",
+      "match": "codigo",
+      "cantidad": 1.0,
+      "importe": 6.45,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 6.45,
+      "proveedor": "PROVEEDORES VARIOS",
+      "avisos": [],
+      "proveedor_id": "prv32",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001393",
+      "producto_id": "p373",
+      "nombre_bm": "ALMEJAS BLANCAS 60/80",
+      "match": "codigo",
+      "cantidad": 0.47,
+      "importe": 2.0,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 4.255319,
+      "proveedor": "PROVEEDORES VARIOS",
+      "avisos": [],
+      "proveedor_id": "prv32",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001404",
+      "producto_id": "p374",
+      "nombre_bm": "SECRETO IBERICO CEBO DE CAMPO",
+      "match": "codigo",
+      "cantidad": 5.675,
+      "importe": 67.63,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 11.917181,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00001405",
+      "producto_id": "p375",
+      "nombre_bm": "CHORIZO CANARIO ROJO",
+      "match": "codigo",
+      "cantidad": 2.142,
+      "importe": 13.79,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 6.437908,
+      "proveedor": "PROVEEDORES VARIOS",
+      "avisos": [],
+      "proveedor_id": "prv32",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00001406",
+      "producto_id": "p376",
+      "nombre_bm": "SALCHICHA FRANKFURT SELECTA 60 GRS",
+      "match": "codigo",
+      "cantidad": 3.0,
+      "importe": 26.25,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 8.75,
+      "proveedor": "GM LANZAROTE",
+      "avisos": [],
+      "proveedor_id": "prv15",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00001420",
+      "producto_id": "b80",
+      "nombre_bm": "VODKA ABSOLUT",
+      "match": "codigo",
+      "cantidad": 9.0,
+      "importe": 131.16,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 14.573333,
+      "proveedor": "GRISALEÑA SL",
+      "avisos": [],
+      "proveedor_id": "prv12",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001421",
+      "producto_id": "b81",
+      "nombre_bm": "GINEBRA BLACK JUNIPER",
+      "match": "codigo",
+      "cantidad": 5.0,
+      "importe": 24.95,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 4.99,
+      "proveedor": "GRISALEÑA SL",
+      "avisos": [],
+      "proveedor_id": "prv12",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001431",
+      "producto_id": "p382",
+      "nombre_bm": "CHORIZO CRIOLLO FRESCO",
+      "match": "codigo",
+      "cantidad": 0.404,
+      "importe": 3.51,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 8.688119,
+      "proveedor": "CANARY MEAT AND FISH S.A.",
+      "avisos": [],
+      "proveedor_id": "prv07",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00001432",
+      "producto_id": "p383",
+      "nombre_bm": "SALMOREJO FRESCO",
+      "match": "codigo",
+      "cantidad": 8.0,
+      "importe": 10.4,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.3,
+      "proveedor": "MERCADONA SA",
+      "avisos": [],
+      "proveedor_id": "prv36",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00001436",
+      "producto_id": "p386",
+      "nombre_bm": "BOLA DE PIZZA",
+      "match": "codigo",
+      "cantidad": 2.0,
+      "importe": 7.82,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 3.91,
+      "proveedor": "PROVEEDORES VARIOS",
+      "avisos": [],
+      "proveedor_id": "prv32",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00001437",
+      "producto_id": "p387",
+      "nombre_bm": "PATE JAMÓN CURADO 23GRS",
+      "match": "codigo",
+      "cantidad": 90.0,
+      "importe": 22.5,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.25,
+      "proveedor": "MILO CANARIAS ALIMENTACION",
+      "avisos": [],
+      "proveedor_id": "prv34",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001439",
+      "producto_id": "p389",
+      "nombre_bm": "TOMATE NATURAL 23GRS",
+      "match": "codigo",
+      "cantidad": 180.0,
+      "importe": 34.2,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.19,
+      "proveedor": "MILO CANARIAS ALIMENTACION",
+      "avisos": [],
+      "proveedor_id": "prv34",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001449",
+      "producto_id": "p392",
+      "nombre_bm": "PAPAS S.CRUNCH PURE & ROSTIC",
+      "match": "codigo",
+      "cantidad": 44.0,
+      "importe": 253.77,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 5.7675,
+      "proveedor": "DISTRIBUCIONES VIERA SL",
+      "avisos": [],
+      "proveedor_id": "prv13",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001461",
+      "producto_id": "p395",
+      "nombre_bm": "CEREZA ROJA CONFITADA CUBO 1KG",
+      "match": "codigo",
+      "cantidad": 2.0,
+      "importe": 17.27,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 8.635,
+      "proveedor": "EMICELA SA",
+      "avisos": [],
+      "proveedor_id": "prv09",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001480",
+      "producto_id": "p399",
+      "nombre_bm": "BARRIL NAO MARINERA 20LT",
+      "match": "codigo",
+      "cantidad": 31.0,
+      "importe": 2573.63,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 83.020323,
+      "proveedor": "CERVEZA DE LANZAROTE SL",
+      "avisos": [],
+      "proveedor_id": "prv31",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001485",
+      "producto_id": "p400",
+      "nombre_bm": "ENTRECOT DE NOVILLO / BIFE",
+      "match": "codigo",
+      "cantidad": 1.316,
+      "importe": 22.34,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 16.975684,
+      "proveedor": "CANARY MEAT AND FISH S.A.",
+      "avisos": [],
+      "proveedor_id": "prv07",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001488",
+      "producto_id": "b83",
+      "nombre_bm": "FANTA LIMON LATA",
+      "match": "codigo",
+      "cantidad": 24.0,
+      "importe": 0.53,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 0.022083,
+      "proveedor": "COCA-COLA",
+      "avisos": [],
+      "proveedor_id": "prv04",
+      "relacion": "creado",
+      "lotes": 8
+    },
+    {
+      "codigo": "C00001514",
+      "producto_id": "p402",
+      "nombre_bm": "PATA ASADA",
+      "match": "codigo",
+      "cantidad": 0.434,
+      "importe": 6.2,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 14.285714,
+      "proveedor": "PROVEEDORES VARIOS",
+      "avisos": [],
+      "proveedor_id": "prv32",
+      "relacion": "creado",
+      "lotes": 0
+    },
+    {
+      "codigo": "C00001520",
+      "producto_id": "p405",
+      "nombre_bm": "FRUTAS DEL BOSQUE 4X2,5KG",
+      "match": "codigo",
+      "cantidad": 30.0,
+      "importe": 130.2,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 4.34,
+      "proveedor": "ALCRUZ CANARIAS S.L.",
+      "avisos": [],
+      "proveedor_id": "prv08",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001527",
+      "producto_id": "p407",
+      "nombre_bm": "MAIZ DULCE 300GRS",
+      "match": "codigo",
+      "cantidad": 3.0,
+      "importe": 3.51,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 1.17,
+      "proveedor": "COMESA LANZAROTE SLU",
+      "avisos": [],
+      "proveedor_id": "prv02",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001544",
+      "producto_id": "p413",
+      "nombre_bm": "CEREZA VERDE EN ALMIBAR DE 1KG",
+      "match": "codigo",
+      "cantidad": 2.0,
+      "importe": 17.27,
+      "unidad_pdf": "UD",
+      "unidad_bm": "Ud",
+      "coste_unitario": 8.635,
+      "proveedor": "EMICELA SA",
+      "avisos": [],
+      "proveedor_id": "prv09",
+      "relacion": "creado",
+      "lotes": 1
+    },
+    {
+      "codigo": "C00001665",
+      "producto_id": "p416",
+      "nombre_bm": "GAMBON Nº1",
+      "match": "codigo",
+      "cantidad": 6.0,
+      "importe": 70.8,
+      "unidad_pdf": "KG",
+      "unidad_bm": "Kg",
+      "coste_unitario": 11.8,
+      "proveedor": "CANARY MEAT AND FISH S.A.",
+      "avisos": [],
+      "proveedor_id": "prv07",
+      "relacion": "creado",
+      "lotes": 1
+    }
+  ],
+  "sin_match": [
+    {
+      "codigo": "C00000010",
+      "descripcion": "LIMPIA MADERA",
+      "coste_calc": 6.34,
+      "unidad": "KG",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000032",
+      "descripcion": "VASO LONG DRINK POLICARBONATO 400CC",
+      "coste_calc": 1.210417,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000046",
+      "descripcion": "LECHERA C/ASA 210CC",
+      "coste_calc": 3.42,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000073",
+      "descripcion": "TEMPORIZADOR",
+      "coste_calc": 19.86,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000081",
+      "descripcion": "CUBITERA HIELO INOX",
+      "coste_calc": 3.86,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000085",
+      "descripcion": "TAPA BLANCA 50 70Z",
+      "coste_calc": 0.0212,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000136",
+      "descripcion": "CAJA WASHROOM BLANCO LAMINADO",
+      "coste_calc": 25.66,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000140",
+      "descripcion": "MANTEL RECTO TUSCAN",
+      "coste_calc": 2.0,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000148",
+      "descripcion": "downlight led",
+      "coste_calc": 11.64,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000162",
+      "descripcion": "CONTERA EXTERIOR TRANS 4UDS 25MM",
+      "coste_calc": 2.5,
+      "unidad": "KG",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000167",
+      "descripcion": "CUÑA DELTA LEVEL SYSTEM",
+      "coste_calc": 2.27,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000174",
+      "descripcion": "CEPILLO PLANO",
+      "coste_calc": 3.0,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000180",
+      "descripcion": "SAL ECO T2 ESPECIAL PISCINA 25KG",
+      "coste_calc": 7.935714,
+      "unidad": "KG",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000182",
+      "descripcion": "PH LIQUIDO MENOS GAR 25KG",
+      "coste_calc": 26.9,
+      "unidad": "KG",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000192",
+      "descripcion": "PAPEL FOTOCOPIADORA A4 80GRS",
+      "coste_calc": 3.755,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000196",
+      "descripcion": "BOLIGRAFO BIC CRISTAL AZUL",
+      "coste_calc": 0.21,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000200",
+      "descripcion": "TIJERA PODAR FORJADA 20CM",
+      "coste_calc": 10.1,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000203",
+      "descripcion": "CLIPS NIQUELADOS Nº2",
+      "coste_calc": 0.78,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000204",
+      "descripcion": "CINTA CORRECTORA FOLDER",
+      "coste_calc": 1.6,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000209",
+      "descripcion": "CINTA ADHESIVA APLI 19X33MM",
+      "coste_calc": 2.5,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000211",
+      "descripcion": "ROTULADOR PERMANTE SHARPIE FINE",
+      "coste_calc": 1.66,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000214",
+      "descripcion": "GRAPAS PINZAS NYLON D=32MM",
+      "coste_calc": 0.24,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000217",
+      "descripcion": "ROLLO ESTROPAJO FIBRA VERDE",
+      "coste_calc": 22.89,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000229",
+      "descripcion": "PANTALON CHINO ROG TEX MARINO",
+      "coste_calc": 18.55,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000230",
+      "descripcion": "CAMISA MAO M/LG BLANCO",
+      "coste_calc": 16.95,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000246",
+      "descripcion": "CINTA TAPAGRIETAS LISA 48MMX20M",
+      "coste_calc": 2.18,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000264",
+      "descripcion": "ENCENDEDOR CON COLGADOR LLAMA REGULABLE",
+      "coste_calc": 2.85,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000304",
+      "descripcion": "MTN",
+      "coste_calc": 5.96,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000311",
+      "descripcion": "FREGONA MICROFIBRA TIRAS NEGRAS PAMEX",
+      "coste_calc": 1.567778,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000317",
+      "descripcion": "BAYETA MICROFIBRA PAMEX VERDE",
+      "coste_calc": 1.5,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000319",
+      "descripcion": "CUBO CON ESCURRIDOR EVERGREN 15L PAMEX",
+      "coste_calc": 26.76,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000332",
+      "descripcion": "CILINDRO SERRETA 35X35MM LATON",
+      "coste_calc": 11.72,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000338",
+      "descripcion": "BOMBON SURTIDO 3KG",
+      "coste_calc": 0.230166,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000358",
+      "descripcion": "MNT HC2 R-9010 BLANCO DIVINIDAD 400ML",
+      "coste_calc": 5.96,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000361",
+      "descripcion": "PRETUL CUCHARA ALBAÑIL PUNTA 8",
+      "coste_calc": 6.1,
+      "unidad": "KG",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000369",
+      "descripcion": "DESCALCIFICANTE PARA MAQUINAS SPRESSSOS",
+      "coste_calc": 2.571818,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000376",
+      "descripcion": "FUENTE RECTANGULAR 34X16 CM NAOS",
+      "coste_calc": 5.865,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000386",
+      "descripcion": "V MENCIA 47FB",
+      "coste_calc": 1.373333,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000392",
+      "descripcion": "BOLSA BASURA NEG HOSTELERIA 90X120",
+      "coste_calc": 1.82016,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000393",
+      "descripcion": "MINI BOL MELAMINA SELVA 10CM",
+      "coste_calc": 0.93,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000407",
+      "descripcion": "CILLIT BANG BAÑO BRILLO",
+      "coste_calc": 3.49,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000438",
+      "descripcion": "BOWL REDONDO 18CM 90CL",
+      "coste_calc": 9.775,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000442",
+      "descripcion": "COMANDA DOBLE PQ10",
+      "coste_calc": 0.848846,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000446",
+      "descripcion": "LIVA 4S 5KG DETERGENTE VAJILLA MAQUINA",
+      "coste_calc": 1.86,
+      "unidad": "KG",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000448",
+      "descripcion": "SUELOS AMONIACAL TAC LIMPIADOR 5L",
+      "coste_calc": 2.422083,
+      "unidad": "LT",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000454",
+      "descripcion": "PAEL ANTIGRASA BLANCO ABIERTO  FAST FOOD",
+      "coste_calc": 0.021735,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000455",
+      "descripcion": "HIGIENICO DOMESTICO BCO 12R 8PAQ",
+      "coste_calc": 0.314598,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000461",
+      "descripcion": "DETERGENTE HIPO COLONIA",
+      "coste_calc": 4.34,
+      "unidad": "KG",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000477",
+      "descripcion": "CUCHARITA MOKA MOD TITANIO",
+      "coste_calc": 0.75,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000517",
+      "descripcion": "MASCARILLA 1720",
+      "coste_calc": 1.27,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000568",
+      "descripcion": "LPH-S JERRICAN 5KG DESENGRASANTE ENERGETICO",
+      "coste_calc": 2.189412,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000576",
+      "descripcion": "DEPOSITO DE AGUA PARA MAQUINAS Y3",
+      "coste_calc": 15.9,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000583",
+      "descripcion": "ESCURRIDOR",
+      "coste_calc": 3.106667,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000624",
+      "descripcion": "LAVAVAJILLAS ULTRA",
+      "coste_calc": 1.8,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000625",
+      "descripcion": "CUBITERA 27CM 8L",
+      "coste_calc": 6.116667,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000626",
+      "descripcion": "LIMPIADOR MADERA 3 BRUJAS",
+      "coste_calc": 2.047143,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000627",
+      "descripcion": "HERVIDOR NEGRO E INOX CON RESISTENCIA 0,80L",
+      "coste_calc": 26.32,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000628",
+      "descripcion": "PAÑUELO CAJA",
+      "coste_calc": 1.2,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000633",
+      "descripcion": "VASO CARTON BLANCO 50 230ML",
+      "coste_calc": 0.028,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000652",
+      "descripcion": "BOBINA SECAMANO 6R 140MT 800GRS EXTRA LAMINADO",
+      "coste_calc": 3.012593,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000661",
+      "descripcion": "FILM BOBINA 450",
+      "coste_calc": 4.228571,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000663",
+      "descripcion": "VASO REUTILIZABLE AP NEU TRANSPARENEE 50CL",
+      "coste_calc": 0.293,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000682",
+      "descripcion": "CUENCO DIP MELAMINA BLACO CASUAL",
+      "coste_calc": 1.425,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000694",
+      "descripcion": "TOALLA TISSUE LAMINADA 21X40 100 UND",
+      "coste_calc": 1.013611,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000700",
+      "descripcion": "CERA DE EBANISTA CAOBA",
+      "coste_calc": 11.01,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000701",
+      "descripcion": "LIQUIDO ELIMINADOR OXIDO",
+      "coste_calc": 1.89,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000707",
+      "descripcion": "CAÑA NEGRA RECTA MOJITO 20X500UND",
+      "coste_calc": 0.01492,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000709",
+      "descripcion": "CUBO BASURA 80L C/RUEDA VERDE",
+      "coste_calc": 1.75,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000713",
+      "descripcion": "CAÑITAS PAPEL RECTA 230X8 100UND",
+      "coste_calc": 0.011722,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000714",
+      "descripcion": "INSECTICIDA MATON HOGAR Y PLANTAS",
+      "coste_calc": 3.79,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000719",
+      "descripcion": "CAFETERA DE GOTEO 12 TAZAS",
+      "coste_calc": 98.0,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000729",
+      "descripcion": "TAZA TE 20CL ATRUM",
+      "coste_calc": 1.0,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000745",
+      "descripcion": "TORN CAB CIL PGI DIN7985 4X20 INOX",
+      "coste_calc": 1.44,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000754",
+      "descripcion": "AGUAPLAST FIBRA 750ML",
+      "coste_calc": 5.77,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000764",
+      "descripcion": "JARRA CERVEZA",
+      "coste_calc": 2.0,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000769",
+      "descripcion": "TAON 25CL FARGRIK",
+      "coste_calc": 1.0,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000770",
+      "descripcion": "TAZA PL IKEA 365+",
+      "coste_calc": 2.25,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000780",
+      "descripcion": "BUZO DESECHABLE ANTIEST T/XL",
+      "coste_calc": 3.82,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000781",
+      "descripcion": "PACK 2UND REC VELOUR 10CM",
+      "coste_calc": 1.36,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000787",
+      "descripcion": "BOLSA DESA PEQUEÑA",
+      "coste_calc": 0.538519,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000800",
+      "descripcion": "PIE DE REY INOX 150MM RATIO",
+      "coste_calc": 57.48,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000808",
+      "descripcion": "MALETIN HERRAMIENTAS 62PZAS 1/2 CHR-V-RA",
+      "coste_calc": 13.07,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000810",
+      "descripcion": "HAMMERITE SATINADO 0,75LT GRIS OSCURO",
+      "coste_calc": 11.11,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000813",
+      "descripcion": "CINTA AISLANTE PVC 20X25 NEGRA",
+      "coste_calc": 0.24,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000815",
+      "descripcion": "SELLADOR TUBERIS TANGIT UNI- LOCK80",
+      "coste_calc": 10.72,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000825",
+      "descripcion": "ESPATULAS CROMADAS 70MM",
+      "coste_calc": 4.79,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000830",
+      "descripcion": "GUANTE NITRILO FINO AZUL S/P XL",
+      "coste_calc": 9.66,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000832",
+      "descripcion": "FERVEN 40ML QUITAMANCHAS",
+      "coste_calc": 6.86,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000835",
+      "descripcion": "TORNILLO AUTOTALADRANTE C/ALOM",
+      "coste_calc": 1.0,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000838",
+      "descripcion": "50 LLAVES EN BRUTO ACERO FAC 18 JMA",
+      "coste_calc": 1.512,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000842",
+      "descripcion": "ANNAKAJSA CORTINA 1P",
+      "coste_calc": 44.0,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000843",
+      "descripcion": "OLLA ACERO INOX 18CM",
+      "coste_calc": 9.0,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000854",
+      "descripcion": "RECAMBIO ESPUMA 5CM",
+      "coste_calc": 0.49,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000858",
+      "descripcion": "FUNDAS PLASTIFICAR A4 125MICRAS 100UDS",
+      "coste_calc": 0.253861,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000869",
+      "descripcion": "PORTA CARTA TPTE METAC 3MM DIN4",
+      "coste_calc": 16.785,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000878",
+      "descripcion": "ZAPATILLA DEPORTIVA SIROCO 41",
+      "coste_calc": 87.1,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000886",
+      "descripcion": "BROCA PARED PROF 8MM",
+      "coste_calc": 2.53,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000887",
+      "descripcion": "BROCA PARED PROF 6MMX100MM",
+      "coste_calc": 1.88,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000892",
+      "descripcion": "GUANTE NITRILO NYLON 10\"",
+      "coste_calc": 1.14,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000893",
+      "descripcion": "SOLUCION TOTAL PISCINAS FISCHER",
+      "coste_calc": 8.35,
+      "unidad": "LT",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000900",
+      "descripcion": "GUANTE POLIESTER LATEX 9\"",
+      "coste_calc": 2.79,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000924",
+      "descripcion": "VALVULA ROSCA MACHO ENLACE",
+      "coste_calc": 0.07,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000936",
+      "descripcion": "TUERCA RED P.E. 3/4\" X 1/2\"",
+      "coste_calc": 1.51,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000953",
+      "descripcion": "CUELGA ESCOBAS CON RODILLO",
+      "coste_calc": 2.84,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000956",
+      "descripcion": "PARASOL ACERO 200/10 MANILA / NATURAL",
+      "coste_calc": 37.38,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000960",
+      "descripcion": "LLAVE COMBINADA CARRACA 14MM RATIO",
+      "coste_calc": 3.73,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000969",
+      "descripcion": "BROCHA NO LOSS SINTETICA HARRIS 2\" 50M",
+      "coste_calc": 7.89,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000970",
+      "descripcion": "RODILLO ANTIGOTEO PROF M/BION Nº22",
+      "coste_calc": 8.89,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000981",
+      "descripcion": "CUTTER GRANDE 16CM",
+      "coste_calc": 3.195,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000990",
+      "descripcion": "BLISTER CON 100CLIPS METALICOS 33MM",
+      "coste_calc": 1.36,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000992",
+      "descripcion": "PALDECOR PRO-IMPER ANTIHU 5KG",
+      "coste_calc": 51.41,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00000994",
+      "descripcion": "AGUAPLAST MASILLA UNIVERSAL TARRO 1KG",
+      "coste_calc": 9.86,
+      "unidad": "KG",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001026",
+      "descripcion": "BROCA MULTINOX HSSE 3MM 2UD",
+      "coste_calc": 4.86,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001060",
+      "descripcion": "JUEGO SABANA PERCAL BLANCA CAMA 200",
+      "coste_calc": 45.79,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001070",
+      "descripcion": "VARIOS ( INSTALACIONES Y MONTAJES )",
+      "coste_calc": 4.28,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001071",
+      "descripcion": "MANGUERA PLASTICA NEGRA CA- 15",
+      "coste_calc": 1.01,
+      "unidad": "LT",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001079",
+      "descripcion": "ZAPATILLA DEPORTIVA SIROCO N43",
+      "coste_calc": 88.96,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001090",
+      "descripcion": "ETIQUETA 5X5 ADHESIVA",
+      "coste_calc": 5.8,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001093",
+      "descripcion": "CARTULINA DIN-4 COLORES SURTIDOS",
+      "coste_calc": 0.29,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001095",
+      "descripcion": "GRAPAS PETRUS 22/6",
+      "coste_calc": 0.91,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001102",
+      "descripcion": "GOMAS ELASTICAS FIXO BOLSA 10GRS",
+      "coste_calc": 1.64,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001114",
+      "descripcion": "CEPILLO ELECTRICO CR 900NM",
+      "coste_calc": 75.1,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001122",
+      "descripcion": "CILLIT BANG LIMPIADOR SUCIEDAD",
+      "coste_calc": 3.49,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001123",
+      "descripcion": "RASCADOR DE SEGURIDAD",
+      "coste_calc": 6.93,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001131",
+      "descripcion": "ESTROPAJO ACERO 2UND",
+      "coste_calc": 0.9,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001141",
+      "descripcion": "CAFE MOLIDO TORREFACTO",
+      "coste_calc": 6.5,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001161",
+      "descripcion": "PAPEL DE CARTA CON MEMBRETE",
+      "coste_calc": 0.11925,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001165",
+      "descripcion": "TARJETAS VISITA 4/4 EN 400GRS",
+      "coste_calc": 0.06758,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001171",
+      "descripcion": "TARJETA PLEGADA 10X15",
+      "coste_calc": 0.08658,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001181",
+      "descripcion": "CUBETA",
+      "coste_calc": 0.71,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001219",
+      "descripcion": "MINUTERO MECANICO TIMER 60MIN IMAN SUPERIOR",
+      "coste_calc": 13.5,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001228",
+      "descripcion": "BICARBONATO SODICO 25KG",
+      "coste_calc": 39.7,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001235",
+      "descripcion": "CONSOMME SIN ASAS WHITEWARE 40CL",
+      "coste_calc": 5.528333,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001283",
+      "descripcion": "PINZA PLANA TRANSPARENTE 23CM",
+      "coste_calc": 0.624,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001286",
+      "descripcion": "BROCHETA BAMBU 300MM 1*100",
+      "coste_calc": 0.0191,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001288",
+      "descripcion": "FREGONA SUPER PAMEX TIRAS AZULES",
+      "coste_calc": 3.38,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001290",
+      "descripcion": "VASO BATIDORA CRISTAL CUADRADA C/TAPA",
+      "coste_calc": 25.6,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001304",
+      "descripcion": "CUBETA INOX GN 1/3 65",
+      "coste_calc": 8.48,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001312",
+      "descripcion": "MACETA REDONDO CERAMITA SET/3",
+      "coste_calc": 2.5,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001350",
+      "descripcion": "CLAVIJA DE GOMA CON TT 16A NEGRA",
+      "coste_calc": 1.14,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001361",
+      "descripcion": "MOLDE TARTA DESMONTABLE 26CM",
+      "coste_calc": 7.67,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001372",
+      "descripcion": "AIRPUR PRO 5L",
+      "coste_calc": 19.4,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001379",
+      "descripcion": "TP8OX SACO 20KG DETERGENTE POLVO",
+      "coste_calc": 3.83,
+      "unidad": "KG",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001395",
+      "descripcion": "CUCHARA CAFE BCNCOLORS CHAM",
+      "coste_calc": 1.002361,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001396",
+      "descripcion": "CUENCO MINI MELAMINA BLANCO 0,07L",
+      "coste_calc": 1.89,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001403",
+      "descripcion": "WOK ALUMINIO FORJADO SAMOA ARCOS 28CM",
+      "coste_calc": 34.1,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001433",
+      "descripcion": "ARANDELA PLA DIN 125A M3 INOX",
+      "coste_calc": 1.18,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001463",
+      "descripcion": "DISUELVEMANCHAS",
+      "coste_calc": 2.258235,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001471",
+      "descripcion": "SARTEN SILVER ALUMINIO 20CM",
+      "coste_calc": 15.403333,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001477",
+      "descripcion": "SARTEN IGNIS INDUCCION 22CM",
+      "coste_calc": 10.24,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001483",
+      "descripcion": "VASO APILABLE GDE 50CL TRANSPARENTE",
+      "coste_calc": 1.0,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001490",
+      "descripcion": "DISICLIN VINAGRE LIMPIEZA MULTIUSO",
+      "coste_calc": 0.85,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001495",
+      "descripcion": "PAÑO MICROFIBRA PACK 3",
+      "coste_calc": 1.5,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001499",
+      "descripcion": "DISPENSADOR PP CON TAPA Y CUTER PARA BOBINA",
+      "coste_calc": 23.08,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001507",
+      "descripcion": "COLCHA CUTI CAMA 2X2",
+      "coste_calc": 43.67,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001508",
+      "descripcion": "COLCHA CUTI CAMA 1X2",
+      "coste_calc": 18.0,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001513",
+      "descripcion": "CUENCO ZEN 0,15 BLANCO MELAMINA",
+      "coste_calc": 7.0,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001535",
+      "descripcion": "RECAMBIO 2UDS MINIRODILLO ESPUMA",
+      "coste_calc": 1.16,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001538",
+      "descripcion": "RECAMBIO ESPUMA 5CMS DIAMETRO 35MM",
+      "coste_calc": 0.49,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001548",
+      "descripcion": "BORRADOR MAGICO P-3",
+      "coste_calc": 2.66,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001550",
+      "descripcion": "COPA HELADO 25CL CARPI LIBBEY",
+      "coste_calc": 2.46,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001551",
+      "descripcion": "COPA YPSILON COCKTAIL 24,5CL 182MM",
+      "coste_calc": 3.933333,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    },
+    {
+      "codigo": "C00001557",
+      "descripcion": "SVALKA COPA CAVA",
+      "coste_calc": 1.238095,
+      "unidad": "UD",
+      "avisos": [
+        "Sin producto emparejado por nombre ni código. Puede crear uno nuevo."
+      ]
+    }
+  ],
+  "omitidos": []
+}

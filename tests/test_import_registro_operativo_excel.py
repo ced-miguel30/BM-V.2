@@ -27,6 +27,10 @@ def _fixture_xlsx(path: Path) -> None:
     ws.append(["Fecha", "Huespedes", "Tipo", "Nombre", "Cantidad ↑↓", "Importado"])
     ws.append([date(2026, 8, 10), 1, "Extra", "Kiwi", 1, ""])
 
+    wb.create_sheet("RegistroBebidasDesayuno")
+    wb_d = wb["RegistroBebidasDesayuno"]
+    wb_d.append(["Fecha", "Tipo", "Nombre", "Cantidad ↑↓", "Notas", "Importado"])
+
     wc = wb.create_sheet("RegistroComida")
     wc.append(["Fecha", "Tipo", "Nombre", "Cantidad ↑↓", "Notas", "Importado"])
 
@@ -40,7 +44,7 @@ def _fixture_xlsx(path: Path) -> None:
 
     wb.create_sheet("ConsumoBuffet")
     buf = wb["ConsumoBuffet"]
-    buf.append(["Fecha", "Seccion", "Concepto", "Cantidad", "Motivo", "Naranjas", "ZumoBote", "Coste", "Notas", "Importado"])
+    buf.append(["Fecha", "Seccion", "Concepto", "Cantidad", "Motivo", "ZumoBote", "Coste", "Notas", "Importado"])
     buf.append([date(2026, 8, 10), "Frutas", "Kiwi", 1, "Consumo", "", "", "", "", ""])
 
     wb.save(path)

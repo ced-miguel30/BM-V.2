@@ -73,7 +73,7 @@ class TestExportacionRegistroOperativo(unittest.TestCase):
         self.assertTrue(res.ok, res.mensaje)
         assert res.ruta is not None
         wb = load_workbook(res.ruta)
-        for hoja in ("Info", "Desayuno", "Comida", "Cena", "ConsumoBuffet"):
+        for hoja in ("Info", "Desayuno", "BebidasDesayuno", "Comida", "Cena", "ConsumoBuffet"):
             self.assertIn(hoja, wb.sheetnames)
         wb.close()
 

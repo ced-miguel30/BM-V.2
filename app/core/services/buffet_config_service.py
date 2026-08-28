@@ -14,6 +14,8 @@ from app.core.services import desayuno_service as des
 
 RECETA_ESTANDAR_BUFFET = "Estándar buffet desayuno diario"
 RESPONSABLE_IMPORT_BUFFET = "Import Excel buffet"
+# kg de naranja fresca (b06) por litro de zumo exprimido — editable en ConfigBuffet CantDefecto
+NARANJAS_KG_POR_LITRO_ZUMO = 1.2
 
 # Productos porciones / jarras (editables en ConfigBuffet si faltan en catálogo).
 _PORCIONES_SEED: tuple[tuple[str, str, str, float], ...] = (
@@ -33,7 +35,7 @@ _JARRAS_SEED: tuple[tuple[str, str, str, float], ...] = (
     ("Jarra zumo manzana", "", "Ud", 1.0),
     ("Jarra zumo piña", "", "Ud", 1.0),
     ("Jarra zumo cranberry", "", "Ud", 1.0),
-    ("Jarra zumo naranja", "b06", "Ud", 1.0),
+    ("Jarra zumo naranja", "b06", "kg", NARANJAS_KG_POR_LITRO_ZUMO),
 )
 
 

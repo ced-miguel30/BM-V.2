@@ -9,7 +9,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Font
 
 from app.core.application.context import AppContext
-from app.core.services import cena_service, comida_service, desayuno_service
+from app.core.services import bebida_service, cena_service, comida_service, desayuno_service
 from app.core.services.buffet_consumo_service import registros_exportables as buffet_exportables
 from app.core.services.excel_bloques import RegistroExportable, escribir_hoja_info
 from app.core.services.exportacion_semanal_service import ResultadoExportacion, _try_ctx
@@ -49,7 +49,7 @@ def exportar_semana_registro_operativo(
     *,
     ctx: AppContext | None = None,
 ) -> ResultadoExportacion:
-    """Genera un único .xlsx con hojas Desayuno, Comida, Cena y ConsumoBuffet."""
+    """Genera un único .xlsx con hojas Desayuno, BebidasDesayuno, Comida, Cena y ConsumoBuffet."""
     if fin < inicio:
         return ResultadoExportacion(False, "Rango inválido (fin < inicio).")
 
@@ -58,12 +58,22 @@ def exportar_semana_registro_operativo(
         return ResultadoExportacion(False, "No hay contexto de aplicación.")
 
     hasta_dt = datetime.combine(fin, datetime.max.time())
+    data = context.data()
     desayuno = desayuno_service.registros_exportables(inicio, hasta_dt, ctx=context)
+    bebidas_todas = bebida_service.registros_exportables(inicio, hasta_dt, ctx=context)
+    ids_bebidas_desayuno = {
+        r.id
+        for r in data.registros_servicio
+        if r.tipo_servicio == "bebidas"
+        and not getattr(r, "anulado", False)
+        and inicio <= r.fecha <= fin
+        and str(getattr(r, "clave_idempotencia", "") or "").startswith("bebidas-desayuno-xlsx-")
+    }
+    bebidas_desayuno = [r for r in bebidas_todas if r.identificador in ids_bebidas_desayuno]
     comida = comida_service.registros_exportables(inicio, hasta_dt, ctx=context)
     cena = cena_service.registros_exportables(inicio, hasta_dt, ctx=context)
     buffet = buffet_exportables(inicio, hasta_dt, ctx=context)
 
-    data = context.data()
     mermas_buffet: list[RegistroExportable] = []
     for m in data.mermas:
         if getattr(m, "anulado", False) or m.fecha < inicio or m.fecha > fin:
@@ -90,7 +100,7 @@ def exportar_semana_registro_operativo(
                 )
             )
 
-    total = len(desayuno) + len(comida) + len(cena) + len(buffet) + len(mermas_buffet)
+    total = len(desayuno) + len(bebidas_desayuno) + len(comida) + len(cena) + len(buffet) + len(mermas_buffet)
     if total == 0:
         return ResultadoExportacion(False, "Sin registros exportables en el periodo.")
 
@@ -108,6 +118,7 @@ def exportar_semana_registro_operativo(
 
     hojas = (
         ("Desayuno", desayuno),
+        ("BebidasDesayuno", bebidas_desayuno),
         ("Comida", comida),
         ("Cena", cena),
         ("ConsumoBuffet", buffet),

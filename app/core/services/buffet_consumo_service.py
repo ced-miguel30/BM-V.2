@@ -24,6 +24,7 @@ from app.core.repositories.data_repository import DataRepository
 from app.core.services import desayuno_service as des
 from app.core.services import merma_service
 from app.core.services.buffet_config_service import (
+    NARANJAS_KG_POR_LITRO_ZUMO,
     config_por_id,
     config_por_label,
     ensure_config_buffet,
@@ -46,7 +47,6 @@ class LineaBuffetEntrada:
     seccion: str
     cantidad: float
     motivo: str
-    naranjas: float | None = None
     zumo_bote: float | None = None
     notas: str = ""
 
@@ -139,6 +139,12 @@ def _resolver_config(data: AppData, entrada: LineaBuffetEntrada):
     raise ValueError(f"Concepto buffet no configurado: «{entrada.label}»")
 
 
+def _kg_naranjas_jarra(cfg, litros: float) -> float:
+    """Kg de naranja (b06) a descontar por litros/jarras de zumo exprimido."""
+    factor = float(cfg.cantidad_defecto or NARANJAS_KG_POR_LITRO_ZUMO)
+    return round(float(litros) * factor, 6)
+
+
 def _coste_linea(data: AppData, producto_id: str, cantidad: float) -> float:
     if not producto_id or cantidad <= 0:
         return 0.0
@@ -182,24 +188,19 @@ def _anadir_consumo(
             raise ValueError(r.mensaje)
         coste = _coste_receta(data, rid, qty)
     elif cfg.tipo_linea == TIPO_LINEA_JARRA_ZUMO:
-        naranjas = float(entrada.naranjas or 0)
+        naranjas_kg = _kg_naranjas_jarra(cfg, qty)
         bote = float(entrada.zumo_bote or 0)
-        if naranjas > 0 and cfg.producto_id:
-            r = des.anadir_a_cesta(cfg.producto_id, naranjas)
+        if cfg.producto_id and naranjas_kg > 0:
+            r = des.anadir_a_cesta(cfg.producto_id, naranjas_kg)
             if not r.ok:
                 raise ValueError(r.mensaje)
-            coste += _coste_linea(data, cfg.producto_id, naranjas)
+            coste += _coste_linea(data, cfg.producto_id, naranjas_kg)
         if bote > 0:
             pid_bote = cfg.producto_bote_id or "b28"
             r = des.anadir_a_cesta(pid_bote, bote)
             if not r.ok:
                 raise ValueError(r.mensaje)
             coste += _coste_linea(data, pid_bote, bote)
-        if naranjas <= 0 and bote <= 0 and cfg.producto_id:
-            r = des.anadir_a_cesta(cfg.producto_id, qty)
-            if not r.ok:
-                raise ValueError(r.mensaje)
-            coste += _coste_linea(data, cfg.producto_id, qty)
     else:
         if not cfg.producto_id:
             raise ValueError(f"ProductoId vacío en «{cfg.label}»")
@@ -253,12 +254,11 @@ def _anadir_merma(
 
     qty = float(entrada.cantidad)
     if cfg.tipo_linea == TIPO_LINEA_JARRA_ZUMO:
-        if entrada.naranjas and cfg.producto_id:
-            _merma_producto(cfg.producto_id, float(entrada.naranjas))
+        naranjas_kg = _kg_naranjas_jarra(cfg, qty)
+        if cfg.producto_id and naranjas_kg > 0:
+            _merma_producto(cfg.producto_id, naranjas_kg)
         if entrada.zumo_bote and cfg.producto_bote_id:
             _merma_producto(cfg.producto_bote_id, float(entrada.zumo_bote))
-        if not entrada.naranjas and not entrada.zumo_bote and cfg.producto_id:
-            _merma_producto(cfg.producto_id, qty)
     elif cfg.tipo_linea == TIPO_LINEA_RECETA_ESTANDAR:
         rid = cfg.receta_id
         rec = next((r for r in data.recetas if r.id == rid), None) if rid else None
@@ -322,13 +322,18 @@ def importar_lineas_buffet(
                 coste = _anadir_consumo(data, cfg, entrada)
             else:
                 coste = _anadir_merma(data, cfg, entrada, ctx=context)
+            naranjas_snap = (
+                _kg_naranjas_jarra(cfg, float(entrada.cantidad))
+                if cfg.tipo_linea == TIPO_LINEA_JARRA_ZUMO
+                else None
+            )
             registros_lineas.append(
                 LineaRegistroBuffet(
                     config_id=cfg.id,
                     label=cfg.label,
                     cantidad=float(entrada.cantidad),
                     motivo=motivo,
-                    naranjas_cantidad=entrada.naranjas,
+                    naranjas_cantidad=naranjas_snap,
                     zumo_bote_cantidad=entrada.zumo_bote,
                     coste_snapshot=coste,
                     notas=entrada.notas,
@@ -397,7 +402,7 @@ def registros_exportables(
     fin = hasta.date()
     columnas = [
         "Sección", "Concepto", "Cantidad", "Motivo",
-        "Naranjas", "Zumo bote", "Coste", "Notas",
+        "Naranjas calc. (kg)", "Zumo bote", "Coste", "Notas",
     ]
     out: list[RegistroExportable] = []
     for reg in data.registros_buffet:

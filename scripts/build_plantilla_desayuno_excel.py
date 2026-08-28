@@ -1,7 +1,7 @@
 """Genera / actualiza docs/plantillas/registro_desayuno_operativo_LISTA_ACTUALIZADA_ACTUALIZADA.xlsx.
 
-Hojas: Instrucciones, Registro, RegistroComida, RegistroCena, ConfigBuffet,
-ConsumoBuffet, Catalogo, Precios.
+Hojas: Instrucciones, Registro, RegistroBebidasDesayuno, RegistroComida, RegistroCena,
+ConfigBuffet, ConsumoBuffet, Catalogo, Precios.
 
 Si el archivo de salida ya existe y tiene filas en hojas de registro, se PRESERVAN.
 (no se borran datos ya apuntados). Solo se refrescan Instrucciones, Catalogo
@@ -48,7 +48,7 @@ HEADERS_CONFIG_BUFFET = [
 
 HEADERS_CONSUMO_BUFFET = [
     "Fecha", "Seccion", "Concepto", "Cantidad", "Motivo",
-    "Naranjas", "ZumoBote", "Coste", "Notas", "Importado",
+    "ZumoBote", "Coste", "Notas", "Importado",
 ]
 
 HEADERS_PRECIOS = ["producto_id", "nombre", "coste_ud"]
@@ -94,6 +94,12 @@ PANES_OFRECIDOS = [
     "Pan sin gluten",
     "Sin tostada",
 ]
+
+# Siempre en catálogo bebidas desayuno (p. ej. Cava Roger de Flor).
+BEBIDAS_DESAYUNO_SIEMPRE = (
+    "Botella Roger de Flor",
+    "Cava Roger de Flor",
+)
 
 FILL_HEADER = PatternFill("solid", fgColor="1F4E79")
 FILL_CAT = PatternFill("solid", fgColor="E2EFDA")
@@ -256,13 +262,11 @@ def _escribir_consumo_buffet(ws, data, n_config: int, n_precios: int, preservado
         motivo_col = get_column_letter(HEADERS_CONSUMO_BUFFET.index("Motivo") + 1)
         concepto_col = get_column_letter(HEADERS_CONSUMO_BUFFET.index("Concepto") + 1)
         cant_col = get_column_letter(HEADERS_CONSUMO_BUFFET.index("Cantidad") + 1)
-        naranjas_col = get_column_letter(HEADERS_CONSUMO_BUFFET.index("Naranjas") + 1)
         zumo_col = get_column_letter(HEADERS_CONSUMO_BUFFET.index("ZumoBote") + 1)
         ws.cell(r_i, coste_col).value = (
             f'=IF({motivo_col}{r_i}="Consumo",'
             f'IFERROR({cant_col}{r_i}*VLOOKUP(VLOOKUP({concepto_col}{r_i},ConfigBuffet!$C:$D,2,FALSE),'
             f'Precios!$A:$C,3,FALSE)*VLOOKUP({concepto_col}{r_i},ConfigBuffet!$C:$F,4,FALSE),0)'
-            f'+IFERROR({naranjas_col}{r_i}*VLOOKUP("b06",Precios!$A:$C,3,FALSE),0)'
             f'+IFERROR({zumo_col}{r_i}*VLOOKUP("b28",Precios!$A:$C,3,FALSE),0),0)'
         )
     ws.data_validations.dataValidation = []
@@ -278,11 +282,11 @@ def _escribir_consumo_buffet(ws, data, n_config: int, n_precios: int, preservado
     dv_concepto.add("C2:C500")
     ws.freeze_panes = "A2"
     tot_row = max_row + 1
-    ws.cell(tot_row, 7, "TOTAL")
-    ws.cell(tot_row, 8, f"=SUM(H2:H{max_row})")
+    ws.cell(tot_row, 6, "TOTAL")
+    ws.cell(tot_row, 7, f"=SUM(G2:G{max_row})")
+    ws.cell(tot_row, 6).font = Font(bold=True)
     ws.cell(tot_row, 7).font = Font(bold=True)
-    ws.cell(tot_row, 8).font = Font(bold=True)
-    for col, w in zip("ABCDEFGHIJ", [12, 14, 32, 10, 14, 10, 10, 12, 22, 12]):
+    for col, w in zip("ABCDEFGHI", [12, 14, 32, 10, 14, 10, 12, 22, 12]):
         ws.column_dimensions[col].width = w
     return filas_datos
 
@@ -308,6 +312,40 @@ def _catalogo_recetas(data) -> list[str]:
             continue
         seen.add(key)
         names.append(r.nombre)
+    return sorted(names, key=lambda s: normalizar_texto(s))
+
+
+def _catalogo_bebidas_desayuno(data) -> list[str]:
+    """Recetas bebida de desayuno + botellas sueltas (p. ej. Cava Roger de Flor)."""
+    names: list[str] = []
+    seen: set[str] = set()
+
+    def add(name: str) -> None:
+        key = normalizar_texto(name)
+        if not key or key in seen:
+            return
+        seen.add(key)
+        names.append(name)
+
+    for r in data.recetas:
+        if not getattr(r, "activo", True):
+            continue
+        cat = r.categoria.value if hasattr(r.categoria, "value") else str(r.categoria)
+        if cat == CategoriaReceta.BEBIDAS.value and des.es_receta_bebida_desayuno(r.nombre):
+            add(r.nombre)
+        elif "roger de flor" in normalizar_texto(r.nombre):
+            add(r.nombre)
+
+    for p in data.productos:
+        if not getattr(p, "activo", True) or not getattr(p, "es_bebida", False):
+            continue
+        servicios = [s for s in (getattr(p, "servicios_disponibles", None) or []) if isinstance(s, str)]
+        if not servicios or "desayuno" in servicios:
+            add(p.nombre)
+
+    for lab in BEBIDAS_DESAYUNO_SIEMPRE:
+        add(lab)
+
     return sorted(names, key=lambda s: normalizar_texto(s))
 
 
@@ -371,9 +409,15 @@ def _write_instrucciones(ws, hotel: Path, n_rec: int, n_ext: int) -> None:
         "• Misma Fecha = un solo registro del servicio en BM.",
         "• Tipo: Receta, Extra o Producto. Cantidad: raciones/unidades.",
         "",
+        "BEBIDAS DESAYUNO (hoja RegistroBebidasDesayuno)",
+        "• Cafés, tés, Cola Cao, Cava Roger de Flor, etc. (catálogo columna I).",
+        "• Misma Fecha = un registro de bebidas en BM.",
+        "• Tipo: Receta (café, cava…) o Producto (botella suelta). Cantidad: raciones/unidades.",
+        "",
         "CONSUMO BUFFET (hoja ConsumoBuffet)",
         "• Concepto: elija de ConfigBuffet (editable). Motivo: Consumo / Merma / Expiración / Limpieza.",
-        "• Jarra zumo naranja: rellene Naranjas (b06) y ZumoBote (b28) si aplica.",
+        "• Jarra zumo naranja: Cantidad = litros/jarras; BM calcula kg naranja (CantDefecto en ConfigBuffet).",
+        "• ZumoBote (b28): opcional si parte del zumo es de bote en lugar de exprimido.",
         "• Columna Coste usa Precios × cantidades (referencia; el import recalcula en BM).",
         "",
         "Al regenerar la plantilla NO se borran filas ya rellenadas en hojas de registro.",
@@ -439,7 +483,7 @@ def _mapear_fila(old_headers: list, row: tuple, new_headers: list) -> list:
     return out
 
 
-def _escribir_catalogo(ws_c, recetas: list[str], extras: list[str], data) -> tuple[int, int, int, int, int]:
+def _escribir_catalogo(ws_c, recetas: list[str], extras: list[str], data) -> tuple[int, int, int, int, int, int]:
     # Limpiar
     if ws_c.max_row:
         ws_c.delete_rows(1, ws_c.max_row)
@@ -450,11 +494,13 @@ def _escribir_catalogo(ws_c, recetas: list[str], extras: list[str], data) -> tup
     ws_c["F1"] = "Panes_ofrecidos"
     ws_c["G1"] = "Recetas_comida"
     ws_c["H1"] = "Recetas_cena"
-    for col in ("A", "B", "C", "D", "F", "G", "H"):
+    ws_c["I1"] = "Bebidas_desayuno"
+    for col in ("A", "B", "C", "D", "F", "G", "H", "I"):
         ws_c[f"{col}1"].font = FONT_HEADER
         ws_c[f"{col}1"].fill = FILL_HEADER
     rec_comida = _catalogo_recetas_servicio(data, [CategoriaReceta.COMIDA, CategoriaReceta.BEBIDAS])
     rec_cena = _catalogo_recetas_servicio(data, [CategoriaReceta.CENA, CategoriaReceta.BEBIDAS])
+    rec_bebidas = _catalogo_bebidas_desayuno(data)
     for i, name in enumerate(recetas, start=2):
         ws_c[f"A{i}"] = name
         ws_c[f"A{i}"].fill = FILL_CAT
@@ -476,6 +522,9 @@ def _escribir_catalogo(ws_c, recetas: list[str], extras: list[str], data) -> tup
     for i, name in enumerate(rec_cena, start=2):
         ws_c[f"H{i}"] = name
         ws_c[f"H{i}"].fill = FILL_CAT
+    for i, name in enumerate(rec_bebidas, start=2):
+        ws_c[f"I{i}"] = name
+        ws_c[f"I{i}"].fill = FILL_CAT
     ws_c.column_dimensions["A"].width = 42
     ws_c.column_dimensions["B"].width = 28
     ws_c.column_dimensions["C"].width = 42
@@ -483,12 +532,14 @@ def _escribir_catalogo(ws_c, recetas: list[str], extras: list[str], data) -> tup
     ws_c.column_dimensions["F"].width = 22
     ws_c.column_dimensions["G"].width = 42
     ws_c.column_dimensions["H"].width = 42
+    ws_c.column_dimensions["I"].width = 42
     return (
         max(len(recetas), 1),
         max(len(extras), 1),
         max(len(todos), 1),
         max(len(rec_comida), 1),
         max(len(rec_cena), 1),
+        max(len(rec_bebidas), 1),
     )
 
 
@@ -522,6 +573,7 @@ def build(out: Path, hotel: Path) -> Path:
     preservado = _leer_registro_existente(out)
     preservado_comida = _leer_hoja_existente(out, "RegistroComida")
     preservado_cena = _leer_hoja_existente(out, "RegistroCena")
+    preservado_bebidas = _leer_hoja_existente(out, "RegistroBebidasDesayuno")
     preservado_buffet = _leer_hoja_existente(out, "ConsumoBuffet")
 
     wb = Workbook()
@@ -530,7 +582,7 @@ def build(out: Path, hotel: Path) -> Path:
     _write_instrucciones(ws_i, hotel, len(recetas), len(extras))
 
     ws_c = wb.create_sheet("Catalogo")
-    _n_rec, n_ext, n_all, n_comida, n_cena = _escribir_catalogo(ws_c, recetas, extras, data)
+    _n_rec, n_ext, n_all, n_comida, n_cena, n_bebidas = _escribir_catalogo(ws_c, recetas, extras, data)
     n_combo = _rellenar_lista_extra_omitir(ws_c, extras)
 
     ws_precios = wb.create_sheet("Precios")
@@ -560,6 +612,15 @@ def build(out: Path, hotel: Path) -> Path:
         preservado_cena,
         lista_nombre_col="Nombre",
         lista_ref=f"Catalogo!$H$2:$H${n_cena + 1}",
+    )
+
+    ws_bebidas = wb.create_sheet("RegistroBebidasDesayuno")
+    filas_bebidas = _escribir_hoja_registro_simple(
+        ws_bebidas,
+        HEADERS_SERVICIO,
+        preservado_bebidas,
+        lista_nombre_col="Nombre",
+        lista_ref=f"Catalogo!$I$2:$I${n_bebidas + 1}",
     )
 
     ws_r = wb.create_sheet("Registro", 1)
@@ -641,7 +702,8 @@ def build(out: Path, hotel: Path) -> Path:
     ws_i["A48"] = note
     ws_i["A48"].font = Font(italic=True, size=10, color="1F4E79")
     ws_i["A49"] = (
-        f"Comida: {filas_comida} | Cena: {filas_cena} | Buffet: {filas_buffet} fila(s) preservadas."
+        f"Comida: {filas_comida} | Cena: {filas_cena} | "
+        f"Bebidas: {filas_bebidas} | Buffet: {filas_buffet} fila(s) preservadas."
     )
     ws_i["A49"].font = Font(italic=True, size=10, color="666666")
 

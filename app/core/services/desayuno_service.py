@@ -106,6 +106,9 @@ RECETAS_BEBIDAS_DESAYUNO: frozenset[str] = frozenset(
         "te frutas del bosque",
         "manzanilla",
         "seleccion de te",
+        "botella roger de flor",
+        "cava roger de flor",
+        "roger de flor",
     }
 )
 
