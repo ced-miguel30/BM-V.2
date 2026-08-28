@@ -268,6 +268,7 @@ def _specs_desayuno(data) -> list[tuple[str, list[IngredienteReceta]]]:
                 I("salchicha", 50, "gr"),
                 I("hashbrown", 70, "gr"),
                 I("bacon", 15, "gr"),
+                I("huevo", 1, "Ud"),  # huevo frito de la ficha
             ],
         ),
         (

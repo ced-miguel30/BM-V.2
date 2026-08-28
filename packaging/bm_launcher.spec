@@ -6,7 +6,11 @@
 import os
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_data_files, collect_submodules
+from PyInstaller.utils.hooks import (
+    collect_all,
+    collect_data_files,
+    collect_submodules,
+)
 
 # SPECPATH = directorio que contiene este .spec (PyInstaller)
 _packaging = Path(SPECPATH).resolve()
@@ -20,13 +24,24 @@ block_cipher = None
 # Flet carga icons.json (y otros assets) en runtime desde el paquete; sin datas falla el .exe.
 _flet_datas = collect_data_files('flet') + collect_data_files('flet_desktop')
 
+# OCR TPV (import lazy → PyInstaller no lo detecta solo).
+_ocr_datas, _ocr_binaries, _ocr_hidden = [], [], []
+for _pkg in ('rapidocr_onnxruntime', 'onnxruntime', 'pymupdf'):
+    try:
+        d, b, h = collect_all(_pkg)
+        _ocr_datas += d
+        _ocr_binaries += b
+        _ocr_hidden += h
+    except Exception:
+        pass
+
 a = Analysis(
     [str(_packaging / 'entry_launcher.py')],
     pathex=[str(ROOT)],
-    binaries=[],
+    binaries=_ocr_binaries,
     datas=[
         (str(ROOT / 'data' / 'demo' / 'datos_hotel.json'), 'data/demo'),
-    ] + _flet_datas,
+    ] + _flet_datas + _ocr_datas,
     hiddenimports=[
         'flet',
         'flet_desktop',
@@ -38,7 +53,12 @@ a = Analysis(
         'app.presentation.flet.main_launcher',
         'app.core.deploy.runtime',
         'app.core.deploy.config',
-    ] + collect_submodules('app'),
+        'rapidocr_onnxruntime',
+        'onnxruntime',
+        'pymupdf',
+        'fitz',
+        'app.core.services.tpv_ocr_cli',
+    ] + list(_ocr_hidden) + collect_submodules('app') + collect_submodules('rapidocr_onnxruntime'),
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[str(_packaging / 'runtime_hook_bm.py')],

@@ -19,6 +19,7 @@ from app.core.services import desayuno_service as des
 from app.core.services import receta_service as rec_svc
 from app.core.services import stock_service as stock_svc
 from app.core.services.inventory_batch_service import stock_disponible
+from app.core.services.pack_unidades import UNIDADES_POR_PAQUETE, piezas_a_ud_paquete
 from app.core.services.unidad_service import convertir_a_unidad_producto
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -56,6 +57,9 @@ def _ing(data, producto_id: str, cantidad: float, unidad: str | None = None) -> 
 
     u = "gr" if unidad == "g" else unidad
     nativa: float
+    if u == "reb" and prod.unidad.value == "Ud" and producto_id in UNIDADES_POR_PAQUETE:
+        nativa = piezas_a_ud_paquete(producto_id, qty)
+        return IngredienteReceta(producto_id, nativa, qty, "reb")
     if u in ("ml", "cl", "L") and prod.unidad.value == "Ud":
         # Brik/botella ≈ 1 L → fracción de Ud.
         nativa = round(qty * {"ml": 0.001, "cl": 0.01, "L": 1.0}[u], 6)
@@ -279,6 +283,7 @@ def recipes_spec(C: dict[str, str], data) -> list[tuple]:
                 I("salchicha", 50, "gr"),
                 I("hashbrown", 70, "gr"),
                 I("bacon", 15, "gr"),
+                I("huevo", 1, "Ud"),  # huevo frito de la ficha
             ],
         ),
         (
@@ -597,7 +602,7 @@ def recipes_spec(C: dict[str, str], data) -> list[tuple]:
                 I("bacon", 30, "gr"),
                 I("cherry", 50, "gr"),
                 I("queso_loncha", 30, "gr"),
-                I("pan_tostada", 1, "Ud"),
+                I("pan_molde", 1, "reb"),
             ],
         ),
         (

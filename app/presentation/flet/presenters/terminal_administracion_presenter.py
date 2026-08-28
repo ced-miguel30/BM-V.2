@@ -2650,9 +2650,9 @@ class TerminalAdministracionPresenter:
                 codigo = getattr(p, "codigo", None) or ""
                 if self._seccion == "productos" and q:
                     if (
-                        q not in p.nombre.lower()
-                        and q not in codigo.lower()
-                        and q not in p.id.lower()
+                        not contiene_texto(p.nombre, q)
+                        and not contiene_texto(codigo, q)
+                        and not contiene_texto(p.id, q)
                     ):
                         continue
                 tipo = getattr(p, "tipo_articulo", None)
@@ -2688,16 +2688,20 @@ class TerminalAdministracionPresenter:
 
             lista_rec = []
             puede_valorar = session_tiene_permiso(Permiso.CONSULTAR_COSTES)
-            from app.core.services.text_search import coincide_busqueda as _coincide
             from app.core.services.data_service import get_repository as _get_repo_noms
 
             repo_noms = _get_repo_noms() if self._seccion == "recetas" else None
             for r in receta_service.listar_recetas(solo_activas=False):
                 if self._seccion == "recetas" and q:
                     if not (
-                        _coincide(r.nombre, q)
-                        or q in r.id.lower()
-                        or q in (r.categoria.value if hasattr(r.categoria, "value") else str(r.categoria)).lower()
+                        contiene_texto(r.nombre, q)
+                        or contiene_texto(r.id, q)
+                        or contiene_texto(
+                            r.categoria.value
+                            if hasattr(r.categoria, "value")
+                            else str(r.categoria),
+                            q,
+                        )
                     ):
                         continue
                 cat = r.categoria.value if hasattr(r.categoria, "value") else str(r.categoria)

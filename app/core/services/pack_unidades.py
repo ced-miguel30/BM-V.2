@@ -11,6 +11,8 @@ UNIDADES_POR_PAQUETE: dict[str, float] = {
     # Pan molde (rebanadas)
     "p09": 31.0,  # MOLDE COMUN S/C 800GRS
     "p11": 31.0,  # MOLDE INTEGRAL S/C 1000 GRS
+    # Pan sin gluten (panecillos por caja)
+    "p04": 45.0,  # PANECILLO S/GLUTEN BETINA 55GRS 45 UND
     # Panes / bollería buffet (piezas por caja)
     "p05": 20.0,  # PAN GALLEGO BARRA 280GR 20 UND
     "p357": 10.0,  # PAN MAIZ 350GRS BERLYS 10UN

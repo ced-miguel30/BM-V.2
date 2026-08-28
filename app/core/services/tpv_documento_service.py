@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -173,21 +174,90 @@ class OcrParseTpvResult:
     lineas_detectadas: int = 0
 
 
+def ocr_documento_subprocess(ruta: str | Path) -> str:
+    """OCR en subproceso: un crash nativo (onnx/cv2) no tumba Flet."""
+    import json
+    import subprocess
+    import sys
+    import tempfile
+
+    path = Path(ruta)
+    fd, out_name = tempfile.mkstemp(prefix="bm_tpv_ocr_", suffix=".json")
+    os_close = __import__("os").close
+    os_close(fd)
+    out_path = Path(out_name)
+    try:
+        if getattr(sys, "frozen", False):
+            cmd = [sys.executable, "--bm-tpv-ocr", str(path), str(out_path)]
+        else:
+            cmd = [
+                sys.executable,
+                "-m",
+                "app.core.services.tpv_ocr_cli",
+                str(path),
+                str(out_path),
+            ]
+        flags = 0
+        if sys.platform == "win32":
+            flags = int(getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=600,
+            creationflags=flags,
+            cwd=str(Path(__file__).resolve().parents[2])
+            if not getattr(sys, "frozen", False)
+            else None,
+        )
+        payload: dict = {}
+        if out_path.is_file():
+            try:
+                payload = json.loads(out_path.read_text(encoding="utf-8"))
+            except Exception:  # noqa: BLE001
+                payload = {}
+        if proc.returncode != 0 and not payload.get("ok"):
+            detail = (
+                str(payload.get("error") or "").strip()
+                or (proc.stderr or "").strip()
+                or f"código {proc.returncode}"
+            )
+            if proc.returncode < 0 or proc.returncode in (139, 3221225477, 3221226505):
+                detail = (
+                    f"El motor OCR se cerró de forma inesperada ({detail}). "
+                    "Pruebe de nuevo o use una imagen/PDF más ligero."
+                )
+            raise RuntimeError(detail)
+        if not payload.get("ok"):
+            raise RuntimeError(str(payload.get("error") or "OCR falló sin detalle"))
+        return str(payload.get("text") or "")
+    finally:
+        out_path.unlink(missing_ok=True)
+
+
 def procesar_documento_tpv_ocr(ruta: str | Path) -> OcrParseTpvResult:
     """Solo OCR + parse. No usar get_container ni persist_data aquí."""
     path = Path(ruta)
+    # En worker ya estamos aislados: OCR inline (evita subproceso anidado).
+    use_subprocess = (os.environ.get("BM_TPV_WORKER") or "").strip() != "1"
     try:
-        texto = ocr_documento(path)
-    except Exception as exc:  # noqa: BLE001
+        texto = (
+            ocr_documento_subprocess(path) if use_subprocess else ocr_documento(path)
+        )
+    except Exception as ocr_exc:  # noqa: BLE001
+        ocr_msg = str(ocr_exc) or type(ocr_exc).__name__
         logger.exception("OCR TPV falló: %s", path)
-        return OcrParseTpvResult(ok=False, path=path, error=f"No se pudo leer el documento: {exc}")
+        return OcrParseTpvResult(
+            ok=False, path=path, error=f"No se pudo leer el documento: {ocr_msg}"
+        )
 
     try:
         rows = parse_lineas_tpv(texto)
-    except Exception as exc:  # noqa: BLE001
+    except Exception as parse_exc:  # noqa: BLE001
+        parse_msg = str(parse_exc) or type(parse_exc).__name__
         logger.exception("Parse TPV falló")
         return OcrParseTpvResult(
-            ok=False, path=path, error=f"Error al interpretar el TPV: {exc}"
+            ok=False, path=path, error=f"Error al interpretar el TPV: {parse_msg}"
         )
 
     if not rows:
@@ -221,11 +291,12 @@ def registrar_lineas_tpv(rows: list[dict], ruta: str | Path) -> ResultadoImportT
             rows=rows,
             observaciones=f"Upload documento TPV ({path.name})",
         )
-    except Exception as exc:  # noqa: BLE001
+    except Exception as reg_exc:  # noqa: BLE001
+        reg_msg = str(reg_exc) or type(reg_exc).__name__
         logger.exception("Import TPV desde documento falló")
         return ResultadoImportTpv(
             ok=False,
-            mensaje=f"Error al registrar: {exc}",
+            mensaje=f"Error al registrar: {reg_msg}",
             lineas_detectadas=len(rows),
             fechas=fechas,
         )
@@ -250,15 +321,76 @@ def importar_documento_tpv(ruta: str | Path) -> ResultadoImportTpv:
 
 
 def importar_documento_tpv_aislado(ruta: str | Path, *, hotel_path: str | Path) -> ResultadoImportTpv:
-    """Ejecuta import completo en subproceso (aislado de Flet/GIL)."""
-    import multiprocessing as mp
-    ctx = mp.get_context("spawn")
-    with ctx.Pool(1) as pool:
-        payload = pool.apply(
-            _subprocess_import_worker,
-            (str(ruta), str(hotel_path)),
+    """Import TPV en subproceso (OCR+registro), para no tumbar la UI Flet.
+
+    El padre solo espera el JSON de resultado; no ejecuta onnx/cv2 ni el import
+    pesado en el mismo proceso que Flet.
+    """
+    import json
+    import subprocess
+    import sys
+    import tempfile
+
+    fd, out_name = tempfile.mkstemp(prefix="bm_tpv_import_", suffix=".json")
+    os.close(fd)
+    out_path = Path(out_name)
+    try:
+        if getattr(sys, "frozen", False):
+            cmd = [
+                sys.executable,
+                "--bm-tpv-import",
+                str(ruta),
+                str(hotel_path),
+                str(out_path),
+            ]
+        else:
+            cmd = [
+                sys.executable,
+                "-m",
+                "app.core.services.tpv_ocr_cli",
+                "import",
+                str(ruta),
+                str(hotel_path),
+                str(out_path),
+            ]
+        env = os.environ.copy()
+        env["BM_DEPLOY_WRITER_HELD"] = "1"
+        env["BM_DEPLOY_WRITER_PID"] = str(os.getpid())
+        flags = 0
+        if sys.platform == "win32":
+            flags = int(getattr(subprocess, "CREATE_NO_WINDOW", 0))
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=900,
+            creationflags=flags,
+            env=env,
+            cwd=str(Path(__file__).resolve().parents[2])
+            if not getattr(sys, "frozen", False)
+            else None,
         )
-    return _resultado_from_dict(payload)
+        payload: dict = {}
+        if out_path.is_file():
+            try:
+                payload = json.loads(out_path.read_text(encoding="utf-8"))
+            except Exception:  # noqa: BLE001
+                payload = {}
+        if payload.get("mensaje") is not None or payload.get("ok") is not None:
+            return _resultado_from_dict(payload)
+        detail = (proc.stderr or "").strip() or f"código {proc.returncode}"
+        return ResultadoImportTpv(
+            ok=False,
+            mensaje=f"Error al importar documento: {detail}",
+        )
+    except Exception as inline_exc:  # noqa: BLE001
+        inline_msg = str(inline_exc) or type(inline_exc).__name__
+        return ResultadoImportTpv(
+            ok=False,
+            mensaje=f"Error al importar documento: {inline_msg}",
+        )
+    finally:
+        out_path.unlink(missing_ok=True)
 
 
 def _resultado_to_dict(r: ResultadoImportTpv) -> dict:
@@ -289,37 +421,3 @@ def _resultado_from_dict(d: dict) -> ResultadoImportTpv:
         fechas=list(d.get("fechas") or []),
         registros_creados=list(d.get("registros_creados") or []),
     )
-
-
-def _subprocess_import_worker(path: str, hotel_path: str) -> dict:
-    """Worker picklable para spawn (sin estado Flet)."""
-    import os
-    from datetime import datetime, timezone
-
-    from app.bootstrap import configure_for_flet, reset_container
-    from app.core.auth.roles import ROL_DIRECCION
-    from app.core.auth.session import ACTOR_TYPE_USUARIO, AuthSession, save_auth_session
-
-    os.environ.setdefault("PYTHONPATH", str(Path(__file__).resolve().parents[3]))
-    reset_container()
-    configure_for_flet(data_path=hotel_path)
-    save_auth_session(
-        AuthSession(
-            authenticated=True,
-            actor_type=ACTOR_TYPE_USUARIO,
-            actor_id="tpv-worker",
-            actor_label="TPV Worker",
-            role=ROL_DIRECCION,
-            session_id="tpv-worker",
-            login_at=datetime.now(timezone.utc).isoformat(),
-            terminal_id=None,
-            login="tpv-worker",
-        )
-    )
-    try:
-        r = importar_documento_tpv(path)
-        return _resultado_to_dict(r)
-    except Exception as exc:  # noqa: BLE001
-        return _resultado_to_dict(
-            ResultadoImportTpv(ok=False, mensaje=f"Error en subproceso: {exc}")
-        )

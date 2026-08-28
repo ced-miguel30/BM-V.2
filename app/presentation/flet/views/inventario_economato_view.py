@@ -390,8 +390,11 @@ def _documentos(
 ) -> ft.Control:
     texto = ft.TextField(
         label="Buscar",
+        hint_text="Escriba parte del nombre o ref…",
         value=eco.doc_filtro_texto,
-        width=220,
+        prefix_icon=ft.Icons.SEARCH,
+        width=260,
+        on_change=lambda e: cbs["on_doc_filtros"](texto=e.control.value or ""),
         on_submit=lambda e: cbs["on_doc_filtros"](texto=e.control.value or ""),
     )
     tipo = ft.Dropdown(
@@ -725,8 +728,11 @@ def _historial(
 ) -> ft.Control:
     texto = ft.TextField(
         label="Buscar producto / tipo / ref",
+        hint_text="Escriba parte del texto…",
         value=eco.hist_texto,
-        width=260,
+        prefix_icon=ft.Icons.SEARCH,
+        width=280,
+        on_change=lambda e: cbs["on_hist_filtros"](texto=e.control.value or ""),
         on_submit=lambda e: cbs["on_hist_filtros"](texto=e.control.value or ""),
     )
     ubi = ft.Dropdown(

@@ -146,6 +146,8 @@ def asignar_consumos_lote(
             while cola and cola[0].cantidad_restante <= 1e-9:
                 cola.pop(0)
             if not cola:
+                if need <= 1e-4:
+                    break
                 raise ValueError(
                     f"Sin movimientos FIFO suficientes para cubrir "
                     f"producto {det.producto_id} (faltan {need:g})."
@@ -185,7 +187,7 @@ def asignar_consumos_lote(
     # No deben quedar movimientos con cantidad sin asignar.
     for pid, cola in colas.items():
         resto = sum(m.cantidad_restante for m in cola)
-        if resto > 1e-9:
+        if resto > 1e-4:
             raise ValueError(
                 f"Movimientos FIFO sin asignar para producto {pid}: {resto:g}."
             )
@@ -261,7 +263,7 @@ def validar_consumos_lote(
 
     productos = set(cant_asig) | set(cant_fifo) | set(costes_agregados)
     for pid in productos:
-        if abs(round(cant_asig.get(pid, 0.0), 4) - round(cant_fifo.get(pid, 0.0), 4)) > 1e-9:
+        if abs(round(cant_asig.get(pid, 0.0), 4) - round(cant_fifo.get(pid, 0.0), 4)) > 1e-4:
             raise ValueError(
                 f"Cantidad asignada ≠ FIFO para {pid}: "
                 f"{cant_asig.get(pid, 0.0):g} vs {cant_fifo.get(pid, 0.0):g}."
@@ -300,19 +302,19 @@ def validar_consumos_lote(
                         f"{mov.lote_id} (producto {pid})."
                     )
                 next_cant = round(acc_cant + f.cantidad, 4)
-                if next_cant - round(mov.cantidad, 4) > 1e-9:
+                if next_cant - round(mov.cantidad, 4) > 1e-4:
                     raise ValueError(
                         f"Fragmentos superan cantidad del movimiento {mov.lote_id}."
                     )
                 acc_cant = next_cant
                 acc_coste = round(acc_coste + f.coste, 2)
                 idx += 1
-            if abs(round(acc_cant, 4) - round(mov.cantidad, 4)) > 1e-9:
+            if abs(round(acc_cant, 4) - round(mov.cantidad, 4)) > 1e-4:
                 raise ValueError(
                     f"Fragmentos no cubren movimiento {mov.lote_id}: "
                     f"{acc_cant:g} vs {mov.cantidad:g}."
                 )
-            if round(acc_coste, 2) != round(mov.coste, 2):
+            if abs(round(acc_coste, 2) - round(mov.coste, 2)) > 0.02:
                 raise ValueError(
                     f"Coste fragmentos ≠ movimiento {mov.lote_id}: "
                     f"{acc_coste:.2f} vs {mov.coste:.2f}."

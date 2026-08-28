@@ -849,13 +849,20 @@ def parse_desayuno_line(data, text: str, fecha: date) -> dict:
             return
         recipes.append((nombre, porc, extras or []))
 
-    # Desayuno inglés
+    # Desayuno inglés (huevo frito va en la ficha; revuelto/pochado/cocido lo sustituyen)
     if "DESAYUNO INGLES" in t or "DESAYUNO INGLÉS" in _norm(raw):
         extras = []
         if "EXTRA PAN" in t or ("PAN" in t and "EXTRA" in t):
             extras.append(("pan_tostada", 1, "reb"))
         if "EXTRA SALCHICHA" in t or "EXTAR SALCHICHA" in t:
             extras.append(("salchicha", 50, "gr"))
+        # Tipo de huevo distinto del frito de la ficha → extra (el import operativo omite p48)
+        if "REVUELT" in t:
+            extras.append(("huevo_liq", 50, "ml"))
+        elif "POCHAD" in t or "POCHE" in t:
+            extras.append(("huevo", 1, "Ud"))  # mismo producto; marca tipo pochado
+        elif "COCID" in t and "HUEVO" in t:
+            extras.append(("huevo", 1, "Ud"))
         add_rec("Desayuno ingles", 1, extras)
         return {"recipes": recipes, "products": products, "notes": notes, "raw": raw}
 

@@ -238,77 +238,109 @@ class TerminalRestauranteShell:
 
     def _on_upload_documento(self) -> None:
         async def _pick_and_import() -> None:
-            picker = self._file_picker
-            if picker is None:
-                picker = ft.FilePicker()
-                self._file_picker = picker
-                self.page.update()
+            # Nunca dejar escapar excepciones: Flet.run_task las muestra como
+            # «The application encountered an error» y aborta el flujo.
             try:
-                files = await picker.pick_files(
-                    dialog_title="Importar documento TPV (comida / bebidas)",
-                    file_type=ft.FilePickerFileType.CUSTOM,
-                    allowed_extensions=["pdf", "png", "jpg", "jpeg", "webp"],
-                    allow_multiple=False,
-                )
-            except Exception as exc:  # noqa: BLE001
-                self.presenter._feedback = FeedbackVM(
-                    ok=False, mensaje=f"No se pudo abrir el selector: {exc}"
-                )
-                self.refresh()
-                return
-            if not files:
-                return
-            path = getattr(files[0], "path", None) or ""
-            if not path:
-                self.presenter._feedback = FeedbackVM(
-                    ok=False,
-                    mensaje=(
-                        "No se obtuvo la ruta del archivo "
-                        "(solo disponible en escritorio)."
-                    ),
-                )
-                self.refresh()
-                return
-
-            self.presenter.set_importacion_tpv_activa(True)
-            self.presenter.marcar_importando_tpv(True)
-            self._import_bloqueado = True
-            self.page.on_resize = None
-            self._refresh_full()
-            from app.core.storage.demo_files import get_demo_file
-
-            # Misma instancia que el resto de la app (shared root / BM_DEMO_FILE),
-            # nunca hardcodear BM-V2-local (rompe la carpeta 2-BM-DATOS del servidor).
-            hotel_path = get_demo_file()
-            try:
-                from app.core.services.tpv_documento_service import (
-                    importar_documento_tpv_aislado,
-                )
-
-                resultado = await asyncio.to_thread(
-                    importar_documento_tpv_aislado,
-                    path,
-                    hotel_path=hotel_path,
-                )
-                self.presenter.aplicar_resultado_importacion_tpv(resultado)
-                # El worker escribe en otro proceso: recargar JSON en el store del UI.
+                picker = self._file_picker
+                if picker is None:
+                    picker = ft.FilePicker()
+                    self._file_picker = picker
+                    self.page.update()
                 try:
-                    from app.bootstrap import get_container
+                    files = await picker.pick_files(
+                        dialog_title="Importar documento TPV (comida / bebidas)",
+                        file_type=ft.FilePickerFileType.CUSTOM,
+                        allowed_extensions=["pdf", "png", "jpg", "jpeg", "webp"],
+                        allow_multiple=False,
+                    )
+                except Exception as pick_exc:  # noqa: BLE001
+                    pick_msg = str(pick_exc) or "error desconocido"
+                    self.presenter._feedback = FeedbackVM(
+                        ok=False,
+                        mensaje=f"No se pudo abrir el selector: {pick_msg}",
+                    )
+                    self.refresh()
+                    return
+                if not files:
+                    return
+                path = getattr(files[0], "path", None) or ""
+                if not path:
+                    self.presenter._feedback = FeedbackVM(
+                        ok=False,
+                        mensaje=(
+                            "No se obtuvo la ruta del archivo "
+                            "(solo disponible en escritorio)."
+                        ),
+                    )
+                    self.refresh()
+                    return
 
-                    get_container().app_data_store.reload_from_disk()
+                self.presenter.set_importacion_tpv_activa(True)
+                self.presenter.marcar_importando_tpv(True)
+                self._import_bloqueado = True
+                self.page.on_resize = None
+                self._refresh_full()
+                from app.core.storage.demo_files import get_demo_file
+
+                # Misma instancia que el resto de la app (shared root / BM_DEMO_FILE).
+                hotel_path = get_demo_file()
+                try:
+                    from app.core.services.tpv_documento_service import (
+                        importar_documento_tpv_aislado,
+                    )
+
+                    resultado = await asyncio.to_thread(
+                        importar_documento_tpv_aislado,
+                        path,
+                        hotel_path=hotel_path,
+                    )
+                    self.presenter.aplicar_resultado_importacion_tpv(resultado)
+                    try:
+                        from app.bootstrap import get_container
+
+                        get_container().app_data_store.reload_from_disk()
+                    except Exception:  # noqa: BLE001
+                        pass
+                except Exception as import_exc:  # noqa: BLE001
+                    import_msg = str(import_exc) or "error desconocido"
+                    self.presenter._confirmando = False
+                    self.presenter._feedback = FeedbackVM(
+                        ok=False,
+                        mensaje=f"Error al importar documento: {import_msg}",
+                    )
+                finally:
+                    self.presenter.set_importacion_tpv_activa(False)
+                    self._import_bloqueado = False
+                    self.page.on_resize = self._resize_handler
+                try:
+                    self.refresh()
+                except Exception as refresh_exc:  # noqa: BLE001
+                    self.presenter._feedback = FeedbackVM(
+                        ok=False,
+                        mensaje=(
+                            "Importación terminada, pero falló el refresco de pantalla: "
+                            f"{refresh_exc}"
+                        ),
+                    )
+                    try:
+                        self.page.update()
+                    except Exception:  # noqa: BLE001
+                        pass
+            except Exception as fatal_exc:  # noqa: BLE001
+                # Última red: no propagar a Flet.run_task
+                fatal_msg = str(fatal_exc) or type(fatal_exc).__name__
+                try:
+                    self.presenter.set_importacion_tpv_activa(False)
+                    self._import_bloqueado = False
+                    self.page.on_resize = self._resize_handler
+                    self.presenter._confirmando = False
+                    self.presenter._feedback = FeedbackVM(
+                        ok=False,
+                        mensaje=f"Error al importar documento: {fatal_msg}",
+                    )
+                    self.refresh()
                 except Exception:  # noqa: BLE001
                     pass
-            except Exception as exc:  # noqa: BLE001
-                self.presenter._confirmando = False
-                self.presenter._feedback = FeedbackVM(
-                    ok=False,
-                    mensaje=f"Error al importar documento: {exc}",
-                )
-            finally:
-                self.presenter.set_importacion_tpv_activa(False)
-                self._import_bloqueado = False
-                self.page.on_resize = self._resize_handler
-            self.refresh()
 
         if hasattr(self.page, "run_task"):
             self.page.run_task(_pick_and_import)

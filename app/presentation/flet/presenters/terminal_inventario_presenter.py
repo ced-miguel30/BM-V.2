@@ -33,6 +33,7 @@ from app.core.services.ubicacion_stock_service import (
     saldo_en_ubicacion,
     saldos_por_ubicacion_lote,
 )
+from app.core.services.text_search import contiene_texto
 from app.presentation.flet import session_bridge
 from app.presentation.flet.inventory_viewmodels import (
     ESPACIOS,
@@ -1338,7 +1339,7 @@ class TerminalInventarioPresenter(InventarioEconomatoMixin):
         return tuple(items)
 
     def _stock_filas_vm(self, data) -> tuple[StockSaldoVM, ...]:
-        q = self._stock_busqueda.lower()
+        q = self._stock_busqueda.strip()
         filtro = self._stock_filtro_ubicacion
         prods = self._mapa_productos(data)
         filas: list[StockSaldoVM] = []
@@ -1348,7 +1349,7 @@ class TerminalInventarioPresenter(InventarioEconomatoMixin):
             prod = prods.get(lote.producto_id)
             nombre = getattr(prod, "nombre", None) or lote.producto_id
             unidad = self._unidad_producto(data, lote.producto_id)
-            if q and q not in nombre.lower() and q not in lote.id.lower():
+            if q and not contiene_texto(nombre, q) and not contiene_texto(lote.id, q):
                 continue
             info = saldos_por_ubicacion_lote(data, lote.id)
             cob = getattr(info.cobertura, "value", str(info.cobertura))

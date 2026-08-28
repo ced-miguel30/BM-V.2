@@ -122,7 +122,10 @@ from app.core.services.pack_unidades import piezas_a_ud_paquete, UNIDADES_POR_PA
 
 # Pan de molde: 1 Ud de catálogo = 1 paquete ≈ 31 rebanadas.
 REBANADAS_POR_PAQUETE_MOLDE = UNIDADES_POR_PAQUETE["p09"]
-PRODUCTOS_PAN_MOLDE_TOSTADA = frozenset({"p09", "p11"})
+PRODUCTOS_PAN_MOLDE_TOSTADA = frozenset({"p09", "p11", "p04"})
+
+_REB_MOLDE = piezas_a_ud_paquete("p09", 1.0)
+_PIEZA_SIN_GLUTEN = piezas_a_ud_paquete("p04", 1.0)
 
 
 @dataclass(frozen=True)
@@ -132,9 +135,6 @@ class ExtraRapidoDesayuno:
     cantidad: float
     cantidad_mostrar: float
     unidad_mostrar: str
-
-
-_REB_MOLDE = piezas_a_ud_paquete("p09", 1.0)
 
 
 def _extra_pieza(label: str, producto_id: str) -> ExtraRapidoDesayuno:
@@ -156,6 +156,10 @@ _EXTRAS_RAPIDOS_DESAYUNO: tuple[ExtraRapidoDesayuno, ...] = (
     ExtraRapidoDesayuno("Jamon cocido", "p102", 0.02, 20, "gr"),
     ExtraRapidoDesayuno("Tostada", "p09", _REB_MOLDE, 1, "reb"),
     ExtraRapidoDesayuno("Tostada integral", "p11", _REB_MOLDE, 1, "reb"),
+    ExtraRapidoDesayuno("Pan blanco", "p09", _REB_MOLDE, 1, "reb"),
+    ExtraRapidoDesayuno("Pan integral", "p11", _REB_MOLDE, 1, "reb"),
+    ExtraRapidoDesayuno("Tostada sin gluten", "p04", _PIEZA_SIN_GLUTEN, 1, "ud"),
+    ExtraRapidoDesayuno("Pan sin gluten", "p04", _PIEZA_SIN_GLUTEN, 1, "ud"),
     ExtraRapidoDesayuno("Salchicha", "p20", 0.05, 50, "gr"),
     ExtraRapidoDesayuno("Hashbrown", "p29", 0.07, 70, "gr"),
     ExtraRapidoDesayuno("Champi", "p117", 0.006667, 20, "gr"),
@@ -168,6 +172,11 @@ _EXTRAS_RAPIDOS_DESAYUNO: tuple[ExtraRapidoDesayuno, ...] = (
     ExtraRapidoDesayuno("Espinacas", "p185", 0.075, 15, "gr"),
     ExtraRapidoDesayuno("Tomate cherry", "p52", 0.03, 30, "gr"),
     ExtraRapidoDesayuno("Chorizo", "p146", 0.02, 20, "gr"),
+    # --- Tipos de huevo (añadir / omitir en inglés u otras recetas) ---
+    ExtraRapidoDesayuno("Huevo frito", "p48", 1.0, 1, "Ud"),
+    ExtraRapidoDesayuno("Huevo pochado", "p48", 1.0, 1, "Ud"),
+    ExtraRapidoDesayuno("Huevo cocido", "p48", 1.0, 1, "Ud"),
+    ExtraRapidoDesayuno("Huevos revueltos", "p46", 0.05, 50, "ml"),
     # --- Estándar buffet desayuno (productos individuales) ---
     ExtraRapidoDesayuno("Kiwi", "p71", 0.08, 80, "gr"),
     ExtraRapidoDesayuno("Papaya", "p70", 0.08, 80, "gr"),
@@ -469,17 +478,37 @@ def _aplanar_cesta() -> dict[str, tuple[float, bool]]:
     for linea in get_cesta():
         cantidad, es_extra = fusionado.get(linea.producto_id, (0.0, False))
         fusionado[linea.producto_id] = (
-            round(cantidad + linea.cantidad, 4),
+            round(cantidad + linea.cantidad, 6),
             es_extra or linea.es_extra,
         )
     for grupo in get_cesta_recetas():
         for ing in grupo.ingredientes:
             cantidad, es_extra = fusionado.get(ing.producto_id, (0.0, False))
             fusionado[ing.producto_id] = (
-                round(cantidad + ing.cantidad, 4),
+                round(cantidad + ing.cantidad, 6),
                 es_extra or ing.es_extra,
             )
     return {pid: (max(c, 0), e) for pid, (c, e) in fusionado.items() if c != 0}
+
+
+def _alinear_detalle_a_demandas(
+    lineas_detalle: list,
+    demandas: dict[str, float],
+) -> None:
+    """Cuadra cantidades de detalle con el agregado FIFO (evita polvo 0.006667 vs 4 dec)."""
+    por_pid: dict[str, list] = {}
+    for det in lineas_detalle:
+        if float(det.cantidad or 0) <= 0:
+            continue
+        por_pid.setdefault(det.producto_id, []).append(det)
+    for pid, dets in por_pid.items():
+        target = round(float(demandas.get(pid, 0.0) or 0.0), 6)
+        actual = round(sum(float(d.cantidad or 0) for d in dets), 6)
+        if abs(actual - target) <= 1e-9:
+            continue
+        dets[-1].cantidad = round(float(dets[-1].cantidad) + (target - actual), 6)
+        if dets[-1].cantidad < 0:
+            dets[-1].cantidad = 0.0
 
 
 def _construir_registros_recetas(data: AppData, grupos: list[GrupoRecetaCesta]) -> list[RegistroRecetaDesayuno]:
@@ -601,7 +630,12 @@ def registrar_desayuno(
     cesta_suelta = list(get_cesta())
 
     registro_id = next_id("d", [d.id for d in data.desayunos])
-    demandas = {pid: cant for pid, (cant, _) in fusionado.items() if cant > 0}
+    # Redondeo a 4 dec: mismo criterio que descontar_lotes / FIFO.
+    demandas = {
+        pid: round(cant, 4)
+        for pid, (cant, _) in fusionado.items()
+        if cant > 0
+    }
     extras = {pid: es_extra for pid, (cant, es_extra) in fusionado.items() if cant > 0}
 
     snap = snapshot_cantidades_restantes(data)
@@ -632,6 +666,14 @@ def registrar_desayuno(
             registro_id=registro_id,
             data=data,
         )
+        cant_fifo: dict[str, float] = {}
+        for mov in resultado_desc.movimientos:
+            if float(mov.cantidad or 0) <= 0:
+                continue
+            cant_fifo[mov.producto_id] = round(
+                cant_fifo.get(mov.producto_id, 0.0) + float(mov.cantidad), 6
+            )
+        _alinear_detalle_a_demandas(lineas_detalle, cant_fifo or demandas)
         asignar_costes_proporcionales(lineas_detalle, costes_agregados, cantidades_agregadas)
         asignar_consumos_lote(lineas_detalle, resultado_desc.movimientos)
         validar_consumos_lote(

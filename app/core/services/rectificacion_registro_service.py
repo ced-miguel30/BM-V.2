@@ -10,11 +10,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.core.application.context import AppContext, get_app_context
+from app.core.application.context import AppContext
 from app.core.models import AppData, LineaDetalleOrigen, OrigenConsumo
 from app.core.models.desayuno import LineaDesayuno
 from app.core.models.registro_servicio import LineaServicio
 from app.core.repositories.data_repository import DataRepository
+from app.core.services.data_service import get_app_context
 from app.core.services.anulacion_registro_service import (
     TIPO_DESAYUNO,
     TIPO_SERVICIO,

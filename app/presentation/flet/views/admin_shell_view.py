@@ -743,13 +743,15 @@ def _panel_analisis_body(
     ]
 
     if hub_id == "consumo":
+        _on_busq = cbs.get("on_analisis_busqueda") or (lambda _t: None)
         busq = ft.TextField(
             label="Buscador",
+            hint_text="Escriba parte del nombre…",
             value=panel.busqueda,
+            prefix_icon=ft.Icons.SEARCH,
             expand=True,
-            on_submit=lambda e: (cbs.get("on_analisis_busqueda") or (lambda _t: None))(
-                e.control.value or ""
-            ),
+            on_change=lambda e: _on_busq(e.control.value or ""),
+            on_submit=lambda e: _on_busq(e.control.value or ""),
         )
         tipo_dd = ft.Dropdown(
             label="Tipo",
@@ -764,13 +766,6 @@ def _panel_analisis_body(
             ft.Row(
                 controls=[
                     busq,
-                    ui.secondary_button(
-                        "Filtrar",
-                        lambda: (cbs.get("on_analisis_busqueda") or (lambda _t: None))(
-                            busq.value or ""
-                        ),
-                        icon=ft.Icons.SEARCH,
-                    ),
                     tipo_dd,
                 ]
             )
@@ -1321,17 +1316,14 @@ def _panel_inicio(screen: AdminScreenVM, **cbs) -> ft.Control:
 def _filtro_row(screen: AdminScreenVM, on_filtro: Callable[[str], None]) -> ft.Control:
     filtro_tf = ft.TextField(
         label="Buscar",
+        hint_text="Escriba parte del nombre…",
         value=screen.filtro,
         prefix_icon=ft.Icons.SEARCH,
-        on_submit=lambda e: on_filtro(e.control.value or ""),
         expand=True,
+        on_change=lambda e: on_filtro(e.control.value or ""),
+        on_submit=lambda e: on_filtro(e.control.value or ""),
     )
-    return ft.Row(
-        controls=[
-            filtro_tf,
-            ft.OutlinedButton("Filtrar", on_click=lambda _e: on_filtro(filtro_tf.value or "")),
-        ]
-    )
+    return filtro_tf
 
 
 def _panel_productos(screen: AdminScreenVM, **cbs) -> ft.Control:
@@ -2615,10 +2607,11 @@ def _panel_documentos(screen: AdminScreenVM, **cbs) -> ft.Control:
                 controls=[
                     ft.TextField(
                         label="Buscar documentos",
+                        hint_text="Escriba parte del nombre, ref. o proveedor…",
                         value=screen.filtro,
                         prefix_icon=ft.Icons.SEARCH,
+                        on_change=lambda e: on_filtro(e.control.value or ""),
                         on_submit=lambda e: on_filtro(e.control.value or ""),
-                        on_blur=lambda e: on_filtro(e.control.value or ""),
                         expand=True,
                     ),
                 ]

@@ -614,8 +614,11 @@ def _stock_body(
 ) -> ft.Control:
     search = ft.TextField(
         label="Buscar producto o lote",
+        hint_text="Escriba parte del nombre o id de lote…",
         value=screen.stock_busqueda,
+        prefix_icon=ft.Icons.SEARCH,
         expand=True,
+        on_change=lambda e: on_busqueda(getattr(e.control, "value", "") or ""),
         on_submit=lambda e: on_busqueda(getattr(e.control, "value", "") or ""),
     )
     filtro = ft.Dropdown(
@@ -706,11 +709,6 @@ def _stock_body(
                 ft.Row(
                     controls=[
                         search,
-                        ui.secondary_button(
-                            "Buscar",
-                            lambda: on_busqueda(search.value or ""),
-                            icon=ft.Icons.SEARCH,
-                        ),
                         filtro,
                     ]
                 ),

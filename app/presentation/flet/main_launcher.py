@@ -28,6 +28,7 @@ def build_app_handler():
     try:
         prepare_runtime(role="flet_launcher")
     except WriterLockError as exc:
+        lock_detail = str(exc)
         def _lock_error(page: ft.Page) -> None:
             page.title = "BM — No disponible"
             page.add(
@@ -42,7 +43,7 @@ def build_app_handler():
                                 size=22,
                                 weight=ft.FontWeight.BOLD,
                             ),
-                            ft.Text(str(exc), size=14),
+                            ft.Text(lock_detail, size=14),
                             ft.Text(
                                 "Cierre la otra ventana o espere a que termine de cargar.",
                                 size=13,
@@ -79,6 +80,9 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    import multiprocessing as _mp
+
+    _mp.freeze_support()
     if __package__ is None:
         sys.path.insert(
             0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))

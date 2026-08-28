@@ -400,7 +400,7 @@ class MotorCesta:
             producto = repo.get_producto(ing.producto_id)
             if not producto:
                 return ResultadoOperacionCesta(False, "Un ingrediente de la receta ya no existe en el catálogo.")
-            cantidad = round(ing.cantidad * factor, 4)
+            cantidad = round(ing.cantidad * factor, 6)
             cantidad_mostrar, unidad_mostrar = resolver_presentacion(
                 ing.cantidad,
                 producto.unidad,
@@ -585,7 +585,7 @@ class MotorCesta:
             producto = repo.get_producto(linea.producto_id)
             if not producto:
                 continue
-            linea.cantidad = round(ing_template.cantidad * factor, 4)
+            linea.cantidad = round(ing_template.cantidad * factor, 6)
             linea.paso_edicion = (
                 (ing_template.cantidad / estandar) if ing_template.cantidad > 0 else PASO_CANTIDAD
             )
