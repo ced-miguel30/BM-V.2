@@ -35,6 +35,6 @@ echo.
 echo Se descontara stock. Continuar?
 pause
 
-"%PY%" "%ROOT%\scripts\import_desayuno_excel_operativo.py" "%XLSX%" --path "%BM_DATOS%"
+"%PY%" "%ROOT%\scripts\import_registro_operativo_excel.py" "%XLSX%" --path "%BM_DATOS%"
 echo.
 pause

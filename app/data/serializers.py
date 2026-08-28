@@ -62,6 +62,7 @@ from app.core.models import (
     UnidadProducto,
     Usuario,
 )
+from app.core.models.buffet import LineaConfigBuffet, LineaRegistroBuffet, RegistroBuffetDiario
 from app.core.models.registro_servicio import ConsumoLoteDetalle
 from app.core.auth.roles import parse_rol_persistido, rol_canonico
 
@@ -1038,6 +1039,59 @@ def appdata_to_dict(data: AppData) -> dict:
             }
             for d in data.desayunos
         ],
+        "config_buffet": [
+            {
+                "id": c.id,
+                "seccion": c.seccion,
+                "orden": c.orden,
+                "label": c.label,
+                "producto_id": c.producto_id,
+                "unidad": c.unidad,
+                "cantidad_defecto": c.cantidad_defecto,
+                "activo": c.activo,
+                "tipo_linea": c.tipo_linea,
+                "producto_bote_id": c.producto_bote_id,
+                "receta_id": c.receta_id,
+            }
+            for c in getattr(data, "config_buffet", []) or []
+        ],
+        "registros_buffet": [
+            {
+                "id": r.id,
+                "fecha": r.fecha.isoformat(),
+                "hora": r.hora.isoformat() if r.hora else None,
+                "lineas": [
+                    {
+                        "config_id": ln.config_id,
+                        "label": ln.label,
+                        "cantidad": ln.cantidad,
+                        "motivo": ln.motivo,
+                        "naranjas_cantidad": ln.naranjas_cantidad,
+                        "zumo_bote_cantidad": ln.zumo_bote_cantidad,
+                        "coste_snapshot": ln.coste_snapshot,
+                        "notas": ln.notas,
+                    }
+                    for ln in r.lineas
+                ],
+                "coste_total": r.coste_total,
+                "clave_idempotencia": r.clave_idempotencia,
+                "registrado_por": r.registrado_por,
+                "observaciones": r.observaciones,
+                "anulado": bool(getattr(r, "anulado", False)),
+                "fecha_anulacion": (
+                    r.fecha_anulacion.isoformat()
+                    if getattr(r, "fecha_anulacion", None) else None
+                ),
+                "hora_anulacion": (
+                    r.hora_anulacion.isoformat()
+                    if getattr(r, "hora_anulacion", None) else None
+                ),
+                "motivo_anulacion": getattr(r, "motivo_anulacion", "") or "",
+                "referencia_anulacion": getattr(r, "referencia_anulacion", "") or "",
+                "anulado_por": getattr(r, "anulado_por", "") or "",
+            }
+            for r in getattr(data, "registros_buffet", []) or []
+        ],
         "registros_servicio": [
             {
                 "id": r.id,
@@ -1278,7 +1332,7 @@ def appdata_to_dict(data: AppData) -> dict:
 
 def dict_to_appdata(payload: dict) -> AppData:
     config = payload.get("configuracion")
-    return AppData(
+    data = AppData(
         productos=[
             Producto(
                 p["id"],
@@ -1371,6 +1425,53 @@ def dict_to_appdata(payload: dict) -> AppData:
                 observaciones=d.get("observaciones", "") or "",
             )
             for d in payload.get("desayunos", [])
+        ],
+        config_buffet=[
+            LineaConfigBuffet(
+                c["id"],
+                c["seccion"],
+                int(c.get("orden", 0)),
+                c["label"],
+                c.get("producto_id", "") or "",
+                c.get("unidad", "Ud"),
+                float(c.get("cantidad_defecto") or 1.0),
+                activo=bool(c.get("activo", True)),
+                tipo_linea=c.get("tipo_linea") or "simple",
+                producto_bote_id=c.get("producto_bote_id"),
+                receta_id=c.get("receta_id"),
+            )
+            for c in payload.get("config_buffet", [])
+        ],
+        registros_buffet=[
+            RegistroBuffetDiario(
+                r["id"],
+                _parse_date(r["fecha"]),  # type: ignore[arg-type]
+                [
+                    LineaRegistroBuffet(
+                        ln["config_id"],
+                        ln["label"],
+                        float(ln.get("cantidad") or 0),
+                        ln.get("motivo") or "consumo",
+                        ln.get("naranjas_cantidad"),
+                        ln.get("zumo_bote_cantidad"),
+                        float(ln.get("coste_snapshot") or 0),
+                        ln.get("notas") or "",
+                    )
+                    for ln in r.get("lineas", [])
+                ],
+                float(r.get("coste_total") or 0),
+                clave_idempotencia=r.get("clave_idempotencia"),
+                registrado_por=r.get("registrado_por", "") or "",
+                hora=_parse_time(r.get("hora")),
+                observaciones=r.get("observaciones", "") or "",
+                anulado=bool(r.get("anulado", False)),
+                fecha_anulacion=_parse_date(r.get("fecha_anulacion")),
+                hora_anulacion=_parse_time(r.get("hora_anulacion")),
+                motivo_anulacion=r.get("motivo_anulacion", "") or "",
+                referencia_anulacion=r.get("referencia_anulacion", "") or "",
+                anulado_por=r.get("anulado_por", "") or "",
+            )
+            for r in payload.get("registros_buffet", [])
         ],
         registros_servicio=[
             RegistroServicio(
@@ -1610,6 +1711,10 @@ def dict_to_appdata(payload: dict) -> AppData:
         usuario_actual_id=payload.get("meta", {}).get("usuario_actual_id", ""),
         revision=int((payload.get("meta") or {}).get("revision", 0) or 0),
     )
+    from app.core.services.buffet_config_service import ensure_config_buffet
+
+    ensure_config_buffet(data)
+    return data
 
 
 def save_json(path: Path, data: dict) -> None:

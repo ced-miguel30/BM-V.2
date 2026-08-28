@@ -1,8 +1,9 @@
 """Genera / actualiza docs/plantillas/registro_desayuno_operativo_LISTA_ACTUALIZADA_ACTUALIZADA.xlsx.
 
-Hojas: Instrucciones, Registro (ticket diario), Catalogo (recetas + extras + huevos + panes).
+Hojas: Instrucciones, Registro, RegistroComida, RegistroCena, ConfigBuffet,
+ConsumoBuffet, Catalogo, Precios.
 
-Si el archivo de salida ya existe y tiene filas en Registro, se PRESERVAN
+Si el archivo de salida ya existe y tiene filas en hojas de registro, se PRESERVAN.
 (no se borran datos ya apuntados). Solo se refrescan Instrucciones, Catalogo
 y validaciones.
 
@@ -30,11 +31,31 @@ from openpyxl.worksheet.datavalidation import DataValidation
 from app.bootstrap import configure_for_flet, get_container, reset_container
 from app.core.models import CategoriaReceta
 from app.core.services import desayuno_service as des
+from app.core.services.buffet_config_service import ensure_config_buffet
+from app.core.services.inventory_batch_service import calcular_coste_linea
 from app.core.services.receta_service import ETIQUETA_TOSTADA_DEL_DIA
 from app.core.services.text_search import normalizar_texto
 
 HOTEL_DEFAULT = Path(os.environ["LOCALAPPDATA"]) / "BM-V2-local" / "data" / "datos_hotel.json"
 OUT_DEFAULT = ROOT / "docs" / "plantillas" / "registro_desayuno_operativo_LISTA_ACTUALIZADA_ACTUALIZADA.xlsx"
+
+HEADERS_SERVICIO = ["Fecha", "Tipo", "Nombre", "Cantidad ↑↓", "Notas", "Importado"]
+
+HEADERS_CONFIG_BUFFET = [
+    "Seccion", "Orden", "Concepto", "ProductoId", "Unidad", "CantDefecto",
+    "Tipo", "ProductoBote", "RecetaId", "Activo",
+]
+
+HEADERS_CONSUMO_BUFFET = [
+    "Fecha", "Seccion", "Concepto", "Cantidad", "Motivo",
+    "Naranjas", "ZumoBote", "Coste", "Notas", "Importado",
+]
+
+HEADERS_PRECIOS = ["producto_id", "nombre", "coste_ud"]
+
+MOTIVOS_BUFFET_EXCEL = "Consumo,Merma,Expiración,Limpieza"
+
+FILL_BUFFET = PatternFill("solid", fgColor="FFF2CC")
 
 HEADERS = [
     "Fecha",
@@ -90,6 +111,180 @@ THIN = Border(
 def _boot(path: Path) -> None:
     reset_container()
     configure_for_flet(data_path=str(path))
+
+
+def _catalogo_recetas_servicio(data, categorias: list[CategoriaReceta]) -> list[str]:
+    names: list[str] = []
+    seen: set[str] = set()
+    cats = {c.value for c in categorias}
+    for r in data.recetas:
+        if not getattr(r, "activo", True):
+            continue
+        cat = r.categoria.value if hasattr(r.categoria, "value") else str(r.categoria)
+        if cat == CategoriaReceta.BEBIDAS.value:
+            if CategoriaReceta.BEBIDAS not in categorias and not des.es_receta_bebida_desayuno(r.nombre):
+                continue
+        elif cat not in cats:
+            continue
+        key = normalizar_texto(r.nombre)
+        if key in seen:
+            continue
+        seen.add(key)
+        names.append(r.nombre)
+    return sorted(names, key=lambda s: normalizar_texto(s))
+
+
+def _escribir_hoja_registro_simple(
+    ws,
+    headers: list[str],
+    preservado: tuple[list, list[tuple]] | None,
+    *,
+    lista_nombre_col: str,
+    lista_ref: str,
+    filas_vacias: int = 120,
+) -> int:
+    for col, h in enumerate(headers, start=1):
+        cell = ws.cell(1, col, h)
+        cell.font = FONT_HEADER
+        cell.fill = FILL_HEADER
+        cell.alignment = Alignment(wrap_text=True, horizontal="center", vertical="center")
+        cell.border = THIN
+    filas_datos = 0
+    start_empty = 2
+    if preservado:
+        old_headers, old_rows = preservado
+        for r_i, old in enumerate(old_rows, start=2):
+            mapped = _mapear_fila(old_headers, old, headers)
+            for c_i, val in enumerate(mapped, start=1):
+                ws.cell(r_i, c_i, val).border = THIN
+            filas_datos += 1
+        start_empty = 2 + filas_datos
+    for r_i in range(start_empty, start_empty + filas_vacias):
+        for c_i in range(1, len(headers) + 1):
+            ws.cell(r_i, c_i).border = THIN
+    ws.data_validations.dataValidation = []
+    dv_tipo = DataValidation(type="list", formula1='"Receta,Extra,Producto"', allow_blank=True)
+    ws.add_data_validation(dv_tipo)
+    dv_tipo.add("B2:B500")
+    nombre_idx = headers.index("Nombre") + 1
+    col = get_column_letter(nombre_idx)
+    dv_nombre = DataValidation(type="list", formula1=lista_ref, allow_blank=True)
+    ws.add_data_validation(dv_nombre)
+    dv_nombre.add(f"{col}2:{col}500")
+    cant_idx = next(i for i, h in enumerate(headers) if h.startswith("Cantidad"))
+    cant_col = get_column_letter(cant_idx + 1)
+    dv_cant = DataValidation(type="whole", operator="between", formula1="1", formula2="30", allow_blank=True)
+    ws.add_data_validation(dv_cant)
+    dv_cant.add(f"{cant_col}2:{cant_col}500")
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = f"A1:{get_column_letter(len(headers))}1"
+    return filas_datos
+
+
+def _escribir_precios(ws, data) -> int:
+    if ws.max_row:
+        ws.delete_rows(1, ws.max_row)
+    for col, h in enumerate(HEADERS_PRECIOS, start=1):
+        cell = ws.cell(1, col, h)
+        cell.font = FONT_HEADER
+        cell.fill = FILL_HEADER
+    vistos: set[str] = set()
+    fila = 2
+    for p in data.productos:
+        if not getattr(p, "activo", True) or p.id in vistos:
+            continue
+        coste = calcular_coste_linea(data, p.id, 1.0)
+        ws.cell(fila, 1, p.id)
+        ws.cell(fila, 2, p.nombre)
+        ws.cell(fila, 3, round(coste, 4))
+        vistos.add(p.id)
+        fila += 1
+    ws.column_dimensions["A"].width = 14
+    ws.column_dimensions["B"].width = 36
+    ws.column_dimensions["C"].width = 12
+    return max(fila - 2, 1)
+
+
+def _escribir_config_buffet(ws, data) -> int:
+    if ws.max_row:
+        ws.delete_rows(1, ws.max_row)
+    for col, h in enumerate(HEADERS_CONFIG_BUFFET, start=1):
+        cell = ws.cell(1, col, h)
+        cell.font = FONT_HEADER
+        cell.fill = FILL_HEADER
+    ensure_config_buffet(data)
+    configs = sorted(data.config_buffet, key=lambda c: (c.seccion, c.orden, c.label))
+    for i, cfg in enumerate(configs, start=2):
+        ws.cell(i, 1, cfg.seccion)
+        ws.cell(i, 2, cfg.orden)
+        ws.cell(i, 3, cfg.label)
+        ws.cell(i, 4, cfg.producto_id)
+        ws.cell(i, 5, cfg.unidad)
+        ws.cell(i, 6, cfg.cantidad_defecto)
+        ws.cell(i, 7, cfg.tipo_linea)
+        ws.cell(i, 8, cfg.producto_bote_id or "")
+        ws.cell(i, 9, cfg.receta_id or "")
+        ws.cell(i, 10, "Si" if cfg.activo else "No")
+        for c in range(1, 11):
+            ws.cell(i, c).fill = FILL_BUFFET
+    for col, w in zip("ABCDEFGHIJ", [14, 8, 32, 12, 10, 12, 16, 12, 12, 8]):
+        ws.column_dimensions[col].width = w
+    return max(len(configs), 1)
+
+
+def _escribir_consumo_buffet(ws, data, n_config: int, n_precios: int, preservado) -> int:
+    for col, h in enumerate(HEADERS_CONSUMO_BUFFET, start=1):
+        cell = ws.cell(1, col, h)
+        cell.font = FONT_HEADER
+        cell.fill = FILL_HEADER
+    filas_datos = 0
+    start_empty = 2
+    if preservado:
+        old_headers, old_rows = preservado
+        for r_i, old in enumerate(old_rows, start=2):
+            mapped = _mapear_fila(old_headers, old, HEADERS_CONSUMO_BUFFET)
+            for c_i, val in enumerate(mapped, start=1):
+                ws.cell(r_i, c_i, val).border = THIN
+            filas_datos += 1
+        start_empty = 2 + filas_datos
+    max_row = max(start_empty + 80, 150)
+    for r_i in range(start_empty, max_row):
+        for c_i in range(1, len(HEADERS_CONSUMO_BUFFET) + 1):
+            ws.cell(r_i, c_i).border = THIN
+        # Coste acumulado (fórmula)
+        coste_col = HEADERS_CONSUMO_BUFFET.index("Coste") + 1
+        motivo_col = get_column_letter(HEADERS_CONSUMO_BUFFET.index("Motivo") + 1)
+        concepto_col = get_column_letter(HEADERS_CONSUMO_BUFFET.index("Concepto") + 1)
+        cant_col = get_column_letter(HEADERS_CONSUMO_BUFFET.index("Cantidad") + 1)
+        naranjas_col = get_column_letter(HEADERS_CONSUMO_BUFFET.index("Naranjas") + 1)
+        zumo_col = get_column_letter(HEADERS_CONSUMO_BUFFET.index("ZumoBote") + 1)
+        ws.cell(r_i, coste_col).value = (
+            f'=IF({motivo_col}{r_i}="Consumo",'
+            f'IFERROR({cant_col}{r_i}*VLOOKUP(VLOOKUP({concepto_col}{r_i},ConfigBuffet!$C:$D,2,FALSE),'
+            f'Precios!$A:$C,3,FALSE)*VLOOKUP({concepto_col}{r_i},ConfigBuffet!$C:$F,4,FALSE),0)'
+            f'+IFERROR({naranjas_col}{r_i}*VLOOKUP("b06",Precios!$A:$C,3,FALSE),0)'
+            f'+IFERROR({zumo_col}{r_i}*VLOOKUP("b28",Precios!$A:$C,3,FALSE),0),0)'
+        )
+    ws.data_validations.dataValidation = []
+    dv_motivo = DataValidation(type="list", formula1=f'"{MOTIVOS_BUFFET_EXCEL}"', allow_blank=True)
+    ws.add_data_validation(dv_motivo)
+    dv_motivo.add("E2:E500")
+    dv_concepto = DataValidation(
+        type="list",
+        formula1=f"ConfigBuffet!$C$2:$C${n_config + 1}",
+        allow_blank=True,
+    )
+    ws.add_data_validation(dv_concepto)
+    dv_concepto.add("C2:C500")
+    ws.freeze_panes = "A2"
+    tot_row = max_row + 1
+    ws.cell(tot_row, 7, "TOTAL")
+    ws.cell(tot_row, 8, f"=SUM(H2:H{max_row})")
+    ws.cell(tot_row, 7).font = Font(bold=True)
+    ws.cell(tot_row, 8).font = Font(bold=True)
+    for col, w in zip("ABCDEFGHIJ", [12, 14, 32, 10, 14, 10, 10, 12, 22, 12]):
+        ws.column_dimensions[col].width = w
+    return filas_datos
 
 
 def _catalogo_recetas(data) -> list[str]:
@@ -172,7 +367,16 @@ def _write_instrucciones(ws, hotel: Path, n_rec: int, n_ext: int) -> None:
         "9. Guarde y ejecute 2_importar_a_bm.cmd (mejor --dry-run antes).",
         "10. La columna Importado la rellena el script (no la edite).",
         "",
-        "Al regenerar la plantilla NO se borran las filas ya rellenadas en Registro.",
+        "COMIDA / CENA (hojas RegistroComida, RegistroCena)",
+        "• Misma Fecha = un solo registro del servicio en BM.",
+        "• Tipo: Receta, Extra o Producto. Cantidad: raciones/unidades.",
+        "",
+        "CONSUMO BUFFET (hoja ConsumoBuffet)",
+        "• Concepto: elija de ConfigBuffet (editable). Motivo: Consumo / Merma / Expiración / Limpieza.",
+        "• Jarra zumo naranja: rellene Naranjas (b06) y ZumoBote (b28) si aplica.",
+        "• Columna Coste usa Precios × cantidades (referencia; el import recalcula en BM).",
+        "",
+        "Al regenerar la plantilla NO se borran filas ya rellenadas en hojas de registro.",
     ]
     for i, line in enumerate(lines, start=2):
         ws[f"A{i}"] = line
@@ -185,18 +389,17 @@ def _write_instrucciones(ws, hotel: Path, n_rec: int, n_ext: int) -> None:
     ws["A41"].font = Font(italic=True, size=10, color="666666")
 
 
-def _leer_registro_existente(path: Path) -> tuple[list, list[tuple]] | None:
-    """Devuelve (headers, filas de valores) si hay datos que preservar."""
+def _leer_hoja_existente(path: Path, nombre: str) -> tuple[list, list[tuple]] | None:
     if not path.exists():
         return None
     try:
         wb = load_workbook(path, data_only=False)
     except Exception:
         return None
-    if "Registro" not in wb.sheetnames:
+    if nombre not in wb.sheetnames:
         wb.close()
         return None
-    ws = wb["Registro"]
+    ws = wb[nombre]
     headers = [c.value for c in next(ws.iter_rows(min_row=1, max_row=1))]
     rows: list[tuple] = []
     for row in ws.iter_rows(min_row=2, values_only=True):
@@ -206,6 +409,10 @@ def _leer_registro_existente(path: Path) -> tuple[list, list[tuple]] | None:
     if not rows:
         return None
     return headers, rows
+
+
+def _leer_registro_existente(path: Path) -> tuple[list, list[tuple]] | None:
+    return _leer_hoja_existente(path, "Registro")
 
 
 def _mapear_fila(old_headers: list, row: tuple, new_headers: list) -> list:
@@ -232,7 +439,7 @@ def _mapear_fila(old_headers: list, row: tuple, new_headers: list) -> list:
     return out
 
 
-def _escribir_catalogo(ws_c, recetas: list[str], extras: list[str]) -> tuple[int, int, int]:
+def _escribir_catalogo(ws_c, recetas: list[str], extras: list[str], data) -> tuple[int, int, int, int, int]:
     # Limpiar
     if ws_c.max_row:
         ws_c.delete_rows(1, ws_c.max_row)
@@ -241,9 +448,13 @@ def _escribir_catalogo(ws_c, recetas: list[str], extras: list[str]) -> tuple[int
     ws_c["C1"] = "Nombres_todos"
     ws_c["D1"] = "Huevos_ofrecidos"
     ws_c["F1"] = "Panes_ofrecidos"
-    for col in ("A", "B", "C", "D", "F"):
+    ws_c["G1"] = "Recetas_comida"
+    ws_c["H1"] = "Recetas_cena"
+    for col in ("A", "B", "C", "D", "F", "G", "H"):
         ws_c[f"{col}1"].font = FONT_HEADER
         ws_c[f"{col}1"].fill = FILL_HEADER
+    rec_comida = _catalogo_recetas_servicio(data, [CategoriaReceta.COMIDA, CategoriaReceta.BEBIDAS])
+    rec_cena = _catalogo_recetas_servicio(data, [CategoriaReceta.CENA, CategoriaReceta.BEBIDAS])
     for i, name in enumerate(recetas, start=2):
         ws_c[f"A{i}"] = name
         ws_c[f"A{i}"].fill = FILL_CAT
@@ -259,15 +470,25 @@ def _escribir_catalogo(ws_c, recetas: list[str], extras: list[str]) -> tuple[int
     for i, lab in enumerate(PANES_OFRECIDOS, start=2):
         ws_c[f"F{i}"] = lab
         ws_c[f"F{i}"].fill = FILL_PAN
+    for i, name in enumerate(rec_comida, start=2):
+        ws_c[f"G{i}"] = name
+        ws_c[f"G{i}"].fill = FILL_CAT
+    for i, name in enumerate(rec_cena, start=2):
+        ws_c[f"H{i}"] = name
+        ws_c[f"H{i}"].fill = FILL_CAT
     ws_c.column_dimensions["A"].width = 42
     ws_c.column_dimensions["B"].width = 28
     ws_c.column_dimensions["C"].width = 42
     ws_c.column_dimensions["D"].width = 22
     ws_c.column_dimensions["F"].width = 22
+    ws_c.column_dimensions["G"].width = 42
+    ws_c.column_dimensions["H"].width = 42
     return (
         max(len(recetas), 1),
         max(len(extras), 1),
         max(len(todos), 1),
+        max(len(rec_comida), 1),
+        max(len(rec_cena), 1),
     )
 
 
@@ -296,8 +517,12 @@ def build(out: Path, hotel: Path) -> Path:
     data = get_container().app_data_store.get()
     recetas = _catalogo_recetas(data)
     extras = _catalogo_extras()
+    ensure_config_buffet(data)
 
     preservado = _leer_registro_existente(out)
+    preservado_comida = _leer_hoja_existente(out, "RegistroComida")
+    preservado_cena = _leer_hoja_existente(out, "RegistroCena")
+    preservado_buffet = _leer_hoja_existente(out, "ConsumoBuffet")
 
     wb = Workbook()
     ws_i = wb.active
@@ -305,8 +530,37 @@ def build(out: Path, hotel: Path) -> Path:
     _write_instrucciones(ws_i, hotel, len(recetas), len(extras))
 
     ws_c = wb.create_sheet("Catalogo")
-    _n_rec, n_ext, n_all = _escribir_catalogo(ws_c, recetas, extras)
+    _n_rec, n_ext, n_all, n_comida, n_cena = _escribir_catalogo(ws_c, recetas, extras, data)
     n_combo = _rellenar_lista_extra_omitir(ws_c, extras)
+
+    ws_precios = wb.create_sheet("Precios")
+    n_precios = _escribir_precios(ws_precios, data)
+
+    ws_cfg = wb.create_sheet("ConfigBuffet")
+    n_config = _escribir_config_buffet(ws_cfg, data)
+
+    ws_buffet = wb.create_sheet("ConsumoBuffet")
+    filas_buffet = _escribir_consumo_buffet(
+        ws_buffet, data, n_config, n_precios, preservado_buffet,
+    )
+
+    ws_comida = wb.create_sheet("RegistroComida")
+    filas_comida = _escribir_hoja_registro_simple(
+        ws_comida,
+        HEADERS_SERVICIO,
+        preservado_comida,
+        lista_nombre_col="Nombre",
+        lista_ref=f"Catalogo!$G$2:$G${n_comida + 1}",
+    )
+
+    ws_cena = wb.create_sheet("RegistroCena")
+    filas_cena = _escribir_hoja_registro_simple(
+        ws_cena,
+        HEADERS_SERVICIO,
+        preservado_cena,
+        lista_nombre_col="Nombre",
+        lista_ref=f"Catalogo!$H$2:$H${n_cena + 1}",
+    )
 
     ws_r = wb.create_sheet("Registro", 1)
     for col, h in enumerate(HEADERS, start=1):
@@ -384,8 +638,12 @@ def build(out: Path, hotel: Path) -> Path:
     ws_r.auto_filter.ref = f"A1:{get_column_letter(n_cols)}1"
 
     note = f"Registro preservado: {filas_datos} fila(s)." if filas_datos else "Registro vacío (plantilla nueva)."
-    ws_i["A43"] = note
-    ws_i["A43"].font = Font(italic=True, size=10, color="1F4E79")
+    ws_i["A48"] = note
+    ws_i["A48"].font = Font(italic=True, size=10, color="1F4E79")
+    ws_i["A49"] = (
+        f"Comida: {filas_comida} | Cena: {filas_cena} | Buffet: {filas_buffet} fila(s) preservadas."
+    )
+    ws_i["A49"].font = Font(italic=True, size=10, color="666666")
 
     out.parent.mkdir(parents=True, exist_ok=True)
     try:

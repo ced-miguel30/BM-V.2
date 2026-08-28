@@ -6,6 +6,7 @@ from app.core.models.actividad import Actividad
 from app.core.models.ajuste import RegistroAjuste
 from app.core.models.alerta import AlertaOperativa
 from app.core.models.archivo_documental import ArchivoDocumental
+from app.core.models.buffet import LineaConfigBuffet, RegistroBuffetDiario
 from app.core.models.catalogo import Categoria, Departamento, Subcategoria, Ubicacion
 from app.core.models.configuracion import ConfiguracionHotel
 from app.core.models.desayuno import RegistroDesayuno
@@ -28,6 +29,8 @@ class AppData:
     lotes: list[LoteStock] = field(default_factory=list)
     recetas: list[Receta] = field(default_factory=list)
     desayunos: list[RegistroDesayuno] = field(default_factory=list)
+    config_buffet: list[LineaConfigBuffet] = field(default_factory=list)
+    registros_buffet: list[RegistroBuffetDiario] = field(default_factory=list)
     registros_servicio: list[RegistroServicio] = field(default_factory=list)
     mermas: list[RegistroMerma] = field(default_factory=list)
     ajustes: list[RegistroAjuste] = field(default_factory=list)

@@ -2,6 +2,7 @@ from app.core.models.actividad import Actividad
 from app.core.models.ajuste import LineaAjuste, RegistroAjuste
 from app.core.models.alerta import AlertaOperativa
 from app.core.models.app_data import AppData
+from app.core.models.buffet import LineaConfigBuffet, LineaRegistroBuffet, RegistroBuffetDiario
 from app.core.models.catalogo import Categoria, Departamento, Subcategoria, Ubicacion
 from app.core.models.configuracion import ConfiguracionHotel
 
@@ -95,7 +96,8 @@ __all__ = [
     "ExtraSugeridoReceta",
     "IngredienteReceta",
     "LineaAjuste",
-    "LineaDesayuno",
+    "LineaConfigBuffet",
+    "LineaRegistroBuffet",
     "LineaDetalleOrigen",
     "LineaDocumento",
     "LineaMerma",
@@ -115,6 +117,7 @@ __all__ = [
     "Proveedor",
     "Receta",
     "RegistroAjuste",
+    "RegistroBuffetDiario",
     "RegistroDesayuno",
     "RegistroMerma",
     "RegistroRecetaDesayuno",

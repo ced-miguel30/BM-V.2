@@ -1,6 +1,6 @@
 @echo off
 setlocal
-REM Regenera la plantilla Excel de trabajo (preserva Registro).
+REM Regenera la plantilla Excel de trabajo (preserva hojas de registro).
 cd /d "%~dp0\..\.."
 set "ROOT=%CD%"
 set "PY=%ROOT%\.venv\Scripts\python.exe"
@@ -9,7 +9,7 @@ set "OUT=%ROOT%\docs\plantillas\registro_desayuno_operativo_LISTA_ACTUALIZADA_AC
 
 if not "%~1"=="" set "BM_DATOS=%~1"
 
-echo Regenerando plantilla de trabajo (preserva Registro) desde:
+echo Regenerando plantilla operativa (desayuno, comida, cena, buffet) desde:
 echo   %BM_DATOS%
 echo   Destino: %OUT%
 echo.
