@@ -105,6 +105,8 @@ class RecetaLineaAdminVM:
     producto_id: str
     producto_nombre: str
     cantidad: float
+    unidad: str = ""
+    cantidad_nativa: float | None = None
 
 
 @dataclass(frozen=True)

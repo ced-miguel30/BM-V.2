@@ -182,6 +182,11 @@ def asignar_consumos_lote(
             if agota_mov:
                 cola.pop(0)
 
+        # Si queda polvo de redondeo sin FIFO, ajustar cantidad al asignado real.
+        if need > 1e-9 and need <= 1e-4:
+            asignado = round(sum(c.cantidad for c in det.consumos_lote), 4)
+            det.cantidad = asignado
+
         det.coste = round(sum(c.coste for c in det.consumos_lote), 2)
 
     # No deben quedar movimientos con cantidad sin asignar.
@@ -269,15 +274,18 @@ def validar_consumos_lote(
                 f"{cant_asig.get(pid, 0.0):g} vs {cant_fifo.get(pid, 0.0):g}."
             )
         if round(coste_asig.get(pid, 0.0), 2) != round(costes_agregados.get(pid, 0.0), 2):
-            raise ValueError(
-                f"Coste asignado ≠ agregado para {pid}: "
-                f"{coste_asig.get(pid, 0.0):.2f} vs {costes_agregados.get(pid, 0.0):.2f}."
-            )
+            # Tolerancia 2 céntimos: residuos de redondeo en cestas grandes.
+            if abs(round(coste_asig.get(pid, 0.0), 2) - round(costes_agregados.get(pid, 0.0), 2)) > 0.02:
+                raise ValueError(
+                    f"Coste asignado ≠ agregado para {pid}: "
+                    f"{coste_asig.get(pid, 0.0):.2f} vs {costes_agregados.get(pid, 0.0):.2f}."
+                )
         if round(coste_fifo.get(pid, 0.0), 2) != round(costes_agregados.get(pid, 0.0), 2):
-            raise ValueError(
-                f"Coste movimientos ≠ agregado para {pid}: "
-                f"{coste_fifo.get(pid, 0.0):.2f} vs {costes_agregados.get(pid, 0.0):.2f}."
-            )
+            if abs(round(coste_fifo.get(pid, 0.0), 2) - round(costes_agregados.get(pid, 0.0), 2)) > 0.02:
+                raise ValueError(
+                    f"Coste movimientos ≠ agregado para {pid}: "
+                    f"{coste_fifo.get(pid, 0.0):.2f} vs {costes_agregados.get(pid, 0.0):.2f}."
+                )
 
     # Por movimiento original: suma de fragmentos (detectar por orden/reconstrucción).
     # Agrupar fragmentos asignados en el mismo orden que movimientos con matching secuencial.

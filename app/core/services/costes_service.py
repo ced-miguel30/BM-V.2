@@ -590,3 +590,50 @@ def exportar_costes_excel(
         ])
 
     return buffer.getvalue()
+
+
+def exportar_coste_por_producto_excel(desde: date, hasta: date) -> bytes:
+    """Informe completo de coste por producto en el periodo (sin límite de filas)."""
+    from app.core.auth.permissions import Permiso
+    from app.core.auth.usecase_guard import require_usecase
+
+    require_usecase(Permiso.CONSULTAR_COSTES)
+
+    filas = analitica.ranking_productos(desde, hasta, limite=None)
+    total = sum(float(f.get("coste") or 0) for f in filas)
+    rows: list[dict] = []
+    for f in filas:
+        coste = float(f.get("coste") or 0)
+        rows.append(
+            {
+                "Producto": f.get("nombre") or "",
+                "Cantidad": f.get("cantidad_normalizada") or 0,
+                "Unidad": f.get("unidad_normalizada") or "",
+                "Coste (€)": round(coste, 2),
+                "% del total": round((coste / total) * 100, 2) if total else 0.0,
+                "Usos": f.get("usos") or 0,
+            }
+        )
+
+    meta_df = pd.DataFrame(
+        [
+            {"Campo": "Desde", "Valor": formato_fecha(desde)},
+            {"Campo": "Hasta", "Valor": formato_fecha(hasta)},
+            {"Campo": "Productos", "Valor": len(rows)},
+            {"Campo": "Coste total (€)", "Valor": round(total, 2)},
+        ]
+    )
+    detalle_df = pd.DataFrame(rows)
+
+    buffer = BytesIO()
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        meta_df.to_excel(writer, sheet_name="Periodo", index=False)
+        detalle_df.to_excel(writer, sheet_name="Coste por producto", index=False)
+        formatear_libro(
+            writer,
+            [
+                ("Periodo", "TablaCostesPeriodos", False),
+                ("Coste por producto", "TablaCosteProducto", True),
+            ],
+        )
+    return buffer.getvalue()

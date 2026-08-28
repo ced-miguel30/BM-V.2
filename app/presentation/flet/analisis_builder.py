@@ -268,6 +268,8 @@ def _build_costes(
     cmp_metrics: list[MetricVM] = []
     cmp_barras: list[BarItemVM] = []
     aviso = ""
+    coste_productos: tuple[RankingRowVM, ...] = ()
+    coste_productos_total_fmt = ""
 
     hist = analitica.resumen_historico_incompleto(desde, hasta)
     if hist.get("hay_aviso"):
@@ -359,6 +361,26 @@ def _build_costes(
                 ),
             )
         )
+        filas_cp = analitica.ranking_productos(desde, hasta, limite=None)
+        total_cp = sum(float(f.get("coste") or 0) for f in filas_cp)
+        coste_productos = tuple(
+            RankingRowVM(
+                nombre=str(f.get("nombre") or ""),
+                cantidad_fmt=(
+                    f"{f.get('cantidad_normalizada', 0):g} "
+                    f"{f.get('unidad_normalizada', '')}"
+                ).strip(),
+                usos=f.get("usos") or 0,
+                coste_fmt=repo.formato_precio(f.get("coste") or 0),
+                extra=(
+                    f"{(float(f.get('coste') or 0) / total_cp) * 100:.1f}%"
+                    if total_cp
+                    else "—"
+                ),
+            )
+            for f in filas_cp
+        )
+        coste_productos_total_fmt = repo.formato_precio(total_cp)
         evo = costes_service.evolucion_coste_naturaleza(desde, hasta)
         ch = _chart_from_evo(
             "Evolución del coste por naturaleza",
@@ -662,6 +684,8 @@ def _build_costes(
         cmp_barras=tuple(cmp_barras),
         export_mensaje=export_mensaje,
         puede_consultar=True,
+        coste_productos=coste_productos,
+        coste_productos_total_fmt=coste_productos_total_fmt,
     )
 
 def _build_consumo(

@@ -495,20 +495,35 @@ def _alinear_detalle_a_demandas(
     lineas_detalle: list,
     demandas: dict[str, float],
 ) -> None:
-    """Cuadra cantidades de detalle con el agregado FIFO (evita polvo 0.006667 vs 4 dec)."""
+    """Cuadra cantidades de detalle con el agregado FIFO (4 dec, mismo criterio)."""
     por_pid: dict[str, list] = {}
     for det in lineas_detalle:
         if float(det.cantidad or 0) <= 0:
             continue
         por_pid.setdefault(det.producto_id, []).append(det)
     for pid, dets in por_pid.items():
-        target = round(float(demandas.get(pid, 0.0) or 0.0), 6)
-        actual = round(sum(float(d.cantidad or 0) for d in dets), 6)
+        target = round(float(demandas.get(pid, 0.0) or 0.0), 4)
+        for d in dets:
+            d.cantidad = round(float(d.cantidad or 0), 4)
+        actual = round(sum(float(d.cantidad or 0) for d in dets), 4)
         if abs(actual - target) <= 1e-9:
             continue
-        dets[-1].cantidad = round(float(dets[-1].cantidad) + (target - actual), 6)
-        if dets[-1].cantidad < 0:
-            dets[-1].cantidad = 0.0
+        # Ajuste en la última línea; si queda negativa, repartir hacia atrás.
+        delta = round(target - actual, 4)
+        i = len(dets) - 1
+        while i >= 0 and abs(delta) > 1e-9:
+            nuevo = round(float(dets[i].cantidad) + delta, 4)
+            if nuevo >= 0:
+                dets[i].cantidad = nuevo
+                delta = 0.0
+                break
+            delta = round(delta + float(dets[i].cantidad), 4)
+            dets[i].cantidad = 0.0
+            i -= 1
+        # Limpia líneas a cero (sin consumos aún).
+        for d in dets:
+            if float(d.cantidad or 0) < 0:
+                d.cantidad = 0.0
 
 
 def _construir_registros_recetas(data: AppData, grupos: list[GrupoRecetaCesta]) -> list[RegistroRecetaDesayuno]:
@@ -676,6 +691,17 @@ def registrar_desayuno(
         _alinear_detalle_a_demandas(lineas_detalle, cant_fifo or demandas)
         asignar_costes_proporcionales(lineas_detalle, costes_agregados, cantidades_agregadas)
         asignar_consumos_lote(lineas_detalle, resultado_desc.movimientos)
+        # Coste oficial = suma de fragmentos FIFO (evita 1–2 céntimos de desfase).
+        costes_agregados = {}
+        for det in lineas_detalle:
+            if float(det.cantidad or 0) <= 0:
+                continue
+            costes_agregados[det.producto_id] = round(
+                costes_agregados.get(det.producto_id, 0.0) + float(det.coste or 0), 2
+            )
+        for ln in lineas:
+            if ln.producto_id in costes_agregados:
+                ln.coste = costes_agregados[ln.producto_id]
         validar_consumos_lote(
             lineas_detalle, resultado_desc.movimientos, costes_agregados, data,
         )

@@ -35,7 +35,7 @@ from app.core.services.text_search import normalizar_texto
 
 HOTEL_DEFAULT = Path(os.environ["LOCALAPPDATA"]) / "BM-V2-local" / "data" / "datos_hotel.json"
 CLAVE_PREFIX = "desayuno-xlsx"
-CLAVE_VER = "v2"
+CLAVE_VER = "v3"
 
 # Labels de Extra/Omitir que son «tipo de huevo» (sustituyen el frito de Desayuno inglés).
 _TIPOS_HUEVO = frozenset(
@@ -251,7 +251,13 @@ def _leer_registro(path: Path) -> list[LineaExcel]:
         cant = _parse_float(cell("Cantidad ↑↓"), 1.0)
         if cant is None or cant <= 0:
             raise SystemExit(f"Fila {r_i}: Cantidad debe ser > 0.")
-        hues = _parse_float(cell("Huespedes"), None)
+        # Huéspedes: 1 = nuevo comensal; 0 o vacío = mismo comensal / no suma.
+        hues_raw = cell("Huespedes")
+        if hues_raw is None or hues_raw == "":
+            hues_val: int | None = None
+        else:
+            hues_f = _parse_float(hues_raw, None)
+            hues_val = int(hues_f) if hues_f is not None else None
         extras: list[tuple[str, float | None]] = []
         for n in (1, 2, 3, 4):
             lab = str(cell(f"Extra{n}") or "").strip()
@@ -262,7 +268,7 @@ def _leer_registro(path: Path) -> list[LineaExcel]:
             LineaExcel(
                 row=r_i,
                 fecha=fecha,
-                huespedes=int(hues) if hues and hues >= 1 else None,
+                huespedes=hues_val,
                 tipo=tipo,
                 nombre=nombre,
                 cantidad=float(cant),
@@ -277,16 +283,30 @@ def _leer_registro(path: Path) -> list[LineaExcel]:
 
 
 def _agrupar(lineas: list[LineaExcel]) -> list[DiaPlan]:
+    """Misma Fecha = un solo desayuno. Huéspedes = suma de 1s (0 no suma)."""
     por: dict[date, DiaPlan] = {}
     for ln in lineas:
         dia = por.get(ln.fecha)
         if dia is None:
             dia = DiaPlan(fecha=ln.fecha)
             por[ln.fecha] = dia
-        if ln.huespedes and dia.huespedes is None:
-            dia.huespedes = ln.huespedes
         dia.lineas.append(ln)
         dia.row_indices.append(ln.row)
+    for dia in por.values():
+        suma = 0
+        hay_marca = False
+        for ln in dia.lineas:
+            if ln.huespedes is None:
+                continue
+            hay_marca = True
+            if ln.huespedes > 0:
+                suma += int(ln.huespedes)
+        if hay_marca and suma >= 1:
+            dia.huespedes = suma
+        else:
+            # Sin marcas 1/0: fallback = nº de líneas Receta
+            n_rec = sum(1 for ln in dia.lineas if _norm(ln.tipo) == "receta")
+            dia.huespedes = max(n_rec, 1)
     return [por[k] for k in sorted(por)]
 
 
@@ -495,9 +515,6 @@ def _anadir_linea_a_cesta(
         raise ValueError(f"Tipo desconocido: «{ln.tipo}» (use Receta/Extra/Producto)")
 
 
-_BATCH_LINEAS = 1
-
-
 def _importar_dia(
     dia: DiaPlan,
     *,
@@ -516,8 +533,7 @@ def _importar_dia(
             "status": f"SKIP {existente.id}",
         }
 
-    n_recetas = sum(1 for ln in dia.lineas if _norm(ln.tipo) == "receta")
-    huespedes = dia.huespedes or max(n_recetas, 1)
+    huespedes = int(dia.huespedes or 1)
 
     if dry_run:
         preview = []
@@ -554,78 +570,59 @@ def _importar_dia(
         return {
             "ok": True,
             "dry_run": True,
-            "mensaje": f"dry-run {dia.fecha} huespedes={huespedes} -> " + "; ".join(preview),
+            "mensaje": (
+                f"dry-run {dia.fecha} huespedes={huespedes} "
+                f"lineas={len(dia.lineas)} -> " + "; ".join(preview)
+            ),
             "status": "DRY-RUN OK",
         }
 
-    # Lotes pequeños: evita polvo de redondeo FIFO en cestas muy grandes.
-    lotes = [
-        dia.lineas[i : i + _BATCH_LINEAS]
-        for i in range(0, len(dia.lineas), _BATCH_LINEAS)
-    ]
-    ids_ok: list[str] = []
-    for bi, lote in enumerate(lotes, start=1):
+    # Un día = un solo registro de desayuno (toda la cesta junta).
+    des.limpiar_cesta()
+    errores: list[str] = []
+    for ln in dia.lineas:
+        try:
+            _anadir_linea_a_cesta(
+                ln,
+                fecha=dia.fecha,
+                rec_map=rec_map,
+                extra_map=extra_map,
+                prod_map=prod_map,
+            )
+        except ValueError as exc:
+            errores.append(f"fila {ln.row}: {exc}")
+    if errores:
         des.limpiar_cesta()
-        errores: list[str] = []
-        for ln in lote:
-            try:
-                _anadir_linea_a_cesta(
-                    ln,
-                    fecha=dia.fecha,
-                    rec_map=rec_map,
-                    extra_map=extra_map,
-                    prod_map=prod_map,
-                )
-            except ValueError as exc:
-                errores.append(f"fila {ln.row}: {exc}")
-        if errores:
-            des.limpiar_cesta()
-            return {
-                "ok": False,
-                "mensaje": " | ".join(errores),
-                "status": "ERROR",
-            }
-        if des.cesta_vacia():
-            continue
-        notas = " | ".join(ln.notas for ln in lote if ln.notas)[:200]
-        hues_lote = int(huespedes) if bi == 1 else max(
-            sum(1 for ln in lote if _norm(ln.tipo) == "receta"), 1
-        )
-        res = des.registrar_desayuno(
-            dia.fecha,
-            hues_lote,
-            clave_idempotencia=_clave(dia.fecha, bi if len(lotes) > 1 else None),
-            observaciones=f"Import Excel desayuno operativo. {notas}".strip(),
-        )
-        if not res.ok:
-            des.limpiar_cesta()
-            return {
-                "ok": False,
-                "mensaje": res.mensaje,
-                "status": f"ERROR {res.mensaje}",
-                "codigo": getattr(res, "codigo", None),
-            }
-        # Recuperar id del último desayuno de esa clave
-        data = get_container().app_data_store.get()
-        reg = _ya_importado(data, dia.fecha) if len(lotes) == 1 else next(
-            (
-                d
-                for d in reversed(data.desayunos)
-                if getattr(d, "clave_idempotencia", None)
-                == _clave(dia.fecha, bi)
-                and not getattr(d, "anulado", False)
-            ),
-            None,
-        )
-        if reg is not None:
-            ids_ok.append(reg.id)
-
-    if not ids_ok:
+        return {
+            "ok": False,
+            "mensaje": " | ".join(errores),
+            "status": "ERROR",
+        }
+    if des.cesta_vacia():
         return {"ok": False, "mensaje": "Cesta vacía", "status": "ERROR"}
+
+    notas = " | ".join(ln.notas for ln in dia.lineas if ln.notas)[:200]
+    res = des.registrar_desayuno(
+        dia.fecha,
+        huespedes,
+        clave_idempotencia=_clave(dia.fecha),
+        observaciones=f"Import Excel desayuno operativo. {notas}".strip(),
+    )
+    if not res.ok:
+        des.limpiar_cesta()
+        return {
+            "ok": False,
+            "mensaje": res.mensaje,
+            "status": f"ERROR {res.mensaje}",
+            "codigo": getattr(res, "codigo", None),
+        }
+    data = get_container().app_data_store.get()
+    reg = _ya_importado(data, dia.fecha)
+    rid = getattr(reg, "id", "?") if reg is not None else "?"
     return {
         "ok": True,
-        "mensaje": f"OK {', '.join(ids_ok)}",
-        "status": f"OK {', '.join(ids_ok)}",
+        "mensaje": f"OK {rid} (huespedes={huespedes}, lineas={len(dia.lineas)})",
+        "status": f"OK {rid}",
     }
 
 

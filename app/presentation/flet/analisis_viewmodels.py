@@ -132,3 +132,5 @@ class AnalisisPanelVM:
     cmp_barras: tuple[BarItemVM, ...] = ()
     export_mensaje: str = ""
     puede_consultar: bool = False
+    coste_productos: tuple[RankingRowVM, ...] = ()
+    coste_productos_total_fmt: str = ""

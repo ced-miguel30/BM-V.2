@@ -301,3 +301,13 @@ def branded_page(*controls: ft.Control) -> ft.Control:
             controls=list(controls),
         ),
     )
+
+
+def coincide_campos_busqueda(termino: str, *campos: str) -> bool:
+    """True si el término coincide con alguno de los campos (contiene_texto)."""
+    from app.core.services.text_search import contiene_texto
+
+    q = (termino or "").strip()
+    if not q:
+        return True
+    return any(contiene_texto(str(c or ""), q) for c in campos)

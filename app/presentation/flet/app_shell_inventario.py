@@ -238,7 +238,8 @@ class TerminalInventarioShell:
             "on_maestro_tab": lambda t: _go(p.set_maestro_tab, t),
             "on_compra_tipo": lambda t: _go(p.set_compra_tipo, t),
             "on_compra_cabecera": lambda **kw: _go(p.set_compra_cabecera, **kw),
-            "on_compra_busqueda": lambda t: _go(p.set_compra_prod_busqueda, t),
+            # Sin refresh: la vista filtra chips en local (evita salto de scroll).
+            "on_compra_busqueda": lambda t: p.set_compra_prod_busqueda(t),
             "on_add_linea": lambda pid, **kw: _go(p.añadir_linea_compra, pid, **kw),
             "on_add_linea_busqueda": lambda t, **kw: _go(
                 p.añadir_linea_compra_por_busqueda, t, **kw

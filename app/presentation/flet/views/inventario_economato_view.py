@@ -97,6 +97,8 @@ def _panel(
 def _recepcion(
     screen: InventarioScreenVM, eco: EconomatoPanelVM, cbs: dict[str, Any]
 ) -> ft.Control:
+    from app.core.services.text_search import contiene_texto
+
     tipo_forzado = eco.compra_tipo or "albaran"
     titulo = "Albarán" if tipo_forzado == "albaran" else "Factura"
     prov_dd = ft.Dropdown(
@@ -146,7 +148,6 @@ def _recepcion(
         label="Producto",
         value=eco.compra_prod_busqueda,
         width=280,
-        on_change=lambda e: cbs["on_compra_busqueda"](e.control.value or ""),
         on_submit=lambda e: cbs["on_add_linea_busqueda"](e.control.value or ""),
     )
     cant_tf = ft.TextField(label="Cant.", value="1", width=70)
@@ -154,12 +155,58 @@ def _recepcion(
     igic_tf = ft.TextField(
         label="IGIC%", value=eco.compra_impuestos_default, width=70
     )
+    sugerencias_row = ft.Row(wrap=True, spacing=4)
+
+    def _hits(q: str) -> list:
+        if len(q) < 2:
+            return []
+        out = []
+        for p in eco.productos_opciones:
+            if contiene_texto(p.etiqueta, q) or contiene_texto(p.id, q):
+                out.append(p)
+            if len(out) >= 8:
+                break
+        return out
+
+    def _paint_sug(q: str) -> None:
+        chips: list[ft.Control] = []
+        if q:
+            hits = _hits(q)
+            if not hits:
+                chips.append(ft.Text("Sin coincidencias", size=12, color=ui_theme.MID_GRAY))
+            else:
+                for p in hits:
+                    chips.append(
+                        ft.TextButton(
+                            p.etiqueta,
+                            on_click=lambda _e, pid=p.id: cbs["on_add_linea"](
+                                pid,
+                                cantidad=cant_tf.value or "1",
+                                precio_unitario=prec_tf.value or "0",
+                                igic_pct=igic_tf.value or "",
+                            ),
+                        )
+                    )
+        sugerencias_row.controls = chips
+        try:
+            sugerencias_row.update()
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _on_busq_change(e) -> None:
+        texto = e.control.value or ""
+        cbs["on_compra_busqueda"](texto)
+        _paint_sug(texto.strip())
+
+    busq.on_change = _on_busq_change
+    _paint_sug((eco.compra_prod_busqueda or "").strip())
 
     def _add(_e=None):
         texto = (busq.value or "").strip()
-        if eco.compra_prod_sugerencias and len(eco.compra_prod_sugerencias) == 1:
+        hits = _hits(texto)
+        if len(hits) == 1:
             cbs["on_add_linea"](
-                eco.compra_prod_sugerencias[0].id,
+                hits[0].id,
                 cantidad=cant_tf.value or "1",
                 precio_unitario=prec_tf.value or "0",
                 igic_pct=igic_tf.value or "",
@@ -170,26 +217,6 @@ def _recepcion(
                 cantidad=cant_tf.value or "1",
                 precio_unitario=prec_tf.value or "0",
             )
-
-    sugerencias: list[ft.Control] = []
-    if eco.compra_prod_busqueda.strip() and len(eco.compra_prod_busqueda.strip()) >= 2:
-        if not eco.compra_prod_sugerencias:
-            sugerencias.append(
-                ft.Text("Sin coincidencias", size=12, color=ui_theme.MID_GRAY)
-            )
-        else:
-            for p in eco.compra_prod_sugerencias[:8]:
-                sugerencias.append(
-                    ft.TextButton(
-                        p.etiqueta,
-                        on_click=lambda _e, pid=p.id: cbs["on_add_linea"](
-                            pid,
-                            cantidad=cant_tf.value or "1",
-                            precio_unitario=prec_tf.value or "0",
-                            igic_pct=igic_tf.value or "",
-                        ),
-                    )
-                )
 
     on_update = cbs.get("on_update_linea")
     lineas_rows: list[ft.Control] = []
@@ -358,7 +385,7 @@ def _recepcion(
                     ui.primary_button("Añadir", _add, icon=ft.Icons.ADD),
                 ],
             ),
-            ft.Row(wrap=True, controls=sugerencias),
+            ft.Row(wrap=True, controls=sugerencias_row),
             ft.Column(controls=lineas_rows or [ft.Text("Sin líneas", color=ui_theme.MID_GRAY)]),
             tot_panel,
             *extras,

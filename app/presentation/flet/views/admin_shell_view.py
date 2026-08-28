@@ -255,6 +255,8 @@ def build_admin_shell(
     on_analisis_tipo: Callable[[str], None] | None = None,
     on_analisis_comparacion: Callable[[str, str, str, str], None] | None = None,
     on_analisis_export: Callable[[], None] | None = None,
+    on_analisis_preset: Callable[[str], None] | None = None,
+    on_analisis_export_productos: Callable[[str], None] | None = None,
     on_importar_productos: Callable[[], None] | None = None,
     on_productos_page: Callable[[int], None] | None = None,
     on_confirmar: Callable[[], None] = None,  # type: ignore[assignment]
@@ -399,6 +401,8 @@ def build_admin_shell(
         on_analisis_tipo=on_analisis_tipo,
         on_analisis_comparacion=on_analisis_comparacion,
         on_analisis_export=on_analisis_export,
+        on_analisis_preset=on_analisis_preset,
+        on_analisis_export_productos=on_analisis_export_productos,
     )
 
     body = ft.Row(
@@ -721,6 +725,22 @@ def _panel_analisis_body(
                                     ),
                                     icon=ft.Icons.DATE_RANGE,
                                 ),
+                                ui.secondary_button(
+                                    "Esta semana",
+                                    lambda: (
+                                        cbs.get("on_analisis_preset")
+                                        or (lambda _p: None)
+                                    )("Esta semana"),
+                                    icon=ft.Icons.TODAY,
+                                ),
+                                ui.secondary_button(
+                                    "Este mes",
+                                    lambda: (
+                                        cbs.get("on_analisis_preset")
+                                        or (lambda _p: None)
+                                    )("Este mes"),
+                                    icon=ft.Icons.CALENDAR_MONTH,
+                                ),
                             ],
                         ),
                     ),
@@ -730,6 +750,9 @@ def _panel_analisis_body(
             padding=ui_theme.SPACE_LG,
         ),
     ]
+
+    if panel.export_mensaje:
+        controls.append(ui.alert_banner(panel.export_mensaje, severity="success"))
 
     if panel.aviso:
         controls.append(ui.alert_banner(panel.aviso, severity="warning"))
@@ -978,6 +1001,87 @@ def _panel_analisis_body(
                     )
                 )
         controls.append(ui.card_surface(*ranking_body, title=block.titulo))
+
+    if (
+        hub_id == "costes"
+        and panel.pestana == "Resumen"
+        and panel.coste_productos
+    ):
+        cp_rows: list[ft.Control] = [
+            ft.Container(
+                padding=ft.Padding.symmetric(horizontal=12, vertical=8),
+                bgcolor=ui_theme.LIGHT_GRAY,
+                content=ft.Row(
+                    controls=[
+                        ft.Text("Producto", size=11, weight=ft.FontWeight.W_600, expand=True),
+                        ft.Text("Cantidad", size=11, weight=ft.FontWeight.W_600, width=100),
+                        ft.Text("Usos", size=11, weight=ft.FontWeight.W_600, width=48),
+                        ft.Text("Coste", size=11, weight=ft.FontWeight.W_600, width=80),
+                        ft.Text("%", size=11, weight=ft.FontWeight.W_600, width=48),
+                    ]
+                ),
+            )
+        ]
+        for row in panel.coste_productos:
+            cp_rows.append(
+                ft.Container(
+                    padding=ft.Padding.symmetric(horizontal=12, vertical=6),
+                    border=ft.Border(bottom=ft.BorderSide(1, ui_theme.BORDER)),
+                    content=ft.Row(
+                        controls=[
+                            ft.Text(
+                                row.nombre,
+                                size=12,
+                                expand=True,
+                                max_lines=1,
+                                overflow=ft.TextOverflow.ELLIPSIS,
+                            ),
+                            ft.Text(row.cantidad_fmt or "—", size=12, width=100),
+                            ft.Text(str(row.usos), size=12, width=48),
+                            ft.Text(row.coste_fmt, size=12, width=80),
+                            ft.Text(row.extra or "—", size=12, width=48),
+                        ]
+                    ),
+                )
+            )
+        _on_exp_prod = cbs.get("on_analisis_export_productos") or (lambda _p: None)
+        controls.append(
+            ui.card_surface(
+                ui_theme.text_help(
+                    f"Total periodo: {panel.coste_productos_total_fmt or '—'} · "
+                    f"{len(panel.coste_productos)} producto(s)"
+                ),
+                ft.Column(
+                    spacing=0,
+                    tight=True,
+                    scroll=ft.ScrollMode.AUTO,
+                    height=min(420, 56 + len(panel.coste_productos) * 34),
+                    controls=cp_rows,
+                ),
+                ft.Row(
+                    wrap=True,
+                    spacing=8,
+                    controls=[
+                        ui.secondary_button(
+                            "Excel — esta semana",
+                            lambda: _on_exp_prod("semana"),
+                            icon=ft.Icons.DOWNLOAD,
+                        ),
+                        ui.secondary_button(
+                            "Excel — este mes",
+                            lambda: _on_exp_prod("mes"),
+                            icon=ft.Icons.DOWNLOAD,
+                        ),
+                        ui.secondary_button(
+                            "Excel — periodo actual",
+                            lambda: _on_exp_prod("actual"),
+                            icon=ft.Icons.DOWNLOAD,
+                        ),
+                    ],
+                ),
+                title="Coste por producto (periodo)",
+            )
+        )
 
     if hub_id == "costes" and panel.pestana == "Resumen":
         a_d = ft.TextField(label="A desde", value=panel.cmp_a_desde, width=130)
@@ -1562,6 +1666,10 @@ def _producto_row(
 
 
 def _panel_recetas(screen: AdminScreenVM, **cbs) -> ft.Control:
+    from app.core.models import UnidadProducto
+    from app.core.services.text_search import contiene_texto
+    from app.core.services.unidad_service import unidades_seleccionables
+
     on_filtro = cbs["on_filtro"]
     on_crear = cbs["on_crear_receta"]
     on_guardar = cbs["on_editar_receta"]
@@ -1595,49 +1703,52 @@ def _panel_recetas(screen: AdminScreenVM, **cbs) -> ft.Control:
             else "1"
         ),
     )
-    prod_opts = [
-        ft.dropdown.Option(key=p.id, text=p.nombre)
-        for p in screen.productos
-        if p.activo
-    ]
-    ing_prod = ft.Dropdown(label="Producto", options=prod_opts, expand=True)
-    ing_cant = ft.TextField(label="Cantidad", width=110, value="1")
-    extra_prod = ft.Dropdown(label="Extra (producto)", options=prod_opts, expand=True)
-    extra_cant = ft.TextField(label="Cant. extra", width=110, value="1")
     servicios = ft.TextField(
         label="Servicios (coma)",
         hint_text="Vacío = mismo que la categoría (desayuno/comida/…)",
         expand=True,
         value=", ".join(editando.servicios) if editando else "",
     )
-    pendientes: list[tuple[str, str, float]] = []
-    extras_pend: list[tuple[str, str, float]] = []
+
+    # pendientes: (pid, nombre, cant_ui, unidad_ui)
+    pendientes: list[tuple[str, str, float, str]] = []
     if editando:
         for ln in editando.ingredientes:
-            pendientes.append((ln.producto_id, ln.producto_nombre, ln.cantidad))
-        for ln in editando.extras:
-            extras_pend.append((ln.producto_id, ln.producto_nombre, ln.cantidad))
+            uni = (getattr(ln, "unidad", None) or "").strip()
+            if not uni:
+                prod = next((p for p in screen.productos if p.id == ln.producto_id), None)
+                uni = (prod.unidad if prod else "Ud") or "Ud"
+            pendientes.append((ln.producto_id, ln.producto_nombre, float(ln.cantidad), uni))
+
     ings_col = ft.Column(spacing=4, tight=True)
-    extras_col = ft.Column(spacing=4, tight=True)
     ings_hint = ft.Text(
-        "Añada uno o más ingredientes.",
+        "Busque un producto, elija cantidad/unidad y pulse Añadir.",
         size=12,
         color=ui_theme.MID_GRAY,
         italic=True,
     )
-    extras_hint = ft.Text(
-        "Opcional: extras ofrecidos en terminal (huevo, cherry…).",
-        size=12,
-        color=ui_theme.MID_GRAY,
-        italic=True,
+
+    busq = ft.TextField(
+        label="Buscar producto",
+        hint_text="Escriba letras… (ej. hue)",
+        prefix_icon=ft.Icons.SEARCH,
+        expand=True,
     )
+    sugerencias = ft.Row(wrap=True, spacing=6, run_spacing=4)
+    sel_pid: dict[str, str | None] = {"id": None}
+    sel_label = ft.Text("Ningún producto seleccionado", size=12, color=ui_theme.MID_GRAY)
+    ing_cant = ft.TextField(label="Cantidad", width=110, value="1")
+    ing_unidad = ft.Dropdown(label="Unidad", width=110, options=[])
+
+    def _prod_by_id(pid: str):
+        return next((p for p in screen.productos if p.id == pid and p.activo), None)
 
     def _paint_ings() -> None:
         if not pendientes:
             ings_col.controls = [ings_hint]
         else:
             rows: list[ft.Control] = []
-            for i, (pid, pnombre, cant) in enumerate(pendientes):
+            for i, (pid, pnombre, cant, uni) in enumerate(pendientes):
                 rows.append(
                     ft.Container(
                         padding=ft.Padding.symmetric(horizontal=8, vertical=4),
@@ -1645,7 +1756,11 @@ def _panel_recetas(screen: AdminScreenVM, **cbs) -> ft.Control:
                         border_radius=ui_theme.RADIUS_SM,
                         content=ft.Row(
                             controls=[
-                                ft.Text(f"{pnombre} · {cant:g}", expand=True, size=12),
+                                ft.Text(
+                                    f"{pnombre} · {cant:g} {uni}",
+                                    expand=True,
+                                    size=12,
+                                ),
                                 ft.IconButton(
                                     icon=ft.Icons.CLOSE,
                                     icon_size=16,
@@ -1659,40 +1774,6 @@ def _panel_recetas(screen: AdminScreenVM, **cbs) -> ft.Control:
             ings_col.controls = rows
         try:
             ings_col.update()
-        except Exception:  # noqa: BLE001 — aún no montado
-            pass
-
-    def _paint_extras() -> None:
-        if not extras_pend:
-            extras_col.controls = [extras_hint]
-        else:
-            rows: list[ft.Control] = []
-            for i, (pid, pnombre, cant) in enumerate(extras_pend):
-                rows.append(
-                    ft.Container(
-                        padding=ft.Padding.symmetric(horizontal=8, vertical=4),
-                        bgcolor=ui_theme.LIGHT_GRAY,
-                        border_radius=ui_theme.RADIUS_SM,
-                        content=ft.Row(
-                            controls=[
-                                ft.Text(
-                                    f"Extra {pnombre} · {cant:g}",
-                                    expand=True,
-                                    size=12,
-                                ),
-                                ft.IconButton(
-                                    icon=ft.Icons.CLOSE,
-                                    icon_size=16,
-                                    tooltip="Quitar",
-                                    on_click=lambda _e, idx=i: _quitar_extra(idx),
-                                ),
-                            ]
-                        ),
-                    )
-                )
-            extras_col.controls = rows
-        try:
-            extras_col.update()
         except Exception:  # noqa: BLE001
             pass
 
@@ -1701,84 +1782,166 @@ def _panel_recetas(screen: AdminScreenVM, **cbs) -> ft.Control:
             pendientes.pop(idx)
             _paint_ings()
 
-    def _quitar_extra(idx: int) -> None:
-        if 0 <= idx < len(extras_pend):
-            extras_pend.pop(idx)
-            _paint_extras()
+    def _set_unidad_opts(pid: str | None) -> None:
+        prod = _prod_by_id(pid) if pid else None
+        if prod is None:
+            ing_unidad.options = []
+            ing_unidad.value = None
+            sel_label.value = "Ningún producto seleccionado"
+            sel_label.color = ui_theme.MID_GRAY
+        else:
+            try:
+                up = UnidadProducto(prod.unidad) if not isinstance(prod.unidad, UnidadProducto) else prod.unidad
+            except Exception:  # noqa: BLE001
+                up = UnidadProducto.UD
+            opts = unidades_seleccionables(up)
+            ing_unidad.options = [ft.dropdown.Option(u) for u in opts]
+            ing_unidad.value = opts[0] if opts else prod.unidad
+            sel_label.value = f"Seleccionado: {prod.nombre} (nativo: {prod.unidad})"
+            sel_label.color = ui_theme.DARK_TEXT
+        try:
+            ing_unidad.update()
+            sel_label.update()
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _seleccionar(pid: str) -> None:
+        sel_pid["id"] = pid
+        prod = _prod_by_id(pid)
+        if prod:
+            busq.value = prod.nombre
+        _set_unidad_opts(pid)
+        try:
+            busq.update()
+            sugerencias.controls = []
+            sugerencias.update()
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _filtrar(_e=None) -> None:
+        q = (busq.value or "").strip()
+        chips: list[ft.Control] = []
+        if q:
+            hits = [
+                p
+                for p in screen.productos
+                if p.activo
+                and (
+                    contiene_texto(p.nombre, q)
+                    or contiene_texto(getattr(p, "codigo", "") or "", q)
+                    or contiene_texto(p.id, q)
+                )
+            ][:12]
+            for p in hits:
+                chips.append(
+                    ft.TextButton(
+                        f"{p.nombre} ({p.unidad})",
+                        on_click=lambda _ev, pid=p.id: _seleccionar(pid),
+                    )
+                )
+        sugerencias.controls = chips
+        try:
+            sugerencias.update()
+        except Exception:  # noqa: BLE001
+            pass
+
+    busq.on_change = _filtrar
 
     def _add_ing(_e=None) -> None:
-        pid = ing_prod.value or ""
+        pid = sel_pid["id"] or ""
+        if not pid:
+            # Si hay una sola sugerencia visible, úsala
+            q = (busq.value or "").strip()
+            if q:
+                hits = [
+                    p
+                    for p in screen.productos
+                    if p.activo and contiene_texto(p.nombre, q)
+                ]
+                if len(hits) == 1:
+                    pid = hits[0].id
+                    sel_pid["id"] = pid
+                    _set_unidad_opts(pid)
         try:
             cant = float((ing_cant.value or "0").replace(",", "."))
         except ValueError:
             cant = 0.0
-        if not pid or cant <= 0:
+        uni = (ing_unidad.value or "").strip()
+        prod = _prod_by_id(pid)
+        if not pid or cant <= 0 or prod is None:
             return
-        label = next((p.nombre for p in screen.productos if p.id == pid), pid)
-        for i, (opid, _, _) in enumerate(pendientes):
+        if not uni:
+            uni = prod.unidad
+        label = prod.nombre
+        for i, (opid, _, _, _) in enumerate(pendientes):
             if opid == pid:
-                pendientes[i] = (pid, label, cant)
+                pendientes[i] = (pid, label, cant, uni)
                 _paint_ings()
                 return
-        pendientes.append((pid, label, cant))
+        pendientes.append((pid, label, cant, uni))
         _paint_ings()
-
-    def _add_extra(_e=None) -> None:
-        pid = extra_prod.value or ""
+        busq.value = ""
+        sel_pid["id"] = None
+        _set_unidad_opts(None)
+        sugerencias.controls = []
         try:
-            cant = float((extra_cant.value or "0").replace(",", "."))
-        except ValueError:
-            cant = 0.0
-        if not pid or cant <= 0:
-            return
-        label = next((p.nombre for p in screen.productos if p.id == pid), pid)
-        for i, (opid, _, _) in enumerate(extras_pend):
-            if opid == pid:
-                extras_pend[i] = (pid, label, cant)
-                _paint_extras()
-                return
-        extras_pend.append((pid, label, cant))
-        _paint_extras()
+            busq.update()
+            sugerencias.update()
+        except Exception:  # noqa: BLE001
+            pass
 
-    def _payload() -> tuple[str, list[tuple[str, float]], str, float | None, list[str], list[tuple[str, float]]]:
+    def _payload() -> tuple[str, list[dict], str, float | None, list[str]]:
         try:
             porc = float((porciones.value or "1").replace(",", "."))
         except ValueError:
             porc = None
-        ings = [(pid, cant) for pid, _, cant in pendientes]
-        if not ings:
+        ings = [
+            {
+                "producto_id": pid,
+                "cantidad": cant,
+                "unidad": uni,
+            }
+            for pid, _, cant, uni in pendientes
+        ]
+        if not ings and sel_pid["id"]:
             try:
                 cant = float((ing_cant.value or "0").replace(",", "."))
             except ValueError:
                 cant = 0.0
-            pid = ing_prod.value or ""
-            if pid and cant > 0:
-                ings = [(pid, cant)]
+            if cant > 0:
+                ings = [
+                    {
+                        "producto_id": sel_pid["id"],
+                        "cantidad": cant,
+                        "unidad": (ing_unidad.value or "").strip(),
+                    }
+                ]
         serv = [s.strip() for s in (servicios.value or "").split(",") if s.strip()]
-        extras = [(pid, cant) for pid, _, cant in extras_pend]
-        return nombre.value or "", ings, categoria.value or "", porc, serv, extras
+        return nombre.value or "", ings, categoria.value or "", porc, serv
 
     def _crear(_e=None) -> None:
-        n, ings, cat, porc, serv, extras = _payload()
-        on_crear(n, ings, cat, porc, serv, extras)
+        n, ings, cat, porc, serv = _payload()
+        on_crear(n, ings, cat, porc, serv, [])
 
     def _guardar(_e=None) -> None:
         if not editando:
             return
-        n, ings, cat, porc, serv, extras = _payload()
-        on_guardar(editando.id, n, ings, cat, porc, serv, extras)
+        n, ings, cat, porc, serv = _payload()
+        on_guardar(editando.id, n, ings, cat, porc, serv, [])
 
     _paint_ings()
-    _paint_extras()
 
     form_controls: list[ft.Control] = [
         ft.Row(controls=[nombre, categoria, porciones]),
         servicios,
         ui.section_header("Ingredientes"),
+        ft.Row(controls=[busq]),
+        sugerencias,
+        sel_label,
         ft.Row(
             controls=[
-                ing_prod,
                 ing_cant,
+                ing_unidad,
                 ui.secondary_button(
                     "Añadir",
                     lambda: _add_ing(),
@@ -1788,20 +1951,6 @@ def _panel_recetas(screen: AdminScreenVM, **cbs) -> ft.Control:
             ]
         ),
         ings_col,
-        ui.section_header("Extras ofrecidos"),
-        ft.Row(
-            controls=[
-                extra_prod,
-                extra_cant,
-                ui.secondary_button(
-                    "Añadir extra",
-                    lambda: _add_extra(),
-                    icon=ft.Icons.ADD,
-                    disabled=screen.mutando,
-                ),
-            ]
-        ),
-        extras_col,
     ]
     if editando:
         form_controls.append(
@@ -1822,7 +1971,7 @@ def _panel_recetas(screen: AdminScreenVM, **cbs) -> ft.Control:
             )
         )
         form_title = f"Editar: {editando.nombre}"
-        form_sub = "Modifique ingredientes, extras o servicios y guarde"
+        form_sub = "Busque productos, ajuste cantidad/unidad y guarde"
     else:
         form_controls.append(
             ui.primary_button(
@@ -1833,7 +1982,7 @@ def _panel_recetas(screen: AdminScreenVM, **cbs) -> ft.Control:
             )
         )
         form_title = "Nueva receta"
-        form_sub = "Ingredientes · extras · categoría = servicio por defecto"
+        form_sub = "Ingredientes con búsqueda · categoría = servicio por defecto"
 
     form_tile = ft.ExpansionTile(
         title=ft.Text(form_title, weight=ft.FontWeight.W_600),
@@ -2642,6 +2791,8 @@ def _panel_documentos(screen: AdminScreenVM, **cbs) -> ft.Control:
 
 
 def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
+    from app.core.services.text_search import contiene_texto
+
     on_set_cab = cbs["on_set_compra_cabecera"]
     on_set_fecha = cbs.get("on_set_compra_fecha")
     on_add = cbs["on_añadir_linea_compra"]
@@ -2753,7 +2904,6 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
         prefix_icon=ft.Icons.SEARCH,
         value=screen.compra_prod_busqueda,
         width=360,
-        on_change=lambda e: on_busq(e.control.value or "") if on_busq else None,
     )
     cantidad = ft.TextField(label="Cant.", width=100, value="1")
     precio = ft.TextField(
@@ -2762,19 +2912,66 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
         value="0",
         hint_text="0 = último precio",
     )
+    sugerencias_row = ft.Row(wrap=True, spacing=4)
+
+    def _hits(q: str) -> list:
+        if len(q) < 2:
+            return []
+        return [
+            p
+            for p in screen.productos
+            if p.activo
+            and (
+                contiene_texto(p.nombre, q)
+                or contiene_texto(getattr(p, "codigo", "") or "", q)
+                or contiene_texto(p.id, q)
+            )
+        ][:12]
+
+    def _paint_sug(q: str) -> None:
+        chips: list[ft.Control] = []
+        if q:
+            hits = _hits(q)
+            if not hits:
+                chips.append(ui_theme.text_help("Sin coincidencias. Pruebe otro término."))
+            else:
+                for p in hits:
+                    label = p.nombre + (f" [{p.codigo}]" if p.codigo else "")
+                    chips.append(
+                        ft.TextButton(
+                            label,
+                            icon=ft.Icons.ADD_CIRCLE_OUTLINE,
+                            disabled=screen.mutando,
+                            on_click=lambda _e, pid=p.id: (
+                                on_sugerir(pid) if on_sugerir else None
+                            ),
+                        )
+                    )
+        sugerencias_row.controls = chips
+        try:
+            sugerencias_row.update()
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _on_busq_change(e) -> None:
+        texto = e.control.value or ""
+        if on_busq:
+            on_busq(texto)
+        _paint_sug(texto.strip())
+
+    busqueda.on_change = _on_busq_change
+    _paint_sug((screen.compra_prod_busqueda or "").strip())
 
     def _add(_e=None) -> None:
         _sync_cab(tipo.value or "albaran", prov.value or "", ref.value or "")
         cant = _parse_num(cantidad.value, 0.0)
         prec = _parse_num(precio.value, 0.0)
-        texto = (busqueda.value or screen.compra_prod_busqueda or "").strip()
+        texto = (busqueda.value or "").strip()
+        hits = _hits(texto)
         if texto and on_add_busq is not None:
             on_add_busq(texto, cant, prec)
-        elif screen.compra_prod_sugerencias:
-            if len(screen.compra_prod_sugerencias) == 1:
-                on_add(screen.compra_prod_sugerencias[0].id, cant, prec)
-            elif on_busq:
-                on_busq(texto)
+        elif len(hits) == 1:
+            on_add(hits[0].id, cant, prec)
         else:
             on_add("", cant, prec)
         cantidad.value = "1"
@@ -2782,28 +2979,6 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
     busqueda.on_submit = _add
     cantidad.on_submit = _add
     precio.on_submit = _add
-
-    sugerencias: list[ft.Control] = []
-    if screen.compra_prod_busqueda.strip() and len(screen.compra_prod_busqueda.strip()) >= 2:
-        if not screen.compra_prod_sugerencias:
-            sugerencias.append(
-                ui_theme.text_help("Sin coincidencias. Pruebe otro término.")
-            )
-        else:
-            chips: list[ft.Control] = []
-            for p in screen.compra_prod_sugerencias:
-                label = p.nombre + (f" [{p.codigo}]" if p.codigo else "")
-                chips.append(
-                    ft.TextButton(
-                        label,
-                        icon=ft.Icons.ADD_CIRCLE_OUTLINE,
-                        disabled=screen.mutando,
-                        on_click=lambda _e, pid=p.id: (
-                            on_sugerir(pid) if on_sugerir else None
-                        ),
-                    )
-                )
-            sugerencias.append(ft.Row(wrap=True, spacing=4, controls=chips))
 
     noray_help = (
         f"Archivo: {screen.compra_noray_archivo}"
@@ -3050,7 +3225,7 @@ def _panel_compras(screen: AdminScreenVM, **cbs) -> ft.Control:
                         precio,
                     ],
                 ),
-                *sugerencias,
+                sugerencias_row,
                 ft.Row(
                     wrap=True,
                     controls=[

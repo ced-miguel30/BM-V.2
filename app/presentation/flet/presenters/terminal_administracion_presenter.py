@@ -296,6 +296,19 @@ class TerminalAdministracionPresenter:
         self._analisis_export_mensaje = ""
         return self.screen()
 
+    def set_analisis_periodo_preset(self, preset: str) -> AdminScreenVM:
+        """Esta semana / Este mes — atajos de periodo en Análisis."""
+        if not self._gate_admin():
+            return self.screen()
+        etiqueta = (preset or "").strip()
+        if etiqueta not in ("Esta semana", "Este mes"):
+            return self.screen()
+        periodo = dashboard_service.resolver_periodo(etiqueta)
+        self._analisis_desde = periodo.desde
+        self._analisis_hasta = periodo.hasta
+        self._analisis_export_mensaje = ""
+        return self.screen()
+
     def set_analisis_busqueda(self, texto: str) -> AdminScreenVM:
         self._analisis_busqueda = (texto or "").strip()
         return self.screen()
@@ -354,6 +367,42 @@ class TerminalAdministracionPresenter:
             path = dest / nombre
             path.write_bytes(data)
             self._analisis_export_mensaje = f"Excel guardado: {path}"
+            self._feedback = FeedbackVM(ok=True, mensaje=self._analisis_export_mensaje)
+        except Exception as exc:  # noqa: BLE001
+            self._feedback = map_error_recuperable(str(exc), codigo="EXPORT_ERROR")
+            self._analisis_export_mensaje = ""
+        return self.screen()
+
+    def exportar_analisis_coste_productos_excel(
+        self, preset: str = "actual"
+    ) -> AdminScreenVM:
+        if not self._gate_admin():
+            return self.screen()
+        if not session_tiene_permiso(Permiso.CONSULTAR_COSTES):
+            self._feedback = map_error_recuperable(
+                "Sin permiso para exportar costes.", codigo="DENEGADO"
+            )
+            return self.screen()
+        clave = (preset or "actual").strip().lower()
+        if clave in ("semana", "esta semana"):
+            p = dashboard_service.resolver_periodo("Esta semana")
+            desde, hasta = p.desde, p.hasta
+            suf = "semana"
+        elif clave in ("mes", "este mes"):
+            p = dashboard_service.resolver_periodo("Este mes")
+            desde, hasta = p.desde, p.hasta
+            suf = "mes"
+        else:
+            desde, hasta = self._analisis_desde, self._analisis_hasta
+            suf = "periodo"
+        try:
+            data = costes_service.exportar_coste_por_producto_excel(desde, hasta)
+            dest = get_demo_file().parent / "exports"
+            dest.mkdir(parents=True, exist_ok=True)
+            nombre = f"coste_productos_{suf}_{desde.isoformat()}_{hasta.isoformat()}.xlsx"
+            path = dest / nombre
+            path.write_bytes(data)
+            self._analisis_export_mensaje = f"Excel productos guardado: {path}"
             self._feedback = FeedbackVM(ok=True, mensaje=self._analisis_export_mensaje)
         except Exception as exc:  # noqa: BLE001
             self._feedback = map_error_recuperable(str(exc), codigo="EXPORT_ERROR")
@@ -612,7 +661,7 @@ class TerminalAdministracionPresenter:
     def crear_receta(
         self,
         nombre: str,
-        ingredientes: list[tuple[str, float]],
+        ingredientes: list[tuple[str, float]] | list[dict],
         categoria: str,
         porciones_estandar: float | None,
         *,
@@ -623,12 +672,7 @@ class TerminalAdministracionPresenter:
             return self.screen()
         if self._mutando:
             return self._busy()
-        ings: list[IngredienteReceta] = []
-        for pid, cant in ingredientes:
-            pid_n = (pid or "").strip()
-            if not pid_n or cant <= 0:
-                continue
-            ings.append(IngredienteReceta(pid_n, float(cant)))
+        ings = self._ings_desde_payload(ingredientes)
         if not ings:
             self._feedback = map_admin_operacion_feedback(
                 ok=False, mensaje_backend="Indique al menos un ingrediente válido."
@@ -642,7 +686,7 @@ class TerminalAdministracionPresenter:
                 categoria,
                 servicios_disponibles=servicios_disponibles,
                 porciones_estandar=porciones_estandar,
-                extras_sugeridos=extras_sugeridos,
+                extras_sugeridos=extras_sugeridos or [],
             )
             self._feedback = map_admin_operacion_feedback(ok=r.ok, mensaje_backend=r.mensaje)
             if r.ok:
@@ -651,6 +695,47 @@ class TerminalAdministracionPresenter:
         finally:
             self._mutando = False
         return self.screen()
+
+    def _ings_desde_payload(
+        self, ingredientes: list[tuple[str, float]] | list[dict]
+    ) -> list[IngredienteReceta]:
+        from app.core.models import UnidadProducto
+        from app.core.services.unidad_service import convertir_a_unidad_producto
+
+        ings: list[IngredienteReceta] = []
+        data = get_container().app_data_store.get()
+        for item in ingredientes or []:
+            if isinstance(item, dict):
+                pid_n = (item.get("producto_id") or "").strip()
+                cant_ui = float(item.get("cantidad") or 0)
+                uni_ui = (item.get("unidad") or "").strip()
+                cant_nativa = item.get("cantidad_nativa")
+            else:
+                pid_n = (item[0] or "").strip()
+                cant_ui = float(item[1] or 0)
+                uni_ui = ""
+                cant_nativa = None
+            if not pid_n or cant_ui <= 0:
+                continue
+            prod = next((p for p in data.productos if p.id == pid_n), None)
+            if cant_nativa is not None:
+                nativa = float(cant_nativa)
+                ings.append(
+                    IngredienteReceta(
+                        pid_n,
+                        nativa,
+                        cant_ui if uni_ui else None,
+                        uni_ui or None,
+                    )
+                )
+            elif prod is not None and uni_ui:
+                nativa = convertir_a_unidad_producto(
+                    cant_ui, uni_ui, prod.unidad
+                )
+                ings.append(IngredienteReceta(pid_n, nativa, cant_ui, uni_ui))
+            else:
+                ings.append(IngredienteReceta(pid_n, cant_ui))
+        return ings
 
     def iniciar_edicion_receta(self, receta_id: str) -> AdminScreenVM:
         if not self._gate_admin():
@@ -674,7 +759,7 @@ class TerminalAdministracionPresenter:
         self,
         receta_id: str,
         nombre: str,
-        ingredientes: list[tuple[str, float]],
+        ingredientes: list[tuple[str, float]] | list[dict],
         categoria: str,
         porciones_estandar: float | None,
         *,
@@ -685,12 +770,7 @@ class TerminalAdministracionPresenter:
             return self.screen()
         if self._mutando:
             return self._busy()
-        ings: list[IngredienteReceta] = []
-        for pid, cant in ingredientes:
-            pid_n = (pid or "").strip()
-            if not pid_n or cant <= 0:
-                continue
-            ings.append(IngredienteReceta(pid_n, float(cant)))
+        ings = self._ings_desde_payload(ingredientes)
         if not ings:
             self._feedback = map_admin_operacion_feedback(
                 ok=False, mensaje_backend="Indique al menos un ingrediente válido."
@@ -705,7 +785,7 @@ class TerminalAdministracionPresenter:
                 categoria,
                 servicios_disponibles=servicios_disponibles,
                 porciones_estandar=porciones_estandar,
-                extras_sugeridos=extras_sugeridos,
+                extras_sugeridos=extras_sugeridos if extras_sugeridos is not None else [],
             )
             self._feedback = map_admin_operacion_feedback(ok=r.ok, mensaje_backend=r.mensaje)
             if r.ok:
@@ -2545,7 +2625,7 @@ class TerminalAdministracionPresenter:
     def screen(self) -> AdminScreenVM:
         sess = session_bridge.current_session_vm()
         auth = sess.authenticated and session_bridge.puede_usar_administracion()
-        q = self._filtro.lower()
+        q = (self._filtro or "").strip()
 
         responsables: tuple[ResponsableMermaVM, ...] = ()
         productos: tuple[ProductoAdminVM, ...] = ()
@@ -2638,7 +2718,7 @@ class TerminalAdministracionPresenter:
 
             lista_r = []
             for r in merma_service.listar_responsables_merma(solo_activos=False):
-                if q and q not in r.nombre.lower() and q not in r.id.lower():
+                if q and not contiene_texto(r.nombre, q) and not contiene_texto(r.id, q):
                     continue
                 lista_r.append(
                     ResponsableMermaVM(id=r.id, nombre=r.nombre, activo=r.activo)
@@ -2730,15 +2810,23 @@ class TerminalAdministracionPresenter:
                 if repo_noms is not None:
                     for ing in r.ingredientes or []:
                         p = repo_noms.get_producto(ing.producto_id)
+                        uni_nativa = p.unidad if p else None
+                        cant_m = float(
+                            ing.cantidad_presentacion
+                            if getattr(ing, "cantidad_presentacion", None) is not None
+                            else ing.cantidad
+                        )
+                        uni_m = (
+                            getattr(ing, "unidad_presentacion", None)
+                            or (uni_nativa.value if uni_nativa else "")
+                        )
                         ings_vm.append(
                             RecetaLineaAdminVM(
                                 producto_id=ing.producto_id,
                                 producto_nombre=p.nombre if p else ing.producto_id,
-                                cantidad=float(
-                                    ing.cantidad_presentacion
-                                    if getattr(ing, "cantidad_presentacion", None)
-                                    else ing.cantidad
-                                ),
+                                cantidad=cant_m,
+                                unidad=str(uni_m or ""),
+                                cantidad_nativa=float(ing.cantidad),
                             )
                         )
                     for ex in extras:
@@ -2776,8 +2864,14 @@ class TerminalAdministracionPresenter:
             lista_u = []
             for u in data.usuarios:
                 if self._seccion == "usuarios" and q:
-                    blob = f"{u.nombre} {u.login} {u.rol}".lower()
-                    if q not in blob:
+                    if not (
+                        contiene_texto(u.nombre, q)
+                        or contiene_texto(getattr(u, "login", "") or "", q)
+                        or contiene_texto(
+                            u.rol.value if hasattr(u.rol, "value") else str(u.rol),
+                            q,
+                        )
+                    ):
                         continue
                 rol = u.rol.value if hasattr(u.rol, "value") else str(u.rol)
                 lista_u.append(
@@ -2794,11 +2888,13 @@ class TerminalAdministracionPresenter:
             lista_prov = []
             for prv in proveedor_service.listar_proveedores(solo_activos=False):
                 if self._seccion == "proveedores" and q:
-                    blob = (
-                        f"{prv.nombre_fiscal} {prv.nombre_comercial or ''} "
-                        f"{prv.codigo or ''} {prv.nif_cif or ''}"
-                    ).lower()
-                    if q not in blob and q not in prv.id.lower():
+                    if not (
+                        contiene_texto(prv.nombre_fiscal, q)
+                        or contiene_texto(prv.nombre_comercial or "", q)
+                        or contiene_texto(getattr(prv, "codigo", None) or "", q)
+                        or contiene_texto(prv.nif_cif or "", q)
+                        or contiene_texto(prv.id, q)
+                    ):
                         continue
                 lista_prov.append(
                     ProveedorAdminVM(
@@ -2829,8 +2925,13 @@ class TerminalAdministracionPresenter:
                 ref = getattr(d, "referencia", None) or getattr(d, "numero", None) or ""
                 n_lineas = len(getattr(d, "lineas", None) or [])
                 if self._seccion == "documentos" and q:
-                    blob = f"{d.id} {tipo} {estado} {prov} {ref}".lower()
-                    if q not in blob:
+                    if not (
+                        contiene_texto(d.id, q)
+                        or contiene_texto(tipo, q)
+                        or contiene_texto(estado, q)
+                        or contiene_texto(str(prov), q)
+                        or contiene_texto(str(ref), q)
+                    ):
                         continue
                 lista_docs.append(
                     DocumentoAdminVM(
@@ -2943,8 +3044,11 @@ class TerminalAdministracionPresenter:
                 if not getattr(a, "activo", True):
                     continue
                 if self._seccion == "documentos" and q:
-                    blob = f"{a.id} {a.nombre_original} {a.documento_id or ''}".lower()
-                    if q not in blob:
+                    if not (
+                        contiene_texto(a.id, q)
+                        or contiene_texto(a.nombre_original or "", q)
+                        or contiene_texto(a.documento_id or "", q)
+                    ):
                         continue
                 lista_arch.append(
                     ArchivoAdminVM(

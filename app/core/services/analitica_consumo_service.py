@@ -578,8 +578,9 @@ def ranking_productos(
         if tipos_elemento is not None and e.tipo_elemento not in tipos_elemento:
             continue
         if busqueda and busqueda.strip():
-            q = busqueda.strip().casefold()
-            if q not in e.nombre_producto.casefold():
+            from app.core.services.text_search import contiene_texto
+
+            if not contiene_texto(e.nombre_producto, busqueda):
                 continue
         if e.cantidad_normalizada <= 0 and e.coste <= 0:
             continue

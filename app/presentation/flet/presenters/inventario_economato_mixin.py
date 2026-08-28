@@ -377,6 +377,7 @@ class InventarioEconomatoMixin:
             return self.screen()
         r = self._persistir_borrador_compra()
         if r.ok and r.documento is not None:
+            reload_from_disk()
             self._compra_documento_id = r.documento.id
             self._feedback = map_resultado(True, r.mensaje or "Borrador guardado.")
         else:
@@ -427,6 +428,7 @@ class InventarioEconomatoMixin:
             )
             if res.ok:
                 rotate_idempotency_token(_IDEMP_COMPRA)
+                reload_from_disk()
                 self._reset_compra_draft()
                 msg = res.mensaje or "Compra confirmada."
                 if res.alerta_precio:
@@ -435,6 +437,7 @@ class InventarioEconomatoMixin:
             else:
                 if res.codigo == compra_registro_service.CONFIRMACION_IDEMPOTENTE:
                     rotate_idempotency_token(_IDEMP_COMPRA)
+                    reload_from_disk()
                     self._reset_compra_draft()
                     self._feedback = map_resultado(True, res.mensaje or "Ya confirmado.")
                 else:
@@ -1166,7 +1169,7 @@ class InventarioEconomatoMixin:
     def _historial_vm(self, data) -> tuple[HistorialEventoVM, ...]:
         mapa_prod = {p.id: p.nombre for p in (data.productos or [])}
         mapa_ubi = {u.id: u.nombre for u in (data.ubicaciones or [])}
-        q = (self._hist_texto or "").strip().casefold()
+        q = (self._hist_texto or "").strip()
         ubi_f = self._hist_ubicacion_id
         eventos: list[HistorialEventoVM] = []
 
@@ -1175,17 +1178,28 @@ class InventarioEconomatoMixin:
                 m.tipo.value if hasattr(getattr(m, "tipo", None), "value") else str(getattr(m, "tipo", ""))
             )
             pid = getattr(m, "producto_id", None) or ""
-            uid = getattr(m, "ubicacion_id", None) or ""
+            uid = (
+                getattr(m, "ubicacion_id", None)
+                or getattr(m, "ubicacion_destino_id", None)
+                or getattr(m, "ubicacion_origen_id", None)
+                or ""
+            )
             prod = mapa_prod.get(pid, pid)
             ubi = mapa_ubi.get(uid, uid or "—")
             if ubi_f and uid != ubi_f:
                 continue
-            if q and q not in (prod or "").casefold() and q not in (tipo or "").casefold():
+            if q and not contiene_texto(prod or "", q) and not contiene_texto(tipo or "", q):
                 continue
             fecha = ""
             fd = getattr(m, "fecha", None) or getattr(m, "creado_en", None)
             if fd is not None:
                 fecha = fd.isoformat() if hasattr(fd, "isoformat") else str(fd)
+            # MovimientoInventario usa origen_id (= documento en entradas de compra).
+            doc_ref = (
+                getattr(m, "documento_id", None)
+                or getattr(m, "origen_id", None)
+                or ""
+            )
             eventos.append(
                 HistorialEventoVM(
                     fecha=fecha[:19],
@@ -1193,7 +1207,7 @@ class InventarioEconomatoMixin:
                     producto=prod or "—",
                     ubicacion=ubi,
                     cantidad=str(getattr(m, "cantidad", "") or ""),
-                    documento=getattr(m, "documento_id", None) or "",
+                    documento=str(doc_ref),
                     detalle=getattr(m, "motivo", None)
                     or getattr(m, "comentario", None)
                     or "",
@@ -1209,7 +1223,7 @@ class InventarioEconomatoMixin:
                     continue
                 tipo = d.tipo.value if hasattr(d.tipo, "value") else str(d.tipo)
                 ref = getattr(d, "referencia_externa", None) or d.id
-                if q and q not in ref.casefold() and q not in tipo.casefold():
+                if q and not contiene_texto(str(ref), q) and not contiene_texto(tipo, q):
                     continue
                 fecha = ""
                 fd = getattr(d, "fecha_documento", None)

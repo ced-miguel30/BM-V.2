@@ -139,6 +139,8 @@ class TerminalAdministracionShell:
                     on_analisis_tipo=self._on_analisis_tipo,
                     on_analisis_comparacion=self._on_analisis_comparacion,
                     on_analisis_export=self._on_analisis_export,
+                    on_analisis_preset=self._on_analisis_preset,
+                    on_analisis_export_productos=self._on_analisis_export_productos,
                     on_confirmar=self._on_confirmar,
                     on_cancelar=self._on_cancelar,
                 )
@@ -214,6 +216,10 @@ class TerminalAdministracionShell:
         self.presenter.set_analisis_periodo(desde, hasta)
         self.refresh()
 
+    def _on_analisis_preset(self, preset: str) -> None:
+        self.presenter.set_analisis_periodo_preset(preset)
+        self.refresh()
+
     def _on_analisis_busqueda(self, texto: str) -> None:
         self.presenter.set_analisis_busqueda(texto)
         self.refresh()
@@ -230,6 +236,10 @@ class TerminalAdministracionShell:
 
     def _on_analisis_export(self) -> None:
         self.presenter.exportar_analisis_costes_excel()
+        self.refresh()
+
+    def _on_analisis_export_productos(self, preset: str) -> None:
+        self.presenter.exportar_analisis_coste_productos_excel(preset)
         self.refresh()
 
     def _on_crear_responsable(self, nombre: str) -> None:
@@ -288,7 +298,7 @@ class TerminalAdministracionShell:
     def _on_crear_receta(
         self,
         nombre: str,
-        ingredientes: list[tuple[str, float]],
+        ingredientes: list,
         categoria: str,
         porciones: float | None,
         servicios: list[str],
@@ -300,7 +310,7 @@ class TerminalAdministracionShell:
             categoria,
             porciones,
             servicios_disponibles=servicios,
-            extras_sugeridos=extras,
+            extras_sugeridos=extras or [],
         )
         self.refresh()
 
@@ -308,7 +318,7 @@ class TerminalAdministracionShell:
         self,
         receta_id: str,
         nombre: str,
-        ingredientes: list[tuple[str, float]],
+        ingredientes: list,
         categoria: str,
         porciones: float | None,
         servicios: list[str],
@@ -321,7 +331,7 @@ class TerminalAdministracionShell:
             categoria,
             porciones,
             servicios_disponibles=servicios,
-            extras_sugeridos=extras,
+            extras_sugeridos=extras if extras is not None else [],
         )
         self.refresh()
 
@@ -472,8 +482,8 @@ class TerminalAdministracionShell:
         self.refresh()
 
     def _on_set_compra_prod_busqueda(self, texto: str) -> None:
+        # Solo estado: la vista actualiza chips localmente (evita reset de scroll).
         self.presenter.set_compra_prod_busqueda(texto)
-        self.refresh()
 
     def _on_seleccionar_sugerencia_compra(self, producto_id: str) -> None:
         self.presenter.seleccionar_sugerencia_compra(producto_id)

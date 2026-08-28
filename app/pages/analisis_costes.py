@@ -138,6 +138,54 @@ def _render_resumen(desde: date, hasta: date) -> None:
     top = costes_service.top_generadores_coste(desde, hasta, limite=8)
     _tabla(top, ["nombre", "cantidad_fmt", "usos", "coste_fmt"])
 
+    section_divider()
+    st.markdown("##### Coste por producto (periodo completo)")
+    filas_cp = analitica.ranking_productos(desde, hasta, limite=None)
+    total_cp = sum(float(f.get("coste") or 0) for f in filas_cp)
+    tabla_cp = [
+        {
+            "nombre": f["nombre"],
+            "cantidad_fmt": f"{f['cantidad_normalizada']:g} {f['unidad_normalizada']}",
+            "usos": f["usos"],
+            "coste_fmt": repo.formato_precio(f["coste"]),
+            "pct_total": f"{(f['coste'] / total_cp) * 100:.1f}%" if total_cp else "—",
+        }
+        for f in filas_cp
+    ]
+    _tabla(tabla_cp, ["nombre", "cantidad_fmt", "usos", "coste_fmt", "pct_total"])
+    st.caption(f"Total: {repo.formato_precio(total_cp)} · {len(filas_cp)} producto(s)")
+
+    sem = dash.resolver_periodo("Esta semana")
+    mes = dash.resolver_periodo("Este mes")
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.download_button(
+            "Excel — esta semana",
+            data=costes_service.exportar_coste_por_producto_excel(sem.desde, sem.hasta),
+            file_name=f"coste_productos_semana_{sem.desde.isoformat()}_{sem.hasta.isoformat()}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+            key="costes_export_productos_semana",
+        )
+    with c2:
+        st.download_button(
+            "Excel — este mes",
+            data=costes_service.exportar_coste_por_producto_excel(mes.desde, mes.hasta),
+            file_name=f"coste_productos_mes_{mes.desde.isoformat()}_{mes.hasta.isoformat()}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+            key="costes_export_productos_mes",
+        )
+    with c3:
+        st.download_button(
+            "Excel — periodo seleccionado",
+            data=costes_service.exportar_coste_por_producto_excel(desde, hasta),
+            file_name=f"coste_productos_{desde.isoformat()}_{hasta.isoformat()}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+            key="costes_export_productos_periodo",
+        )
+
 
 def _bloque_comparacion() -> None:
     st.markdown("##### Comparación con periodo anterior / Periodo B")
