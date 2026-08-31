@@ -1,19 +1,26 @@
 @echo off
-setlocal
-REM Regenera la plantilla Excel de trabajo (preserva hojas de registro).
-cd /d "%~dp0\..\.."
-set "ROOT=%CD%"
-set "PY=%ROOT%\.venv\Scripts\python.exe"
-set "BM_DATOS=%LOCALAPPDATA%\BM-V2-local\data\datos_hotel.json"
-set "OUT=%ROOT%\docs\plantillas\registro_desayuno_operativo_ACTUALIZADA.xlsx"
+setlocal EnableExtensions
+REM Regenera la plantilla Excel (preserva hojas de registro). Solo desarrollo/servidor con BM.
+call "%~dp0_bm_excel_common.cmd"
 
 if not "%~1"=="" set "BM_DATOS=%~1"
+set "OUT=%XLSX%"
 
-echo Regenerando plantilla operativa (desayuno, comida, cena, buffet) desde:
+if not defined BM_EXE if not defined PY (
+  echo No encuentro BM-Launcher ni Python de desarrollo.
+  pause
+  exit /b 1
+)
+
+echo Regenerando plantilla operativa desde:
 echo   %BM_DATOS%
 echo   Destino: %OUT%
 echo.
-"%PY%" "%ROOT%\scripts\build_plantilla_desayuno_excel.py" --path "%BM_DATOS%" --out "%OUT%"
+if defined BM_EXE (
+  "%BM_EXE%" --bm-build-excel --path "%BM_DATOS%" --out "%OUT%"
+) else (
+  "%PY%" "%ROOT%\scripts\build_plantilla_desayuno_excel.py" --path "%BM_DATOS%" --out "%OUT%"
+)
 if errorlevel 1 (
   echo Fallo al guardar. Cierra el Excel e intentalo de nuevo.
   pause

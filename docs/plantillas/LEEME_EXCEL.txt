@@ -1,0 +1,17 @@
+REGISTRO EXCEL OPERATIVO
+========================
+Archivo: registro_desayuno_operativo_ACTUALIZADA.xlsx (junto a los .cmd)
+
+IMPORTAR EN EL SERVIDOR
+-----------------------
+1) BM debe estar en C:\Apps\BM-V2\BM-Launcher.exe (update reciente).
+2) Cierre BM y el Excel.
+3) Doble clic: 1_probar_conexion.cmd (dry-run)
+4) Doble clic: 2_importar_a_bm.cmd (import real)
+
+Ya NO hace falta Python ni .venv: usa BM-Launcher.exe.
+Si el exe esta en otra ruta: set BM_LAUNCHER=C:\ruta\BM-Launcher.exe
+
+Datos BM: %LOCALAPPDATA%\BM-V2-local\data\datos_hotel.json
+
+Desplegable Nombre: hoja Catalogo (no borrar).

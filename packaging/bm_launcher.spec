@@ -37,7 +37,7 @@ for _pkg in ('rapidocr_onnxruntime', 'onnxruntime', 'pymupdf'):
 
 a = Analysis(
     [str(_packaging / 'entry_launcher.py')],
-    pathex=[str(ROOT)],
+    pathex=[str(ROOT), str(ROOT / 'scripts')],
     binaries=_ocr_binaries,
     datas=[
         (str(ROOT / 'data' / 'demo' / 'datos_hotel.json'), 'data/demo'),
@@ -58,6 +58,9 @@ a = Analysis(
         'pymupdf',
         'fitz',
         'app.core.services.tpv_ocr_cli',
+        'app.core.services.registro_excel_cli',
+        'import_registro_operativo_excel',
+        'build_plantilla_desayuno_excel',
     ] + list(_ocr_hidden) + collect_submodules('app') + collect_submodules('rapidocr_onnxruntime'),
     hookspath=[],
     hooksconfig={},

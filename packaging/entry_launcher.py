@@ -35,4 +35,14 @@ if __name__ == "__main__":
         from app.core.services.tpv_ocr_cli import run_import_worker
 
         raise SystemExit(run_import_worker(sys.argv[2], sys.argv[3], sys.argv[4]))
+    if len(sys.argv) >= 2 and sys.argv[1] == "--bm-import-excel":
+        _ensure_root_on_path()
+        from app.core.services.registro_excel_cli import run_import_excel_cli
+
+        raise SystemExit(run_import_excel_cli(sys.argv[2:]))
+    if len(sys.argv) >= 2 and sys.argv[1] == "--bm-build-excel":
+        _ensure_root_on_path()
+        from app.core.services.registro_excel_cli import run_build_plantilla_cli
+
+        raise SystemExit(run_build_plantilla_cli(sys.argv[2:]))
     main()
