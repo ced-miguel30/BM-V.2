@@ -60,6 +60,7 @@ def build_registro_view(
     on_confirm: Callable[[], None],
     on_huespedes: Callable[[int], None],
     on_logout: Callable[[], None],
+    on_fecha_registro: Callable[[str], None] | None = None,
     on_volver_menu: Callable[[], None] | None = None,
     on_iniciar_anulacion: Callable[[str], None] | None = None,
     on_set_motivo_anulacion: Callable[[str], None] | None = None,
@@ -86,6 +87,7 @@ def build_registro_view(
     on_confirmar_anulacion = on_confirmar_anulacion or (lambda: None)
     on_confirmar_revision_historial = on_confirmar_revision_historial or (lambda _rid: None)
     on_catalogo_tipo = on_catalogo_tipo or (lambda _t: None)
+    on_fecha_registro = on_fecha_registro or (lambda _f: None)
     on_add_extra = on_add_extra or on_add_producto
     on_upload_documento = on_upload_documento or (lambda: None)
     on_cerrar_importacion_tpv = on_cerrar_importacion_tpv or (lambda: None)
@@ -266,6 +268,42 @@ def build_registro_view(
             )
         ]
 
+    fecha_val = (getattr(screen, "fecha_registro", None) or "").strip()
+    fecha_row = ft.Container(
+        padding=ft.Padding.symmetric(horizontal=14, vertical=10),
+        bgcolor=ui_theme.SURFACE,
+        border=ft.Border.all(1, ui_theme.BORDER),
+        border_radius=ui_theme.RADIUS_SM,
+        content=ft.Row(
+            spacing=ui_theme.SPACE_SM,
+            vertical_alignment=ft.CrossAxisAlignment.CENTER,
+            wrap=True,
+            controls=[
+                ft.Text(
+                    "Fecha del registro",
+                    size=16,
+                    color=ui_theme.NAVY,
+                    weight=ft.FontWeight.W_600,
+                ),
+                ft.TextField(
+                    value=fecha_val,
+                    hint_text="AAAA-MM-DD",
+                    width=150,
+                    height=44,
+                    dense=True,
+                    text_size=16,
+                    on_blur=lambda e: on_fecha_registro(e.control.value or ""),
+                    on_submit=lambda e: on_fecha_registro(e.control.value or ""),
+                ),
+                ft.OutlinedButton(
+                    "Hoy",
+                    height=40,
+                    on_click=lambda _e: on_fecha_registro(""),
+                ),
+            ],
+        ),
+    )
+
     result_controls = build_catalog_result_controls(
         screen,
         on_add_receta=on_add_receta,
@@ -326,6 +364,7 @@ def build_registro_view(
                 ),
                 tipo_chips,
                 *huespedes_row,
+                fecha_row,
                 search_field,
                 ft.Container(
                     expand=True,
@@ -415,6 +454,13 @@ def build_registro_view(
             )
         )
 
+    basket_inner.append(
+        ft.Text(
+            f"Se registrará con fecha {fecha_val or 'hoy'}",
+            size=13,
+            color=ui_theme.MID_GRAY,
+        )
+    )
     basket_inner.append(
         ft.FilledButton(
             "Confirmar registro",

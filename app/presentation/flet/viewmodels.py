@@ -165,6 +165,7 @@ class TerminalScreenVM:
     requiere_huespedes: bool
     busqueda: str
     catalogo_tipo: str = "recetas"
+    fecha_registro: str = ""  # AAAA-MM-DD
     historial: tuple[HistorialRegistroVM, ...] = ()
     historial_expandido: bool = False
     importacion_tpv: ImportacionTpvVM | None = None

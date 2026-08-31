@@ -86,6 +86,7 @@ class TerminalRestaurantePresenter:
         self._confirmando: bool = False
         self._anulando: bool = False
         self._num_huespedes: int = 30
+        self._fecha_registro: date = date.today()
         self._anulacion_pendiente: AnulacionPendienteVM | None = None
         self._importacion_tpv: ImportacionTpvVM | None = None
         self._historial_expandido: bool = False
@@ -269,6 +270,37 @@ class TerminalRestaurantePresenter:
         self._num_huespedes = max(0, int(n))
         return self.screen()
 
+    def set_fecha_registro(self, valor: str | date | None) -> TerminalScreenVM:
+        """Fecha a la que pertenece el registro (AAAA-MM-DD o dd/mm/aaaa)."""
+        if valor is None or (isinstance(valor, str) and not str(valor).strip()):
+            self._fecha_registro = date.today()
+            return self.screen()
+        if isinstance(valor, date):
+            self._fecha_registro = valor
+            return self.screen()
+        raw = str(valor).strip()
+        parsed: date | None = None
+        try:
+            parsed = date.fromisoformat(raw[:10])
+        except ValueError:
+            parsed = None
+        if parsed is None:
+            from datetime import datetime as _dt
+
+            for fmt in ("%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y"):
+                try:
+                    parsed = _dt.strptime(raw[:10], fmt).date()
+                    break
+                except ValueError:
+                    continue
+        if parsed is None:
+            self._feedback = map_error_recuperable(
+                "Fecha no válida. Use AAAA-MM-DD o dd/mm/aaaa."
+            )
+            return self.screen()
+        self._fecha_registro = parsed
+        return self.screen()
+
     def anadir_receta(self, receta_id: str, porciones: float = 1.0) -> TerminalScreenVM:
         bind = self._require_bind()
         if bind is None:
@@ -384,7 +416,7 @@ class TerminalRestaurantePresenter:
         self._confirmando = True
         try:
             token = current_idempotency_token(bind.idempotency_scope)
-            dia = fecha or date.today()
+            dia = fecha if fecha is not None else self._fecha_registro
             resultado = bind.api.registrar(
                 dia,
                 self._num_huespedes if bind.requiere_huespedes else 0,
@@ -395,7 +427,10 @@ class TerminalRestaurantePresenter:
                 if not bind.api.cesta_vacia():
                     bind.api.limpiar_cesta()
                 self._feedback = map_resultado(
-                    True, resultado.mensaje or "Registro confirmado.", resultado.codigo
+                    True,
+                    (resultado.mensaje or "Registro confirmado.")
+                    + f" · fecha {dia.isoformat()}",
+                    resultado.codigo,
                 )
             else:
                 self._feedback = map_error_recuperable(
@@ -565,6 +600,7 @@ class TerminalRestaurantePresenter:
             requiere_huespedes=requiere_h,
             busqueda=self._busqueda,
             catalogo_tipo=self._catalogo_tipo,
+            fecha_registro=self._fecha_registro.isoformat(),
             historial=historial,
             historial_expandido=self._historial_expandido,
             importacion_tpv=self._importacion_tpv,

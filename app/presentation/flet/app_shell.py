@@ -86,6 +86,7 @@ class TerminalRestauranteShell:
                 on_clear=self._on_clear,
                 on_confirm=self._on_confirm,
                 on_huespedes=self._on_huespedes,
+                on_fecha_registro=self._on_fecha_registro,
                 on_logout=self._on_logout,
                 on_volver_menu=on_volver,
                 on_iniciar_anulacion=self._on_iniciar_anulacion,
@@ -190,6 +191,10 @@ class TerminalRestauranteShell:
 
     def _on_huespedes(self, n: int) -> None:
         self.presenter.set_num_huespedes(n)
+        self.refresh()
+
+    def _on_fecha_registro(self, valor: str) -> None:
+        self.presenter.set_fecha_registro(valor)
         self.refresh()
 
     def _on_iniciar_anulacion(self, rid: str) -> None:

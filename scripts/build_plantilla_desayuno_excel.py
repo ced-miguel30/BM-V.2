@@ -141,6 +141,93 @@ def _catalogo_recetas_servicio(data, categorias: list[CategoriaReceta]) -> list[
     return sorted(names, key=lambda s: normalizar_texto(s))
 
 
+def _count_col_values(ws, col_letter: str) -> int:
+    """Filas con valor en col (desde fila 2). Mínimo 1 para rangos DV."""
+    n = 0
+    for cell in ws[col_letter]:
+        if cell.row == 1:
+            continue
+        if cell.value is None or str(cell.value).strip() == "":
+            continue
+        n += 1
+    return max(n, 1)
+
+
+def aplicar_validaciones_plantilla(wb) -> None:
+    """Reaplica desplegables Nombre/Tipo/Extras/Buffet desde Catalogo/ConfigBuffet.
+
+    openpyxl (y el marcado Importado del import) puede perder validaciones de
+    lista con referencia a otra hoja; llamar siempre antes de ``wb.save``.
+    """
+    if "Catalogo" not in wb.sheetnames:
+        return
+    ws_c = wb["Catalogo"]
+    n_all = _count_col_values(ws_c, "C")
+    n_combo = _count_col_values(ws_c, "E")
+    n_comida = _count_col_values(ws_c, "G")
+    n_cena = _count_col_values(ws_c, "H")
+    n_bebidas = _count_col_values(ws_c, "I")
+    n_config = 1
+    if "ConfigBuffet" in wb.sheetnames:
+        n_config = _count_col_values(wb["ConfigBuffet"], "C")
+
+    def _list_dv(formula: str) -> DataValidation:
+        dv = DataValidation(type="list", formula1=formula, allow_blank=True)
+        dv.showErrorMessage = False  # permite escribir aunque no coincida exacto
+        return dv
+
+    if "Registro" in wb.sheetnames:
+        ws = wb["Registro"]
+        ws.data_validations.dataValidation = []
+        dv_tipo = _list_dv('"Receta,Extra,Producto"')
+        ws.add_data_validation(dv_tipo)
+        dv_tipo.add("C2:C500")
+        dv_nombre = _list_dv(f"Catalogo!$C$2:$C${n_all + 1}")
+        ws.add_data_validation(dv_nombre)
+        dv_nombre.add("D2:D500")
+        dv_extra = _list_dv(f"Catalogo!$E$2:$E${n_combo + 1}")
+        ws.add_data_validation(dv_extra)
+        for col in ("F", "H", "J", "L", "N", "O"):
+            dv_extra.add(f"{col}2:{col}500")
+        dv_cant = DataValidation(
+            type="whole", operator="between", formula1="1", formula2="30", allow_blank=True,
+        )
+        ws.add_data_validation(dv_cant)
+        for col in ("E", "G", "I", "K", "M"):
+            dv_cant.add(f"{col}2:{col}500")
+
+    for hoja, formula in (
+        ("RegistroComida", f"Catalogo!$G$2:$G${n_comida + 1}"),
+        ("RegistroCena", f"Catalogo!$H$2:$H${n_cena + 1}"),
+        ("RegistroBebidasDesayuno", f"Catalogo!$I$2:$I${n_bebidas + 1}"),
+    ):
+        if hoja not in wb.sheetnames:
+            continue
+        ws = wb[hoja]
+        ws.data_validations.dataValidation = []
+        dv_tipo = _list_dv('"Receta,Extra,Producto"')
+        ws.add_data_validation(dv_tipo)
+        dv_tipo.add("B2:B500")
+        dv_nombre = _list_dv(formula)
+        ws.add_data_validation(dv_nombre)
+        dv_nombre.add("C2:C500")
+        dv_cant = DataValidation(
+            type="whole", operator="between", formula1="1", formula2="30", allow_blank=True,
+        )
+        ws.add_data_validation(dv_cant)
+        dv_cant.add("D2:D500")
+
+    if "ConsumoBuffet" in wb.sheetnames:
+        ws = wb["ConsumoBuffet"]
+        ws.data_validations.dataValidation = []
+        dv_motivo = _list_dv(f'"{MOTIVOS_BUFFET_EXCEL}"')
+        ws.add_data_validation(dv_motivo)
+        dv_motivo.add("E2:E500")
+        dv_concepto = _list_dv(f"ConfigBuffet!$C$2:$C${n_config + 1}")
+        ws.add_data_validation(dv_concepto)
+        dv_concepto.add("C2:C500")
+
+
 def _escribir_hoja_registro_simple(
     ws,
     headers: list[str],
@@ -681,6 +768,7 @@ def build(out: Path, hotel: Path) -> Path:
     ws_i["A49"].font = Font(italic=True, size=10, color="666666")
 
     out.parent.mkdir(parents=True, exist_ok=True)
+    aplicar_validaciones_plantilla(wb)
     try:
         wb.save(out)
         return out

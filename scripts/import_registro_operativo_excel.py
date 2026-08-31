@@ -694,6 +694,20 @@ def _escribir_estados_hoja(xlsx: Path, hoja: str, por_fila: dict[int, str]) -> N
         ws.cell(1, idx + 1, "Importado")
     for row, status in por_fila.items():
         ws.cell(row, idx + 1, status)
+    # openpyxl suele perder listas Nombre→Catalogo al guardar; reaplicar.
+    try:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "_bm_build_plantilla",
+            ROOT / "scripts" / "build_plantilla_desayuno_excel.py",
+        )
+        if spec and spec.loader:
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            mod.aplicar_validaciones_plantilla(wb)
+    except Exception:
+        pass
     wb.save(xlsx)
     wb.close()
 
