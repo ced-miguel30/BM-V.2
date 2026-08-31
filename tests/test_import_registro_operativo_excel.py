@@ -44,8 +44,8 @@ def _fixture_xlsx(path: Path) -> None:
 
     wb.create_sheet("ConsumoBuffet")
     buf = wb["ConsumoBuffet"]
-    buf.append(["Fecha", "Seccion", "Concepto", "Cantidad", "Motivo", "ZumoBote", "Coste", "Notas", "Importado"])
-    buf.append([date(2026, 8, 10), "Frutas", "Kiwi", 1, "Consumo", "", "", "", "", ""])
+    buf.append(["Fecha", "Seccion", "Concepto", "Cantidad", "Motivo", "Notas", "Importado"])
+    buf.append([date(2026, 8, 10), "Frutas", "Kiwi", 1, "Consumo", "", ""])
 
     wb.save(path)
     wb.close()
@@ -92,6 +92,28 @@ class TestImportRegistroOperativoExcel(unittest.TestCase):
         ):
             code = imp.main()
         self.assertEqual(code, 0)
+
+    def test_tipo_vacio_y_fecha_arrastrada(self) -> None:
+        import scripts.import_registro_operativo_excel as imp
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Registro"
+        ws.append(["Fecha", "Huespedes", "Tipo", "Nombre", "Cantidad ↑↓", "Importado"])
+        ws.append([date(2026, 8, 22), 1, None, "Tostada champinones", 1, ""])
+        ws.append([None, 1, "", "Tostada francesa", 1, ""])
+        path = Path(self.tmp.name) / "tipo_vacio.xlsx"
+        wb.save(path)
+        wb.close()
+
+        lineas = imp._leer_registro(path)
+        self.assertEqual(len(lineas), 2)
+        self.assertEqual(lineas[0].tipo, "Receta")
+        self.assertEqual(lineas[1].tipo, "Receta")
+        self.assertEqual(lineas[0].fecha, date(2026, 8, 22))
+        self.assertEqual(lineas[1].fecha, date(2026, 8, 22))
+        self.assertEqual(lineas[0].huespedes, 1)
+        self.assertEqual(lineas[1].huespedes, 1)
 
 
 if __name__ == "__main__":

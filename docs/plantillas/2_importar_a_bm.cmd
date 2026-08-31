@@ -4,7 +4,7 @@ REM IMPORT REAL a BM. Cierra el Excel y BM antes si puedes.
 cd /d "%~dp0\..\.."
 set "ROOT=%CD%"
 set "PY=%ROOT%\.venv\Scripts\python.exe"
-set "XLSX=%ROOT%\docs\plantillas\registro_desayuno_operativo_LISTA_ACTUALIZADA_ACTUALIZADA.xlsx"
+set "XLSX=%ROOT%\docs\plantillas\registro_desayuno_operativo_ACTUALIZADA.xlsx"
 set "BM_DATOS=%LOCALAPPDATA%\BM-V2-local\data\datos_hotel.json"
 
 if not "%~1"=="" set "XLSX=%~1"

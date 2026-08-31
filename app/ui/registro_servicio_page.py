@@ -503,6 +503,47 @@ def render_pagina_registro_servicio(
                 )
             elif es_bebida_modo:
                 st.caption("Servicio independiente Bebidas.")
+
+            # Accesos rápidos: leches (desayuno) + agua/soda/refrescos.
+            if es_bebida_modo:
+                rapidos: list[dict] = []
+                if hasattr(servicio, "leches_rapidas"):
+                    rapidos.extend(list(servicio.leches_rapidas() or []))
+                if hasattr(servicio, "bebidas_frias_rapidas"):
+                    rapidos.extend(list(servicio.bebidas_frias_rapidas() or []))
+                elif getattr(servicio, "tipo_servicio", "") == "bebidas":
+                    from app.core.services.desayuno_service import (
+                        bebidas_frias_rapidas_desayuno,
+                    )
+
+                    rapidos.extend(bebidas_frias_rapidas_desayuno())
+                if rapidos:
+                    st.caption(
+                        "Accesos rápidos (1 clic). Leches = ración; "
+                        "agua/refresco = 1 botella/lata."
+                    )
+                    cols = st.columns(3)
+                    for idx, extra in enumerate(rapidos):
+                        with cols[idx % 3]:
+                            if st.button(
+                                extra["label"],
+                                key=(
+                                    f"{key_prefix}_beb_rapido_"
+                                    f"{extra['producto_id']}_{idx}"
+                                ),
+                                use_container_width=True,
+                            ):
+                                resultado = servicio.anadir_a_cesta(
+                                    extra["producto_id"],
+                                    float(extra["cantidad"]),
+                                )
+                                if resultado.ok:
+                                    st.success(resultado.mensaje)
+                                    st.rerun()
+                                else:
+                                    st.error(resultado.mensaje)
+                    st.divider()
+
             todos_productos = [
                 p for p in servicio.productos_catalogo("")
                 if bool(p.get("es_bebida")) == es_bebida_modo

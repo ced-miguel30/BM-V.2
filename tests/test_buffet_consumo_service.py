@@ -23,8 +23,10 @@ from app.core.application.context import build_app_context
 from app.core.application.unit_of_work import InMemoryUnitOfWork
 from app.core.models import (
     AppData,
+    IngredienteReceta,
     LoteStock,
     Producto,
+    Receta,
     ResponsableMerma,
     RolUsuario,
     UnidadProducto,
@@ -33,9 +35,11 @@ from app.core.models import (
 from app.core.models.buffet import (
     MOTIVO_BUFFET_CONSUMO,
     MOTIVO_BUFFET_MERMA,
+    TIPO_LINEA_RECETA_ESTANDAR,
     TIPO_LINEA_SIMPLE,
     LineaConfigBuffet,
 )
+from app.core.models.enums import CategoriaReceta
 from app.core.services.buffet_consumo_service import (
     LineaBuffetEntrada,
     importar_lineas_buffet,
@@ -55,12 +59,22 @@ def _datos() -> AppData:
         productos=[
             Producto("p1", "Pan", UnidadProducto.UD, servicios_disponibles=["desayuno"]),
             Producto("b06", "Naranja", UnidadProducto.KG, servicios_disponibles=["desayuno"]),
-            Producto("b28", "Zumo bote", UnidadProducto.UD, servicios_disponibles=["desayuno"]),
+            Producto("b28", "Zumo brik", UnidadProducto.UD, servicios_disponibles=["desayuno"]),
         ],
         lotes=[
             LoteStock("l1", "p1", 10.0, 10.0, 10.0, date(2026, 7, 1)),
             LoteStock("l2", "b06", 5.0, 5.0, 5.0, date(2026, 7, 1)),
             LoteStock("l3", "b28", 4.0, 4.0, 4.0, date(2026, 7, 1)),
+        ],
+        recetas=[
+            Receta(
+                "rz1",
+                "Zumo naranja natural 1L",
+                [IngredienteReceta("b06", 1.2, 1.2, "kg")],
+                categoria=CategoriaReceta.DESAYUNO,
+                servicios_disponibles=["desayuno"],
+                porciones_estandar=1.0,
+            ),
         ],
         config_buffet=[
             LineaConfigBuffet(
@@ -68,8 +82,12 @@ def _datos() -> AppData:
                 tipo_linea=TIPO_LINEA_SIMPLE,
             ),
             LineaConfigBuffet(
-                "cb2", "Jarras", 2, "Jarra zumo naranja", "b06", "kg", 1.2,
-                tipo_linea="jarra_zumo", producto_bote_id="b28",
+                "cb2", "Jarras", 2, "Zumo naranja natural 1L", "", "L", 1.0,
+                tipo_linea=TIPO_LINEA_RECETA_ESTANDAR, receta_id="rz1",
+            ),
+            LineaConfigBuffet(
+                "cb3", "Jarras", 3, "Zumo naranja brik 1L", "b28", "Ud", 1.0,
+                tipo_linea=TIPO_LINEA_SIMPLE,
             ),
         ],
         responsables_merma=[ResponsableMerma("rm01", "Ana", True)],
@@ -142,13 +160,12 @@ class TestBuffetConsumoService(unittest.TestCase):
         self.assertEqual(len(self.data.mermas), 1)
         self.assertEqual(len(self.data.registros_buffet), 1)
 
-    def test_jarra_naranja_calcula_kg_desde_litros(self) -> None:
+    def test_zumo_natural_descuenta_naranjas_via_receta(self) -> None:
         r = importar_lineas_buffet(
             date(2026, 8, 11),
             [
                 LineaBuffetEntrada(
-                    None, "Jarra zumo naranja", "Jarras", 2.0, MOTIVO_BUFFET_CONSUMO,
-                    zumo_bote=1.0,
+                    None, "Zumo naranja natural 1L", "Jarras", 2.0, MOTIVO_BUFFET_CONSUMO,
                 ),
             ],
             ctx=self.ctx,
@@ -159,10 +176,26 @@ class TestBuffetConsumoService(unittest.TestCase):
         )
         self.assertAlmostEqual(qty_b06, 2.4)
         pids = {ln.producto_id for d in self.data.desayunos for ln in d.lineas}
-        self.assertIn("b28", pids)
-        self.assertAlmostEqual(
-            self.data.registros_buffet[0].lineas[0].naranjas_cantidad or 0, 2.4,
+        self.assertNotIn("b28", pids)
+
+    def test_zumo_brik_descuenta_bote(self) -> None:
+        r = importar_lineas_buffet(
+            date(2026, 8, 13),
+            [
+                LineaBuffetEntrada(
+                    None, "Zumo naranja brik 1L", "Jarras", 2.0, MOTIVO_BUFFET_CONSUMO,
+                ),
+            ],
+            ctx=self.ctx,
         )
+        self.assertTrue(r.ok, r.mensaje)
+        pids = {ln.producto_id for d in self.data.desayunos for ln in d.lineas}
+        self.assertIn("b28", pids)
+        self.assertNotIn("b06", pids)
+        qty_b28 = sum(
+            ln.cantidad for d in self.data.desayunos for ln in d.lineas if ln.producto_id == "b28"
+        )
+        self.assertAlmostEqual(qty_b28, 2.0)
 
     def test_idempotencia(self) -> None:
         lineas = [LineaBuffetEntrada(None, "Pan gallego", "Pan", 1.0, MOTIVO_BUFFET_CONSUMO)]

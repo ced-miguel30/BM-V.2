@@ -1,7 +1,7 @@
-"""Genera / actualiza docs/plantillas/registro_desayuno_operativo_LISTA_ACTUALIZADA_ACTUALIZADA.xlsx.
+"""Genera / actualiza docs/plantillas/registro_desayuno_operativo_ACTUALIZADA.xlsx.
 
 Hojas: Instrucciones, Registro, RegistroBebidasDesayuno, RegistroComida, RegistroCena,
-ConfigBuffet, ConsumoBuffet, Catalogo, Precios.
+ConfigBuffet, ConsumoBuffet, Catalogo.
 
 Si el archivo de salida ya existe y tiene filas en hojas de registro, se PRESERVAN.
 (no se borran datos ya apuntados). Solo se refrescan Instrucciones, Catalogo
@@ -32,12 +32,11 @@ from app.bootstrap import configure_for_flet, get_container, reset_container
 from app.core.models import CategoriaReceta
 from app.core.services import desayuno_service as des
 from app.core.services.buffet_config_service import ensure_config_buffet
-from app.core.services.inventory_batch_service import calcular_coste_linea
 from app.core.services.receta_service import ETIQUETA_TOSTADA_DEL_DIA
 from app.core.services.text_search import normalizar_texto
 
 HOTEL_DEFAULT = Path(os.environ["LOCALAPPDATA"]) / "BM-V2-local" / "data" / "datos_hotel.json"
-OUT_DEFAULT = ROOT / "docs" / "plantillas" / "registro_desayuno_operativo_LISTA_ACTUALIZADA_ACTUALIZADA.xlsx"
+OUT_DEFAULT = ROOT / "docs" / "plantillas" / "registro_desayuno_operativo_ACTUALIZADA.xlsx"
 
 HEADERS_SERVICIO = ["Fecha", "Tipo", "Nombre", "Cantidad ↑↓", "Notas", "Importado"]
 
@@ -48,10 +47,8 @@ HEADERS_CONFIG_BUFFET = [
 
 HEADERS_CONSUMO_BUFFET = [
     "Fecha", "Seccion", "Concepto", "Cantidad", "Motivo",
-    "ZumoBote", "Coste", "Notas", "Importado",
+    "Notas", "Importado",
 ]
-
-HEADERS_PRECIOS = ["producto_id", "nombre", "coste_ud"]
 
 MOTIVOS_BUFFET_EXCEL = "Consumo,Merma,Expiración,Limpieza"
 
@@ -92,6 +89,10 @@ PANES_OFRECIDOS = [
     "Pan blanco",
     "Pan integral",
     "Pan sin gluten",
+    "Croissant sin gluten",
+    "Magdalena sin gluten",
+    "Muesli sin gluten",
+    "Cacao sin gluten",
     "Sin tostada",
 ]
 
@@ -187,30 +188,6 @@ def _escribir_hoja_registro_simple(
     return filas_datos
 
 
-def _escribir_precios(ws, data) -> int:
-    if ws.max_row:
-        ws.delete_rows(1, ws.max_row)
-    for col, h in enumerate(HEADERS_PRECIOS, start=1):
-        cell = ws.cell(1, col, h)
-        cell.font = FONT_HEADER
-        cell.fill = FILL_HEADER
-    vistos: set[str] = set()
-    fila = 2
-    for p in data.productos:
-        if not getattr(p, "activo", True) or p.id in vistos:
-            continue
-        coste = calcular_coste_linea(data, p.id, 1.0)
-        ws.cell(fila, 1, p.id)
-        ws.cell(fila, 2, p.nombre)
-        ws.cell(fila, 3, round(coste, 4))
-        vistos.add(p.id)
-        fila += 1
-    ws.column_dimensions["A"].width = 14
-    ws.column_dimensions["B"].width = 36
-    ws.column_dimensions["C"].width = 12
-    return max(fila - 2, 1)
-
-
 def _escribir_config_buffet(ws, data) -> int:
     if ws.max_row:
         ws.delete_rows(1, ws.max_row)
@@ -219,7 +196,10 @@ def _escribir_config_buffet(ws, data) -> int:
         cell.font = FONT_HEADER
         cell.fill = FILL_HEADER
     ensure_config_buffet(data)
-    configs = sorted(data.config_buffet, key=lambda c: (c.seccion, c.orden, c.label))
+    configs = sorted(
+        [c for c in data.config_buffet if c.activo],
+        key=lambda c: (c.seccion, c.orden, c.label),
+    )
     for i, cfg in enumerate(configs, start=2):
         ws.cell(i, 1, cfg.seccion)
         ws.cell(i, 2, cfg.orden)
@@ -238,7 +218,7 @@ def _escribir_config_buffet(ws, data) -> int:
     return max(len(configs), 1)
 
 
-def _escribir_consumo_buffet(ws, data, n_config: int, n_precios: int, preservado) -> int:
+def _escribir_consumo_buffet(ws, data, n_config: int, preservado) -> int:
     for col, h in enumerate(HEADERS_CONSUMO_BUFFET, start=1):
         cell = ws.cell(1, col, h)
         cell.font = FONT_HEADER
@@ -254,21 +234,9 @@ def _escribir_consumo_buffet(ws, data, n_config: int, n_precios: int, preservado
             filas_datos += 1
         start_empty = 2 + filas_datos
     max_row = max(start_empty + 80, 150)
-    for r_i in range(start_empty, max_row):
+    for r_i in range(2, max_row):
         for c_i in range(1, len(HEADERS_CONSUMO_BUFFET) + 1):
             ws.cell(r_i, c_i).border = THIN
-        # Coste acumulado (fórmula)
-        coste_col = HEADERS_CONSUMO_BUFFET.index("Coste") + 1
-        motivo_col = get_column_letter(HEADERS_CONSUMO_BUFFET.index("Motivo") + 1)
-        concepto_col = get_column_letter(HEADERS_CONSUMO_BUFFET.index("Concepto") + 1)
-        cant_col = get_column_letter(HEADERS_CONSUMO_BUFFET.index("Cantidad") + 1)
-        zumo_col = get_column_letter(HEADERS_CONSUMO_BUFFET.index("ZumoBote") + 1)
-        ws.cell(r_i, coste_col).value = (
-            f'=IF({motivo_col}{r_i}="Consumo",'
-            f'IFERROR({cant_col}{r_i}*VLOOKUP(VLOOKUP({concepto_col}{r_i},ConfigBuffet!$C:$D,2,FALSE),'
-            f'Precios!$A:$C,3,FALSE)*VLOOKUP({concepto_col}{r_i},ConfigBuffet!$C:$F,4,FALSE),0)'
-            f'+IFERROR({zumo_col}{r_i}*VLOOKUP("b28",Precios!$A:$C,3,FALSE),0),0)'
-        )
     ws.data_validations.dataValidation = []
     dv_motivo = DataValidation(type="list", formula1=f'"{MOTIVOS_BUFFET_EXCEL}"', allow_blank=True)
     ws.add_data_validation(dv_motivo)
@@ -281,12 +249,7 @@ def _escribir_consumo_buffet(ws, data, n_config: int, n_precios: int, preservado
     ws.add_data_validation(dv_concepto)
     dv_concepto.add("C2:C500")
     ws.freeze_panes = "A2"
-    tot_row = max_row + 1
-    ws.cell(tot_row, 6, "TOTAL")
-    ws.cell(tot_row, 7, f"=SUM(G2:G{max_row})")
-    ws.cell(tot_row, 6).font = Font(bold=True)
-    ws.cell(tot_row, 7).font = Font(bold=True)
-    for col, w in zip("ABCDEFGHI", [12, 14, 32, 10, 14, 10, 12, 22, 12]):
+    for col, w in zip("ABCDEFG", [12, 14, 36, 10, 14, 22, 12]):
         ws.column_dimensions[col].width = w
     return filas_datos
 
@@ -346,12 +309,16 @@ def _catalogo_bebidas_desayuno(data) -> list[str]:
     for lab in BEBIDAS_DESAYUNO_SIEMPRE:
         add(lab)
 
+    for e in des.bebidas_frias_rapidas_desayuno():
+        add(str(e.get("label") or ""))
+
     return sorted(names, key=lambda s: normalizar_texto(s))
 
 
 def _catalogo_extras() -> list[str]:
     labels = [e["label"] for e in des.extras_rapidos_desayuno()]
     labels += [e["label"] for e in des.leches_rapidas_desayuno()]
+    labels += [e["label"] for e in des.bebidas_frias_rapidas_desayuno()]
     out: list[str] = []
     seen: set[str] = set()
     for lab in labels:
@@ -378,7 +345,7 @@ def _write_instrucciones(ws, hotel: Path, n_rec: int, n_ext: int) -> None:
         "   • Vacío = igual que 0 (no suma).",
         "   Ejemplo: comensal pide inglés + café → fila inglés Huespedes=1, fila café=0.",
         "   Total del día = suma de la columna (solo los 1).",
-        "4. Tipo: Receta (plato/bebida), Extra (buffet rápido) o Producto.",
+        "4. Tipo: Receta (plato/bebida), Extra o Producto. Si lo dejas vacío y hay Nombre, se asume Receta.",
         "5. Nombre: elija del desplegable (lista en hoja Catalogo).",
         "6. Cantidad ↑↓: raciones o unidades de ESA línea (1–30).",
         "7. Extra1…Extra4: extras sobre una Receta (bacon, aguacate, huevo, pan…).",
@@ -399,7 +366,7 @@ def _write_instrucciones(ws, hotel: Path, n_rec: int, n_ext: int) -> None:
         "PAN (tostadas / sándwiches)",
         "• Por defecto: molde común (blanco) = Tostada / Pan blanco.",
         "• Integral: Extra1 = Tostada integral (o Pan integral).",
-        "• Sin gluten: Extra1 = Tostada sin gluten (o Pan sin gluten).",
+        "• Sin gluten: Extra1 = Tostada/Pan, Croissant, Magdalena, Muesli o Cacao sin gluten.",
         "• Sin pan: Omitir1 = Sin tostada.",
         "",
         "9. Guarde y ejecute 2_importar_a_bm.cmd (mejor --dry-run antes).",
@@ -407,18 +374,21 @@ def _write_instrucciones(ws, hotel: Path, n_rec: int, n_ext: int) -> None:
         "",
         "COMIDA / CENA (hojas RegistroComida, RegistroCena)",
         "• Misma Fecha = un solo registro del servicio en BM.",
-        "• Tipo: Receta, Extra o Producto. Cantidad: raciones/unidades.",
+        "• Tipo: Receta/Extra/Producto (vacío = Receta). Misma fecha: basta en la 1ª fila del día.",
         "",
         "BEBIDAS DESAYUNO (hoja RegistroBebidasDesayuno)",
-        "• Cafés, tés, Cola Cao, Cava Roger de Flor, etc. (catálogo columna I).",
+        "• Cafés, tés, Cola Cao, Cava, agua/soda/refrescos (catálogo columna I).",
+        "• Agua/refresco: Tipo = Producto o Extra; Nombre = etiqueta (ej. Agua sin gas PET, Coca-Cola lata).",
+        "  1 unidad = 1 botella/lata descontada del inventario.",
         "• Misma Fecha = un registro de bebidas en BM.",
-        "• Tipo: Receta (café, cava…) o Producto (botella suelta). Cantidad: raciones/unidades.",
+        "• Tipo: Receta (café, cava…) o Producto/Extra (botella suelta). Cantidad: raciones/unidades.",
         "",
         "CONSUMO BUFFET (hoja ConsumoBuffet)",
         "• Concepto: elija de ConfigBuffet (editable). Motivo: Consumo / Merma / Expiración / Limpieza.",
-        "• Jarra zumo naranja: Cantidad = litros/jarras; BM calcula kg naranja (CantDefecto en ConfigBuffet).",
-        "• ZumoBote (b28): opcional si parte del zumo es de bote en lugar de exprimido.",
-        "• Columna Coste usa Precios × cantidades (referencia; el import recalcula en BM).",
+        "• Zumo naranja natural 1L: Concepto = «Zumo naranja natural 1L», Cantidad = litros.",
+        "  BM usa la receta (kg NARANJA ZUMO b06 por litro; editable en Recetas).",
+        "• Zumo de bote/brik: Concepto = «Zumo naranja brik 1L» (producto ZUMO NARANJA 1L BRIK).",
+        "• No hay columnas de naranjas ni zumo bote: elija el concepto correcto en el desplegable.",
         "",
         "Al regenerar la plantilla NO se borran filas ya rellenadas en hojas de registro.",
     ]
@@ -568,7 +538,13 @@ def build(out: Path, hotel: Path) -> Path:
     data = get_container().app_data_store.get()
     recetas = _catalogo_recetas(data)
     extras = _catalogo_extras()
-    ensure_config_buffet(data)
+    if ensure_config_buffet(data):
+        # Persistir receta zumo natural + conceptos buffet en datos_hotel
+        from app.core.services.desayuno_service import _ctx as _des_ctx
+
+        _des_ctx().uow.commit(data)
+        data = get_container().app_data_store.get()
+        ensure_config_buffet(data)
 
     preservado = _leer_registro_existente(out)
     preservado_comida = _leer_hoja_existente(out, "RegistroComida")
@@ -585,15 +561,12 @@ def build(out: Path, hotel: Path) -> Path:
     _n_rec, n_ext, n_all, n_comida, n_cena, n_bebidas = _escribir_catalogo(ws_c, recetas, extras, data)
     n_combo = _rellenar_lista_extra_omitir(ws_c, extras)
 
-    ws_precios = wb.create_sheet("Precios")
-    n_precios = _escribir_precios(ws_precios, data)
-
     ws_cfg = wb.create_sheet("ConfigBuffet")
     n_config = _escribir_config_buffet(ws_cfg, data)
 
     ws_buffet = wb.create_sheet("ConsumoBuffet")
     filas_buffet = _escribir_consumo_buffet(
-        ws_buffet, data, n_config, n_precios, preservado_buffet,
+        ws_buffet, data, n_config, preservado_buffet,
     )
 
     ws_comida = wb.create_sheet("RegistroComida")

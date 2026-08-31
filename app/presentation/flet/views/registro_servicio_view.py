@@ -304,7 +304,8 @@ def build_registro_view(
                         "Extras habituales de desayuno · una porción al añadir · ajuste en cesta"
                         if (servicio == "desayuno" and tipo_activo == "productos")
                         else (
-                            "Cafés, tés y Cola Cao · leche vegetal = Espresso + ración de leche"
+                            "Cafés, tés, Cola Cao · leche vegetal = Espresso + ración · "
+                            "agua/soda/refresco = 1 botella/lata"
                             if (servicio == "desayuno" and tipo_activo == "bebidas")
                             else (
                                 "Copas, botellas y cócteles (mismas recetas que Bebidas independientes)"
@@ -313,7 +314,7 @@ def build_registro_view(
                                     and tipo_activo == "bebidas"
                                 )
                                 else (
-                                    "Recetas de barra · copas, botellas y cócteles"
+                                    "Recetas de barra · agua/soda/refrescos (1 Ud) · copas y cócteles"
                                     if servicio == "bebidas"
                                     else "Recetas · extras/productos por cantidad · pulse Añadir"
                                 )

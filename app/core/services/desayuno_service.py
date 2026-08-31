@@ -163,6 +163,10 @@ _EXTRAS_RAPIDOS_DESAYUNO: tuple[ExtraRapidoDesayuno, ...] = (
     ExtraRapidoDesayuno("Pan integral", "p11", _REB_MOLDE, 1, "reb"),
     ExtraRapidoDesayuno("Tostada sin gluten", "p04", _PIEZA_SIN_GLUTEN, 1, "ud"),
     ExtraRapidoDesayuno("Pan sin gluten", "p04", _PIEZA_SIN_GLUTEN, 1, "ud"),
+    _extra_pieza("Croissant sin gluten", "p372"),
+    _extra_pieza("Magdalena sin gluten", "p371"),
+    ExtraRapidoDesayuno("Muesli sin gluten", "p200", 0.04, 40, "gr"),
+    ExtraRapidoDesayuno("Cacao sin gluten", "p278", 0.018, 18, "gr"),
     ExtraRapidoDesayuno("Salchicha", "p20", 0.05, 50, "gr"),
     ExtraRapidoDesayuno("Hashbrown", "p29", 0.07, 70, "gr"),
     ExtraRapidoDesayuno("Champi", "p117", 0.006667, 20, "gr"),
@@ -217,6 +221,31 @@ _LECHES_RAPIDAS_DESAYUNO: tuple[ExtraRapidoDesayuno, ...] = (
     ExtraRapidoDesayuno("Leche de avena", "b43", 0.12, 120, "ml"),
     ExtraRapidoDesayuno("Leche de soja", "b10", 0.12, 120, "ml"),
     ExtraRapidoDesayuno("Leche de almendras", "b66", 0.12, 120, "ml"),
+)
+
+
+def _botella_fria(label: str, producto_id: str) -> ExtraRapidoDesayuno:
+    """1 botella/lata = 1 Ud de inventario."""
+    return ExtraRapidoDesayuno(label, producto_id, 1.0, 1, "Ud")
+
+
+# Agua / soda / refrescos (cristal y plástico/lata). Catálogo bar; 1 clic = 1 Ud.
+_BEBIDAS_FRIAS_RAPIDAS_DESAYUNO: tuple[ExtraRapidoDesayuno, ...] = (
+    _botella_fria("Agua sin gas PET", "p264"),
+    _botella_fria("Agua sin gas cristal", "p259"),
+    _botella_fria("Agua con gas PET", "p265"),
+    _botella_fria("Agua con gas cristal", "p260"),
+    _botella_fria("Agua manantial PET", "b25"),
+    _botella_fria("Soda", "p261"),
+    _botella_fria("Coca-Cola lata", "b59"),
+    _botella_fria("Coca-Cola Zero lata", "b60"),
+    _botella_fria("Fanta naranja lata", "b61"),
+    _botella_fria("Fanta limon lata", "b83"),
+    _botella_fria("Sprite lata", "b84"),
+    _botella_fria("Coca-Cola cristal", "b56"),
+    _botella_fria("Coca-Cola Zero cristal", "b58"),
+    _botella_fria("Fanta naranja cristal", "b57"),
+    _botella_fria("Sprite 1,5 L", "b62"),
 )
 
 
@@ -329,6 +358,11 @@ def extras_rapidos_desayuno(*, ctx: AppContext | None = None) -> list[dict]:
 def leches_rapidas_desayuno(*, ctx: AppContext | None = None) -> list[dict]:
     """Raciones de leche (vaca / vegetal) para combinar con Espresso u otras bebidas."""
     return _extras_desde_tupla(_LECHES_RAPIDAS_DESAYUNO, ctx=ctx)
+
+
+def bebidas_frias_rapidas_desayuno(*, ctx: AppContext | None = None) -> list[dict]:
+    """Agua, soda y refrescos (1 botella/lata = 1 Ud)."""
+    return _extras_desde_tupla(_BEBIDAS_FRIAS_RAPIDAS_DESAYUNO, ctx=ctx)
 
 
 def es_receta_bebida_desayuno(nombre: str) -> bool:
@@ -904,6 +938,9 @@ class DesayunoRegistroAdapter:
 
     def leches_rapidas(self) -> list[dict]:
         return leches_rapidas_desayuno()
+
+    def bebidas_frias_rapidas(self) -> list[dict]:
+        return bebidas_frias_rapidas_desayuno()
 
     def limpiar_cesta(self) -> None:
         limpiar_cesta()

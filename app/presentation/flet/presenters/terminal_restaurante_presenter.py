@@ -951,10 +951,11 @@ class TerminalRestaurantePresenter:
         q = self._busqueda
         tipo = self._catalogo_tipo or "recetas"
 
-        # Desayuno → Bebidas: cafés/tés/Cola Cao (recetas) + leches sueltas.
+        # Desayuno → Bebidas: cafés/tés/Cola Cao (recetas) + leches + frias.
         if bind.id == "desayuno" and tipo == "bebidas":
             from app.core.models import CategoriaReceta
             from app.core.services.desayuno_service import (
+                bebidas_frias_rapidas_desayuno,
                 es_receta_bebida_desayuno,
                 leches_rapidas_desayuno,
             )
@@ -981,6 +982,14 @@ class TerminalRestaurantePresenter:
                 str(p["id"]): float(p["stock"]) if p.get("stock") is not None else 0.0
                 for p in bind.api.productos_catalogo("")
             }
+            # Stock de frias/leches puede estar solo en servicio «bebidas».
+            from app.core.services import bebida_service as _beb_svc
+
+            for p in _beb_svc.servicio.productos_catalogo(""):
+                stock_por_id.setdefault(
+                    str(p["id"]),
+                    float(p["stock"]) if p.get("stock") is not None else 0.0,
+                )
             for ex in leches_rapidas_desayuno():
                 label = str(ex.get("label") or "")
                 nombre_prod = str(ex.get("nombre") or "")
@@ -1004,6 +1013,27 @@ class TerminalRestaurantePresenter:
                         hint_extra=(
                             f"ración {cant_m:g} {uni_m} · con Espresso si es vegetal"
                         ),
+                    )
+                )
+            for ex in bebidas_frias_rapidas_desayuno():
+                label = str(ex.get("label") or "")
+                nombre_prod = str(ex.get("nombre") or "")
+                if q and not (
+                    coincide_busqueda(label, q) or coincide_busqueda(nombre_prod, q)
+                ):
+                    continue
+                pid = str(ex["producto_id"])
+                cant = float(ex.get("cantidad") or 0)
+                items.append(
+                    CatalogItemVM(
+                        id=pid,
+                        nombre=label or nombre_prod,
+                        tipo="producto_directo",
+                        unidad=str(ex.get("unidad") or "Ud"),
+                        stock_disponible=stock_por_id.get(pid),
+                        es_bebida=True,
+                        cantidad_default=cant if cant > 0 else None,
+                        hint_extra="1 botella/lata = 1 Ud inventario",
                     )
                 )
             return tuple(items)
@@ -1225,6 +1255,35 @@ class TerminalRestaurantePresenter:
                             float(p["stock"]) if p.get("stock") is not None else None
                         ),
                         es_bebida=es_bebida,
+                    )
+                )
+        # Bebidas independientes: agua / soda / refrescos (1 Ud).
+        if bind.id == "bebidas":
+            from app.core.services.desayuno_service import bebidas_frias_rapidas_desayuno
+
+            stock_por_id = {
+                str(p["id"]): float(p["stock"]) if p.get("stock") is not None else 0.0
+                for p in bind.api.productos_catalogo("")
+            }
+            for ex in bebidas_frias_rapidas_desayuno():
+                label = str(ex.get("label") or "")
+                nombre_prod = str(ex.get("nombre") or "")
+                if q and not (
+                    coincide_busqueda(label, q) or coincide_busqueda(nombre_prod, q)
+                ):
+                    continue
+                pid = str(ex["producto_id"])
+                cant = float(ex.get("cantidad") or 0)
+                items.append(
+                    CatalogItemVM(
+                        id=pid,
+                        nombre=label or nombre_prod,
+                        tipo="producto_directo",
+                        unidad=str(ex.get("unidad") or "Ud"),
+                        stock_disponible=stock_por_id.get(pid),
+                        es_bebida=True,
+                        cantidad_default=cant if cant > 0 else None,
+                        hint_extra="1 botella/lata = 1 Ud inventario",
                     )
                 )
         return tuple(items)

@@ -5,7 +5,7 @@ cd /d "%~dp0\..\.."
 set "ROOT=%CD%"
 set "PY=%ROOT%\.venv\Scripts\python.exe"
 set "BM_DATOS=%LOCALAPPDATA%\BM-V2-local\data\datos_hotel.json"
-set "OUT=%ROOT%\docs\plantillas\registro_desayuno_operativo_LISTA_ACTUALIZADA_ACTUALIZADA.xlsx"
+set "OUT=%ROOT%\docs\plantillas\registro_desayuno_operativo_ACTUALIZADA.xlsx"
 
 if not "%~1"=="" set "BM_DATOS=%~1"
 

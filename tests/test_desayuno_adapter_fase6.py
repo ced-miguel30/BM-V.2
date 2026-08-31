@@ -33,9 +33,25 @@ class TestDesayunoAdapter(unittest.TestCase):
             "configuracion_exportacion",
             "registros_exportables",
             "coste_total_cesta",
+            "leches_rapidas",
+            "bebidas_frias_rapidas",
         ]
         for nombre in metodos:
             self.assertTrue(callable(getattr(desayuno_registro, nombre)), nombre)
+
+    def test_bebidas_frias_una_ud(self) -> None:
+        from app.core.services.desayuno_service import _BEBIDAS_FRIAS_RAPIDAS_DESAYUNO
+
+        self.assertGreaterEqual(len(_BEBIDAS_FRIAS_RAPIDAS_DESAYUNO), 14)
+        labels = {e.label for e in _BEBIDAS_FRIAS_RAPIDAS_DESAYUNO}
+        self.assertIn("Agua sin gas PET", labels)
+        self.assertIn("Agua sin gas cristal", labels)
+        self.assertIn("Soda", labels)
+        self.assertIn("Coca-Cola lata", labels)
+        self.assertIn("Sprite 1,5 L", labels)
+        for e in _BEBIDAS_FRIAS_RAPIDAS_DESAYUNO:
+            self.assertEqual(e.cantidad, 1.0, e.label)
+            self.assertEqual(e.unidad_mostrar, "Ud", e.label)
 
 
 if __name__ == "__main__":

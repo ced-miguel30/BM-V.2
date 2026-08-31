@@ -194,6 +194,43 @@ def _parse_float(val, default: float | None = None) -> float | None:
         return default
 
 
+def _cell_str(val, default: str = "") -> str:
+    """Texto de celda; no pierde el 0 numérico (``0 or ''`` → vacío)."""
+    if val is None:
+        return default
+    return str(val).strip()
+
+
+def _tipo_y_huespedes_registro(
+    tipo_raw,
+    hues_raw,
+    *,
+    nombre: str = "",
+) -> tuple[str, int | None]:
+    """Normaliza Tipo/Huéspedes según cómo se rellena el Excel operativo.
+
+    Casos admitidos:
+    - Tipo = Receta/Extra/Producto (correcto).
+    - Tipo = 0/1 y Nombre = plato → 0/1 es flag de huésped; Tipo = Receta.
+    - Tipo vacío y Nombre = plato → Tipo = Receta.
+    """
+    tipo = _cell_str(tipo_raw)
+    hues: int | None
+    if hues_raw is None or hues_raw == "":
+        hues = None
+    else:
+        hues_f = _parse_float(hues_raw, None)
+        hues = int(hues_f) if hues_f is not None else None
+
+    if tipo in ("0", "1"):
+        if hues is None:
+            hues = int(tipo)
+        tipo = "Receta"
+    elif not tipo and nombre:
+        tipo = "Receta"
+    return tipo, hues
+
+
 @dataclass
 class LineaExcel:
     row: int
@@ -243,6 +280,7 @@ def _leer_registro(path: Path) -> list[LineaExcel]:
     ws = wb["Registro"]
     cols = _header_map(ws)
     lineas: list[LineaExcel] = []
+    ultima_fecha: date | None = None
     for r_i, row in enumerate(ws.iter_rows(min_row=2, values_only=True), start=2):
         def cell(name: str, default=None):
             idx = cols.get(name)
@@ -250,28 +288,29 @@ def _leer_registro(path: Path) -> list[LineaExcel]:
                 return default
             return row[idx]
 
-        fecha = _parse_fecha(cell("Fecha"))
-        tipo = str(cell("Tipo") or "").strip()
-        nombre = str(cell("Nombre") or "").strip()
-        if not fecha and not tipo and not nombre:
+        fecha_celda = _parse_fecha(cell("Fecha"))
+        fecha = fecha_celda or ultima_fecha
+        nombre = _cell_str(cell("Nombre"))
+        tipo, hues_val = _tipo_y_huespedes_registro(
+            cell("Tipo"), cell("Huespedes"), nombre=nombre,
+        )
+        if not fecha_celda and not tipo and not nombre and not cell("Huespedes"):
             continue
         if not fecha:
-            raise SystemExit(f"Fila {r_i}: Fecha obligatoria.")
-        if not tipo or not nombre:
-            raise SystemExit(f"Fila {r_i}: Tipo y Nombre obligatorios.")
+            raise SystemExit(
+                f"Fila {r_i}: Fecha obligatoria "
+                "(o déjela en la primera fila del mismo día)."
+            )
+        if not nombre:
+            raise SystemExit(f"Fila {r_i}: Nombre obligatorio.")
+        if not tipo:
+            raise SystemExit(f"Fila {r_i}: Tipo obligatorio (Receta/Extra/Producto).")
         cant = _parse_float(cell("Cantidad ↑↓"), 1.0)
         if cant is None or cant <= 0:
             raise SystemExit(f"Fila {r_i}: Cantidad debe ser > 0.")
-        # Huéspedes: 1 = nuevo comensal; 0 o vacío = mismo comensal / no suma.
-        hues_raw = cell("Huespedes")
-        if hues_raw is None or hues_raw == "":
-            hues_val: int | None = None
-        else:
-            hues_f = _parse_float(hues_raw, None)
-            hues_val = int(hues_f) if hues_f is not None else None
         extras: list[tuple[str, float | None]] = []
         for n in (1, 2, 3, 4):
-            lab = str(cell(f"Extra{n}") or "").strip()
+            lab = _cell_str(cell(f"Extra{n}"))
             if not lab:
                 continue
             extras.append((lab, _parse_float(cell(f"Cant{n} ↑↓"), None)))
@@ -284,11 +323,12 @@ def _leer_registro(path: Path) -> list[LineaExcel]:
                 nombre=nombre,
                 cantidad=float(cant),
                 extras=extras,
-                omitir1=str(cell("Omitir1") or "").strip(),
-                omitir2=str(cell("Omitir2") or "").strip(),
-                notas=str(cell("Notas") or "").strip(),
+                omitir1=_cell_str(cell("Omitir1")),
+                omitir2=_cell_str(cell("Omitir2")),
+                notas=_cell_str(cell("Notas")),
             )
         )
+        ultima_fecha = fecha
     wb.close()
     return lineas
 
@@ -332,7 +372,11 @@ def _mapa_recetas(data) -> dict[str, object]:
 
 def _mapa_extras_label() -> dict[str, dict]:
     m: dict[str, dict] = {}
-    for e in des.extras_rapidos_desayuno() + des.leches_rapidas_desayuno():
+    for e in (
+        des.extras_rapidos_desayuno()
+        + des.leches_rapidas_desayuno()
+        + des.bebidas_frias_rapidas_desayuno()
+    ):
         m[_norm(e["label"])] = e
         m[_norm(e["nombre"])] = e
     return m
@@ -763,13 +807,20 @@ def _mapa_productos_bebidas_desayuno(data) -> dict[str, object]:
         if not getattr(p, "activo", True) or not getattr(p, "es_bebida", False):
             continue
         servicios = [s for s in (getattr(p, "servicios_disponibles", None) or []) if isinstance(s, str)]
-        if servicios and "desayuno" not in servicios:
+        if servicios and "desayuno" not in servicios and "bebidas" not in servicios:
             continue
         m[_norm(p.nombre)] = p
         codigo = getattr(p, "codigo", None) or ""
         if codigo:
             m[_norm(codigo)] = p
         m[_norm(p.id)] = p
+    # Alias amigables de la terminal (Agua sin gas PET, Coca-Cola lata…).
+    by_id = {p.id: p for p in data.productos}
+    for e in des.bebidas_frias_rapidas_desayuno():
+        prod = by_id.get(e["producto_id"])
+        if prod is None:
+            continue
+        m[_norm(e["label"])] = prod
     return m
 
 
@@ -991,7 +1042,6 @@ def _leer_consumo_buffet(path: Path) -> list[DiaPlanBuffet]:
                 seccion=str(cell("Seccion") or "").strip(),
                 cantidad=float(cant),
                 motivo=motivo,
-                zumo_bote=_parse_float(cell("ZumoBote"), None),
                 notas=str(cell("Notas") or "").strip(),
             )
         )
@@ -1075,7 +1125,11 @@ def main() -> int:
                 or str(r.categoria) == "desayuno"
             )
         )
-        n_ext = len(des.extras_rapidos_desayuno()) + len(des.leches_rapidas_desayuno())
+        n_ext = (
+            len(des.extras_rapidos_desayuno())
+            + len(des.leches_rapidas_desayuno())
+            + len(des.bebidas_frias_rapidas_desayuno())
+        )
         print("Hotel:", hotel or "(sin nombre)")
         print(f"Recetas desayuno activas: {n_rec}")
         print(f"Extras rapidos: {n_ext}")
