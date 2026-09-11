@@ -11,7 +11,6 @@ from __future__ import annotations
 
 import json
 import re
-import sys
 from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal, ROUND_HALF_UP
@@ -20,6 +19,7 @@ from typing import Any
 
 from openpyxl import Workbook
 from openpyxl.styles import Font
+
 HOTEL = Path(r"D:\work\2-BM-DATOS\data\datos_hotel.json")
 OUT_DIR = Path(r"D:\work")
 
