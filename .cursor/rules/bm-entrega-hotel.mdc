@@ -33,7 +33,14 @@ Tras cualquier cambio pensado para el hotel, **actualiza también `D:\work`**:
 
 No mezclar update de código con sustitución de datos en el mismo paso.
 
+## Qué NO va en D:\work
+
+- Informes de auditoría, Excel de revisión de precios, exports locales → `exports/` del repo (disco local).
+- Código fuente / Cursor → este repo.
+- Solo sincronizar a `D:\work` lo que se lleve al servidor (1 / 2 / 4).
+
 ## Repo vs hotel
 
 - **Desarrollo:** este repo (`app/`, `packaging/`, `docs/`).
 - **Hotel:** solo exe (`1`) + datos (`2`) + Excel opcional (`4`).
+- **Datos:** se actualizan en local y luego se copia/actualiza `D:\work\2-BM-DATOS`.

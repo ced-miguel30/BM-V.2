@@ -1,7 +1,8 @@
 """Excel de auditoría: productos que necesitan revisión de precio / unidad.
 
-Lee D:\\work\\2-BM-DATOS y escribe
-D:\\work\\auditoria_revision_precios_YYYYMMDD.xlsx
+Lee la base (por defecto D:\\work\\2-BM-DATOS, espejo) y escribe el Excel en
+disco LOCAL del repo: exports\\auditoria_revision_precios_YYYYMMDD.xlsx
+(no en D:\\work; ahí solo van carpetas 1/2/4 de entrega al servidor).
 
 Uso:
   py -3 scripts\\export_auditoria_revision_precios.py
@@ -20,8 +21,9 @@ from typing import Any
 from openpyxl import Workbook
 from openpyxl.styles import Font
 
+ROOT = Path(__file__).resolve().parents[1]
 HOTEL = Path(r"D:\work\2-BM-DATOS\data\datos_hotel.json")
-OUT_DIR = Path(r"D:\work")
+OUT_DIR = ROOT / "exports"  # local; gitignored; nunca D:\work
 
 # Pack / caja en el nombre (Ud ambiguas)
 _PACK_RE = re.compile(
