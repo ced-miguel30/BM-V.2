@@ -4,13 +4,30 @@ En el hotel solo hay que conocer **dos carpetas**. El acceso directo al `.exe` *
 
 | Marca | Ruta en ESTE PC | Qué es | Al actualizar |
 |-------|-----------------|--------|---------------|
-| **BM-CODIGO** (desarrollo) | `C:\Users\User\Desktop\HOTEL\BM V.2\` | Código fuente / Cursor | Editas aquí; empaquetas y despliegas |
+| **BM-CODIGO** (desarrollo) | Repo `BM-V.2` (git / Cursor) | Código fuente | Editas aquí; empaquetas y despliegas |
 | **BM-CODIGO** (exe hotel) | `C:\Apps\BM-V2\` | `BM-Launcher.exe` + `_internal\` | Sustituir **entera** por la nueva versión |
-| **BM-DATOS** | `C:\Users\User\AppData\Local\BM-V2-local\` | Toda la base operativa | Sustituir/copiar **entera** (casa ↔ hotel); **nunca** mezclar con un update de código |
-
-Resumen visible: `C:\Users\User\Desktop\HOTEL\LEEME_DOS_CARPETAS.txt`.
+| **BM-DATOS** | `BM_INSTANCE_ROOT` / `%LOCALAPPDATA%\BM-V2-local\` | Toda la base operativa | Sustituir/copiar **entera** (casa ↔ hotel); **nunca** mezclar con un update de código |
 
 Marcadores en disco: `BM-CODIGO.txt` y `BM-DATOS.txt` (los crea el runtime del exe o `deploy\windows\marcar_carpetas_hotel.cmd`).
+
+## Espejo de entrega en desarrollo — `D:\work`
+
+En el PC de desarrollo (y el mismo disco al cambiar de ordenador), el puente hacia el hotel es:
+
+```
+D:\work\
+  LEEME.txt
+  1-BM-CODIGO\       → copiar a C:\Apps\BM-V2\
+  2-BM-DATOS\        → sustituir BM-DATOS / shared_root
+  4-REGISTRO-EXCEL\  → Excel + scripts de import
+```
+
+- **Fuera de git.** El repo no versiona exe ni datos productivos.
+- **Sin carpeta 3:** el código fuente es este repo, no un espejo `3-BM-CODIGO-FUENTE`.
+- Tras `deploy\windows\build_exe.cmd`, copiar `dist\BM-Launcher\` → `D:\work\1-BM-CODIGO\`.
+- Tras traer/preparar la base del hotel, actualizar `D:\work\2-BM-DATOS\` (carpeta entera; BM cerrado).
+- Regla Cursor: [`.cursor/rules/bm-entrega-hotel.mdc`](../.cursor/rules/bm-entrega-hotel.mdc) (siempre aplicar sync a `D:\work`).
+- Si `D:\work` no existe en este PC, crear/montar esa ruta antes de sincronizar.
 
 ```
 BM-CODIGO\BM-Launcher.exe  →  BM_INSTANCE_ROOT (= BM-DATOS)
