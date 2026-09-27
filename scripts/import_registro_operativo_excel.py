@@ -333,8 +333,16 @@ def _leer_registro(path: Path) -> list[LineaExcel]:
     return lineas
 
 
-def _agrupar(lineas: list[LineaExcel]) -> list[DiaPlan]:
-    """Misma Fecha = un solo desayuno. Huéspedes = suma de 1s (0 no suma)."""
+def _agrupar(
+    lineas: list[LineaExcel],
+    *,
+    huesped_minimo_1: bool = False,
+) -> list[DiaPlan]:
+    """Misma Fecha = un solo desayuno. Huéspedes = suma de 1s (0 no suma).
+
+    Con huesped_minimo_1: cada fila de plato cuenta al menos 1 (0/vacío/None → 1),
+    incluidas las filas de continuación con Fecha vacía heredada.
+    """
     por: dict[date, DiaPlan] = {}
     for ln in lineas:
         dia = por.get(ln.fecha)
@@ -344,6 +352,9 @@ def _agrupar(lineas: list[LineaExcel]) -> list[DiaPlan]:
         dia.lineas.append(ln)
         dia.row_indices.append(ln.row)
     for dia in por.values():
+        if huesped_minimo_1:
+            dia.huespedes = sum(max(int(ln.huespedes or 0), 1) for ln in dia.lineas)
+            continue
         suma = 0
         hay_marca = False
         for ln in dia.lineas:
@@ -392,13 +403,57 @@ def _mapa_productos(data) -> dict[str, object]:
         if codigo:
             m[_norm(codigo)] = p
         m[_norm(p.id)] = p
+    # Alias de escritura libre → nombre de catálogo
+    for alias, canon in (
+        ("queos rulo", "queso rulo de cabra 1kg"),
+        ("queso rulo", "queso rulo de cabra 1kg"),
+        ("queso rulo cabra", "queso rulo de cabra 1kg"),
+    ):
+        if alias not in m and canon in m:
+            m[alias] = m[canon]
     return m
 
 
 def _resolver_receta(data, nombre: str, fecha: date, rec_map: dict):
-    if _norm(nombre) == _norm(ETIQUETA_TOSTADA_DEL_DIA):
+    key = _norm(nombre)
+    if key in (_norm(ETIQUETA_TOSTADA_DEL_DIA), "tostada"):
         return receta_tostada_del_dia(fecha)
-    return rec_map.get(_norm(nombre))
+    return rec_map.get(key)
+
+
+def _resolver_mod_qty(
+    extra_map: dict,
+    prod_map: dict,
+    label: str,
+    cant_filas: float | None,
+) -> tuple[str, float]:
+    """Resuelve Extra rápido o Producto (con alias) para mods / líneas sueltas."""
+    key = _norm(label)
+    aliases = {
+        "queos rulo": "queso rulo",
+    }
+    key = _norm(aliases.get(key, key))
+    e = extra_map.get(key) or extra_map.get(_norm(label))
+    if e is not None:
+        mult = float(cant_filas) if cant_filas and cant_filas > 0 else 1.0
+        return e["producto_id"], round(float(e["cantidad"]) * mult, 6)
+    p = prod_map.get(key) or prod_map.get(_norm(label))
+    if p is None and key:
+        tokens = [t for t in key.split() if t]
+        if len(tokens) >= 2:
+            seen: set[int] = set()
+            for pk, cand in prod_map.items():
+                cid = id(cand)
+                if cid in seen:
+                    continue
+                seen.add(cid)
+                if all(t in pk for t in tokens):
+                    p = cand
+                    break
+    if p is None:
+        raise ValueError(f"Extra no encontrado: «{label}»")
+    qty = float(cant_filas) if cant_filas and cant_filas > 0 else 1.0
+    return p.id, qty
 
 
 def _qty_extra(extra_map: dict, label: str, cant_filas: float | None) -> tuple[str, float]:
@@ -468,101 +523,112 @@ def _anadir_linea_a_cesta(
     if tipo == "receta":
         rec = _resolver_receta(data, ln.nombre, fecha, rec_map)
         if rec is None:
-            raise ValueError(f"Receta no encontrada: «{ln.nombre}»")
-        ingles = _es_desayuno_ingles(ln.nombre)
-        egg_extras: list[tuple[str, float | None]] = []
-        pan_destino: str | None = None
-        pan_solo_omitir = False
-        other_extras: list[tuple[str, float | None]] = []
-        pid_pan_ficha, qty_pan_ficha = _qty_pan_en_receta(rec)
+            # Excel a menudo pone Tipo=Receta en extras (Bacon, Tomate, …)
+            key = _norm(ln.nombre)
+            if key in extra_map or prod_map.get(key) is not None:
+                tipo = "extra"
+            else:
+                # último intento: tokens → producto
+                try:
+                    _resolver_mod_qty(extra_map, prod_map, ln.nombre, ln.cantidad)
+                    tipo = "extra"
+                except ValueError:
+                    raise ValueError(f"Receta no encontrada: «{ln.nombre}»") from None
+        if tipo == "receta":
+            ingles = _es_desayuno_ingles(ln.nombre)
+            egg_extras: list[tuple[str, float | None]] = []
+            pan_destino: str | None = None
+            pan_solo_omitir = False
+            other_extras: list[tuple[str, float | None]] = []
+            pid_pan_ficha, qty_pan_ficha = _qty_pan_en_receta(rec)
 
-        for lab, canti in ln.extras:
-            if ingles and _es_tipo_huevo(lab) and _norm(lab) not in (
-                "huevo",
-                "huevo cascara",
-                "sin huevo",
-            ):
-                egg_extras.append((lab, canti))
-            elif _es_tipo_pan(lab):
-                dest = _pan_destino(lab)
-                if dest is None:
-                    pan_solo_omitir = True
-                elif pid_pan_ficha:
-                    pan_destino = dest
+            for lab, canti in ln.extras:
+                if ingles and _es_tipo_huevo(lab) and _norm(lab) not in (
+                    "huevo",
+                    "huevo cascara",
+                    "sin huevo",
+                ):
+                    egg_extras.append((lab, canti))
+                elif _es_tipo_pan(lab):
+                    dest = _pan_destino(lab)
+                    if dest is None:
+                        pan_solo_omitir = True
+                    elif pid_pan_ficha:
+                        pan_destino = dest
+                    else:
+                        other_extras.append((lab, canti))
                 else:
                     other_extras.append((lab, canti))
-            else:
-                other_extras.append((lab, canti))
 
-        omit_labels = [x for x in (ln.omitir1, ln.omitir2) if x]
-        for lab in omit_labels:
-            if _es_tipo_pan(lab) and _pan_destino(lab) is None:
-                pan_solo_omitir = True
+            omit_labels = [x for x in (ln.omitir1, ln.omitir2) if x]
+            for lab in omit_labels:
+                if _es_tipo_pan(lab) and _pan_destino(lab) is None:
+                    pan_solo_omitir = True
 
-        for lab, canti in other_extras:
-            pid, qty = _qty_extra(extra_map, lab, canti)
-            r = des.anadir_mod_pendiente_receta(pid, qty)
-            if not r.ok:
-                raise ValueError(r.mensaje)
-        for lab, canti in egg_extras:
-            pid, qty = _qty_extra(extra_map, lab, canti)
-            r = des.anadir_mod_pendiente_receta(pid, qty)
-            if not r.ok:
-                raise ValueError(r.mensaje)
-
-        r = des.anadir_receta_a_cesta(rec.id, float(ln.cantidad))
-        if not r.ok:
-            raise ValueError(r.mensaje)
-
-        for lab in omit_labels:
-            if _es_tipo_pan(lab):
-                continue
-            pid = _resolver_omit_pid(data, rec, lab, prod_map, extra_map)
-            r = des.anadir_mod_a_receta_en_cesta(pid, -1e9)
-            if not r.ok and "no está" not in (r.mensaje or "").lower():
-                raise ValueError(r.mensaje)
-
-        if ingles and (
-            egg_extras
-            or any(_es_tipo_huevo(x) for x in omit_labels)
-        ):
-            if any(
-                i.producto_id == _HUEVO_FRITO_PID
-                for i in (rec.ingredientes or [])
-            ):
-                r = des.anadir_mod_a_receta_en_cesta(_HUEVO_FRITO_PID, -1e9)
-                if (
-                    not r.ok
-                    and "no está" not in (r.mensaje or "").lower()
-                ):
+            for lab, canti in other_extras:
+                pid, qty = _resolver_mod_qty(extra_map, prod_map, lab, canti)
+                r = des.anadir_mod_pendiente_receta(pid, qty)
+                if not r.ok:
+                    raise ValueError(r.mensaje)
+            for lab, canti in egg_extras:
+                pid, qty = _resolver_mod_qty(extra_map, prod_map, lab, canti)
+                r = des.anadir_mod_pendiente_receta(pid, qty)
+                if not r.ok:
                     raise ValueError(r.mensaje)
 
-        if pan_solo_omitir and not pan_destino:
-            _omitir_todos_los_panes()
-        elif pan_destino and pid_pan_ficha and pan_destino != pid_pan_ficha:
-            qty_nativa = _qty_pan_sustitucion(
-                pid_pan_ficha, qty_pan_ficha, pan_destino, float(ln.cantidad)
-            )
-            _omitir_pan_si_hay(pid_pan_ficha)
-            r = des.anadir_mod_a_receta_en_cesta(pan_destino, qty_nativa)
+            r = des.anadir_receta_a_cesta(rec.id, float(ln.cantidad))
             if not r.ok:
                 raise ValueError(r.mensaje)
-        for lab in omit_labels:
-            if not _es_tipo_pan(lab):
-                continue
-            dest = _pan_destino(lab)
-            if dest is None:
-                continue
-            _omitir_pan_si_hay(dest)
-    elif tipo in ("extra", "producto"):
+
+            for lab in omit_labels:
+                if _es_tipo_pan(lab):
+                    continue
+                pid = _resolver_omit_pid(data, rec, lab, prod_map, extra_map)
+                r = des.anadir_mod_a_receta_en_cesta(pid, -1e9)
+                if not r.ok and "no está" not in (r.mensaje or "").lower():
+                    raise ValueError(r.mensaje)
+
+            if ingles and (
+                egg_extras
+                or any(_es_tipo_huevo(x) for x in omit_labels)
+            ):
+                if any(
+                    i.producto_id == _HUEVO_FRITO_PID
+                    for i in (rec.ingredientes or [])
+                ):
+                    r = des.anadir_mod_a_receta_en_cesta(_HUEVO_FRITO_PID, -1e9)
+                    if (
+                        not r.ok
+                        and "no está" not in (r.mensaje or "").lower()
+                    ):
+                        raise ValueError(r.mensaje)
+
+            if pan_solo_omitir and not pan_destino:
+                _omitir_todos_los_panes()
+            elif pan_destino and pid_pan_ficha and pan_destino != pid_pan_ficha:
+                qty_nativa = _qty_pan_sustitucion(
+                    pid_pan_ficha, qty_pan_ficha, pan_destino, float(ln.cantidad)
+                )
+                _omitir_pan_si_hay(pid_pan_ficha)
+                r = des.anadir_mod_a_receta_en_cesta(pan_destino, qty_nativa)
+                if not r.ok:
+                    raise ValueError(r.mensaje)
+            for lab in omit_labels:
+                if not _es_tipo_pan(lab):
+                    continue
+                dest = _pan_destino(lab)
+                if dest is None:
+                    continue
+                _omitir_pan_si_hay(dest)
+            return
+    if tipo in ("extra", "producto"):
         if _norm(ln.nombre) in extra_map:
-            pid, qty = _qty_extra(extra_map, ln.nombre, ln.cantidad)
+            pid, qty = _resolver_mod_qty(extra_map, prod_map, ln.nombre, ln.cantidad)
         else:
-            p = prod_map.get(_norm(ln.nombre))
-            if p is None:
-                raise ValueError(f"Producto/extra no encontrado: «{ln.nombre}»")
-            pid = p.id
-            qty = float(ln.cantidad)
+            try:
+                pid, qty = _resolver_mod_qty(extra_map, prod_map, ln.nombre, ln.cantidad)
+            except ValueError as exc:
+                raise ValueError(f"Producto/extra no encontrado: «{ln.nombre}»") from exc
         r = des.anadir_a_cesta(pid, qty)
         if not r.ok:
             raise ValueError(r.mensaje)
@@ -599,17 +665,17 @@ def _importar_dia(
                 if tipo == "receta":
                     rec = _resolver_receta(data, ln.nombre, dia.fecha, rec_map)
                     if rec is None:
-                        raise ValueError(f"Receta no encontrada: «{ln.nombre}»")
+                        # Mismo fallback que en _anadir_linea_a_cesta
+                        _resolver_mod_qty(extra_map, prod_map, ln.nombre, ln.cantidad)
+                        preview.append(f"Extra:{ln.nombre}x{ln.cantidad:g}")
+                        continue
                     for lab, canti in ln.extras:
-                        _qty_extra(extra_map, lab, canti)
+                        _resolver_mod_qty(extra_map, prod_map, lab, canti)
                     for lab in (ln.omitir1, ln.omitir2):
                         if lab:
                             _resolver_omit_pid(data, rec, lab, prod_map, extra_map)
                 elif tipo in ("extra", "producto"):
-                    if _norm(ln.nombre) in extra_map:
-                        _qty_extra(extra_map, ln.nombre, ln.cantidad)
-                    elif prod_map.get(_norm(ln.nombre)) is None:
-                        raise ValueError(f"Producto/extra no encontrado: «{ln.nombre}»")
+                    _resolver_mod_qty(extra_map, prod_map, ln.nombre, ln.cantidad)
                 else:
                     raise ValueError(f"Tipo desconocido: «{ln.tipo}»")
                 preview.append(f"{ln.tipo}:{ln.nombre}x{ln.cantidad:g}")
@@ -1115,6 +1181,14 @@ def main() -> int:
         action="append",
         help="Importar solo las hojas indicadas (repetible)",
     )
+    parser.add_argument(
+        "--huesped-minimo-1",
+        action="store_true",
+        help=(
+            "En Registro: cada fila de plato suma al menos 1 huésped "
+            "(0/vacío/None → 1; incluye filas sin fecha de continuación)"
+        ),
+    )
     args = parser.parse_args()
     hojas = args.solo or list(HOJAS_IMPORT)
 
@@ -1187,8 +1261,11 @@ def main() -> int:
 
     if "Registro" in hojas:
         lineas = _leer_registro(args.xlsx)
-        dias = _agrupar(lineas)
-        print(f"Desayuno: lineas={len(lineas)} dias={len(dias)}")
+        dias = _agrupar(lineas, huesped_minimo_1=args.huesped_minimo_1)
+        print(
+            f"Desayuno: lineas={len(lineas)} dias={len(dias)} "
+            f"huesped_minimo_1={args.huesped_minimo_1}"
+        )
         rec_map = _mapa_recetas(data)
         por_fila: dict[int, str] = {}
         for dia in dias:

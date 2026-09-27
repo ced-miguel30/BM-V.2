@@ -1,0 +1,46 @@
+---
+description: Espejo de entrega hotel en D:\work (1/2/4); sync tras updates
+alwaysApply: true
+---
+
+# Entrega hotel — D:\work
+
+## Espejo (fuera de git)
+
+Ruta fija: `D:\work\`
+
+```
+D:\work\
+  LEEME.txt
+  1-BM-CODIGO\       # BM-Launcher.exe + _internal → C:\Apps\BM-V2\
+  2-BM-DATOS\        # base operativa (data\, backups\, logs\)
+  4-REGISTRO-EXCEL\  # Excel + .cmd de import
+```
+
+- **No** uses `3-BM-CODIGO-FUENTE`: el fuente es este repo (git).
+- **Nunca** `git add` de `1-BM-CODIGO`, `2-BM-DATOS*`, `3-BM-CODIGO-FUENTE`, `4-REGISTRO-EXCEL`, ni del `.exe`.
+- Si `D:\work` no existe en este PC: avisa y pide confirmar ruta; no inventes otra por defecto.
+
+## Cuando actualices para el servidor
+
+Tras cualquier cambio pensado para el hotel, **actualiza también `D:\work`**:
+
+| Cambio | Acción en D:\work |
+|--------|-------------------|
+| Nuevo build / update de código | Copiar `dist\BM-Launcher\` → `D:\work\1-BM-CODIGO\` (carpeta entera) |
+| Base / datos para el servidor | Actualizar `D:\work\2-BM-DATOS\` (carpeta entera; BM cerrado) |
+| Plantillas / Excel operativo | Sincronizar desde `docs\plantillas\` → `D:\work\4-REGISTRO-EXCEL\` |
+
+No mezclar update de código con sustitución de datos en el mismo paso.
+
+## Qué NO va en D:\work
+
+- Informes de auditoría, Excel de revisión de precios, exports locales → `exports/` del repo (disco local).
+- Código fuente / Cursor → este repo.
+- Solo sincronizar a `D:\work` lo que se lleve al servidor (1 / 2 / 4).
+
+## Repo vs hotel
+
+- **Desarrollo:** este repo (`app/`, `packaging/`, `docs/`).
+- **Hotel:** solo exe (`1`) + datos (`2`) + Excel opcional (`4`).
+- **Datos:** se actualizan en local y luego se copia/actualiza `D:\work\2-BM-DATOS`.

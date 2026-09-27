@@ -33,6 +33,15 @@ dist/
 packaging/*.toc
 packaging/warn-*.txt
 
+# Espejo de entrega hotel (vive en D:\work; no versionar si reaparece en el repo)
+1-BM-CODIGO/
+2-BM-DATOS*/
+3-BM-CODIGO-FUENTE/
+4-REGISTRO-EXCEL/
+
+# Añadidos manuales locales (correcciones Excel, no versionar)
+docs/añadidos manual/
+
 # IDE / OS
 .vscode/
 .idea/
