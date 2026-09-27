@@ -1,24 +1,10 @@
 @echo off
 setlocal EnableExtensions
-REM Comprueba conexion BM + dry-run.
-REM Sin argumento: prueba el PRIMER Excel de registros_por_dia\ (no la plantilla vacia).
+REM Comprueba conexion BM + dry-run del Excel operativo (no guarda).
 call "%~dp0_bm_excel_common.cmd"
 
 if not "%~1"=="" set "XLSX=%~1"
 if not "%~2"=="" set "BM_DATOS=%~2"
-
-REM Si no pasaron Excel, coger primer dia de la carpeta
-if /I "%XLSX%"=="%PLANTILLA_DIR%\registro_desayuno_operativo_ACTUALIZADA.xlsx" (
-  if exist "%DIR_DIAS%" (
-    for %%F in ("%DIR_DIAS%\*.xlsx") do (
-      if /I not "%%~nxF"=="registro_desayuno_operativo_ACTUALIZADA.xlsx" (
-        set "XLSX=%%~fF"
-        goto :xlsx_ok
-      )
-    )
-  )
-)
-:xlsx_ok
 
 if not defined BM_EXE if not defined PY (
   echo No encuentro BM-Launcher ni Python de desarrollo.
@@ -56,11 +42,10 @@ if exist "%XLSX%" (
     "%BM_EXE%" --bm-import-excel "%XLSX%" --path "%BM_DATOS%" --dry-run
   )
 ) else (
-  echo No hay Excel de prueba. Ponga archivos en:
-  echo   %DIR_DIAS%
+  echo No hay Excel: %XLSX%
+  echo Rellene registro_desayuno_operativo_ACTUALIZADA.xlsx en esta carpeta.
 )
 echo.
 echo Si pone CONECTADO / DRY-RUN OK o SKIP, use:
-echo   2_importar_a_bm.cmd  ^(un dia^)
-echo   3_importar_carpeta_dias.cmd  ^(todos los dias^)
+echo   2_importar_a_bm.cmd
 pause

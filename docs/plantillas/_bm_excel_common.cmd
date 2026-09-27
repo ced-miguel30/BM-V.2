@@ -6,7 +6,6 @@ set "PLANTILLA_DIR=%~dp0"
 if "%PLANTILLA_DIR:~-1%"=="\" set "PLANTILLA_DIR=%PLANTILLA_DIR:~0,-1%"
 
 set "XLSX=%PLANTILLA_DIR%\registro_desayuno_operativo_ACTUALIZADA.xlsx"
-set "DIR_DIAS=%PLANTILLA_DIR%\registros_por_dia"
 
 REM --- BM_DATOS ---
 if not defined BM_DATOS (

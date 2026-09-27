@@ -1,29 +1,14 @@
 @echo off
 setlocal EnableExtensions
-REM IMPORT REAL de UN Excel a BM.
-REM Uso recomendado:
-REM   - Arrastre un archivo de registros_por_dia\ sobre este .cmd
-REM   - O: 2_importar_a_bm.cmd "ruta\03-09.xlsx"
-REM NO use la plantilla vacía ACTUALIZADA sin filas (fallara a proposito).
+REM IMPORT REAL del Excel operativo a BM.
+REM Uso:
+REM   - Rellene registro_desayuno_operativo_ACTUALIZADA.xlsx, cierre Excel
+REM   - Doble clic en este .cmd
+REM   - Opcional: arrastre otro .xlsx sobre este .cmd
 call "%~dp0_bm_excel_common.cmd"
 
 if not "%~1"=="" set "XLSX=%~1"
 if not "%~2"=="" set "BM_DATOS=%~2"
-
-REM Bloquear plantilla vacia por nombre (salvo FORCE_PLANTILLA=1)
-for %%I in ("%XLSX%") do set "XLSX_NAME=%%~nxI"
-if /I "%XLSX_NAME%"=="registro_desayuno_operativo_ACTUALIZADA.xlsx" if not "%FORCE_PLANTILLA%"=="1" (
-  echo.
-  echo ERROR: ese archivo es la PLANTILLA vacia, no el registro del dia.
-  echo.
-  echo Use uno de estos:
-  echo   - Arrastre un Excel de registros_por_dia\ sobre este .cmd
-  echo   - 2_importar_a_bm.cmd "registros_por_dia\03-09.xlsx"
-  echo   - 3_importar_carpeta_dias.cmd
-  echo.
-  pause
-  exit /b 1
-)
 
 if not defined BM_EXE if not defined PY (
   echo No encuentro BM-Launcher ni Python de desarrollo.
@@ -37,8 +22,8 @@ if not defined BM_EXE if not defined PY (
 if not exist "%XLSX%" (
   echo No encuentro Excel: %XLSX%
   echo.
-  echo Ponga el Excel del DIA en registros_por_dia\ y arrastrelo aqui,
-  echo o ejecute 3_importar_carpeta_dias.cmd
+  echo Debe existir registro_desayuno_operativo_ACTUALIZADA.xlsx
+  echo en esta carpeta, o arrastre un .xlsx sobre este .cmd.
   pause
   exit /b 1
 )

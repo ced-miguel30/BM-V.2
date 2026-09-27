@@ -1269,9 +1269,8 @@ def main() -> int:
         if not lineas:
             print(
                 "ERROR: la hoja «Registro» no tiene filas de desayuno.\n"
-                "  - No use la plantilla vacía registro_desayuno_operativo_ACTUALIZADA.xlsx\n"
-                "  - Use un Excel del día (carpeta registros_por_dia\\) o\n"
-                "    3_importar_carpeta_dias.cmd para subir todos.\n"
+                "  - Rellene filas en registro_desayuno_operativo_ACTUALIZADA.xlsx\n"
+                "    (hoja Registro), guarde, cierre Excel y vuelva a importar.\n"
                 f"  Archivo: {args.xlsx}"
             )
             return 2

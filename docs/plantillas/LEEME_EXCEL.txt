@@ -1,31 +1,28 @@
-REGISTRO EXCEL OPERATIVO — entrega reset 2026-09-27
-====================================================
+REGISTRO EXCEL OPERATIVO
+========================
 
-ESTRUCTURA
-----------
-  registro_desayuno_operativo_ACTUALIZADA.xlsx  = plantilla VACIA para rellenar dias nuevos
-  registros_por_dia\                            = Excel YA rellenados (03-09.xlsx, ...)
+ARCHIVOS
+--------
+  registro_desayuno_operativo_ACTUALIZADA.xlsx  = Excel a rellenar e importar
   1_probar_conexion.cmd                         = conexion + dry-run (no guarda)
-  2_importar_a_bm.cmd                           = import UN dia (arrastre el .xlsx)
-  3_importar_carpeta_dias.cmd                   = import TODOS los de registros_por_dia\
-  regenerar_plantilla.cmd                       = regenera plantilla vacia (dev)
+  2_importar_a_bm.cmd                           = import REAL a BM
+  regenerar_plantilla.cmd                       = regenera plantilla (dev)
 
-IMPORTANTE
-----------
-- La plantilla ACTUALIZADA sin filas NO importa desayunos (el script lo rechaza).
-- Para subir septiembre: use 3_importar_carpeta_dias.cmd
-  o arrastre un archivo de registros_por_dia\ sobre 2_importar_a_bm.cmd
-- Datos (orden):
-  1) ..\2-BM-DATOS\data\datos_hotel.json   (espejo D:\work)
-  2) %LOCALAPPDATA%\BM-V2-local\...        (servidor)
-- En PC con repo BM V.2 usa Python actualizado; en hotel usa BM-Launcher.exe
-
-PASOS
+FLUJO
 -----
 1) Cerrar BM y Excel
-2) 1_probar_conexion.cmd  -> debe decir CONECTADO
-3) 3_importar_carpeta_dias.cmd  -> OK o SKIP por dia
-4) Abrir BM -> Terminal Restaurante -> Desayuno -> Historial
-   o Administracion -> Inicio -> mes Septiembre
+2) Rellenar filas en la hoja Registro (y demas hojas si aplica) del ACTUALIZADA.xlsx
+3) Guardar y cerrar Excel
+4) 1_probar_conexion.cmd  -> CONECTADO / DRY-RUN OK o SKIP
+5) 2_importar_a_bm.cmd    -> importa a la base BM
+6) Abrir BM -> Terminal Restaurante -> Desayuno -> Historial
+   o Administracion -> Inicio -> mes correspondiente
 
-Ya importados salen SKIP (no duplican).
+DATOS (orden de busqueda del .cmd)
+----------------------------------
+  1) ..\2-BM-DATOS\data\datos_hotel.json   (espejo D:\work)
+  2) %LOCALAPPDATA%\BM-V2-local\...        (servidor)
+
+Notas:
+- Dias ya importados salen SKIP (no duplican).
+- En PC con repo BM V.2 usa Python; en hotel usa BM-Launcher.exe.
