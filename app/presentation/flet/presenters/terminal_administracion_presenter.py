@@ -180,6 +180,7 @@ class TerminalAdministracionPresenter:
         self._analisis_export_mensaje = ""
         self._productos_page = 0
         self._receta_edit_id = ""
+        self._dashboard_mes_offset = 0
         assert_admin_sin_economia(
             ResponsableMermaVM,
             PendingChangeVM,
@@ -307,6 +308,21 @@ class TerminalAdministracionPresenter:
         self._analisis_desde = periodo.desde
         self._analisis_hasta = periodo.hasta
         self._analisis_export_mensaje = ""
+        return self.screen()
+
+    def shift_dashboard_mes(self, delta: int) -> AdminScreenVM:
+        """Navega el mes del panel de inicio (← anterior / → siguiente)."""
+        try:
+            d = int(delta)
+        except (TypeError, ValueError):
+            d = 0
+        nuevo = self._dashboard_mes_offset + d
+        if nuevo > 0:
+            nuevo = 0
+        if nuevo < dashboard_service.DASHBOARD_MES_OFFSET_MIN:
+            nuevo = dashboard_service.DASHBOARD_MES_OFFSET_MIN
+        self._dashboard_mes_offset = nuevo
+        self._seccion = "inicio"
         return self.screen()
 
     def set_analisis_busqueda(self, texto: str) -> AdminScreenVM:
@@ -2682,7 +2698,9 @@ class TerminalAdministracionPresenter:
             dashboard_error = ""
             stock_bajo_nombres: tuple[str, ...] = ()
             try:
-                periodo_obj = dashboard_service.resolver_periodo("Este mes")
+                periodo_obj = dashboard_service.periodo_mes(
+                    offset=self._dashboard_mes_offset
+                )
                 periodo = periodo_obj.etiqueta
                 consumo_count = dashboard_service.total_registros(
                     periodo_obj.desde, periodo_obj.hasta, data=data
@@ -2708,7 +2726,7 @@ class TerminalAdministracionPresenter:
                 if self._seccion == "inicio":
                     dashboard_panel = build_dashboard_panel(
                         nombre_usuario=sess.actor_label or "Usuario",
-                        periodo_op="Este mes",
+                        mes_offset=self._dashboard_mes_offset,
                     )
             except Exception:  # noqa: BLE001
                 periodo = periodo or "Este mes"

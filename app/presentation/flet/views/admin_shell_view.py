@@ -257,6 +257,7 @@ def build_admin_shell(
     on_analisis_export: Callable[[], None] | None = None,
     on_analisis_preset: Callable[[str], None] | None = None,
     on_analisis_export_productos: Callable[[str], None] | None = None,
+    on_dashboard_mes: Callable[[int], None] | None = None,
     on_importar_productos: Callable[[], None] | None = None,
     on_productos_page: Callable[[int], None] | None = None,
     on_confirmar: Callable[[], None] = None,  # type: ignore[assignment]
@@ -403,6 +404,7 @@ def build_admin_shell(
         on_analisis_export=on_analisis_export,
         on_analisis_preset=on_analisis_preset,
         on_analisis_export_productos=on_analisis_export_productos,
+        on_dashboard_mes=on_dashboard_mes,
     )
 
     body = ft.Row(
@@ -1152,6 +1154,7 @@ def _panel_analisis_body(
 def _panel_inicio(screen: AdminScreenVM, **cbs) -> ft.Control:
     on_refresh = cbs.get("on_refresh_datos")
     on_seccion = cbs.get("on_seccion")
+    on_dashboard_mes = cbs.get("on_dashboard_mes")
     dash = screen.dashboard
 
     def _go(sec: str) -> None:
@@ -1196,6 +1199,65 @@ def _panel_inicio(screen: AdminScreenVM, **cbs) -> ft.Control:
             title="Instancia",
         ),
     ]
+
+    # Navegación por mes (acumulado del mes seleccionado)
+    puede_ant = bool(dash.puede_mes_anterior) if dash else True
+    puede_sig = bool(dash.puede_mes_siguiente) if dash else False
+    mes_titulo = (dash.periodo_label if dash else periodo) or "Mes"
+    controls.append(
+        ui.card_surface(
+            ft.Row(
+                alignment=ft.MainAxisAlignment.SPACE_BETWEEN,
+                vertical_alignment=ft.CrossAxisAlignment.CENTER,
+                controls=[
+                    ft.IconButton(
+                        icon=ft.Icons.CHEVRON_LEFT,
+                        tooltip="Mes anterior",
+                        disabled=screen.mutando
+                        or on_dashboard_mes is None
+                        or not puede_ant,
+                        on_click=lambda _e: on_dashboard_mes(-1)
+                        if on_dashboard_mes
+                        else None,
+                    ),
+                    ft.Column(
+                        spacing=2,
+                        tight=True,
+                        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                        expand=True,
+                        controls=[
+                            ft.Text(
+                                "Registro del mes",
+                                size=12,
+                                color=ui_theme.MID_GRAY,
+                            ),
+                            ft.Text(
+                                mes_titulo,
+                                size=16,
+                                weight=ft.FontWeight.W_600,
+                                color=ui_theme.NAVY,
+                                text_align=ft.TextAlign.CENTER,
+                            ),
+                            ui_theme.text_help(
+                                "← mes cerrado · → volver al mes en curso"
+                            ),
+                        ],
+                    ),
+                    ft.IconButton(
+                        icon=ft.Icons.CHEVRON_RIGHT,
+                        tooltip="Mes siguiente / actual",
+                        disabled=screen.mutando
+                        or on_dashboard_mes is None
+                        or not puede_sig,
+                        on_click=lambda _e: on_dashboard_mes(1)
+                        if on_dashboard_mes
+                        else None,
+                    ),
+                ],
+            ),
+            title="Periodo",
+        )
+    )
 
     if screen.dashboard_error:
         controls.append(ui.alert_banner(screen.dashboard_error, severity="warning"))

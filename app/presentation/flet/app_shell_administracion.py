@@ -141,6 +141,7 @@ class TerminalAdministracionShell:
                     on_analisis_export=self._on_analisis_export,
                     on_analisis_preset=self._on_analisis_preset,
                     on_analisis_export_productos=self._on_analisis_export_productos,
+                    on_dashboard_mes=self._on_dashboard_mes,
                     on_confirmar=self._on_confirmar,
                     on_cancelar=self._on_cancelar,
                 )
@@ -218,6 +219,10 @@ class TerminalAdministracionShell:
 
     def _on_analisis_preset(self, preset: str) -> None:
         self.presenter.set_analisis_periodo_preset(preset)
+        self.refresh()
+
+    def _on_dashboard_mes(self, delta: int) -> None:
+        self.presenter.shift_dashboard_mes(delta)
         self.refresh()
 
     def _on_analisis_busqueda(self, texto: str) -> None:

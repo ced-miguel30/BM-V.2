@@ -154,6 +154,22 @@ class TestDashboardAgregados(unittest.TestCase):
         self.assertEqual(p.desde, date(2026, 7, 1))
         self.assertEqual(p.hasta, hoy)
 
+    def test_periodo_mes_actual_y_anterior(self) -> None:
+        hoy = date(2026, 9, 7)
+        actual = dash.periodo_mes(offset=0, hoy=hoy)
+        self.assertEqual(actual.desde, date(2026, 9, 1))
+        self.assertEqual(actual.hasta, hoy)
+        self.assertIn("Septiembre", actual.etiqueta)
+
+        ant = dash.periodo_mes(offset=-1, hoy=hoy)
+        self.assertEqual(ant.desde, date(2026, 8, 1))
+        self.assertEqual(ant.hasta, date(2026, 8, 31))
+        self.assertIn("Agosto", ant.etiqueta)
+
+        fut = dash.periodo_mes(offset=3, hoy=hoy)
+        self.assertEqual(fut.desde, actual.desde)
+        self.assertEqual(fut.hasta, actual.hasta)
+
     def test_evolucion_servicio_solo_comida(self) -> None:
         data = _app()
         d0 = date(2026, 7, 10)

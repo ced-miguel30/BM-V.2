@@ -45,6 +45,9 @@ class DashboardPanelVM:
     alertas: tuple[DashboardAlertaVM, ...] = ()
     puede_ver_economia: bool = False
     aviso: str = ""
+    mes_offset: int = 0
+    puede_mes_anterior: bool = True
+    puede_mes_siguiente: bool = False
 
 
 def _fmt_var(pct: float | None) -> str:
@@ -73,11 +76,17 @@ def build_dashboard_panel(
     *,
     nombre_usuario: str,
     periodo_op: str = "Este mes",
+    mes_offset: int | None = None,
 ) -> DashboardPanelVM:
     saludo = f"Bienvenido, {nombre_usuario or 'Usuario'}"
     puede = session_tiene_permiso(Permiso.CONSULTAR_COSTES)
     try:
-        periodo = dash.resolver_periodo(periodo_op)
+        if mes_offset is not None:
+            off = min(0, max(int(mes_offset), dash.DASHBOARD_MES_OFFSET_MIN))
+            periodo = dash.periodo_mes(offset=off)
+        else:
+            off = 0
+            periodo = dash.resolver_periodo(periodo_op)
     except Exception:  # noqa: BLE001
         return DashboardPanelVM(
             saludo=saludo,
@@ -87,6 +96,13 @@ def build_dashboard_panel(
 
     desde, hasta = periodo.desde, periodo.hasta
     label = f"{periodo.etiqueta} · {desde.isoformat()} — {hasta.isoformat()}"
+    if mes_offset is None:
+        off = 0
+    nav = {
+        "mes_offset": off,
+        "puede_mes_anterior": off > dash.DASHBOARD_MES_OFFSET_MIN,
+        "puede_mes_siguiente": off < 0,
+    }
 
     try:
         sincronizar_alertas()
@@ -146,6 +162,7 @@ def build_dashboard_panel(
             alertas=tuple(alertas_vm),
             puede_ver_economia=False,
             aviso="Sin permiso CONSULTAR_COSTES: métricas económicas ocultas.",
+            **nav,
         )
 
     try:
@@ -275,6 +292,7 @@ def build_dashboard_panel(
             rankings=tuple(rankings),
             alertas=tuple(alertas_vm),
             puede_ver_economia=True,
+            **nav,
         )
     except AuthorizationError as exc:
         return DashboardPanelVM(
@@ -283,6 +301,7 @@ def build_dashboard_panel(
             alertas=tuple(alertas_vm),
             puede_ver_economia=False,
             aviso=str(exc) or "Acceso denegado a costes.",
+            **nav,
         )
     except Exception as exc:  # noqa: BLE001
         return DashboardPanelVM(
@@ -291,4 +310,5 @@ def build_dashboard_panel(
             alertas=tuple(alertas_vm),
             puede_ver_economia=puede,
             aviso=f"No se pudo cargar el dashboard ({type(exc).__name__}).",
+            **nav,
         )

@@ -19,6 +19,56 @@ class Periodo:
     etiqueta: str
 
 
+_MESES_ES = (
+    "",
+    "Enero",
+    "Febrero",
+    "Marzo",
+    "Abril",
+    "Mayo",
+    "Junio",
+    "Julio",
+    "Agosto",
+    "Septiembre",
+    "Octubre",
+    "Noviembre",
+    "Diciembre",
+)
+
+# Offset 0 = mes en curso; negativos = meses cerrados hacia atrás.
+DASHBOARD_MES_OFFSET_MIN = -60
+
+
+def _desplazar_mes(ref: date, offset: int) -> date:
+    """Primer día del mes ``offset`` relativo a ``ref`` (0 = mes de ref)."""
+    m0 = (ref.year * 12 + (ref.month - 1)) + int(offset)
+    year, month0 = divmod(m0, 12)
+    return date(year, month0 + 1, 1)
+
+
+def _ultimo_dia_mes(primer_dia: date) -> date:
+    if primer_dia.month == 12:
+        return date(primer_dia.year, 12, 31)
+    return date(primer_dia.year, primer_dia.month + 1, 1) - timedelta(days=1)
+
+
+def periodo_mes(*, offset: int = 0, hoy: date | None = None) -> Periodo:
+    """Mes calendario para el dashboard (offset 0 = mes actual hasta hoy).
+
+    offset=-1 → mes anterior completo, etc. No admite meses futuros (offset>0 → 0).
+    """
+    hoy = hoy or date.today()
+    off = min(0, max(int(offset), DASHBOARD_MES_OFFSET_MIN))
+    desde = _desplazar_mes(hoy.replace(day=1), off)
+    if off == 0:
+        hasta = hoy
+        etiqueta = f"{_MESES_ES[desde.month]} {desde.year} (en curso)"
+    else:
+        hasta = _ultimo_dia_mes(desde)
+        etiqueta = f"{_MESES_ES[desde.month]} {desde.year}"
+    return Periodo(desde, hasta, etiqueta)
+
+
 def resolver_periodo(
     opcion: str,
     *,
