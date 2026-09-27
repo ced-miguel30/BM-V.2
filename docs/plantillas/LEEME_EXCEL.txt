@@ -1,29 +1,31 @@
-REGISTRO EXCEL OPERATIVO
-========================
-Archivo: registro_desayuno_operativo_ACTUALIZADA.xlsx (junto a los .cmd)
+REGISTRO EXCEL OPERATIVO — entrega reset 2026-09-27
+====================================================
 
-IMPORTAR
---------
-1) Cierre BM y el Excel.
-2) Doble clic: 1_probar_conexion.cmd (dry-run)
-3) Doble clic: 2_importar_a_bm.cmd (import real)
+ESTRUCTURA
+----------
+  registro_desayuno_operativo_ACTUALIZADA.xlsx  = plantilla VACIA para rellenar dias nuevos
+  registros_por_dia\                            = Excel YA rellenados (03-09.xlsx, ...)
+  1_probar_conexion.cmd                         = conexion + dry-run (no guarda)
+  2_importar_a_bm.cmd                           = import UN dia (arrastre el .xlsx)
+  3_importar_carpeta_dias.cmd                   = import TODOS los de registros_por_dia\
+  regenerar_plantilla.cmd                       = regenera plantilla vacia (dev)
 
-Otro Excel: arrastre el .xlsx sobre el .cmd, o:
-  2_importar_a_bm.cmd "ruta\archivo.xlsx"
+IMPORTANTE
+----------
+- La plantilla ACTUALIZADA sin filas NO importa desayunos (el script lo rechaza).
+- Para subir septiembre: use 3_importar_carpeta_dias.cmd
+  o arrastre un archivo de registros_por_dia\ sobre 2_importar_a_bm.cmd
+- Datos (orden):
+  1) ..\2-BM-DATOS\data\datos_hotel.json   (espejo D:\work)
+  2) %LOCALAPPDATA%\BM-V2-local\...        (servidor)
+- En PC con repo BM V.2 usa Python actualizado; en hotel usa BM-Launcher.exe
 
-RUTAS (automaticas)
--------------------
-Exe (primera que exista):
-  1) variable BM_LAUNCHER
-  2) C:\Apps\BM-V2\BM-Launcher.exe          (servidor hotel)
-  3) ..\1-BM-CODIGO\BM-Launcher.exe         (espejo D:\work)
+PASOS
+-----
+1) Cerrar BM y Excel
+2) 1_probar_conexion.cmd  -> debe decir CONECTADO
+3) 3_importar_carpeta_dias.cmd  -> OK o SKIP por dia
+4) Abrir BM -> Terminal Restaurante -> Desayuno -> Historial
+   o Administracion -> Inicio -> mes Septiembre
 
-Datos (primera que exista):
-  1) 2º argumento del .cmd / variable BM_DATOS
-  2) ..\2-BM-DATOS\data\datos_hotel.json    (espejo D:\work)
-  3) %LOCALAPPDATA%\BM-V2-local\data\datos_hotel.json  (servidor / PC)
-
-En el hotel: sustituya la carpeta 4-REGISTRO-EXCEL entera (plana, sin anidar).
-Ya NO hace falta Python ni .venv si hay BM-Launcher.
-
-Desplegable Nombre: hoja Catalogo (no borrar).
+Ya importados salen SKIP (no duplican).
