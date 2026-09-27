@@ -281,19 +281,26 @@ class TestRegistroDesayunoOperativo(unittest.TestCase):
 
         self.assertLess(stock_disponible(self.data, "pa"), 0)
 
-    def test_17_coste_incompleto_identificado(self) -> None:
-        # Lote sin precio útil: precio_total 0 → valoración incompleta a efectos prácticos
+    def test_17_coste_incompleto_sin_precio_vigente(self) -> None:
+        # Solo lote a 0 € → sin precio vigente → incompleto
+        self.data.lotes = [l for l in self.data.lotes if l.producto_id != "pc"]
         self.data.lotes.append(
-            LoteStock("lz", "pa", 0.0, 5.0, 5.0, date(2026, 8, 1)),
+            LoteStock("lz", "pc", 0.0, 5.0, 5.0, date(2026, 8, 1)),
         )
-        # Con stock suficiente el plan ok; valorizar sobre cantidad alta con trozos 0 €
-        val = valorizar_cantidad_fifo(self.data, "pc", 100.0)
+        val = valorizar_cantidad_fifo(self.data, "pc", 3.0)
         self.assertTrue(val.incompleto)
+        self.assertAlmostEqual(val.coste, 0.0, places=2)
+
+    def test_17b_sobreconsumo_valora_ultimo_precio(self) -> None:
+        # Stock 20 ud a 1 €; pedir 100 → 100 € (FIFO 20 + vigente 80), no incompleto
+        val = valorizar_cantidad_fifo(self.data, "pc", 100.0)
+        self.assertFalse(val.incompleto)
+        self.assertAlmostEqual(val.coste, 100.0, places=2)
         plan = planificar_descuento(
             self.data, {"pc": 100.0},
             nombres={"pc": "Zumo"}, unidades={"pc": "Ud"},
         )
-        self.assertFalse(plan.ok)
+        self.assertFalse(plan.ok)  # stock físico sigue siendo requisito del plan
 
     # --- Confirmación / E2E ------------------------------------------------
 

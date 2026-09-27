@@ -67,6 +67,7 @@ Sin implementación de código en esta fase.
 | D58 | **Fase 12** — rectificativa total; original → `RECTIFICADO`; sin edición silenciosa | Confirmada append-only |
 | D59 | **Fase 13** — consulta/exportación documental solo lectura | CSV; sin OCR ni mutación |
 | D60 | **Revalorización única al primer precio de compra** | El primer albarán/factura con entrada de stock de un producto reescribe costes de consumos/mermas ya registrados y `precio_total` de lotes provisionales (sin documento). Entradas posteriores = lote FIFO con su coste; sin tocar histórico. Auditada (`Revalorización primer precio`). Excepción explícita a D11/D34/D35 |
+| D61 | **Valoración de consumo: FIFO + último precio vigente** | Mientras haya `cantidad_restante` en lotes, el coste es el del lote FIFO hasta agotarlo y luego el siguiente. Si el stock ya se acabó (sobreconsumo / negativo), se valora al **último lote con precio** (`precio_total>0` y `cantidad>0` de alta) hasta que entre un lote nuevo con precio nuevo. No dejar trozos de consumo a 0 € solo por falta de stock físico. |
 
 ## Decisiones pendientes (no bloquean F3)
 

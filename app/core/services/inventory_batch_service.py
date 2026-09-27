@@ -1,12 +1,17 @@
 """Descuento de inventario por lotes.
 
-Extraído sin cambios de comportamiento FIFO desde `desayuno_service`:
-los lotes se consumen en orden `(fecha_compra, id)` ascendente
-(el más antiguo primero). No alterar este orden.
+Valoración de coste (norma general):
+1. Con stock restante: FIFO por lote — cada trozo al precio de ese lote
+   hasta agotarlo, luego el siguiente.
+2. Sin stock (o sobreconsumo): se valora al **último coste unitario con
+   precio** del producto (último lote no anulado con cantidad>0 y
+   precio_total>0) hasta que entre un lote nuevo con precio nuevo.
+
+Orden físico de consumo: `(fecha_compra, id)` ascendente (más antiguo primero).
 
 Fase 9: planificación sin mutar + aplicación atómica (todo o nada).
 Fase 4F: API pura sobre `AppData`; acceso vía AppContext en
-`app.core.application.inventory_ops` (sin cambiar este algoritmo).
+`app.core.application.inventory_ops`.
 """
 
 from __future__ import annotations
@@ -34,7 +39,25 @@ def lotes_ordenados_consumo(data: AppData, producto_id: str) -> list[LoteStock]:
 
 
 def _ultimo_lote_producto(data: AppData, producto_id: str) -> LoteStock | None:
-    lotes = [l for l in data.lotes if l.producto_id == producto_id]
+    """Último lote del producto (cualquier estado); destino físico de overdraw."""
+    lotes = [
+        l for l in data.lotes
+        if l.producto_id == producto_id and not getattr(l, "anulado", False)
+    ]
+    if not lotes:
+        return None
+    return sorted(lotes, key=lambda l: (l.fecha_compra or date.min, l.id))[-1]
+
+
+def _ultimo_lote_con_precio(data: AppData, producto_id: str) -> LoteStock | None:
+    """Último lote con precio unitario usable (registro de precio vigente)."""
+    lotes = [
+        l for l in data.lotes
+        if l.producto_id == producto_id
+        and not getattr(l, "anulado", False)
+        and float(getattr(l, "cantidad", 0) or 0) > 0
+        and float(getattr(l, "precio_total", 0) or 0) > 0
+    ]
     if not lotes:
         return None
     return sorted(lotes, key=lambda l: (l.fecha_compra or date.min, l.id))[-1]
@@ -46,6 +69,26 @@ def coste_unidad_lote(lote: LoteStock) -> float:
     return lote.precio_total / lote.cantidad
 
 
+def coste_unitario_vigente(
+    data: AppData,
+    producto_id: str,
+    *,
+    preferido: LoteStock | None = None,
+) -> float:
+    """Precio unitario para valorar consumo sin stock restante.
+
+    Prefiere ``preferido`` si tiene precio > 0; si no, el último lote con precio.
+    """
+    if preferido is not None:
+        u = coste_unidad_lote(preferido)
+        if u > 0:
+            return float(u)
+    lote = _ultimo_lote_con_precio(data, producto_id)
+    if lote is None:
+        return 0.0
+    return float(coste_unidad_lote(lote))
+
+
 def stock_disponible(data: AppData, producto_id: str) -> float:
     from app.core.services.inventory_balance import stock_disponible_producto
 
@@ -53,8 +96,7 @@ def stock_disponible(data: AppData, producto_id: str) -> float:
 
 
 def calcular_coste_linea(data: AppData, producto_id: str, cantidad: float) -> float:
-    """Coste FIFO parcial (compat). Preferir ``valorizar_cantidad_fifo`` si hace falta
-    detectar coste incompleto."""
+    """Coste FIFO + precio vigente en faltante (compat)."""
     return valorizar_cantidad_fifo(data, producto_id, cantidad).coste
 
 
@@ -74,31 +116,46 @@ class ResultadoValoracionFifo:
 def valorizar_cantidad_fifo(
     data: AppData, producto_id: str, cantidad: float
 ) -> ResultadoValoracionFifo:
-    """Valora por FIFO. Marca incompleto si no hay stock/lotes suficientes.
+    """Valora consumo: FIFO mientras haya stock; faltante al último precio.
 
-    Sin lotes activos o con stock insuficiente → incompleto=True y coste solo de
-    lo valorable (nunca inventa precio cero como coste completo).
+    ``incompleto=True`` solo si queda cantidad sin precio vigente (ningún lote
+    con precio_total>0). El stock físico agotado ya no deja el coste a 0 €.
     """
     solicitada = float(cantidad) if cantidad else 0.0
     if solicitada <= 0:
         return ResultadoValoracionFifo(0.0, 0.0, 0.0, False, None)
+    from app.core.services.inventory_balance import cantidad_disponible_lote
+
     restante = solicitada
     coste = 0.0
     valorada = 0.0
+    ultimo_tocado: LoteStock | None = None
     for lote in lotes_ordenados_consumo(data, producto_id):
         if restante <= 0:
             break
-        tomar = min(restante, lote.cantidad_restante)
+        disponible = cantidad_disponible_lote(data, lote)
+        tomar = min(restante, disponible)
         if tomar <= 0:
             continue
         coste += tomar * coste_unidad_lote(lote)
         valorada += tomar
         restante -= tomar
+        ultimo_tocado = lote
+    if restante > 1e-9:
+        unit_vig = coste_unitario_vigente(
+            data, producto_id, preferido=ultimo_tocado,
+        )
+        if unit_vig > 0:
+            coste += restante * unit_vig
+            valorada += restante
+            restante = 0.0
     valorada = round(valorada, 6)
     coste_r = round(coste, 2)
-    incompleto = restante > 1e-9
+    # Incompleto: quedó cantidad sin valorizar, o solo había lotes a 0 €.
+    sin_precio = _ultimo_lote_con_precio(data, producto_id) is None
+    incompleto = restante > 1e-9 or (solicitada > 0 and coste_r <= 0 and sin_precio)
     unit = None
-    if valorada > 0:
+    if valorada > 0 and coste_r > 0:
         unit = coste / valorada
     return ResultadoValoracionFifo(
         coste=coste_r,
@@ -214,6 +271,9 @@ def descontar_lotes(
 ) -> ResultadoDescuentoLotes:
     """Descuenta `cantidad` de los lotes FIFO; devuelve coste y movimientos reales.
 
+    Coste: precio de cada lote mientras haya stock; el sobreconsumo (si
+    ``permitir_negativo``) se valora al último coste unitario con precio.
+
     Si no hay stock suficiente y `permitir_negativo` es False, no muta nada
     de este producto y lanza ValueError (Fase 9).
     """
@@ -271,7 +331,11 @@ def descontar_lotes(
                 marca_proveedor="AJUSTE-NEGATIVO",
             )
             data.lotes.append(lote_destino)
-        # Misma semántica previa: el restante negativo no suma coste.
+        unit_vig = coste_unitario_vigente(
+            data, producto_id, preferido=ultimo_lote_tocado or lote_destino,
+        )
+        coste_trozo = round(restante * unit_vig, 2)
+        coste += coste_trozo
         lote_destino.cantidad_restante = round(
             lote_destino.cantidad_restante - restante, 4,
         )
@@ -279,7 +343,7 @@ def descontar_lotes(
             lote_id=lote_destino.id,
             producto_id=producto_id,
             cantidad=round(restante, 4),
-            coste=0.0,
+            coste=coste_trozo,
         ))
 
     # Reconciliar coste agregado vs suma de trozos (residuo en el último).
