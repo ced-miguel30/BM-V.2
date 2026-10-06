@@ -36,7 +36,8 @@ def sembrar(con: sqlite3.Connection) -> None:
                    SELECT DISTINCT almacen, almacen FROM bc_movs WHERE almacen <> ''""")
     con.executemany("INSERT OR IGNORE INTO centros(codigo, nombre, tipo, ubicacion, color, orden) VALUES(?,?,?,?,?,?)",
                     CENTROS_INICIALES)
-    con.execute("INSERT OR IGNORE INTO ajustes VALUES('traslados_en', 'bc')")
+    con.executemany("INSERT OR IGNORE INTO ajustes VALUES(?, ?)",
+                    [("traslados_en", "bc"), ("igic_ventas", "7"), ("objetivo_food_cost", "30")])
     con.commit()
 
 

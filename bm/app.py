@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse, Response as RawResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from bm import bc, consumos, costing, db, excel, inventario, plantilla, tpv
+from bm import analisis, bc, consumos, costing, db, excel, inventario, plantilla, tpv
 from bm.passwords import verify_password
 
 con = db.connect()
@@ -109,7 +109,9 @@ def _resumen(ini: str, fin: str) -> dict:
         """SELECT COALESCE(SUM(l.coste),0) FROM consumos c JOIN consumo_lineas l ON l.consumo_id=c.id
            WHERE c.origen='tpv' AND c.fecha>=? AND c.fecha<?""", (ini, fin)).fetchone()[0]
     r["coste_tpv"] = coste_tpv
-    r["food_cost_pct"] = round(100 * coste_tpv / r["ventas_tpv"], 1) if r["ventas_tpv"] else None
+    # Food cost sobre venta NETA (los importes del TPV llevan IGIC)
+    r["ventas_netas"] = r["ventas_tpv"] / (1 + analisis.igic(con))
+    r["food_cost_pct"] = round(100 * coste_tpv / r["ventas_netas"], 1) if r["ventas_netas"] else None
     com = con.execute(
         "SELECT COALESCE(SUM(comensales),0) FROM consumos WHERE anulado=0 AND servicio='desayuno' AND tipo='consumo' AND fecha>=? AND fecha<?",
         (ini, fin)).fetchone()[0]
@@ -153,7 +155,8 @@ def panel(mes: str | None = None, u: dict = Depends(requiere(*GESTION))):
         "ultimo_inventario_bc": con.execute(
             "SELECT MAX(fecha) FROM bc_movs WHERE tipo LIKE 'Ajuste%' AND fecha<=?", (hoy.isoformat(),)).fetchone()[0],
     }
-    return {"mes": mes, "actual": _resumen(ini, fin), "anterior": _resumen(pini, pfin), "comparado_hasta": pfin, "serie": serie, "top": top, "alertas": alertas}
+    return {"mes": mes, "actual": _resumen(ini, fin), "anterior": _resumen(pini, pfin), "comparado_hasta": pfin,
+            "objetivo_food_cost": float(inventario.ajuste(con, "objetivo_food_cost", "30")), "serie": serie, "top": top, "alertas": alertas}
 
 
 # ---------------------------------------------------------------- consumos
@@ -426,7 +429,7 @@ def bc_subir(tipo: str, archivo: UploadFile, u: dict = Depends(requiere(*GESTION
 
 
 # ---------------------------------------------------------------- módulos (registran rutas sobre `app`)
-from bm import api_inventario  # noqa: E402,F401
+from bm import api_analisis, api_inventario  # noqa: E402,F401
 
 # ---------------------------------------------------------------- web (siempre la última ruta)
 if STATIC.exists():

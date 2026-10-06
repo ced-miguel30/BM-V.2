@@ -10,7 +10,8 @@ Por producto, en orden de fecha:
 
 Estados de coste por línea:
   fifo         todo sale de lotes con precio facturado
-  provisional  algún lote es un albarán aún sin facturar (coste 0 en BC): se usa el último precio conocido
+  provisional  algún lote es un albarán aún sin facturar (coste 0 en BC) o tiene un precio disparatado
+               (error de BC, ver dudosos()): se usa el último precio fiable
   sin_stock    no quedaban lotes: se usa el último precio conocido
   sin_precio   el producto no tiene ninguna compra ni coste en BC
 Se recalcula todo desde cero: el resultado sólo depende de los datos, nunca del orden de importación.
@@ -32,13 +33,37 @@ def _coste(m) -> float | None:
     return m["coste_unit"] or None
 
 
+FACTOR_DUDOSO = 4.0  # un precio 4 veces por encima o por debajo de la mediana del producto es un error de BC
+
+
+def dudosos(compras) -> set:
+    """n_mov de compras con precio disparatado (errores de unidad/importe en BC).
+    Cada compra se compara con la mediana de sus vecinas (5 antes y 5 después): un cambio real y
+    sostenido de precio o de unidad no se marca; un precio aislado fuera de escala sí."""
+    precios = sorted((m["fecha"], m["n_mov"], _coste(m)) for m in compras
+                     if m["tipo"] == "Compra" and m["cantidad"] > 0 and _coste(m))
+    def fuera(p, lado):
+        xs = sorted(x[2] for x in lado)
+        med = xs[len(xs) // 2]
+        return p > med * FACTOR_DUDOSO or p < med / FACTOR_DUDOSO
+
+    malos = set()
+    for i, (_, n, p) in enumerate(precios):
+        lados = [l for l in (precios[max(0, i - 5):i], precios[i + 1:i + 6]) if len(l) >= 2]
+        # Dudoso solo si choca con lo de antes Y con lo de después: un cambio sostenido encaja con uno de los dos.
+        if lados and all(fuera(p, l) for l in lados):
+            malos.add(n)
+    return malos
+
+
 class Producto:
     def __init__(self, movs, coste_ref: float | None = None):
         self.compras: list[list] = []  # [n_mov, cantidad_original, coste_unit|None]
         self.lotes: list[list] = []    # [n_mov, cantidad_restante, coste_unit|None]  antiguo -> nuevo
+        self.dudosos = dudosos(movs)   # se tratan como "sin facturar": valen al último precio fiable
         precios = sorted(
             (m["fecha"], m["n_mov"], _coste(m))
-            for m in movs if m["tipo"] == "Compra" and m["cantidad"] > 0 and _coste(m)
+            for m in movs if m["tipo"] == "Compra" and m["cantidad"] > 0 and _coste(m) and m["n_mov"] not in self.dudosos
         )
         self._fechas = [p[0] for p in precios]
         self._precios = [p[2] for p in precios]
@@ -55,8 +80,9 @@ class Producto:
 
     def compra(self, m) -> None:
         if m["cantidad"] > 0:
-            self.compras.append([m["n_mov"], m["cantidad"], _coste(m)])
-            self.lotes.append([m["n_mov"], m["cantidad"], _coste(m)])
+            coste = None if m["n_mov"] in self.dudosos else _coste(m)
+            self.compras.append([m["n_mov"], m["cantidad"], coste])
+            self.lotes.append([m["n_mov"], m["cantidad"], coste])
             return
         resto = -m["cantidad"]  # devolución a proveedor
         for capa in reversed(self.lotes):

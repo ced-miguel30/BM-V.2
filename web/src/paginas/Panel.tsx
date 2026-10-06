@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Alert, Anchor, Badge, Card, Grid, Group, SimpleGrid, Skeleton, Stack, Table, Text, ThemeIcon } from '@mantine/core';
 import { MonthPickerInput } from '@mantine/dates';
-import { BarChart, DonutChart } from '@mantine/charts';
+import { BarChart, DonutChart, LineChart } from '@mantine/charts';
 import {
   IconAlertTriangle, IconArrowDownRight, IconArrowUpRight, IconCalendarOff, IconCoffee, IconPercentage,
   IconReceipt2, IconScale, IconTrash,
@@ -58,6 +58,7 @@ const pct = (x: number | null | undefined) => (x == null ? '—' : `${x.toLocale
 export function Panel() {
   const [mes, setMes] = useState<string>(new Date().toISOString().slice(0, 7));
   const [d, setD] = useState<Datos | null>(null);
+  const [t, setT] = useState<{ meses: Record<string, any>[]; objetivo_food_cost: number } | null>(null);
   const nav = useNavigate();
   const centros = useCentros();
 
@@ -65,6 +66,7 @@ export function Panel() {
     setD(null);
     api<Datos>(`/panel?mes=${mes}`).then(setD).catch(avisoError);
   }, [mes]);
+  useEffect(() => { api<typeof t>('/analisis/tendencia?meses=12').then(setT).catch(() => null); }, []);
 
   const porDia = d ? Object.values(d.serie.reduce<Record<string, any>>((acc, x) => {
     acc[x.fecha] ??= { fecha: fechaCorta(x.fecha) };
@@ -73,6 +75,9 @@ export function Panel() {
   }, {})) : [];
   const reparto = d ? centros.map((c) => ({ name: c.nombre, value: (d.actual[c.codigo] as number) ?? 0, color: `${c.color}.6` })).filter((x) => x.value > 0) : [];
   const conSerie = centros.filter((c) => d?.serie.some((x) => x.servicio === c.codigo));
+  const conTendencia = centros.filter((c) => t?.meses.some((m) => m[c.codigo]));
+  const meses = (t?.meses ?? []).map((m) => ({ ...m, etiqueta: new Date(`${m.mes}-01T00:00:00`).toLocaleDateString('es-ES', { month: 'short', year: '2-digit' }) }));
+  const objetivo = t?.objetivo_food_cost ?? 30;
   const estados = d?.alertas.lineas_por_estado ?? {};
   const totalLineas = Object.values(estados).reduce((a, b) => a + b, 0);
   const dudosas = (estados.sin_stock ?? 0) + (estados.sin_precio ?? 0);
@@ -91,8 +96,8 @@ export function Panel() {
           <SimpleGrid cols={{ base: 1, xs: 2, lg: 4 }}>
             <Kpi titulo="Coste de consumo" valor={d.actual.consumo} anterior={d.anterior.consumo} formato={euros} icono={IconScale} color="marina" />
             <Kpi titulo="Ventas TPV" valor={d.actual.ventas_tpv} anterior={d.anterior.ventas_tpv} formato={euros} icono={IconReceipt2} color="teal" menosEsMejor={false} />
-            <Kpi titulo="Food cost TPV" valor={d.actual.food_cost_pct} anterior={d.anterior.food_cost_pct} formato={pct} icono={IconPercentage} color="grape"
-              ayuda="Coste de lo vendido / ventas" />
+            <Kpi titulo="Food cost TPV" valor={d.actual.food_cost_pct} anterior={d.anterior.food_cost_pct} formato={pct} icono={IconPercentage}
+              color={(d.actual.food_cost_pct ?? 0) > objetivo ? 'red' : 'grape'} ayuda={`Objetivo ${objetivo} % · sobre venta sin IGIC`} />
             <Kpi titulo="Desayuno por comensal" valor={d.actual.coste_por_comensal} anterior={d.anterior.coste_por_comensal} formato={euros} icono={IconCoffee} color="orange"
               ayuda={`${d.actual.comensales_desayuno ?? 0} comensales`} />
           </SimpleGrid>
@@ -132,6 +137,26 @@ export function Panel() {
               </Card>
             </Grid.Col>
           </Grid>
+
+          {meses.length > 1 && (
+            <Grid>
+              <Grid.Col span={{ base: 12, lg: 8 }}>
+                <Card h="100%">
+                  <Text fw={600} mb="md">Coste por mes (12 meses)</Text>
+                  <BarChart h={260} data={meses} dataKey="etiqueta" type="stacked" valueFormatter={(x) => euros(x)} gridAxis="y" tickLine="none"
+                    series={conTendencia.map((c) => ({ name: c.codigo, label: c.nombre, color: `${c.color}.6` }))} withLegend legendProps={{ verticalAlign: 'bottom' }} />
+                </Card>
+              </Grid.Col>
+              <Grid.Col span={{ base: 12, lg: 4 }}>
+                <Card h="100%">
+                  <Text fw={600} mb="md">Food cost TPV vs objetivo</Text>
+                  <LineChart h={260} data={meses} dataKey="etiqueta" series={[{ name: 'food_cost', label: 'Food cost', color: 'grape.6' }]}
+                    valueFormatter={(x) => `${x} %`} referenceLines={[{ y: objetivo, label: `Objetivo ${objetivo} %`, color: 'red.6' }]}
+                    connectNulls gridAxis="y" tickLine="none" yAxisProps={{ domain: [0, 'auto'] }} />
+                </Card>
+              </Grid.Col>
+            </Grid>
+          )}
 
           <Grid>
             <Grid.Col span={{ base: 12, lg: 7 }}>

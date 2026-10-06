@@ -44,5 +44,18 @@ class TestFifoAnclado(unittest.TestCase):
         self.assertEqual(r[0][1], 8.0)  # 4 x 1 + 2 x 2
 
 
+
+class TestPreciosDudosos(unittest.TestCase):
+    def test_precio_disparatado_no_entra_en_el_coste(self):
+        movs = [compra(i, f"2026-07-0{i}", 10, 5.0) for i in (1, 2, 3)] + [compra(4, "2026-07-04", 10, 0.4)]
+        r = valorar_producto(movs, [{"id": 1, "fecha": "2026-07-05", "cantidad": 35}])
+        self.assertEqual((r[0][1], r[0][2]), (17.5, "provisional"))  # el lote a 0,04 vale al último precio fiable (0,5)
+
+    def test_cambio_sostenido_de_precio_no_es_dudoso(self):
+        from bm.costing import dudosos
+        movs = [compra(i, f"2026-07-{i:02d}", 1, 1.0) for i in range(1, 6)] + [compra(i, f"2026-07-{i:02d}", 1, 10.0) for i in range(6, 12)]
+        self.assertEqual(dudosos(movs), set())  # p. ej. BC pasa de precio por unidad a precio por caja
+
+
 if __name__ == "__main__":
     unittest.main()

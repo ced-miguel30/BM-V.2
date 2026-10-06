@@ -95,13 +95,15 @@ def anular(con: sqlite3.Connection, cid: int, motivo: str, usuario: str | None =
 def precio_actual(con: sqlite3.Connection, producto: str, fecha: str | None = None) -> float | None:
     """Último precio facturado en BC hasta la fecha (para coste teórico de recetas)."""
     fecha = fecha or date.today().isoformat()
-    r = con.execute(
-        """SELECT ABS(coste_total / cantidad) FROM bc_movs WHERE producto=? AND tipo='Compra'
-           AND cantidad > 0 AND coste_total > 0 AND fecha <= ? ORDER BY fecha DESC, n_mov DESC LIMIT 1""",
-        (producto, fecha),
-    ).fetchone()
-    if r:
-        return r[0]
+    compras = con.execute(
+        """SELECT * FROM bc_movs WHERE producto=? AND tipo='Compra' AND cantidad > 0 AND coste_total > 0
+           ORDER BY fecha, n_mov""", (producto,)).fetchall()
+    malos = costing.dudosos(compras)
+    validas = [m for m in compras if m["n_mov"] not in malos]
+    previas = [m for m in validas if m["fecha"] <= fecha]
+    if previas or validas:
+        m = (previas or validas)[-1 if previas else 0]
+        return abs(m["coste_total"] / m["cantidad"])
     r = con.execute("SELECT coste_ref FROM productos WHERE codigo=?", (producto,)).fetchone()
     return r[0] if r else None
 

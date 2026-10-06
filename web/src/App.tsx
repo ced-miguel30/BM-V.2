@@ -8,7 +8,7 @@ import { useDisclosure } from '@mantine/hooks';
 import {
   IconArrowsExchange, IconBook2, IconBuildingWarehouse, IconCalendarExclamation, IconChartBar, IconClipboardCheck,
   IconCloudUpload, IconFileSpreadsheet, IconListDetails, IconLogout, IconMoon, IconPackages, IconPencilPlus,
-  IconReceipt2, IconSun,
+  IconReceipt2, IconSun, IconChartDots, IconScale, IconTrendingUp,
 } from '@tabler/icons-react';
 import { api, avisoError } from './api';
 import { Logo } from './comun';
@@ -24,6 +24,9 @@ import { Stock } from './paginas/Stock';
 import { Recuento } from './paginas/Recuento';
 import { Traslados } from './paginas/Traslados';
 import { Caducidades } from './paginas/Caducidades';
+import { Rentabilidad } from './paginas/Rentabilidad';
+import { Control } from './paginas/Control';
+import { Precios } from './paginas/Precios';
 
 export type Usuario = { id: string; nombre: string; rol: string; login: string };
 const GESTION = ['direccion', 'administracion'];
@@ -42,6 +45,11 @@ const MENU = [
     { to: '/consumos', label: 'Consumos', icon: IconListDetails, roles: GESTION, el: <Consumos /> },
     { to: '/stock', label: 'Stock', icon: IconPackages, roles: GESTION, el: <Stock /> },
     { to: '/tpv', label: 'Ventas TPV', icon: IconReceipt2, roles: GESTION, el: <Tpv /> },
+  ] },
+  { seccion: 'Análisis', items: [
+    { to: '/rentabilidad', label: 'Rentabilidad por plato', icon: IconChartDots, roles: GESTION, el: <Rentabilidad /> },
+    { to: '/control', label: 'Control de stock', icon: IconScale, roles: GESTION, el: <Control /> },
+    { to: '/precios', label: 'Precios de compra', icon: IconTrendingUp, roles: GESTION, el: <Precios /> },
   ] },
   { seccion: 'Catálogo', items: [
     { to: '/recetas', label: 'Recetas', icon: IconBook2, roles: GESTION, el: <Recetas /> },
