@@ -51,7 +51,7 @@ export function Recetas() {
     <>
       <Cabecera titulo="Recetas" subtitulo="Coste teórico con el precio de la última compra en BC">
         <SegmentedControl value={vista} onChange={setVista} data={[{ value: 'todas', label: 'Todas' },
-          { value: 'revisar', label: `A revisar (${fichas?.filter((f) => f.problemas.length).length ?? '…'})` }, { value: 'avisos', label: 'Sin uso' }]} />
+          { value: 'revisar', label: `A revisar (${fichas?.filter((f) => f.problemas.length).length ?? '…'})` }, { value: 'avisos', label: `Avisos (${fichas?.filter((f) => !f.problemas.length && f.avisos.length).length ?? '…'})` }]} />
         <TextInput leftSection={<IconSearch size={16} />} placeholder="Buscar receta" value={q} onChange={(e) => setQ(e.currentTarget.value)} w={220} />
         <Button leftSection={<IconPlus size={16} />} onClick={() => setEd({ ...NUEVA, lineas: [] })}>Nueva receta</Button>
       </Cabecera>

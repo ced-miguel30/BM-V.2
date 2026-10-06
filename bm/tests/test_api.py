@@ -124,8 +124,18 @@ class TestPerdidas(unittest.TestCase):
     def test_revision_de_fichas(self):
         con.execute("INSERT OR IGNORE INTO recetas(id, nombre, servicio) VALUES('vacia', 'Receta vacía', 'comida')")
         con.commit()
+        # Ingrediente que no se compra desde hace años y ya no queda: la ficha usa un producto antiguo.
+        con.execute("INSERT OR IGNORE INTO productos(codigo, nombre, unidad, categoria) VALUES('VIEJO', 'VINO BRIK', 'UD', '101')")
+        con.execute("""INSERT OR IGNORE INTO bc_movs(n_mov, fecha, tipo, almacen, producto, cantidad, coste_total)
+                       VALUES(90, '2023-11-10', 'Compra', 'ECONOMATO', 'VIEJO', 1, 1.0)""")
+        con.execute("INSERT OR IGNORE INTO recetas(id, nombre, servicio) VALUES('sangria', 'Sangría', 'bebidas')")
+        con.execute("INSERT OR IGNORE INTO receta_lineas VALUES('sangria', 'VIEJO', 1)")
+        con.commit()
+        from bm import consumos
+        consumos.registrar(con, fecha="2023-12-01", servicio="bebidas", items=[{"producto": "VIEJO", "cantidad": 1}])
         f = {x["id"]: x for x in cliente("dir").get("/api/analisis/fichas").json()}
         self.assertIn("Sin ingredientes", f["vacia"]["problemas"])
+        self.assertTrue(any("no se compra desde 10/11/2023" in a for a in f["sangria"]["avisos"]))
 
 
 class TestCierre(unittest.TestCase):

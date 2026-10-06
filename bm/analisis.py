@@ -229,6 +229,8 @@ def revision_fichas(con: sqlite3.Connection) -> list[dict]:
         """SELECT DISTINCT l.receta_id FROM consumo_lineas l JOIN consumos c ON c.id=l.consumo_id
            WHERE c.anulado=0 AND l.receta_id IS NOT NULL AND c.fecha>=date('now','-90 days')""")}
     del_dia = {r[0] for r in con.execute("SELECT DISTINCT r.id FROM recetas r JOIN recetas_dia d ON lower(d.etiqueta)=lower(r.nombre)")}
+    ultima_compra = dict(con.execute("SELECT producto, MAX(fecha) FROM bc_movs WHERE tipo='Compra' AND cantidad>0 GROUP BY producto").fetchall())
+    hace_6m = (date.today() - timedelta(days=180)).isoformat()
     out = []
     for r in con.execute("SELECT id FROM recetas WHERE activo=1"):
         if r["id"] in del_dia:
@@ -246,6 +248,10 @@ def revision_fichas(con: sqlite3.Connection) -> list[dict]:
                 problemas.append(f"{l['nombre']}: {racion:g} {u} por ración parece demasiado")
             if u in ("KG", "LT") and 0 < racion < 0.0005:
                 problemas.append(f"{l['nombre']}: {racion:g} {u} por ración parece muy poco")
+            uc = ultima_compra.get(l["producto"])
+            if uc and uc < hace_6m and sum(x["stock"] for x in inventario.stock(con, producto=l["producto"])) <= 0:
+                avisos.append(f"{l['nombre']}: no se compra desde {uc[8:10]}/{uc[5:7]}/{uc[:4]} y no queda stock; "
+                              "¿la ficha usa un producto antiguo?")
         precio = pvp.get(r["id"])
         if precio and c["lineas"] and c["completo"]:
             fc = 100 * c["coste_racion"] / (precio / (1 + imp))
