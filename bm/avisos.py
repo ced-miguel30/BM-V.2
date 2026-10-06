@@ -19,6 +19,10 @@ def _version(con) -> tuple:
         (SELECT COUNT(*) FROM buffet_diario), (SELECT COUNT(*) FROM tpv_articulos WHERE receta_id IS NULL AND producto IS NULL)""").fetchone())
 
 
+def _f(iso: str | None) -> str | None:
+    return f"{iso[8:10]}/{iso[5:7]}/{iso[:4]}" if iso else None
+
+
 def avisos(con: sqlite3.Connection, rol: str) -> list[dict]:
     clave = (rol, date.today(), _version(con))
     if clave in _cache and time.time() - _cache[clave][0] < TTL:
@@ -51,7 +55,7 @@ def avisos(con: sqlite3.Connection, rol: str) -> list[dict]:
         ultimo_bc = con.execute("SELECT MAX(fecha) FROM bc_movs WHERE fecha<=?", (hoy.isoformat(),)).fetchone()[0]
         if not ultimo_bc or ultimo_bc < (hoy - timedelta(days=7)).isoformat():
             aviso("alta", "Movimientos de BC sin importar desde hace más de una semana",
-                  f"Último movimiento: {ultimo_bc or 'ninguno'}. Sin esto los costes y el stock se quedan atrás", "/bc")
+                  f"Último movimiento: {_f(ultimo_bc) or 'ninguno'}. Sin esto los costes y el stock se quedan atrás", "/bc")
         p = prevision.pedidos(con)
         if p["urgentes"]:
             aviso("alta", f"Comprar por fuera: {len(p['urgentes'])} productos", "Se acaban antes del próximo reparto", "/pedidos")
@@ -75,7 +79,7 @@ def avisos(con: sqlite3.Connection, rol: str) -> list[dict]:
                    WHERE a.ubicacion=? AND m.tipo LIKE 'Ajuste%' AND m.fecha<=?)""", (ub, ub, hoy.isoformat())).fetchone()[0]
             if not r or r < (hoy - timedelta(days=35)).isoformat():
                 nombre = con.execute("SELECT nombre FROM ubicaciones WHERE codigo=?", (ub,)).fetchone()[0]
-                aviso("media", f"Hace más de un mes que no se cuenta {nombre}", f"Último inventario: {r or 'nunca'}", f"/recuento?ubicacion={ub}")
+                aviso("media", f"Hace más de un mes que no se cuenta {nombre}", f"Último inventario: {_f(r) or 'nunca'}", f"/recuento?ubicacion={ub}")
     orden = {"alta": 0, "media": 1, "info": 2}
     out.sort(key=lambda a: orden[a["nivel"]])
     for k in [k for k in _cache if k[0] == rol]:  # una entrada por perfil

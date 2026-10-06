@@ -71,13 +71,17 @@ def analizar(con: sqlite3.Connection, grupos: dict[str, tuple], hoy: date | None
                     ancla, seg_in, seg_bm = (fecha, total), 0.0, 0.0
             ritmo = max(ritmo_real or 0.0, reg28 / 28)
             teorico = sum(s.values())
-            estimado = teorico
+            estimado, fiable = teorico, True
             if ancla:
                 dias_desde = (hoy - date.fromisoformat(ancla[0])).days
-                estimado = ancla[1] + seg_in - max(seg_bm, (ritmo_real or 0.0) * dias_desde)
+                extrapolado = (ritmo_real or 0.0) * dias_desde
+                estimado = ancla[1] + seg_in - max(seg_bm, extrapolado)
+                # Fiable si el inventario es reciente o lo registrado en BM explica casi toda la salida;
+                # si no, es una extrapolación del ritmo pasado (sirve para pedir, no para alarmar).
+                fiable = dias_desde <= 10 or seg_bm >= 0.8 * extrapolado
             out[(p, g)] = {"teorico": round(teorico, 3), "estimado": round(max(estimado, 0.0), 3), "ritmo": round(ritmo, 4),
                            "ritmo_real": None if ritmo_real is None else round(ritmo_real, 4), "ritmo_bm": round(reg28 / 28, 4),
-                           "ultimo_inventario": ancla[0] if ancla else None}
+                           "ultimo_inventario": ancla[0] if ancla else None, "fiable": fiable}
     return out
 
 
@@ -108,7 +112,8 @@ def _redondear(q: float, lote: float | None, unidad: str | None) -> float:
 
 
 def pedidos(con: sqlite3.Connection, hoy: date | None = None) -> dict:
-    """Propuesta de pedido por proveedor para cubrir hasta la entrega siguiente, y lo que hay que comprar por fuera."""
+    """Propuesta de pedido por proveedor para cubrir hasta la entrega siguiente, y lo que hay que comprar por fuera
+    (solo si el stock estimado es fiable: comprar fuera cuesta dinero y tiempo, no se pide por una extrapolación)."""
     hoy = hoy or date.today()
     seguridad = _num(con, "dias_seguridad", 2)
     datos = analizar(con, {"HOTEL": FB}, hoy)
@@ -141,7 +146,7 @@ def pedidos(con: sqlite3.Connection, hoy: date | None = None) -> dict:
         linea = {"producto": p, "nombre": prod["nombre"], "unidad": prod["unidad"], "stock": d["estimado"],
                  "ritmo": d["ritmo"], "dias_quedan": round(d["estimado"] / d["ritmo"], 1), "pedir": pedir, "lote": lote,
                  "precio": consumos.precio_actual(con, p), "llega": d1.isoformat(), "inventario": d["ultimo_inventario"]}
-        if d["estimado"] < hasta_d1:
+        if d["estimado"] < hasta_d1 and d["fiable"] and (rc.get("ultima") or "") >= hace120:  # si no se compra, es la ficha
             urgentes.append({**linea, "proveedor": prov, "falta": _redondear(hasta_d1 + colchon - d["estimado"], None, prod["unidad"])})
         if pedir > 0:
             por_prov[prov].append(linea)

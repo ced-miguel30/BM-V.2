@@ -41,6 +41,13 @@ class TestPrevision(unittest.TestCase):
         self.assertEqual(lineas["P"]["pedir"], 100)  # se compra en lotes de 100
         self.assertIn("P", {u["producto"] for u in r["urgentes"]})  # se acaba antes del reparto
 
+    def test_extrapolacion_no_alarma(self):
+        con = _base()
+        con.execute("UPDATE bc_movs SET fecha=? WHERE n_mov=3", (dia(25),))  # inventario de hace 25 días, nada registrado en BM
+        r = prevision.pedidos(con)
+        self.assertIn("P", {l["producto"] for p in r["pedidos"] for l in p["lineas"]})  # se propone pedirlo...
+        self.assertNotIn("P", {u["producto"] for u in r["urgentes"]})  # ...pero no se alarma con comprar por fuera
+
     def test_reposicion_restaurante(self):
         r = {x["producto"]: x for x in prevision.reposicion(_base())}
         self.assertIn("Q", r)  # subió 10 al restaurante y se gastaron 10: queda 0

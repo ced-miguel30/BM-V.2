@@ -91,6 +91,7 @@ export function Pedidos() {
         <Tabs.Panel value="urgentes">
           <Alert color="red" icon={<IconAlertTriangle />} mb="md" title="Se acaban antes de que llegue el próximo reparto">
             Si no se compran por fuera (supermercado, cash) faltarán. La cantidad cubre hasta la entrega del proveedor más el margen de seguridad.
+            Solo salen productos con stock fiable (inventario de hace 10 días o menos, o consumo registrado en BM): cuanto más se cuente, más avisa.
           </Alert>
           <Tabla datos={d?.urgentes ?? null} clave={(u) => u.producto} buscar exportar="comprar_por_fuera" alPulsar={(u) => nav(`/productos?codigo=${u.producto}`)}
             orden={{ clave: 'dias_quedan' }} anchoMin={760} vacio="Nada urgente" columnas={[
