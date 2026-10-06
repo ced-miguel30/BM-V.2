@@ -1,6 +1,6 @@
 """Servidor web de BM. Un solo proceso escribe en SQLite; los PCs y móviles entran por navegador.
 
-    python -m bm.app            -> http://<servidor>:8000
+    python -m bm.servidor       -> http://<servidor>:8000
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse, Response as RawResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from bm import bc, consumos, costing, db, excel, plantilla, tpv
+from bm import bc, consumos, costing, db, excel, inventario, plantilla, tpv
 from bm.passwords import verify_password
 
 con = db.connect()
@@ -90,7 +90,8 @@ def _mes(mes: str | None) -> tuple[str, str, str]:
 
 
 def _resumen(ini: str, fin: str) -> dict:
-    r = {s: 0.0 for s in consumos.SERVICIOS}
+    tipos = dict(con.execute("SELECT codigo, tipo FROM centros").fetchall())
+    r = {c: 0.0 for c in tipos}
     r["mermas"] = 0.0
     for x in con.execute(
         """SELECT c.servicio, c.tipo, SUM(l.coste) coste FROM consumos c JOIN consumo_lineas l ON l.consumo_id=c.id
@@ -98,9 +99,11 @@ def _resumen(ini: str, fin: str) -> dict:
     ):
         if x["tipo"] == "merma":
             r["mermas"] += x["coste"] or 0
-        elif x["servicio"]:
+        elif x["servicio"] in r:
             r[x["servicio"]] += x["coste"] or 0
-    r["consumo"] = sum(r[s] for s in consumos.SERVICIOS)
+    r["restauracion"] = sum(r[c] for c, t in tipos.items() if t == "restauracion")
+    r["departamentos"] = sum(r[c] for c, t in tipos.items() if t == "departamento")
+    r["consumo"] = r["restauracion"] + r["departamentos"]
     r["ventas_tpv"] = con.execute("SELECT COALESCE(SUM(importe),0) FROM tpv_ventas WHERE fecha>=? AND fecha<?", (ini, fin)).fetchone()[0]
     coste_tpv = con.execute(
         """SELECT COALESCE(SUM(l.coste),0) FROM consumos c JOIN consumo_lineas l ON l.consumo_id=c.id
@@ -199,13 +202,14 @@ class NuevoConsumo(BaseModel):
     tipo: str = "consumo"
     comensales: int | None = None
     nota: str | None = None
+    ubicacion: str | None = None
     items: list[Item]
 
 
 @app.post("/api/consumos")
 def crear_consumo(d: NuevoConsumo, u: dict = Depends(requiere(*OPERATIVO))):
     cid = _error(consumos.registrar, con, fecha=d.fecha, servicio=d.servicio, tipo=d.tipo, comensales=d.comensales,
-                 nota=d.nota, usuario=u["nombre"], items=[i.model_dump() for i in d.items])
+                 nota=d.nota, usuario=u["nombre"], ubicacion=d.ubicacion, items=[i.model_dump() for i in d.items])
     return {"id": cid}
 
 
@@ -350,7 +354,7 @@ class Asignacion(BaseModel):
 def tpv_asignar(codigo: str, d: Asignacion, u: dict = Depends(requiere(*GESTION))):
     if d.receta_id and d.producto:
         raise HTTPException(400, "Elige receta o producto, no ambos")
-    if d.servicio not in consumos.SERVICIOS:
+    if not consumos.centro_valido(con, d.servicio):
         raise HTTPException(400, "Servicio no válido")
     con.execute(
         "UPDATE tpv_articulos SET receta_id=?, producto=?, factor=?, servicio=?, precio=?, ignorar=? WHERE codigo=?",
@@ -421,7 +425,10 @@ def bc_subir(tipo: str, archivo: UploadFile, u: dict = Depends(requiere(*GESTION
     return {"filas": n, "valoracion": costing.valorar(con)}
 
 
-# ---------------------------------------------------------------- web
+# ---------------------------------------------------------------- módulos (registran rutas sobre `app`)
+from bm import api_inventario  # noqa: E402,F401
+
+# ---------------------------------------------------------------- web (siempre la última ruta)
 if STATIC.exists():
     app.mount("/assets", StaticFiles(directory=STATIC / "assets"), name="assets")
 
@@ -430,8 +437,3 @@ if STATIC.exists():
         f = STATIC / ruta
         return FileResponse(f if ruta and f.is_file() else STATIC / "index.html")
 
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(app, host=os.environ.get("BM_HOST", "0.0.0.0"), port=int(os.environ.get("BM_PORT") or os.environ.get("PORT") or "8000"))

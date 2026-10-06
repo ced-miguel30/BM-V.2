@@ -7,7 +7,6 @@ from datetime import date
 
 from bm import costing
 
-SERVICIOS = ("desayuno", "comida", "cena", "bebidas")
 
 
 def receta_real(con: sqlite3.Connection, receta_id: str, fecha: str) -> str:
@@ -43,11 +42,19 @@ def expandir(con: sqlite3.Connection, items: list[dict], fecha: str | None = Non
     return out
 
 
+def centro_valido(con: sqlite3.Connection, codigo: str | None) -> bool:
+    return bool(codigo) and bool(con.execute("SELECT 1 FROM centros WHERE codigo=? AND activo=1", (codigo,)).fetchone())
+
+
 def registrar(con: sqlite3.Connection, *, fecha: str, servicio: str | None, items: list[dict], tipo: str = "consumo",
               comensales: int | None = None, nota: str | None = None, usuario: str | None = None,
-              origen: str = "manual", ref: str | None = None) -> int:
-    if servicio and servicio not in SERVICIOS:
-        raise ValueError(f"Servicio no válido: {servicio}")
+              origen: str = "manual", ref: str | None = None, ubicacion: str | None = None) -> int:
+    if servicio and not centro_valido(con, servicio):
+        raise ValueError(f"Centro de consumo no válido: {servicio}")
+    if tipo == "consumo" and not servicio:
+        raise ValueError("Indica el servicio o departamento")
+    if ubicacion and not con.execute("SELECT 1 FROM ubicaciones WHERE codigo=?", (ubicacion,)).fetchone():
+        raise ValueError(f"Ubicación desconocida: {ubicacion}")
     if tipo not in ("consumo", "merma"):
         raise ValueError(f"Tipo no válido: {tipo}")
     date.fromisoformat(fecha)
@@ -55,8 +62,8 @@ def registrar(con: sqlite3.Connection, *, fecha: str, servicio: str | None, item
     if ref and con.execute("SELECT 1 FROM consumos WHERE ref=?", (ref,)).fetchone():
         raise ValueError("Este registro ya existe (misma referencia)")
     cid = con.execute(
-        "INSERT INTO consumos(fecha, servicio, tipo, origen, ref, comensales, nota, usuario) VALUES(?,?,?,?,?,?,?,?)",
-        (fecha, servicio, tipo, origen, ref, comensales, nota, usuario),
+        "INSERT INTO consumos(fecha, servicio, tipo, origen, ref, comensales, nota, usuario, ubicacion) VALUES(?,?,?,?,?,?,?,?,?)",
+        (fecha, servicio, tipo, origen, ref, comensales, nota, usuario, ubicacion),
     ).lastrowid
     con.executemany(
         "INSERT INTO consumo_lineas(consumo_id, producto, cantidad, receta_id) VALUES(?,?,?,?)",

@@ -151,6 +151,72 @@ CREATE TABLE IF NOT EXISTS recetas_dia(
   PRIMARY KEY(etiqueta, dia_semana)
 );
 
+-- Ubicaciones = almacenes de BC (ECONOMATO, DESAYUNO, SNACK BEBI...) + las que se creen en BM.
+CREATE TABLE IF NOT EXISTS ubicaciones(
+  codigo TEXT PRIMARY KEY,
+  nombre TEXT NOT NULL,
+  activo INTEGER NOT NULL DEFAULT 1
+);
+-- Centros de consumo: servicios de restauración y departamentos. Exclusivos: cada consumo es de uno.
+CREATE TABLE IF NOT EXISTS centros(
+  codigo TEXT PRIMARY KEY,             -- desayuno | comida | cena | bebidas | pisos | ...
+  nombre TEXT NOT NULL,
+  tipo TEXT NOT NULL DEFAULT 'restauracion',  -- restauracion | departamento
+  ubicacion TEXT REFERENCES ubicaciones(codigo),  -- de dónde sale el stock por defecto
+  color TEXT NOT NULL DEFAULT 'gray',
+  orden INTEGER NOT NULL DEFAULT 99,
+  activo INTEGER NOT NULL DEFAULT 1
+);
+
+CREATE TABLE IF NOT EXISTS traslados(
+  id INTEGER PRIMARY KEY,
+  fecha TEXT NOT NULL,
+  origen TEXT NOT NULL REFERENCES ubicaciones(codigo),
+  destino TEXT NOT NULL REFERENCES ubicaciones(codigo),
+  nota TEXT,
+  usuario TEXT,
+  creado TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  anulado INTEGER NOT NULL DEFAULT 0,
+  CHECK(origen <> destino)
+);
+CREATE TABLE IF NOT EXISTS traslado_lineas(
+  traslado_id INTEGER NOT NULL REFERENCES traslados(id) ON DELETE CASCADE,
+  producto TEXT NOT NULL REFERENCES productos(codigo),
+  cantidad REAL NOT NULL CHECK(cantidad > 0)
+);
+
+-- Recuento: lo contado en una ubicación manda sobre el teórico (solo para los productos contados).
+CREATE TABLE IF NOT EXISTS recuentos(
+  id INTEGER PRIMARY KEY,
+  fecha TEXT NOT NULL,
+  ubicacion TEXT NOT NULL REFERENCES ubicaciones(codigo),
+  nota TEXT,
+  usuario TEXT,
+  creado TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  anulado INTEGER NOT NULL DEFAULT 0
+);
+CREATE TABLE IF NOT EXISTS recuento_lineas(
+  recuento_id INTEGER NOT NULL REFERENCES recuentos(id) ON DELETE CASCADE,
+  producto TEXT NOT NULL REFERENCES productos(codigo),
+  contado REAL NOT NULL CHECK(contado >= 0),
+  teorico REAL,                        -- stock teórico en el momento de contar (foto)
+  PRIMARY KEY(recuento_id, producto)
+);
+
+CREATE TABLE IF NOT EXISTS caducidades(
+  id INTEGER PRIMARY KEY,
+  producto TEXT NOT NULL REFERENCES productos(codigo),
+  ubicacion TEXT REFERENCES ubicaciones(codigo),
+  cantidad REAL NOT NULL CHECK(cantidad > 0),
+  caduca TEXT NOT NULL,
+  nota TEXT,
+  usuario TEXT,
+  creado TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  estado TEXT NOT NULL DEFAULT 'activa',  -- activa | usada | merma
+  cerrado TEXT,
+  consumo_id INTEGER REFERENCES consumos(id)
+);
+
 CREATE TABLE IF NOT EXISTS ajustes(clave TEXT PRIMARY KEY, valor TEXT);
 """
 
@@ -163,4 +229,15 @@ def connect(path: Path | str | None = None) -> sqlite3.Connection:
     con.execute("PRAGMA foreign_keys=ON")
     con.execute("PRAGMA journal_mode=WAL")
     con.executescript(SCHEMA)
+    _migrar(con)
+    from bm import inventario
+    inventario.sembrar(con)
     return con
+
+
+def _migrar(con: sqlite3.Connection) -> None:
+    """Columnas añadidas después de crear la base (ALTER idempotente)."""
+    cols = {r[1] for r in con.execute("PRAGMA table_info(consumos)")}
+    if "ubicacion" not in cols:  # de qué ubicación sale el stock de este consumo
+        con.execute("ALTER TABLE consumos ADD COLUMN ubicacion TEXT REFERENCES ubicaciones(codigo)")
+        con.commit()
