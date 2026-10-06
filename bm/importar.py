@@ -30,6 +30,7 @@ def main(argv=None) -> None:
     if a.bm2:
         manual = RAIZ / "docs" / "añadidos manual"
         print("BM v2:", bm2.migrar(con, a.bm2, manual / "_import_compras_prov_resumen.csv"))
+        print("desayuno (atajos, buffet, recetas del día):", bm2.sembrar_desayuno(con, Path(__file__).parent / "semillas_desayuno.json"))
         print("TPV asignaciones heredadas:", bm2.sembrar_tpv(con, RAIZ / "scripts" / "import_registros_agosto_2026.py"))
         hist = manual / "_tpv_merged_reimport.json"
         if hist.exists():

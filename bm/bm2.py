@@ -115,7 +115,7 @@ def migrar(con: sqlite3.Connection, json_path, csv_compras=None) -> dict:
         if not x.get("anulado"):
             estimado = (x.get("clave_idempotencia") or "").startswith("desayuno-media")
             nota = "ESTIMADO: media de otros días (no es un registro real)" if estimado else recetas_txt(x)
-            consumo(f"bm2:{x['id']}", x["fecha"], "desayuno", "consumo", x.get("num_huespedes"),
+            consumo(f"bm2:{x['id']}:{x.get('clave_idempotencia') or ''}", x["fecha"], "desayuno", "consumo", x.get("num_huespedes"),
                     nota, x.get("registrado_por"), x["lineas"])
     # registros_buffet de v2 es un resumen por configuración; su consumo real ya está en desayunos.
     for x in d["registros_servicio"]:
@@ -180,3 +180,52 @@ def ventas_tpv_historicas(json_path) -> list[dict]:
                     "categoria": "104BEBIDAS" if x.get("cat") == "bebidas" else "101ALIMENTACION",
                     "importe": float(x["importe"])})
     return out
+
+
+_SUSTITUYE = {
+    "huevo": ("huevo frito", "huevo pochado", "huevo cocido", "huevos revueltos"),
+    "pan": ("tostada", "tostada integral", "pan blanco", "pan integral", "tostada sin gluten", "pan sin gluten"),
+}
+
+
+def sembrar_desayuno(con: sqlite3.Connection, semillas) -> dict:
+    """Una sola vez: atajos, buffet, sustituciones y recetas del día que v2 tenía escritos en código."""
+    s = json.loads(Path(semillas).read_text(encoding="utf-8"))
+    mapa = dict(con.execute("SELECT bm2_id, codigo FROM mapa_bm2").fetchall())
+    recetas = {_clave(r["nombre"]): r["id"] for r in con.execute("SELECT id, nombre FROM recetas")}
+    recetas_ids = set(recetas.values())
+    sust = {e: g for g, es in _SUSTITUYE.items() for e in es}
+    n = defaultdict(int)
+
+    def atajo(etiqueta, grupo, producto, receta_id, cantidad, sustituye=None, activo=True):
+        con.execute(
+            "INSERT OR REPLACE INTO atajos(etiqueta, grupo, producto, receta_id, cantidad, sustituye, activo) VALUES(?,?,?,?,?,?,?)",
+            (etiqueta, grupo, producto, receta_id if receta_id in recetas_ids else None, cantidad, sustituye, int(activo)),
+        )
+        n[grupo] += 1
+
+    for a in s["atajos"]:
+        if a["bm2_producto"] in mapa:
+            atajo(a["etiqueta"], a["grupo"], mapa[a["bm2_producto"]], None, a["cantidad"], sust.get(_n(a["etiqueta"]).lower()))
+    for etq, grupo in (("Sin huevo", "huevo"), ("Sin tostada", "pan"), ("Sin pan", "pan")):
+        atajo(etq, "omitir", None, None, 0, grupo)
+    for b in s["buffet"]:
+        prod = mapa.get(b["bm2_producto"]) if b["bm2_producto"] else None
+        if prod or b["receta_id"] in recetas_ids:
+            atajo(b["etiqueta"], "buffet", prod, b["receta_id"], b["cantidad"] or 1, None, b["activo"])
+    for grupo, ids in s["sustitucion"].items():
+        con.executemany("INSERT OR IGNORE INTO sustitucion VALUES(?,?)", [(grupo, mapa[i]) for i in ids if i in mapa])
+    for etiqueta, nombres in s["recetas_dia"].items():
+        if _clave(etiqueta) not in recetas:  # receta "virtual" que se resuelve por día de la semana
+            rid = "r-" + _clave(etiqueta).lower()
+            con.execute("INSERT OR IGNORE INTO recetas(id, nombre, servicio) VALUES(?,?,?)",
+                        (rid, etiqueta, "bebidas" if "COCTEL" in _clave(etiqueta) else "desayuno"))
+            recetas[_clave(etiqueta)] = rid
+            if "COCTEL" in _clave(etiqueta):
+                con.execute("UPDATE tpv_articulos SET receta_id=? WHERE receta_id IS NULL AND nombre LIKE 'COCTEL DEL D%'", (rid,))
+        for dia, nombre in enumerate(nombres):
+            if _clave(nombre) in recetas:
+                con.execute("INSERT OR REPLACE INTO recetas_dia VALUES(?,?,?)", (etiqueta, dia, recetas[_clave(nombre)]))
+                n["receta_dia"] += 1
+    con.commit()
+    return dict(n)

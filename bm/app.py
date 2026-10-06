@@ -13,11 +13,11 @@ from datetime import date, timedelta
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, HTTPException, Request, Response, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response as RawResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from bm import bc, consumos, costing, db, tpv
+from bm import bc, consumos, costing, db, excel, plantilla, tpv
 from bm.passwords import verify_password
 
 con = db.connect()
@@ -383,6 +383,29 @@ def tpv_ventas(mes: str | None = None, u: dict = Depends(requiere(*GESTION))):
     return [dict(x) for x in con.execute(
         """SELECT v.fecha, a.servicio, ROUND(SUM(v.importe),2) importe FROM tpv_ventas v JOIN tpv_articulos a ON a.codigo=v.codigo
            WHERE v.fecha>=? AND v.fecha<? GROUP BY 1,2 ORDER BY 1""", (ini, fin))]
+
+
+# ---------------------------------------------------------------- Excel operativo
+@app.get("/api/excel/plantilla")
+def excel_plantilla(u: dict = Depends(requiere(*OPERATIVO))):
+    return RawResponse(
+        plantilla.generar(con),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="registro_operativo_{date.today():%Y%m%d}.xlsx"'},
+    )
+
+
+@app.post("/api/excel")
+def excel_importar(archivo: UploadFile, confirmar: bool = False, u: dict = Depends(requiere(*OPERATIVO))):
+    """Sin confirmar: vista previa (no escribe). Con confirmar: importa los días sin errores."""
+    try:
+        r = excel.importar(con, _subida(archivo), usuario=u["nombre"], confirmar=confirmar)
+    except (ValueError, KeyError, OSError) as e:
+        raise HTTPException(400, f"No se pudo leer el Excel: {e}") from e
+    if u["rol"] not in GESTION:  # el personal operativo no ve costes
+        for g in r["plan"]:
+            g.pop("coste_estimado", None)
+    return r
 
 
 # ---------------------------------------------------------------- Business Central

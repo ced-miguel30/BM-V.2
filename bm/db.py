@@ -126,6 +126,31 @@ CREATE TABLE IF NOT EXISTS mapa_bm2(
   revisar TEXT                         -- motivo si la equivalencia es dudosa
 );
 
+-- Atajos del Excel/registro: "Bacon" = 0,015 KG de C00000028. Editables, sin código especial.
+CREATE TABLE IF NOT EXISTS atajos(
+  etiqueta TEXT NOT NULL,
+  grupo TEXT NOT NULL,                 -- extra | leche | bebida | buffet | omitir
+  producto TEXT REFERENCES productos(codigo),
+  receta_id TEXT REFERENCES recetas(id),
+  cantidad REAL NOT NULL DEFAULT 1,    -- por unidad del atajo (unidad base BC / raciones)
+  sustituye TEXT,                      -- grupo de sustitución (huevo | pan): reemplaza al de la receta
+  activo INTEGER NOT NULL DEFAULT 1,
+  PRIMARY KEY(grupo, etiqueta)         -- la misma etiqueta puede ser extra de plato y concepto de buffet
+);
+-- Productos intercambiables dentro de una receta (huevo frito -> pochado, pan blanco -> integral).
+CREATE TABLE IF NOT EXISTS sustitucion(
+  grupo TEXT NOT NULL,
+  producto TEXT NOT NULL REFERENCES productos(codigo),
+  PRIMARY KEY(grupo, producto)
+);
+-- "Tostada del dia" / "Coctel del dia": receta según día de la semana (0 = lunes).
+CREATE TABLE IF NOT EXISTS recetas_dia(
+  etiqueta TEXT NOT NULL,
+  dia_semana INTEGER NOT NULL CHECK(dia_semana BETWEEN 0 AND 6),
+  receta_id TEXT NOT NULL REFERENCES recetas(id),
+  PRIMARY KEY(etiqueta, dia_semana)
+);
+
 CREATE TABLE IF NOT EXISTS ajustes(clave TEXT PRIMARY KEY, valor TEXT);
 """
 

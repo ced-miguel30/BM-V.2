@@ -6,7 +6,7 @@ import {
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
-  IconBook2, IconBuildingWarehouse, IconChartBar, IconCloudUpload, IconListDetails, IconLogout,
+  IconBook2, IconBuildingWarehouse, IconChartBar, IconCloudUpload, IconFileSpreadsheet, IconListDetails, IconLogout,
   IconMoon, IconPencilPlus, IconReceipt2, IconSun,
 } from '@tabler/icons-react';
 import { api, avisoError } from './api';
@@ -17,6 +17,7 @@ import { Tpv } from './paginas/Tpv';
 import { Recetas } from './paginas/Recetas';
 import { Productos } from './paginas/Productos';
 import { ImportarBC } from './paginas/ImportarBC';
+import { Excel } from './paginas/Excel';
 
 export type Usuario = { id: string; nombre: string; rol: string; login: string };
 const GESTION = ['direccion', 'administracion'];
@@ -24,6 +25,7 @@ const GESTION = ['direccion', 'administracion'];
 const MENU = [
   { to: '/', label: 'Panel', icon: IconChartBar, roles: GESTION },
   { to: '/registrar', label: 'Registrar', icon: IconPencilPlus, roles: [...GESTION, 'recepcion', 'restaurante'] },
+  { to: '/excel', label: 'Importar Excel', icon: IconFileSpreadsheet, roles: [...GESTION, 'recepcion', 'restaurante'] },
   { to: '/consumos', label: 'Consumos', icon: IconListDetails, roles: GESTION },
   { to: '/tpv', label: 'Ventas TPV', icon: IconReceipt2, roles: GESTION },
   { to: '/recetas', label: 'Recetas', icon: IconBook2, roles: GESTION },
@@ -136,6 +138,7 @@ export function App() {
           <Routes>
             {gestion && <Route path="/" element={<Panel />} />}
             <Route path="/registrar" element={<Registrar />} />
+            <Route path="/excel" element={<Excel />} />
             {gestion && <>
               <Route path="/consumos" element={<Consumos />} />
               <Route path="/tpv" element={<Tpv />} />

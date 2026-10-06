@@ -10,7 +10,15 @@ from bm import costing
 SERVICIOS = ("desayuno", "comida", "cena", "bebidas")
 
 
-def expandir(con: sqlite3.Connection, items: list[dict]) -> list[tuple[str, float, str | None]]:
+def receta_real(con: sqlite3.Connection, receta_id: str, fecha: str) -> str:
+    """'Tostada del dia' / 'Coctel del dia' -> la receta que toca ese día de la semana."""
+    r = con.execute(
+        """SELECT d.receta_id FROM recetas_dia d JOIN recetas r ON lower(r.nombre)=lower(d.etiqueta)
+           WHERE r.id=? AND d.dia_semana=?""", (receta_id, date.fromisoformat(fecha).weekday())).fetchone()
+    return r[0] if r else receta_id
+
+
+def expandir(con: sqlite3.Connection, items: list[dict], fecha: str | None = None) -> list[tuple[str, float, str | None]]:
     """items: [{'receta_id': .., 'cantidad': raciones} | {'producto': .., 'cantidad': uds}]
     -> [(producto, cantidad, receta_id)] en unidad base BC."""
     out = []
@@ -19,12 +27,13 @@ def expandir(con: sqlite3.Connection, items: list[dict]) -> list[tuple[str, floa
         if q <= 0:
             continue
         if it.get("receta_id"):
-            r = con.execute("SELECT porciones FROM recetas WHERE id=?", (it["receta_id"],)).fetchone()
+            rid = receta_real(con, it["receta_id"], fecha) if fecha else it["receta_id"]
+            r = con.execute("SELECT porciones FROM recetas WHERE id=?", (rid,)).fetchone()
             if not r:
                 raise ValueError(f"Receta desconocida: {it['receta_id']}")
             f = q / (r["porciones"] or 1)
-            out += [(l["producto"], l["cantidad"] * f, it["receta_id"])
-                    for l in con.execute("SELECT producto, cantidad FROM receta_lineas WHERE receta_id=?", (it["receta_id"],))]
+            out += [(l["producto"], l["cantidad"] * f, rid)
+                    for l in con.execute("SELECT producto, cantidad FROM receta_lineas WHERE receta_id=?", (rid,))]
         elif it.get("producto"):
             if not con.execute("SELECT 1 FROM productos WHERE codigo=?", (it["producto"],)).fetchone():
                 raise ValueError(f"Producto desconocido: {it['producto']}")
@@ -42,7 +51,7 @@ def registrar(con: sqlite3.Connection, *, fecha: str, servicio: str | None, item
     if tipo not in ("consumo", "merma"):
         raise ValueError(f"Tipo no válido: {tipo}")
     date.fromisoformat(fecha)
-    lineas = expandir(con, items)
+    lineas = expandir(con, items, fecha)
     if ref and con.execute("SELECT 1 FROM consumos WHERE ref=?", (ref,)).fetchone():
         raise ValueError("Este registro ya existe (misma referencia)")
     cid = con.execute(

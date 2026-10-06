@@ -16,6 +16,8 @@ from collections import Counter, defaultdict
 
 import pymupdf
 
+from bm.consumos import receta_real
+
 _LINEA = re.compile(r"^(\d{2})/(\d{2})/(\d{4})\s+(PV\d+)\s*$")
 _IMPORTE = re.compile(r"^-?\d{1,3}(?:\.\d{3})*,\d{1,2}$")  # BC omite el cero final: "18,7"
 _CATEGORIA = re.compile(r"Categor.a Producto:\s*(\S+)")
@@ -121,8 +123,9 @@ def regenerar(con: sqlite3.Connection, fechas: list[str] | None = None) -> dict:
             if uds <= 0:
                 continue
             if v["receta_id"]:
-                f = uds / (porciones.get(v["receta_id"]) or 1)
-                lineas[v["servicio"]] += [(p, q * f, v["receta_id"]) for p, q in recetas[v["receta_id"]]]
+                rid = receta_real(con, v["receta_id"], fecha)  # "Coctel del dia" -> el de ese día
+                f = uds / (porciones.get(rid) or 1)
+                lineas[v["servicio"]] += [(p, q * f, rid) for p, q in recetas[rid]]
             else:
                 lineas[v["servicio"]].append((v["producto"], uds * v["factor"], None))
         for servicio, ls in lineas.items():

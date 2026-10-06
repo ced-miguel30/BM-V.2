@@ -1,0 +1,1179 @@
+{
+ "atajos": [
+  {
+   "etiqueta": "Queso cheddar",
+   "bm2_producto": "p44",
+   "cantidad": 0.02,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Queso gouda",
+   "bm2_producto": "p168",
+   "cantidad": 0.02,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Bacon",
+   "bm2_producto": "p14",
+   "cantidad": 0.015,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Jamon cocido",
+   "bm2_producto": "p102",
+   "cantidad": 0.02,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Tostada",
+   "bm2_producto": "p09",
+   "cantidad": 0.032258,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Tostada integral",
+   "bm2_producto": "p11",
+   "cantidad": 0.032258,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Pan blanco",
+   "bm2_producto": "p09",
+   "cantidad": 0.032258,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Pan integral",
+   "bm2_producto": "p11",
+   "cantidad": 0.032258,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Tostada sin gluten",
+   "bm2_producto": "p04",
+   "cantidad": 0.022222,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Pan sin gluten",
+   "bm2_producto": "p04",
+   "cantidad": 0.022222,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Croissant sin gluten",
+   "bm2_producto": "p372",
+   "cantidad": 0.033333,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Magdalena sin gluten",
+   "bm2_producto": "p371",
+   "cantidad": 0.020833,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Muesli sin gluten",
+   "bm2_producto": "p200",
+   "cantidad": 0.04,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Cacao sin gluten",
+   "bm2_producto": "p278",
+   "cantidad": 0.018,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Salchicha",
+   "bm2_producto": "p20",
+   "cantidad": 0.05,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Hashbrown",
+   "bm2_producto": "p29",
+   "cantidad": 0.07,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Champi",
+   "bm2_producto": "p117",
+   "cantidad": 0.006667,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Aguacate",
+   "bm2_producto": "b05",
+   "cantidad": 0.06,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Salmon",
+   "bm2_producto": "p32",
+   "cantidad": 0.04,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Tomate",
+   "bm2_producto": "p51",
+   "cantidad": 0.03,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Cebolla",
+   "bm2_producto": "p59",
+   "cantidad": 0.02,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Alubias",
+   "bm2_producto": "p286",
+   "cantidad": 0.006667,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Pimiento",
+   "bm2_producto": "p56",
+   "cantidad": 0.02,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Espinacas",
+   "bm2_producto": "p185",
+   "cantidad": 0.075,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Tomate cherry",
+   "bm2_producto": "p52",
+   "cantidad": 0.03,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Chorizo",
+   "bm2_producto": "p146",
+   "cantidad": 0.02,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Huevo frito",
+   "bm2_producto": "p48",
+   "cantidad": 1.0,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Huevo pochado",
+   "bm2_producto": "p48",
+   "cantidad": 1.0,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Huevo cocido",
+   "bm2_producto": "p48",
+   "cantidad": 1.0,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Huevos revueltos",
+   "bm2_producto": "p46",
+   "cantidad": 0.05,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Kiwi",
+   "bm2_producto": "p71",
+   "cantidad": 0.08,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Papaya",
+   "bm2_producto": "p70",
+   "cantidad": 0.08,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Melon",
+   "bm2_producto": "p69",
+   "cantidad": 0.08,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Sandia",
+   "bm2_producto": "p83",
+   "cantidad": 0.08,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Pomelo",
+   "bm2_producto": "p99",
+   "cantidad": 0.08,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Naranja",
+   "bm2_producto": "b06",
+   "cantidad": 0.08,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Platano",
+   "bm2_producto": "p66",
+   "cantidad": 1.0,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Pina",
+   "bm2_producto": "p68",
+   "cantidad": 0.08,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Melocoton almibar",
+   "bm2_producto": "p122",
+   "cantidad": 1.0,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Paleta iberica",
+   "bm2_producto": "p358",
+   "cantidad": 0.02,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Mortadela",
+   "bm2_producto": "p89",
+   "cantidad": 0.02,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Salchichon iberico",
+   "bm2_producto": "p34",
+   "cantidad": 0.02,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Queso gofio",
+   "bm2_producto": "p37",
+   "cantidad": 0.02,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Queso pimenton",
+   "bm2_producto": "b04",
+   "cantidad": 0.02,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Queso fresco",
+   "bm2_producto": "p38",
+   "cantidad": 0.02,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Pan gallego",
+   "bm2_producto": "p05",
+   "cantidad": 0.05,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Pan maiz",
+   "bm2_producto": "p357",
+   "cantidad": 0.1,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Pan centeno",
+   "bm2_producto": "p276",
+   "cantidad": 0.05,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Baguettina",
+   "bm2_producto": "p252",
+   "cantidad": 0.015152,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Napolitana cacao",
+   "bm2_producto": "p251",
+   "cantidad": 0.01,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Chic crema",
+   "bm2_producto": "p294",
+   "cantidad": 0.003077,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Lazo cereal",
+   "bm2_producto": "p250",
+   "cantidad": 0.005155,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Croissant mantequilla",
+   "bm2_producto": "p249",
+   "cantidad": 0.003571,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Croissant chocolate",
+   "bm2_producto": "b01",
+   "cantidad": 0.005051,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Surtido reposteria",
+   "bm2_producto": "p08",
+   "cantidad": 0.05,
+   "grupo": "extra"
+  },
+  {
+   "etiqueta": "Leche entera",
+   "bm2_producto": "p127",
+   "cantidad": 0.12,
+   "grupo": "leche"
+  },
+  {
+   "etiqueta": "Leche semi",
+   "bm2_producto": "p128",
+   "cantidad": 0.12,
+   "grupo": "leche"
+  },
+  {
+   "etiqueta": "Leche de avena",
+   "bm2_producto": "b43",
+   "cantidad": 0.12,
+   "grupo": "leche"
+  },
+  {
+   "etiqueta": "Leche de soja",
+   "bm2_producto": "b10",
+   "cantidad": 0.12,
+   "grupo": "leche"
+  },
+  {
+   "etiqueta": "Leche de almendras",
+   "bm2_producto": "b66",
+   "cantidad": 0.12,
+   "grupo": "leche"
+  },
+  {
+   "etiqueta": "Agua sin gas PET",
+   "bm2_producto": "p264",
+   "cantidad": 1.0,
+   "grupo": "bebida"
+  },
+  {
+   "etiqueta": "Agua sin gas cristal",
+   "bm2_producto": "p259",
+   "cantidad": 1.0,
+   "grupo": "bebida"
+  },
+  {
+   "etiqueta": "Agua con gas PET",
+   "bm2_producto": "p265",
+   "cantidad": 1.0,
+   "grupo": "bebida"
+  },
+  {
+   "etiqueta": "Agua con gas cristal",
+   "bm2_producto": "p260",
+   "cantidad": 1.0,
+   "grupo": "bebida"
+  },
+  {
+   "etiqueta": "Agua manantial PET",
+   "bm2_producto": "b25",
+   "cantidad": 1.0,
+   "grupo": "bebida"
+  },
+  {
+   "etiqueta": "Soda",
+   "bm2_producto": "p261",
+   "cantidad": 1.0,
+   "grupo": "bebida"
+  },
+  {
+   "etiqueta": "Coca-Cola lata",
+   "bm2_producto": "b59",
+   "cantidad": 1.0,
+   "grupo": "bebida"
+  },
+  {
+   "etiqueta": "Coca-Cola Zero lata",
+   "bm2_producto": "b60",
+   "cantidad": 1.0,
+   "grupo": "bebida"
+  },
+  {
+   "etiqueta": "Fanta naranja lata",
+   "bm2_producto": "b61",
+   "cantidad": 1.0,
+   "grupo": "bebida"
+  },
+  {
+   "etiqueta": "Fanta limon lata",
+   "bm2_producto": "b83",
+   "cantidad": 1.0,
+   "grupo": "bebida"
+  },
+  {
+   "etiqueta": "Sprite lata",
+   "bm2_producto": "b84",
+   "cantidad": 1.0,
+   "grupo": "bebida"
+  },
+  {
+   "etiqueta": "Coca-Cola cristal",
+   "bm2_producto": "b56",
+   "cantidad": 1.0,
+   "grupo": "bebida"
+  },
+  {
+   "etiqueta": "Coca-Cola Zero cristal",
+   "bm2_producto": "b58",
+   "cantidad": 1.0,
+   "grupo": "bebida"
+  },
+  {
+   "etiqueta": "Fanta naranja cristal",
+   "bm2_producto": "b57",
+   "cantidad": 1.0,
+   "grupo": "bebida"
+  },
+  {
+   "etiqueta": "Sprite 1,5 L",
+   "bm2_producto": "b62",
+   "cantidad": 1.0,
+   "grupo": "bebida"
+  }
+ ],
+ "buffet": [
+  {
+   "etiqueta": "Queso cheddar",
+   "bm2_producto": "p44",
+   "receta_id": null,
+   "cantidad": 0.02,
+   "tipo": "simple",
+   "seccion": "Fiambres",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Queso gouda",
+   "bm2_producto": "p168",
+   "receta_id": null,
+   "cantidad": 0.02,
+   "tipo": "simple",
+   "seccion": "Fiambres",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Bacon",
+   "bm2_producto": "p14",
+   "receta_id": null,
+   "cantidad": 0.015,
+   "tipo": "simple",
+   "seccion": "Fiambres",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Jamon cocido",
+   "bm2_producto": "p102",
+   "receta_id": null,
+   "cantidad": 0.02,
+   "tipo": "simple",
+   "seccion": "Fiambres",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Tostada",
+   "bm2_producto": "p09",
+   "receta_id": null,
+   "cantidad": 0.032258,
+   "tipo": "simple",
+   "seccion": "Pan",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Tostada integral",
+   "bm2_producto": "p11",
+   "receta_id": null,
+   "cantidad": 0.032258,
+   "tipo": "simple",
+   "seccion": "Pan",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Pan blanco",
+   "bm2_producto": "p09",
+   "receta_id": null,
+   "cantidad": 0.032258,
+   "tipo": "simple",
+   "seccion": "Pan",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Pan integral",
+   "bm2_producto": "p11",
+   "receta_id": null,
+   "cantidad": 0.032258,
+   "tipo": "simple",
+   "seccion": "Pan",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Tostada sin gluten",
+   "bm2_producto": "p04",
+   "receta_id": null,
+   "cantidad": 0.022222,
+   "tipo": "simple",
+   "seccion": "Pan",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Pan sin gluten",
+   "bm2_producto": "p04",
+   "receta_id": null,
+   "cantidad": 0.022222,
+   "tipo": "simple",
+   "seccion": "Pan",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Croissant sin gluten",
+   "bm2_producto": "p372",
+   "receta_id": null,
+   "cantidad": 0.033333,
+   "tipo": "simple",
+   "seccion": "Pan",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Magdalena sin gluten",
+   "bm2_producto": "p371",
+   "receta_id": null,
+   "cantidad": 0.020833,
+   "tipo": "simple",
+   "seccion": "Pan",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Muesli sin gluten",
+   "bm2_producto": "p200",
+   "receta_id": null,
+   "cantidad": 0.04,
+   "tipo": "simple",
+   "seccion": "Otros",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Cacao sin gluten",
+   "bm2_producto": "p278",
+   "receta_id": null,
+   "cantidad": 0.018,
+   "tipo": "simple",
+   "seccion": "Otros",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Salchicha",
+   "bm2_producto": "p20",
+   "receta_id": null,
+   "cantidad": 0.05,
+   "tipo": "simple",
+   "seccion": "Fiambres",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Hashbrown",
+   "bm2_producto": "p29",
+   "receta_id": null,
+   "cantidad": 0.07,
+   "tipo": "simple",
+   "seccion": "Otros",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Champi",
+   "bm2_producto": "p117",
+   "receta_id": null,
+   "cantidad": 0.006667,
+   "tipo": "simple",
+   "seccion": "Otros",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Aguacate",
+   "bm2_producto": "b05",
+   "receta_id": null,
+   "cantidad": 0.06,
+   "tipo": "simple",
+   "seccion": "Otros",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Salmon",
+   "bm2_producto": "p32",
+   "receta_id": null,
+   "cantidad": 0.04,
+   "tipo": "simple",
+   "seccion": "Fiambres",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Tomate",
+   "bm2_producto": "p51",
+   "receta_id": null,
+   "cantidad": 0.03,
+   "tipo": "simple",
+   "seccion": "Otros",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Cebolla",
+   "bm2_producto": "p59",
+   "receta_id": null,
+   "cantidad": 0.02,
+   "tipo": "simple",
+   "seccion": "Otros",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Alubias",
+   "bm2_producto": "p286",
+   "receta_id": null,
+   "cantidad": 0.006667,
+   "tipo": "simple",
+   "seccion": "Otros",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Pimiento",
+   "bm2_producto": "p56",
+   "receta_id": null,
+   "cantidad": 0.02,
+   "tipo": "simple",
+   "seccion": "Otros",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Espinacas",
+   "bm2_producto": "p185",
+   "receta_id": null,
+   "cantidad": 0.075,
+   "tipo": "simple",
+   "seccion": "Otros",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Tomate cherry",
+   "bm2_producto": "p52",
+   "receta_id": null,
+   "cantidad": 0.03,
+   "tipo": "simple",
+   "seccion": "Otros",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Chorizo",
+   "bm2_producto": "p146",
+   "receta_id": null,
+   "cantidad": 0.02,
+   "tipo": "simple",
+   "seccion": "Fiambres",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Kiwi",
+   "bm2_producto": "p71",
+   "receta_id": null,
+   "cantidad": 0.08,
+   "tipo": "simple",
+   "seccion": "Frutas",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Papaya",
+   "bm2_producto": "p70",
+   "receta_id": null,
+   "cantidad": 0.08,
+   "tipo": "simple",
+   "seccion": "Frutas",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Melon",
+   "bm2_producto": "p69",
+   "receta_id": null,
+   "cantidad": 0.08,
+   "tipo": "simple",
+   "seccion": "Frutas",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Sandia",
+   "bm2_producto": "p83",
+   "receta_id": null,
+   "cantidad": 0.08,
+   "tipo": "simple",
+   "seccion": "Frutas",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Pomelo",
+   "bm2_producto": "p99",
+   "receta_id": null,
+   "cantidad": 0.08,
+   "tipo": "simple",
+   "seccion": "Frutas",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Naranja",
+   "bm2_producto": "b06",
+   "receta_id": null,
+   "cantidad": 0.08,
+   "tipo": "simple",
+   "seccion": "Frutas",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Platano",
+   "bm2_producto": "p66",
+   "receta_id": null,
+   "cantidad": 1.0,
+   "tipo": "simple",
+   "seccion": "Frutas",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Pina",
+   "bm2_producto": "p68",
+   "receta_id": null,
+   "cantidad": 0.08,
+   "tipo": "simple",
+   "seccion": "Frutas",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Melocoton almibar",
+   "bm2_producto": "p122",
+   "receta_id": null,
+   "cantidad": 1.0,
+   "tipo": "simple",
+   "seccion": "Frutas",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Paleta iberica",
+   "bm2_producto": "p358",
+   "receta_id": null,
+   "cantidad": 0.02,
+   "tipo": "simple",
+   "seccion": "Fiambres",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Mortadela",
+   "bm2_producto": "p89",
+   "receta_id": null,
+   "cantidad": 0.02,
+   "tipo": "simple",
+   "seccion": "Fiambres",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Salchichon iberico",
+   "bm2_producto": "p34",
+   "receta_id": null,
+   "cantidad": 0.02,
+   "tipo": "simple",
+   "seccion": "Fiambres",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Queso gofio",
+   "bm2_producto": "p37",
+   "receta_id": null,
+   "cantidad": 0.02,
+   "tipo": "simple",
+   "seccion": "Fiambres",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Queso pimenton",
+   "bm2_producto": "b04",
+   "receta_id": null,
+   "cantidad": 0.02,
+   "tipo": "simple",
+   "seccion": "Fiambres",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Queso fresco",
+   "bm2_producto": "p38",
+   "receta_id": null,
+   "cantidad": 0.02,
+   "tipo": "simple",
+   "seccion": "Fiambres",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Pan gallego",
+   "bm2_producto": "p05",
+   "receta_id": null,
+   "cantidad": 0.05,
+   "tipo": "simple",
+   "seccion": "Pan",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Pan maiz",
+   "bm2_producto": "p357",
+   "receta_id": null,
+   "cantidad": 0.1,
+   "tipo": "simple",
+   "seccion": "Pan",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Pan centeno",
+   "bm2_producto": "p276",
+   "receta_id": null,
+   "cantidad": 0.05,
+   "tipo": "simple",
+   "seccion": "Pan",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Baguettina",
+   "bm2_producto": "p252",
+   "receta_id": null,
+   "cantidad": 0.015152,
+   "tipo": "simple",
+   "seccion": "Pan",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Napolitana cacao",
+   "bm2_producto": "p251",
+   "receta_id": null,
+   "cantidad": 0.01,
+   "tipo": "simple",
+   "seccion": "Pan",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Chic crema",
+   "bm2_producto": "p294",
+   "receta_id": null,
+   "cantidad": 0.003077,
+   "tipo": "simple",
+   "seccion": "Pan",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Lazo cereal",
+   "bm2_producto": "p250",
+   "receta_id": null,
+   "cantidad": 0.005155,
+   "tipo": "simple",
+   "seccion": "Pan",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Croissant mantequilla",
+   "bm2_producto": "p249",
+   "receta_id": null,
+   "cantidad": 0.003571,
+   "tipo": "simple",
+   "seccion": "Pan",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Croissant chocolate",
+   "bm2_producto": "b01",
+   "receta_id": null,
+   "cantidad": 0.005051,
+   "tipo": "simple",
+   "seccion": "Pan",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Surtido reposteria",
+   "bm2_producto": "p08",
+   "receta_id": null,
+   "cantidad": 0.05,
+   "tipo": "simple",
+   "seccion": "Pan",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Estándar buffet desayuno diario",
+   "bm2_producto": null,
+   "receta_id": "r137",
+   "cantidad": 1.0,
+   "tipo": "receta_estandar",
+   "seccion": "Estandar",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Jarra leche entera 1L",
+   "bm2_producto": "p127",
+   "receta_id": null,
+   "cantidad": 1.0,
+   "tipo": "simple",
+   "seccion": "Jarras",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Jarra leche semi 1L",
+   "bm2_producto": "p128",
+   "receta_id": null,
+   "cantidad": 1.0,
+   "tipo": "simple",
+   "seccion": "Jarras",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Jarra zumo manzana",
+   "bm2_producto": "",
+   "receta_id": null,
+   "cantidad": 1.0,
+   "tipo": "simple",
+   "seccion": "Jarras",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Jarra zumo piña",
+   "bm2_producto": "",
+   "receta_id": null,
+   "cantidad": 1.0,
+   "tipo": "simple",
+   "seccion": "Jarras",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Jarra zumo cranberry",
+   "bm2_producto": "",
+   "receta_id": null,
+   "cantidad": 1.0,
+   "tipo": "simple",
+   "seccion": "Jarras",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Zumo naranja natural 1L",
+   "bm2_producto": null,
+   "receta_id": "r153",
+   "cantidad": 1.0,
+   "tipo": "receta_estandar",
+   "seccion": "Jarras",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Zumo naranja brik 1L",
+   "bm2_producto": "b28",
+   "receta_id": null,
+   "cantidad": 1.0,
+   "tipo": "simple",
+   "seccion": "Jarras",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Mantequilla porcion",
+   "bm2_producto": "p152",
+   "receta_id": null,
+   "cantidad": 0.015,
+   "tipo": "simple",
+   "seccion": "Porciones",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Margarina porcion",
+   "bm2_producto": "p153",
+   "receta_id": null,
+   "cantidad": 0.015,
+   "tipo": "simple",
+   "seccion": "Porciones",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Mermelada fresa",
+   "bm2_producto": "p160",
+   "receta_id": null,
+   "cantidad": 0.02,
+   "tipo": "simple",
+   "seccion": "Porciones",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Mermelada naranja",
+   "bm2_producto": "p161",
+   "receta_id": null,
+   "cantidad": 0.02,
+   "tipo": "simple",
+   "seccion": "Porciones",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Mermelada melocoton",
+   "bm2_producto": "p162",
+   "receta_id": null,
+   "cantidad": 0.02,
+   "tipo": "simple",
+   "seccion": "Porciones",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Pate porcion",
+   "bm2_producto": "p164",
+   "receta_id": null,
+   "cantidad": 0.02,
+   "tipo": "simple",
+   "seccion": "Porciones",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Sobrasada porcion",
+   "bm2_producto": "p165",
+   "receta_id": null,
+   "cantidad": 0.02,
+   "tipo": "simple",
+   "seccion": "Porciones",
+   "bm2_bote": null,
+   "activo": true
+  },
+  {
+   "etiqueta": "Tomate natural porcion",
+   "bm2_producto": "p166",
+   "receta_id": null,
+   "cantidad": 0.03,
+   "tipo": "simple",
+   "seccion": "Porciones",
+   "bm2_bote": null,
+   "activo": true
+  }
+ ],
+ "recetas_dia": {
+  "Tostada del dia": [
+   "Tostada lunes",
+   "Tostada martes",
+   "Tostada miercoles",
+   "Tostada jueves",
+   "Tostada viernes",
+   "Tostada sabado",
+   "Tostada domingo"
+  ],
+  "Coctel del dia": [
+   "Espresso Martini",
+   "Margarita",
+   "Piña Colada",
+   "Blue Hawaii",
+   "Caipirinha",
+   "Sex on the Beach",
+   "Royal Marina"
+  ]
+ },
+ "sustitucion": {
+  "huevo": [
+   "p48"
+  ],
+  "pan": [
+   "p09",
+   "p11",
+   "p04"
+  ]
+ },
+ "recetas_bebidas_desayuno": [
+  "americano",
+  "botella roger de flor",
+  "cafe con leche",
+  "cafe con leche descafeinado",
+  "cafe con leche semi",
+  "capuchino",
+  "capuchino semi",
+  "cava roger de flor",
+  "cola cao",
+  "cola cao semi",
+  "cortado",
+  "cortado semi",
+  "espresso",
+  "espresso descafeinado",
+  "manzanilla",
+  "roger de flor",
+  "seleccion de te",
+  "te frutas del bosque",
+  "te negro",
+  "te rojo",
+  "te verde"
+ ]
+}
