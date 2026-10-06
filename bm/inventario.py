@@ -21,7 +21,7 @@ EN_RESTAURANTE = {"DESAYUNO", "SNACK BEBI", "SNACK COMI", "SNACK CENA", "SNACK",
 # Nombre legible de los almacenes de departamento de BC (los códigos van cortados a 10 letras).
 NOMBRES = {"HABITACION": "Habitaciones", "LIMPI-REST": "Limpieza restaurante", "LIMPI-COCI": "Limpieza cocina",
            "MANTEN": "Mantenimiento", "MENAJE-COC": "Menaje cocina", "MENAJE-RES": "Menaje restaurante",
-           "MENAJE-PIS": "Menaje pisos", "UNIFORMIDA": "Uniformidad", "MATER-OFIC": "Material de oficina"}
+           "MENAJE-PIS": "Menaje pisos", "UNIFORMIDA": "Uniformidad", "MATER-OFIC": "Material de oficina", "LAVANDERIA": "Lavandería"}
 CENTROS_INICIALES = [  # codigo, nombre, tipo, ubicación física, color, orden, almacén BC que lo imputa
     ("desayuno", "Desayuno", "restauracion", "RESTAURANTE", "orange", 1, "DESAYUNO"),
     ("comida", "Comida", "restauracion", "RESTAURANTE", "teal", 2, "SNACK COMI"),
