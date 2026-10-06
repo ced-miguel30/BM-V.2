@@ -1,0 +1,4 @@
+body { background: var(--mantine-color-gray-0); }
+[data-mantine-color-scheme='dark'] body { background: var(--mantine-color-dark-8); }
+.tabla-click tbody tr { cursor: pointer; }
+.num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }

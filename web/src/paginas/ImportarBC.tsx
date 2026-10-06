@@ -1,0 +1,56 @@
+import { useState } from 'react';
+import { Button, Card, FileButton, List, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@mantine/core';
+import { IconFileSpreadsheet } from '@tabler/icons-react';
+import { api, avisoError, avisoOk } from '../api';
+import { Cabecera } from '../comun';
+
+function Subida({ tipo, titulo, pasos }: { tipo: string; titulo: string; pasos: string[] }) {
+  const [cargando, setCargando] = useState(false);
+  const subir = async (f: File | null) => {
+    if (!f) return;
+    setCargando(true);
+    const form = new FormData();
+    form.append('archivo', f);
+    try {
+      const r = await api<{ filas: number }>(`/bc/${tipo}`, { form });
+      avisoOk(`${r.filas.toLocaleString('es-ES')} filas. Costes recalculados.`, titulo);
+    } catch (e) { avisoError(e); } finally { setCargando(false); }
+  };
+  return (
+    <Card>
+      <Stack>
+        <ThemeIcon size={44} radius="md" variant="light" color="teal"><IconFileSpreadsheet size={24} /></ThemeIcon>
+        <Title order={4}>{titulo}</Title>
+        <List type="ordered" size="sm" spacing={6}>{pasos.map((p) => <List.Item key={p}>{p}</List.Item>)}</List>
+        <FileButton onChange={subir} accept=".xlsx">
+          {(props) => <Button {...props} loading={cargando}>Subir Excel</Button>}
+        </FileButton>
+      </Stack>
+    </Card>
+  );
+}
+
+export function ImportarBC() {
+  return (
+    <>
+      <Cabecera titulo="Importar de Business Central" subtitulo="Reimportar es seguro: lo que ya existe se actualiza, nunca se duplica." />
+      <SimpleGrid cols={{ base: 1, md: 2 }}>
+        <Subida tipo="movimientos" titulo="Movimientos de producto" pasos={[
+          'En BC busca (Alt+Q) "Movimientos de producto".',
+          'Filtra Fecha registro, por ejemplo 01/07/26.. (o todo).',
+          'Compartir → Abrir en Excel y guarda el fichero.',
+          'Súbelo aquí. Recomendado: cada semana y tras el inventario de fin de mes.',
+        ]} />
+        <Subida tipo="productos" titulo="Maestro de productos" pasos={[
+          'En BC busca "Productos".',
+          'Compartir → Abrir en Excel.',
+          'Súbelo aquí cuando se den de alta artículos nuevos.',
+        ]} />
+      </SimpleGrid>
+      <Text size="sm" c="dimmed" mt="lg">
+        Cada compra de BC es un lote con su precio real. Los consumos de BM gastan lotes por orden de entrada (FIFO) y el inventario
+        de fin de mes de BC reajusta lo que queda. Los albaranes aún sin facturar se valoran provisionalmente con el último precio facturado.
+      </Text>
+    </>
+  );
+}

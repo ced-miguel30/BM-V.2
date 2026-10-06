@@ -1,0 +1,107 @@
+"""Registro de hechos físicos (desayuno, servicio, merma) y coste de recetas."""
+
+from __future__ import annotations
+
+import sqlite3
+from datetime import date
+
+from bm import costing
+
+SERVICIOS = ("desayuno", "comida", "cena", "bebidas")
+
+
+def expandir(con: sqlite3.Connection, items: list[dict]) -> list[tuple[str, float, str | None]]:
+    """items: [{'receta_id': .., 'cantidad': raciones} | {'producto': .., 'cantidad': uds}]
+    -> [(producto, cantidad, receta_id)] en unidad base BC."""
+    out = []
+    for it in items:
+        q = float(it.get("cantidad") or 0)
+        if q <= 0:
+            continue
+        if it.get("receta_id"):
+            r = con.execute("SELECT porciones FROM recetas WHERE id=?", (it["receta_id"],)).fetchone()
+            if not r:
+                raise ValueError(f"Receta desconocida: {it['receta_id']}")
+            f = q / (r["porciones"] or 1)
+            out += [(l["producto"], l["cantidad"] * f, it["receta_id"])
+                    for l in con.execute("SELECT producto, cantidad FROM receta_lineas WHERE receta_id=?", (it["receta_id"],))]
+        elif it.get("producto"):
+            if not con.execute("SELECT 1 FROM productos WHERE codigo=?", (it["producto"],)).fetchone():
+                raise ValueError(f"Producto desconocido: {it['producto']}")
+            out.append((it["producto"], q, None))
+    if not out:
+        raise ValueError("No hay líneas con cantidad")
+    return out
+
+
+def registrar(con: sqlite3.Connection, *, fecha: str, servicio: str | None, items: list[dict], tipo: str = "consumo",
+              comensales: int | None = None, nota: str | None = None, usuario: str | None = None,
+              origen: str = "manual", ref: str | None = None) -> int:
+    if servicio and servicio not in SERVICIOS:
+        raise ValueError(f"Servicio no válido: {servicio}")
+    if tipo not in ("consumo", "merma"):
+        raise ValueError(f"Tipo no válido: {tipo}")
+    date.fromisoformat(fecha)
+    lineas = expandir(con, items)
+    if ref and con.execute("SELECT 1 FROM consumos WHERE ref=?", (ref,)).fetchone():
+        raise ValueError("Este registro ya existe (misma referencia)")
+    cid = con.execute(
+        "INSERT INTO consumos(fecha, servicio, tipo, origen, ref, comensales, nota, usuario) VALUES(?,?,?,?,?,?,?,?)",
+        (fecha, servicio, tipo, origen, ref, comensales, nota, usuario),
+    ).lastrowid
+    con.executemany(
+        "INSERT INTO consumo_lineas(consumo_id, producto, cantidad, receta_id) VALUES(?,?,?,?)",
+        [(cid, p, q, r) for p, q, r in lineas],
+    )
+    con.commit()
+    costing.valorar(con)
+    return cid
+
+
+def anular(con: sqlite3.Connection, cid: int, motivo: str, usuario: str | None = None) -> None:
+    """Anular no borra: el registro queda visible y deja de contar. El FIFO se recalcula entero,
+    así que los lotes vuelven exactamente a su estado sin este consumo."""
+    c = con.execute("SELECT anulado, origen FROM consumos WHERE id=?", (cid,)).fetchone()
+    if not c:
+        raise ValueError("No existe")
+    if c["origen"] == "tpv":
+        raise ValueError("Los consumos TPV se corrigen desde la asignación del artículo, no anulándolos")
+    if c["anulado"]:
+        return
+    con.execute(
+        "UPDATE consumos SET anulado=1, nota=COALESCE(nota || ' | ', '') || ? WHERE id=?",
+        (f"ANULADO por {usuario or '?'}: {motivo}", cid),
+    )
+    con.commit()
+    costing.valorar(con)
+
+
+def precio_actual(con: sqlite3.Connection, producto: str, fecha: str | None = None) -> float | None:
+    """Último precio facturado en BC hasta la fecha (para coste teórico de recetas)."""
+    fecha = fecha or date.today().isoformat()
+    r = con.execute(
+        """SELECT ABS(coste_total / cantidad) FROM bc_movs WHERE producto=? AND tipo='Compra'
+           AND cantidad > 0 AND coste_total > 0 AND fecha <= ? ORDER BY fecha DESC, n_mov DESC LIMIT 1""",
+        (producto, fecha),
+    ).fetchone()
+    if r:
+        return r[0]
+    r = con.execute("SELECT coste_ref FROM productos WHERE codigo=?", (producto,)).fetchone()
+    return r[0] if r else None
+
+
+def coste_receta(con: sqlite3.Connection, receta_id: str) -> dict:
+    r = con.execute("SELECT * FROM recetas WHERE id=?", (receta_id,)).fetchone()
+    lineas, total, completo = [], 0.0, True
+    for l in con.execute(
+        """SELECT l.producto, l.cantidad, p.nombre, p.unidad FROM receta_lineas l
+           JOIN productos p ON p.codigo=l.producto WHERE l.receta_id=?""", (receta_id,)
+    ):
+        pu = precio_actual(con, l["producto"])
+        coste = None if pu is None else round(pu * l["cantidad"], 4)
+        completo &= coste is not None
+        total += coste or 0
+        lineas.append({**dict(l), "precio": pu, "coste": coste})
+    porciones = r["porciones"] or 1
+    return {**dict(r), "lineas": lineas, "coste_total": round(total, 4),
+            "coste_racion": round(total / porciones, 4), "completo": completo}

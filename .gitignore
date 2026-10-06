@@ -50,3 +50,5 @@ Thumbs.db
 
 # Writer locks
 *.bm_writer.lock
+datos/
+web/node_modules/
