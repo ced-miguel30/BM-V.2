@@ -33,4 +33,5 @@ nunca se registra lo mismo dos veces. No se instala en el hotel hasta completar 
 - [x] Fase 2: inventario (stock por ubicación, recuento a ciegas en móvil, traslados, caducidades)
 - [x] Fase 3: sistema de diseño (tabla común con orden/búsqueda/paginación/exportar, logo, Inter, menú por secciones)
 - [x] Fase 4: análisis (rentabilidad por plato, control real vs teórico, precios de compra y dudosos de BC, tendencia 12 meses, food cost neto de IGIC vs objetivo)
-- [ ] Fase 5 … 6
+- [x] Fase 5: configuración y seguridad (ajustes, usuarios, centros, ubicaciones, atajos, recetas del día, sesiones persistentes, registro de actividad, copias diarias, cambio de contraseña)
+- [ ] Fase 6

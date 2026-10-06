@@ -218,6 +218,25 @@ CREATE TABLE IF NOT EXISTS caducidades(
 );
 
 CREATE TABLE IF NOT EXISTS ajustes(clave TEXT PRIMARY KEY, valor TEXT);
+
+-- Sesiones (sobreviven a reinicios del servidor). Se guarda el hash del token, nunca el token.
+CREATE TABLE IF NOT EXISTS sesiones(
+  token_hash TEXT PRIMARY KEY,
+  usuario_id TEXT NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  creada TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expira TEXT NOT NULL
+);
+
+-- Registro de actividad: toda escritura queda con quién y cuándo.
+CREATE TABLE IF NOT EXISTS auditoria(
+  id INTEGER PRIMARY KEY,
+  cuando TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+  usuario TEXT,
+  metodo TEXT NOT NULL,
+  ruta TEXT NOT NULL,
+  estado INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ix_auditoria_cuando ON auditoria(cuando);
 """
 
 

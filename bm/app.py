@@ -5,7 +5,8 @@
 
 from __future__ import annotations
 
-import os
+import asyncio
+import hashlib
 import secrets
 import shutil
 import tempfile
@@ -25,16 +26,48 @@ app = FastAPI(title="BM", docs_url="/api/docs", openapi_url="/api/openapi.json")
 STATIC = Path(__file__).resolve().parent / "static"
 
 # ---------------------------------------------------------------- sesión y permisos
-_SESIONES: dict[str, dict] = {}  # ponytail: en memoria; reiniciar el servidor obliga a volver a entrar
 GESTION = ("direccion", "administracion")
 OPERATIVO = GESTION + ("recepcion", "restaurante")
+HORAS_SESION = 12
+
+
+def _hash(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def sesion(token: str | None) -> dict | None:
+    if not token:
+        return None
+    r = con.execute(
+        """SELECT u.id, u.nombre, u.rol, u.login FROM sesiones s JOIN usuarios u ON u.id=s.usuario_id
+           WHERE s.token_hash=? AND s.expira > datetime('now') AND u.activo=1""", (_hash(token),)).fetchone()
+    return dict(r) if r else None
 
 
 def usuario(request: Request) -> dict:
-    u = _SESIONES.get(request.cookies.get("bm_sesion", ""))
+    u = sesion(request.cookies.get("bm_sesion"))
     if not u:
         raise HTTPException(401, "Sesión no iniciada")
     return u
+
+
+_escritura = asyncio.Lock()  # ponytail: un escritor a la vez; sobra para un hotel. Si crece: conexión por petición.
+
+
+@app.middleware("http")
+async def auditar(request: Request, call_next):
+    """Las peticiones a la API se atienden de una en una (una sola conexión SQLite compartida) y
+    toda escritura queda registrada: quién, qué, cuándo y si salió bien."""
+    if not request.url.path.startswith("/api/"):
+        return await call_next(request)
+    async with _escritura:
+        response = await call_next(request)
+        if request.method in ("POST", "PUT", "DELETE") and request.url.path != "/api/login":
+            u = sesion(request.cookies.get("bm_sesion"))
+            con.execute("INSERT INTO auditoria(usuario, metodo, ruta, estado) VALUES(?,?,?,?)",
+                        (u["nombre"] if u else None, request.method, request.url.path, response.status_code))
+            con.commit()
+    return response
 
 
 def requiere(*roles):
@@ -63,14 +96,19 @@ def login(datos: Login, response: Response):
     if not u or not verify_password(datos.password, u["password_hash"]):
         raise HTTPException(401, "Usuario o contraseña incorrectos")
     token = secrets.token_urlsafe(32)
-    _SESIONES[token] = {"id": u["id"], "nombre": u["nombre"], "rol": u["rol"], "login": u["login"]}
-    response.set_cookie("bm_sesion", token, httponly=True, samesite="lax", max_age=60 * 60 * 12)
-    return _SESIONES[token]
+    con.execute("DELETE FROM sesiones WHERE expira <= datetime('now')")
+    con.execute("INSERT INTO sesiones(token_hash, usuario_id, expira) VALUES(?, ?, datetime('now', ?))",
+                (_hash(token), u["id"], f"+{HORAS_SESION} hours"))
+    con.execute("INSERT INTO auditoria(usuario, metodo, ruta, estado) VALUES(?, 'POST', '/api/login', 200)", (u["nombre"],))
+    con.commit()
+    response.set_cookie("bm_sesion", token, httponly=True, samesite="lax", max_age=60 * 60 * HORAS_SESION)
+    return {"id": u["id"], "nombre": u["nombre"], "rol": u["rol"], "login": u["login"]}
 
 
 @app.post("/api/logout")
 def logout(request: Request, response: Response):
-    _SESIONES.pop(request.cookies.get("bm_sesion", ""), None)
+    con.execute("DELETE FROM sesiones WHERE token_hash=?", (_hash(request.cookies.get("bm_sesion", "")),))
+    con.commit()
     response.delete_cookie("bm_sesion")
     return {"ok": True}
 
@@ -429,7 +467,7 @@ def bc_subir(tipo: str, archivo: UploadFile, u: dict = Depends(requiere(*GESTION
 
 
 # ---------------------------------------------------------------- módulos (registran rutas sobre `app`)
-from bm import api_analisis, api_inventario  # noqa: E402,F401
+from bm import api_analisis, api_config, api_inventario  # noqa: E402,F401
 
 # ---------------------------------------------------------------- web (siempre la última ruta)
 if STATIC.exists():

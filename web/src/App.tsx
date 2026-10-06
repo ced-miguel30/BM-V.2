@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Navigate, NavLink as RouterLink, Route, Routes, useLocation } from 'react-router-dom';
 import {
-  ActionIcon, AppShell, Avatar, Box, Burger, Button, Center, Group, Loader, Menu, NavLink, Paper,
+  ActionIcon, AppShell, Avatar, Box, Burger, Button, Center, Group, Loader, Menu, Modal, NavLink, Paper,
   PasswordInput, ScrollArea, Stack, Text, TextInput, Title, Tooltip, useMantineColorScheme,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconArrowsExchange, IconBook2, IconBuildingWarehouse, IconCalendarExclamation, IconChartBar, IconClipboardCheck,
   IconCloudUpload, IconFileSpreadsheet, IconListDetails, IconLogout, IconMoon, IconPackages, IconPencilPlus,
-  IconReceipt2, IconSun, IconChartDots, IconScale, IconTrendingUp,
+  IconReceipt2, IconSun, IconChartDots, IconScale, IconTrendingUp, IconSettings, IconKey,
 } from '@tabler/icons-react';
-import { api, avisoError } from './api';
+import { api, avisoError, avisoOk } from './api';
 import { Logo } from './comun';
 import { Panel } from './paginas/Panel';
 import { Registrar } from './paginas/Registrar';
@@ -27,6 +27,7 @@ import { Caducidades } from './paginas/Caducidades';
 import { Rentabilidad } from './paginas/Rentabilidad';
 import { Control } from './paginas/Control';
 import { Precios } from './paginas/Precios';
+import { Configuracion } from './paginas/Configuracion';
 
 export type Usuario = { id: string; nombre: string; rol: string; login: string };
 const GESTION = ['direccion', 'administracion'];
@@ -57,6 +58,7 @@ const MENU = [
   ] },
   { seccion: 'Sistema', items: [
     { to: '/bc', label: 'Importar de BC', icon: IconCloudUpload, roles: GESTION, el: <ImportarBC /> },
+    { to: '/configuracion', label: 'Configuración', icon: IconSettings, roles: GESTION, el: <Configuracion /> },
   ] },
 ];
 
@@ -97,9 +99,32 @@ function Login({ onLogin }: { onLogin: (u: Usuario) => void }) {
   );
 }
 
+function CambiarClave({ abierto, cerrar }: { abierto: boolean; cerrar: () => void }) {
+  const [actual, setActual] = useState('');
+  const [nueva, setNueva] = useState('');
+  const [repite, setRepite] = useState('');
+  const guardar = async () => {
+    try { await api('/me/password', { body: { actual, nueva } }); avisoOk('Contraseña cambiada'); setActual(''); setNueva(''); setRepite(''); cerrar(); }
+    catch (e) { avisoError(e); }
+  };
+  return (
+    <Modal opened={abierto} onClose={cerrar} title="Cambiar contraseña" centered>
+      <Stack>
+        <PasswordInput label="Contraseña actual" value={actual} onChange={(e) => setActual(e.currentTarget.value)} autoComplete="current-password" />
+        <PasswordInput label="Nueva contraseña" description="Mínimo 8 caracteres" value={nueva} onChange={(e) => setNueva(e.currentTarget.value)} autoComplete="new-password" />
+        <PasswordInput label="Repite la nueva" value={repite} onChange={(e) => setRepite(e.currentTarget.value)} autoComplete="new-password"
+          error={repite && repite !== nueva ? 'No coincide' : undefined} />
+        <Group justify="flex-end"><Button variant="default" onClick={cerrar}>Cancelar</Button>
+          <Button onClick={guardar} disabled={!actual || nueva.length < 8 || nueva !== repite}>Guardar</Button></Group>
+      </Stack>
+    </Modal>
+  );
+}
+
 export function App() {
   const [usuario, setUsuario] = useState<Usuario | null | undefined>(undefined);
   const [abierto, { toggle, close }] = useDisclosure();
+  const [clave, setClave] = useState(false);
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
   const loc = useLocation();
 
@@ -149,6 +174,7 @@ export function App() {
                 </Group>
               </Menu.Target>
               <Menu.Dropdown>
+                <Menu.Item leftSection={<IconKey size={16} />} onClick={() => setClave(true)}>Cambiar contraseña</Menu.Item>
                 <Menu.Item leftSection={<IconLogout size={16} />} onClick={salir}>Cerrar sesión</Menu.Item>
               </Menu.Dropdown>
             </Menu>
@@ -175,6 +201,7 @@ export function App() {
         </ScrollArea>
       </AppShell.Navbar>
 
+      <CambiarClave abierto={clave} cerrar={() => setClave(false)} />
       <AppShell.Main>
         <Box maw={1440} mx="auto">
           <Routes>
