@@ -11,7 +11,6 @@ from pathlib import Path
 
 from bm import bc, bm2, costing, db, tpv
 
-RAIZ = Path(__file__).resolve().parent.parent
 
 
 def main(argv=None) -> None:
@@ -28,13 +27,14 @@ def main(argv=None) -> None:
     if a.movs:
         print("movimientos BC:", bc.importar_movimientos(con, a.movs))
     if a.bm2:
-        manual = RAIZ / "docs" / "añadidos manual"
-        print("BM v2:", bm2.migrar(con, a.bm2, manual / "_import_compras_prov_resumen.csv"))
+        mig = Path(__file__).parent / "migracion_v2"
+        print("BM v2:", bm2.migrar(con, a.bm2, mig / "compras_proveedor_resumen.csv"))
         print("desayuno (atajos, buffet, recetas del día):", bm2.sembrar_desayuno(con, Path(__file__).parent / "semillas_desayuno.json"))
-        print("TPV asignaciones heredadas:", bm2.sembrar_tpv(con, RAIZ / "scripts" / "import_registros_agosto_2026.py"))
-        hist = manual / "_tpv_merged_reimport.json"
-        if hist.exists():
-            print("TPV agosto (v2):", {k: v for k, v in tpv.importar_lineas(con, bm2.ventas_tpv_historicas(hist)).items() if k != "dias"})
+        print("TPV asignaciones heredadas:", bm2.sembrar_tpv(con, mig / "alias_tpv.json"))
+        r = tpv.importar_lineas(con, bm2.ventas_tpv_historicas(mig / "tpv_agosto_2026.json"))
+        print("TPV agosto (v2):", {k: v for k, v in r.items() if k != "dias"})
+        r = tpv.importar_lineas(con, tpv.leer_pdf(mig / "tpv_2026-09-13_a_27.pdf"))
+        print("TPV septiembre (PDF):", {k: v for k, v in r.items() if k != "dias"})
     for pdf in a.tpv_pdf:
         r = tpv.importar_lineas(con, tpv.leer_pdf(pdf))
         print(f"TPV {Path(pdf).name}: {len(r['dias'])} días, {r['lineas']} líneas, {r['importe']} EUR")

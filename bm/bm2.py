@@ -146,19 +146,18 @@ def _clave(s) -> str:
     return re.sub(r"[^A-Z0-9]", "", _n(s))
 
 
-def sembrar_tpv(con: sqlite3.Connection, script_agosto) -> int:
-    """Una sola vez: reutiliza los alias TPV que v2 tenía escritos en código
-    (scripts/import_registros_agosto_2026.py) como asignaciones iniciales editables.
-    Los casos 'especiales' de v2 (smoothies/helados repartidos, cubetas, hielo) NO se migran: quedan pendientes."""
-    src = Path(script_agosto).read_text(encoding="utf-8")
+def sembrar_tpv(con: sqlite3.Connection, alias_json) -> int:
+    """Una sola vez: reutiliza los alias TPV que v2 tenía escritos en código (extraídos a alias_tpv.json)
+    como asignaciones iniciales editables. Los casos 'especiales' de v2 (smoothies/helados repartidos,
+    cubetas, hielo) NO se migran: quedan pendientes."""
     recetas = {_clave(r["nombre"]): r["id"] for r in con.execute("SELECT id, nombre FROM recetas")}
     mapa = dict(con.execute("SELECT bm2_id, codigo FROM mapa_bm2").fetchall())
     alias = {}
-    for tipo, a, destino in re.findall(r'\b([RP])\("([^"]+)",\s*"([^"]+)"\)', src):
-        if tipo == "R" and _clave(destino) in recetas:
-            alias[_clave(a)] = ("receta", recetas[_clave(destino)])
-        elif tipo == "P" and destino in mapa:
-            alias[_clave(a)] = ("producto", mapa[destino])
+    for x in json.loads(Path(alias_json).read_text(encoding="utf-8")):
+        if x["tipo"] == "receta" and _clave(x["destino"]) in recetas:
+            alias[_clave(x["alias"])] = ("receta", recetas[_clave(x["destino"])])
+        elif x["tipo"] == "producto" and x["destino"] in mapa:
+            alias[_clave(x["alias"])] = ("producto", mapa[x["destino"]])
     n = 0
     for art in con.execute("SELECT codigo, nombre FROM tpv_articulos WHERE receta_id IS NULL AND producto IS NULL").fetchall():
         k = _clave(art["nombre"])

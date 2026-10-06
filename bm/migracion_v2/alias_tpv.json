@@ -1,0 +1,537 @@
+[
+ {
+  "tipo": "receta",
+  "alias": "ENSALADA CESAR",
+  "destino": "Ensalada cesar"
+ },
+ {
+  "tipo": "receta",
+  "alias": "SANDWICH CLUB",
+  "destino": "Sandwich club"
+ },
+ {
+  "tipo": "receta",
+  "alias": "PAPAS FRITAS",
+  "destino": "Patatas fritas"
+ },
+ {
+  "tipo": "receta",
+  "alias": "PATATAS FRITAS",
+  "destino": "Patatas fritas"
+ },
+ {
+  "tipo": "receta",
+  "alias": "PAN BAO CON TERIYAKI",
+  "destino": "Pan bao"
+ },
+ {
+  "tipo": "receta",
+  "alias": "PAN BAO",
+  "destino": "Pan bao"
+ },
+ {
+  "tipo": "receta",
+  "alias": "TARTAR DE SALMON CON AGUACATE",
+  "destino": "Tartar salmon con aguacate"
+ },
+ {
+  "tipo": "receta",
+  "alias": "TARTAR SALMON",
+  "destino": "Tartar salmon con aguacate"
+ },
+ {
+  "tipo": "receta",
+  "alias": "LANGOSTINOS CRUJIENT",
+  "destino": "Langostinos crujientes"
+ },
+ {
+  "tipo": "receta",
+  "alias": "LANGOSTINOSCRUJIENT",
+  "destino": "Langostinos crujientes"
+ },
+ {
+  "tipo": "receta",
+  "alias": "COCKTAIL DE GAMBAS",
+  "destino": "Cocktail de gambas"
+ },
+ {
+  "tipo": "receta",
+  "alias": "ENSALADADEQUESOFRESCOYFRESAS",
+  "destino": "Ensalada queso de cabra y fresa"
+ },
+ {
+  "tipo": "receta",
+  "alias": "ENSALADA QUESO",
+  "destino": "Ensalada queso de cabra y fresa"
+ },
+ {
+  "tipo": "receta",
+  "alias": "ENSALADA DE QUESO DE CABRA Y FRESAS",
+  "destino": "Ensalada queso de cabra y fresa"
+ },
+ {
+  "tipo": "receta",
+  "alias": "ENSALADA DE QUESO DE CABRAS Y FRESASY FRESAS",
+  "destino": "Ensalada queso de cabra y fresa"
+ },
+ {
+  "tipo": "receta",
+  "alias": "ENSALADA QUESO DE CABRA Y FRESAS",
+  "destino": "Ensalada queso de cabra y fresa"
+ },
+ {
+  "tipo": "receta",
+  "alias": "ENSALADADEQUESODECABRAYFRESAS",
+  "destino": "Ensalada queso de cabra y fresa"
+ },
+ {
+  "tipo": "receta",
+  "alias": "POKE BOWL",
+  "destino": "Poke bowl"
+ },
+ {
+  "tipo": "receta",
+  "alias": "POKEBOWL",
+  "destino": "Poke bowl"
+ },
+ {
+  "tipo": "receta",
+  "alias": "GAMBAS AL AJILLO",
+  "destino": "Gambas al ajillo"
+ },
+ {
+  "tipo": "receta",
+  "alias": "CALAMARES FRITOS",
+  "destino": "Calamares a la romana"
+ },
+ {
+  "tipo": "receta",
+  "alias": "CALAMARES A LA ROMANA",
+  "destino": "Calamares a la romana"
+ },
+ {
+  "tipo": "receta",
+  "alias": "BACALAO TEMPURA",
+  "destino": "Bacalao en tempura"
+ },
+ {
+  "tipo": "receta",
+  "alias": "NACHOS CON GUACAMOLE",
+  "destino": "Nachos con guacamole"
+ },
+ {
+  "tipo": "receta",
+  "alias": "NACHOS",
+  "destino": "Nachos con guacamole"
+ },
+ {
+  "tipo": "receta",
+  "alias": "CROQUETAS VARIADAS",
+  "destino": "Croquetas jamon serrano"
+ },
+ {
+  "tipo": "receta",
+  "alias": "CROQUETAS DE JAMONIBERICO",
+  "destino": "Croquetas jamon serrano"
+ },
+ {
+  "tipo": "receta",
+  "alias": "CROQUETAS DE JAMON",
+  "destino": "Croquetas jamon serrano"
+ },
+ {
+  "tipo": "receta",
+  "alias": "HAMBURGUESA BREEZE",
+  "destino": "Hamburguesa"
+ },
+ {
+  "tipo": "receta",
+  "alias": "HAMBURGUESA",
+  "destino": "Hamburguesa"
+ },
+ {
+  "tipo": "receta",
+  "alias": "COPA DE HELADO 3 BOLAS",
+  "destino": "Bola de helado"
+ },
+ {
+  "tipo": "receta",
+  "alias": "BOLAS HELADOS ARTESANALES",
+  "destino": "Bola de helado"
+ },
+ {
+  "tipo": "receta",
+  "alias": "EXPRESSO",
+  "destino": "Espresso"
+ },
+ {
+  "tipo": "receta",
+  "alias": "ESPRESSO",
+  "destino": "Espresso"
+ },
+ {
+  "tipo": "receta",
+  "alias": "CAFE LATTE",
+  "destino": "Cafe con leche"
+ },
+ {
+  "tipo": "receta",
+  "alias": "CAFE CAPPUCCINO",
+  "destino": "Capuchino"
+ },
+ {
+  "tipo": "receta",
+  "alias": "CAPPUCCINO",
+  "destino": "Capuchino"
+ },
+ {
+  "tipo": "receta",
+  "alias": "AMERICANO",
+  "destino": "Americano"
+ },
+ {
+  "tipo": "receta",
+  "alias": "CORTADO",
+  "destino": "Cortado"
+ },
+ {
+  "tipo": "receta",
+  "alias": "PINA COLADA",
+  "destino": "Piña Colada"
+ },
+ {
+  "tipo": "receta",
+  "alias": "MOJITO",
+  "destino": "Mojito"
+ },
+ {
+  "tipo": "receta",
+  "alias": "APEROL SPLITZ",
+  "destino": "Aperol Spritz"
+ },
+ {
+  "tipo": "receta",
+  "alias": "APEROL SPRITZ",
+  "destino": "Aperol Spritz"
+ },
+ {
+  "tipo": "receta",
+  "alias": "DAIKIRI",
+  "destino": "Daiquiri"
+ },
+ {
+  "tipo": "receta",
+  "alias": "DAIQUIRI",
+  "destino": "Daiquiri"
+ },
+ {
+  "tipo": "receta",
+  "alias": "CAIPIRINA",
+  "destino": "Caipirinha"
+ },
+ {
+  "tipo": "receta",
+  "alias": "CAIPIROSKA",
+  "destino": "Caipirinha"
+ },
+ {
+  "tipo": "receta",
+  "alias": "SEX ON THE BEACH",
+  "destino": "Sex on the Beach"
+ },
+ {
+  "tipo": "receta",
+  "alias": "MARGARITA",
+  "destino": "Margarita"
+ },
+ {
+  "tipo": "receta",
+  "alias": "COCKTAIL ROYAL MARINA",
+  "destino": "Royal Marina"
+ },
+ {
+  "tipo": "receta",
+  "alias": "ROYAL MARINA",
+  "destino": "Royal Marina"
+ },
+ {
+  "tipo": "receta",
+  "alias": "COPA SANGRIA",
+  "destino": "Copa de sangria"
+ },
+ {
+  "tipo": "receta",
+  "alias": "SANGRIA 1L",
+  "destino": "Sangria 1L"
+ },
+ {
+  "tipo": "receta",
+  "alias": "SANGRIA DE CAVA 1L",
+  "destino": "Sangria de cava 1L"
+ },
+ {
+  "tipo": "receta",
+  "alias": "APEROL",
+  "destino": "Aperol"
+ },
+ {
+  "tipo": "receta",
+  "alias": "COPA DEVINO MONTECILLO BLANCO",
+  "destino": "Copa Montecillo Blanco"
+ },
+ {
+  "tipo": "receta",
+  "alias": "COPA DE VINO MONTECILLO BLANCO",
+  "destino": "Copa Montecillo Blanco"
+ },
+ {
+  "tipo": "receta",
+  "alias": "COPADEVINO MONTECILLO BLANCO",
+  "destino": "Copa Montecillo Blanco"
+ },
+ {
+  "tipo": "receta",
+  "alias": "COPADEVINOMONTECILLO BLANCO",
+  "destino": "Copa Montecillo Blanco"
+ },
+ {
+  "tipo": "receta",
+  "alias": "COPA DEVINOMONTECILLO BLANCO",
+  "destino": "Copa Montecillo Blanco"
+ },
+ {
+  "tipo": "receta",
+  "alias": "COPA VINO MONTECILLO BLANCO",
+  "destino": "Copa Montecillo Blanco"
+ },
+ {
+  "tipo": "receta",
+  "alias": "COPA DE VINO MONTECILLO ROSADO",
+  "destino": "Copa Montecillo Rosado"
+ },
+ {
+  "tipo": "receta",
+  "alias": "COPADEVINO MONTECILLO ROSADO",
+  "destino": "Copa Montecillo Rosado"
+ },
+ {
+  "tipo": "receta",
+  "alias": "COPADEVINOMONTECILLOROSADO",
+  "destino": "Copa Montecillo Rosado"
+ },
+ {
+  "tipo": "receta",
+  "alias": "COPA VINO MONTECILLO ROSADO",
+  "destino": "Copa Montecillo Rosado"
+ },
+ {
+  "tipo": "receta",
+  "alias": "COPA VINO MONTECILLO CRIANZA",
+  "destino": "Copa Montecillo Crianza"
+ },
+ {
+  "tipo": "receta",
+  "alias": "VINO BLANCO MONTECILLO",
+  "destino": "Botella Montecillo Blanco"
+ },
+ {
+  "tipo": "receta",
+  "alias": "ROYAR DE FLOR",
+  "destino": "Botella Roger de Flor"
+ },
+ {
+  "tipo": "receta",
+  "alias": "ROGER DE FLOR",
+  "destino": "Botella Roger de Flor"
+ },
+ {
+  "tipo": "receta",
+  "alias": "EL GRIFO BLANCO",
+  "destino": "Botella El Grifo"
+ },
+ {
+  "tipo": "receta",
+  "alias": "ANNACODORNIUPRIMAVIDE",
+  "destino": "Botella Codorniu Prima Vides"
+ },
+ {
+  "tipo": "receta",
+  "alias": "ANNA CODORNIU MINI",
+  "destino": "Botella Anna Codorniu Mini"
+ },
+ {
+  "tipo": "receta",
+  "alias": "ANNA CODORNIU",
+  "destino": "Botella Anna Codorniu Mini"
+ },
+ {
+  "tipo": "receta",
+  "alias": "JARRA NAO GRANDE",
+  "destino": "Jarra NAO Marinera"
+ },
+ {
+  "tipo": "receta",
+  "alias": "JARRA NAOGRANDE",
+  "destino": "Jarra NAO Marinera"
+ },
+ {
+  "tipo": "receta",
+  "alias": "JARRA NAO",
+  "destino": "Jarra NAO Marinera"
+ },
+ {
+  "tipo": "receta",
+  "alias": "CANA NAO MARINERA",
+  "destino": "Caña NAO Marinera"
+ },
+ {
+  "tipo": "receta",
+  "alias": "CAÑA NAO MARINERA",
+  "destino": "Caña NAO Marinera"
+ },
+ {
+  "tipo": "receta",
+  "alias": "CUBITAZO",
+  "destino": "Cubitazo Estrella Galicia"
+ },
+ {
+  "tipo": "producto",
+  "alias": "NAO MARINERA",
+  "destino": "p366"
+ },
+ {
+  "tipo": "producto",
+  "alias": "ESTRELLA GALICIA MINI",
+  "destino": "b32"
+ },
+ {
+  "tipo": "producto",
+  "alias": "ESTRELLA DAM",
+  "destino": "b37"
+ },
+ {
+  "tipo": "producto",
+  "alias": "ESTRELLA DAMM",
+  "destino": "b37"
+ },
+ {
+  "tipo": "producto",
+  "alias": "ETRELLA GALICIA 0 0",
+  "destino": "b36"
+ },
+ {
+  "tipo": "producto",
+  "alias": "HEINEKEN",
+  "destino": "p150"
+ },
+ {
+  "tipo": "producto",
+  "alias": "CORONITA",
+  "destino": "b85"
+ },
+ {
+  "tipo": "producto",
+  "alias": "DORADA ESPECIAL",
+  "destino": "b35"
+ },
+ {
+  "tipo": "producto",
+  "alias": "AGUA SIN GAS",
+  "destino": "p264"
+ },
+ {
+  "tipo": "producto",
+  "alias": "AGUA CON GAS",
+  "destino": "p265"
+ },
+ {
+  "tipo": "producto",
+  "alias": "COCA COLA ZERO",
+  "destino": "b60"
+ },
+ {
+  "tipo": "producto",
+  "alias": "COCA-COLA ZERO",
+  "destino": "b60"
+ },
+ {
+  "tipo": "producto",
+  "alias": "COCA COLA",
+  "destino": "b59"
+ },
+ {
+  "tipo": "producto",
+  "alias": "COCA-COLA",
+  "destino": "b59"
+ },
+ {
+  "tipo": "producto",
+  "alias": "FANTA LIMON",
+  "destino": "b83"
+ },
+ {
+  "tipo": "producto",
+  "alias": "FANTA NARANJA",
+  "destino": "b61"
+ },
+ {
+  "tipo": "producto",
+  "alias": "SPRITE",
+  "destino": "b84"
+ },
+ {
+  "tipo": "producto",
+  "alias": "TONICA",
+  "destino": "p261"
+ },
+ {
+  "tipo": "producto",
+  "alias": "NESTEAMANGO PINA",
+  "destino": "p258"
+ },
+ {
+  "tipo": "producto",
+  "alias": "NESTE MANGO PINA",
+  "destino": "p258"
+ },
+ {
+  "tipo": "producto",
+  "alias": "ZUMO NARANJA NATURAL",
+  "destino": "b28"
+ },
+ {
+  "tipo": "receta",
+  "alias": "TANQUERAY",
+  "destino": "Tanqueray"
+ },
+ {
+  "tipo": "receta",
+  "alias": "GORDON DRY",
+  "destino": "Gordon's"
+ },
+ {
+  "tipo": "receta",
+  "alias": "GORDONS",
+  "destino": "Gordon's"
+ },
+ {
+  "tipo": "receta",
+  "alias": "BEEFEATERS",
+  "destino": "Beefeater"
+ },
+ {
+  "tipo": "receta",
+  "alias": "BEEFEATER",
+  "destino": "Beefeater"
+ },
+ {
+  "tipo": "receta",
+  "alias": "MALIBU",
+  "destino": "Malibu"
+ },
+ {
+  "tipo": "receta",
+  "alias": "MARTINI ROJO",
+  "destino": "Martini Rosso"
+ }
+]

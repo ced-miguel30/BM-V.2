@@ -1,54 +1,17 @@
-# Python bytecode
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
-
-# Test and quality caches
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
-
-# Local test output
-unittest_*.txt
-tests/browser/_artifacts/
-
-# Exportaciones generadas (Excel/CSV operativos; no versionar)
-exports/
-
-# Local environments
 .venv/
-venv/
-env/
 
-# Deploy local (instancia / config con rutas)
-deploy/config.env
-deploy/local/
-
-# Empaquetado PyInstaller (artefactos locales; no versionar)
-build/
-dist/
-*.egg-info/
-packaging/*.toc
-packaging/warn-*.txt
-
-# Espejo de entrega hotel (vive en D:\work; no versionar si reaparece en el repo)
-1-BM-CODIGO/
-2-BM-DATOS*/
-3-BM-CODIGO-FUENTE/
-4-REGISTRO-EXCEL/
-
-# Añadidos manuales locales (correcciones Excel, no versionar)
-docs/añadidos manual/
-
-# IDE / OS
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
-
-# Writer locks
-*.bm_writer.lock
-datos/
+# Frontend (el build va a bm/static y SÍ se versiona: el servidor no necesita Node)
 web/node_modules/
+
+# Datos del hotel: nunca en git (base SQLite, copias de seguridad, accesos de desarrollo)
+datos/
+*.sqlite
+*.sqlite-*
+
+# Locales
+exports/
+.claude/
+BM_V2_Context_Pack.zip
