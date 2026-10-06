@@ -57,3 +57,6 @@ Fases:
 11. **Pérdidas, personal y fichas** — motivos de merma (error de cocina, caducado, rotura…), comida de personal, informe de pérdidas,
     platos que no salen y revisión automática de fichas que no tienen sentido.
 12. **Automatización y cierre** — tareas diarias automáticas, avisos, cierre de mes guiado, informe mensual, prueba final con datos frescos.
+
+Estado segunda etapa (06/10/2026): fases 7 a 12 completadas y subidas a `v3`.
+Pendiente para la puesta en marcha: carga de datos frescos, pruebas con el personal y revisión de fichas/precios marcados.

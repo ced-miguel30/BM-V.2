@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Navigate, NavLink as RouterLink, Route, Routes, useLocation } from 'react-router-dom';
+import { Navigate, NavLink as RouterLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import {
-  ActionIcon, AppShell, Avatar, Box, Burger, Button, Center, Group, Loader, Menu, Modal, NavLink, Paper,
+  ActionIcon, AppShell, Avatar, Box, Burger, Button, Center, Group, Indicator, Loader, Menu, Modal, NavLink, Paper, Popover, ThemeIcon,
   PasswordInput, ScrollArea, Stack, Text, TextInput, Title, Tooltip, useMantineColorScheme,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
   IconArrowsExchange, IconBook2, IconBuildingWarehouse, IconCalendarExclamation, IconChartBar, IconClipboardCheck,
   IconCloudUpload, IconFileSpreadsheet, IconListDetails, IconLogout, IconMoon, IconPackages, IconPencilPlus,
-  IconReceipt2, IconSun, IconChartDots, IconScale, IconTrendingUp, IconSettings, IconKey, IconTruckDelivery, IconShoppingCart, IconStackPush, IconBread, IconTrashX,
+  IconReceipt2, IconSun, IconChartDots, IconScale, IconTrendingUp, IconSettings, IconKey, IconTruckDelivery, IconShoppingCart, IconStackPush, IconBread, IconTrashX, IconBell, IconCalendarCheck,
 } from '@tabler/icons-react';
 import { api, avisoError, avisoOk } from './api';
 import { Logo } from './comun';
@@ -33,6 +33,8 @@ import { Reponer } from './paginas/Reponer';
 import { Pedidos } from './paginas/Pedidos';
 import { Buffet } from './paginas/Buffet';
 import { Perdidas } from './paginas/Perdidas';
+import { Cierre } from './paginas/Cierre';
+import { Informe } from './paginas/Informe';
 
 export type Usuario = { id: string; nombre: string; rol: string; login: string };
 const GESTION = ['direccion', 'administracion'];
@@ -67,6 +69,7 @@ const MENU = [
     { to: '/productos', label: 'Productos', icon: IconBuildingWarehouse, roles: GESTION, el: <Productos /> },
   ] },
   { seccion: 'Sistema', items: [
+    { to: '/cierre', label: 'Cierre de mes', icon: IconCalendarCheck, roles: GESTION, el: <Cierre /> },
     { to: '/bc', label: 'Importar de BC', icon: IconCloudUpload, roles: GESTION, el: <ImportarBC /> },
     { to: '/configuracion', label: 'Configuración', icon: IconSettings, roles: GESTION, el: <Configuracion /> },
   ] },
@@ -131,6 +134,44 @@ function CambiarClave({ abierto, cerrar }: { abierto: boolean; cerrar: () => voi
   );
 }
 
+type Aviso = { nivel: 'alta' | 'media' | 'info'; titulo: string; detalle: string; ruta: string };
+const COLOR_AVISO = { alta: 'red', media: 'orange', info: 'blue' } as const;
+
+function Avisos() {
+  const [lista, setLista] = useState<Aviso[]>([]);
+  const [abierto, setAbierto] = useState(false);
+  const loc = useLocation();
+  const nav = useNavigate();
+  useEffect(() => {
+    const cargar = () => api<Aviso[]>('/avisos').then(setLista).catch(() => null);
+    cargar();
+    const t = window.setInterval(cargar, 5 * 60 * 1000);
+    return () => window.clearInterval(t);
+  }, [loc.pathname]);
+  const importantes = lista.filter((a) => a.nivel !== 'info').length;
+  return (
+    <Popover opened={abierto} onChange={setAbierto} position="bottom-end" width={360} shadow="lg">
+      <Popover.Target>
+        <Indicator label={importantes} size={16} disabled={!importantes} color="red" offset={4}>
+          <ActionIcon variant="subtle" color="gray.0" onClick={() => setAbierto((x) => !x)} aria-label={`Avisos (${lista.length})`}><IconBell size={20} /></ActionIcon>
+        </Indicator>
+      </Popover.Target>
+      <Popover.Dropdown p={0}>
+        <Text fw={700} p="sm" pb={4}>Pendiente hoy</Text>
+        <ScrollArea.Autosize mah={420}>
+          {!lista.length ? <Text c="dimmed" size="sm" p="sm">Todo al día</Text> : lista.map((a, i) => (
+            <Group key={i} wrap="nowrap" align="flex-start" gap="sm" p="sm" style={{ cursor: 'pointer', borderTop: '1px solid var(--mantine-color-default-border)' }}
+              onClick={() => { setAbierto(false); nav(a.ruta); }}>
+              <ThemeIcon size={10} radius="xl" color={COLOR_AVISO[a.nivel]} mt={6} />
+              <div><Text size="sm" fw={600}>{a.titulo}</Text><Text size="xs" c="dimmed">{a.detalle}</Text></div>
+            </Group>
+          ))}
+        </ScrollArea.Autosize>
+      </Popover.Dropdown>
+    </Popover>
+  );
+}
+
 export function App() {
   const [usuario, setUsuario] = useState<Usuario | null | undefined>(undefined);
   const [abierto, { toggle, close }] = useDisclosure();
@@ -168,6 +209,7 @@ export function App() {
             </Box>
           </Group>
           <Group gap="xs" wrap="nowrap">
+            <Avisos />
             <Tooltip label={colorScheme === 'dark' ? 'Modo claro' : 'Modo oscuro'}>
               <ActionIcon variant="subtle" color="gray.0" onClick={toggleColorScheme} aria-label="Cambiar tema">
                 {colorScheme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
@@ -216,6 +258,7 @@ export function App() {
         <Box maw={1440} mx="auto">
           <Routes>
             {rutas.map((r) => <Route key={r.to} path={r.to} element={r.el} />)}
+            {rutas.some((r) => r.to === '/cierre') && <Route path="/informe" element={<Informe />} />}
             <Route path="*" element={<Navigate to={inicio} replace />} />
           </Routes>
         </Box>

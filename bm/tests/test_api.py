@@ -118,6 +118,19 @@ class TestPerdidas(unittest.TestCase):
         self.assertIn("Sin ingredientes", f["vacia"]["problemas"])
 
 
+class TestCierre(unittest.TestCase):
+    def test_avisos_por_perfil_y_cierre(self):
+        rutas_rest = {a["ruta"] for a in cliente("rest").get("/api/avisos").json()}
+        self.assertFalse(rutas_rest & {"/pedidos", "/tpv", "/bc", "/precios"})  # el personal no ve avisos de gestión
+        self.assertIn("/bc", {a["ruta"] for a in cliente("dir").get("/api/avisos").json()})  # movimientos de BC antiguos
+        c = cliente("dir")
+        e = c.get("/api/cierre?mes=2026-09").json()
+        self.assertEqual(len(e["pasos"]), 7)
+        self.assertFalse(e["listo"])
+        self.assertIn("resumen", c.get("/api/cierre/informe?mes=2026-09").json())
+        self.assertEqual(cliente("rest").get("/api/cierre?mes=2026-09").status_code, 403)
+
+
 class TestCompras(unittest.TestCase):
     def test_documento_adjunto_y_proveedor(self):
         c = cliente("adm")

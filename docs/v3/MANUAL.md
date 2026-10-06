@@ -38,3 +38,17 @@ El personal operativo no ve costes. Lo contado en un recuento pasa a ser el stoc
 4. Albaranes aún sin facturar o precios disparatados se valoran con el último precio fiable (*Provisional*).
 
 En **Consumos**, cada línea muestra de qué albarán sale su coste.
+
+## Novedades de la segunda etapa
+
+- **Campana de avisos** (arriba a la derecha): lo que cada persona tiene pendiente hoy, con enlace directo.
+- **Buffet del día:** BM propone cuánto sacar según los comensales; se anota lo que sobró y se confirma.
+- **Reponer restaurante:** lista de lo que hay que subir del economato (en las cantidades habituales). El traslado se registra en BC.
+- **Pedidos:** propuesta por proveedor según sus días de reparto, lista para enviar por correo; *Comprar por fuera* avisa de lo que se acaba antes del reparto.
+- **Compras y proveedores:** albaranes y facturas de BC con su foto/PDF; ficha de proveedor con correo, teléfono y días de reparto.
+- **Mermas con motivo** y **Pérdidas**: personal, error de cocina, caducados, roturas, lo que sale sin registrar y platos que no salen.
+- **Recetas → A revisar:** fichas cuyos costes no tienen sentido.
+- **Cierre de mes** y **informe mensual** imprimible.
+
+La persona solo hace inventarios físicos (Recuento) y confirma las propuestas. Ubicaciones físicas: Economato y Restaurante y cocina;
+los almacenes de BC (DESAYUNO, SNACK…) son contables y se asignan en Configuración → Ubicaciones.
