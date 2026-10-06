@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Badge, Card, Drawer, Group, Loader, SimpleGrid, Stack, Table, Tabs, Text, TextInput } from '@mantine/core';
+import { Badge, Card, Drawer, Loader, Group, SimpleGrid, Stack, Table, Tabs, Text, TextInput } from '@mantine/core';
 import { LineChart } from '@mantine/charts';
 import { useDebouncedValue } from '@mantine/hooks';
 import { IconSearch } from '@tabler/icons-react';
 import { api, avisoError } from '../api';
 import { BadgeServicio, Cabecera, Vacio } from '../comun';
 import { cantidad, euros, fecha, fechaCorta } from '../formato';
+import { Tabla } from '../Tabla';
 
 type Fila = { codigo: string; nombre: string; unidad: string | null; categoria: string | null; origen: string; stock_bc: number | null; ultima_compra: string | null; ultimo_precio: number | null };
 type Mov = { n_mov: number; fecha: string; tipo: string; tipo_doc: string; documento: string; proveedor: string; almacen: string; cantidad: number; coste_unit: number | null };
@@ -31,28 +32,15 @@ export function Productos() {
       <Cabecera titulo="Productos" subtitulo="Maestro de artículos de Business Central">
         <TextInput leftSection={<IconSearch size={16} />} placeholder="Nombre o código" value={q} onChange={(e) => setQ(e.currentTarget.value)} w={260} />
       </Cabecera>
-      <Card p={0}>
-        {!filas ? <Group justify="center" p="xl"><Loader /></Group> : !filas.length ? <Vacio texto="Sin resultados" /> : (
-          <Table.ScrollContainer minWidth={700}>
-            <Table className="tabla-click">
-              <Table.Thead><Table.Tr><Table.Th>Producto</Table.Th><Table.Th>Unidad</Table.Th><Table.Th className="num">Último precio</Table.Th>
-                <Table.Th>Última compra</Table.Th><Table.Th className="num">Stock BC</Table.Th></Table.Tr></Table.Thead>
-              <Table.Tbody>
-                {filas.map((p) => (
-                  <Table.Tr key={p.codigo} onClick={() => setParams({ codigo: p.codigo })}>
-                    <Table.Td><Group gap={6}><Text size="sm" fw={500}>{p.nombre}</Text>{p.origen === 'bm2' && <Badge size="xs" color="orange" variant="light">Sin código BC</Badge>}</Group>
-                      <Text size="xs" c="dimmed">{p.codigo}</Text></Table.Td>
-                    <Table.Td>{p.unidad}</Table.Td>
-                    <Table.Td className="num" fw={600}>{euros(p.ultimo_precio)}</Table.Td>
-                    <Table.Td>{fecha(p.ultima_compra)}</Table.Td>
-                    <Table.Td className="num">{cantidad(p.stock_bc)}</Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </Table.ScrollContainer>
-        )}
-      </Card>
+      <Tabla datos={filas} clave={(p) => p.codigo} alPulsar={(p) => setParams({ codigo: p.codigo })} exportar="productos" vacio="Sin resultados"
+        columnas={[
+          { clave: 'nombre', titulo: 'Producto', render: (p) => <><Group gap={6}><Text size="sm" fw={500}>{p.nombre}</Text>
+            {p.origen === 'bm2' && <Badge size="xs" color="orange" variant="light">Sin código BC</Badge>}</Group><Text size="xs" c="dimmed">{p.codigo}</Text></> },
+          { clave: 'unidad', titulo: 'Unidad' },
+          { clave: 'ultimo_precio', titulo: 'Último precio', num: true, render: (p) => <Text size="sm" fw={600}>{euros(p.ultimo_precio)}</Text> },
+          { clave: 'ultima_compra', titulo: 'Última compra', render: (p) => fecha(p.ultima_compra) },
+          { clave: 'stock_bc', titulo: 'Stock total', num: true, render: (p) => cantidad(p.stock_bc) },
+        ]} />
 
       <Drawer opened={!!codigo} onClose={() => setParams({})} position="right" size="xl" title={ficha?.nombre ?? 'Producto'}>
         {!ficha ? <Loader /> : (

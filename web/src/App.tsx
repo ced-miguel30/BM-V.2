@@ -2,14 +2,16 @@ import { useEffect, useState } from 'react';
 import { Navigate, NavLink as RouterLink, Route, Routes, useLocation } from 'react-router-dom';
 import {
   ActionIcon, AppShell, Avatar, Box, Burger, Button, Center, Group, Loader, Menu, NavLink, Paper,
-  PasswordInput, Stack, Text, TextInput, Title, Tooltip, useMantineColorScheme,
+  PasswordInput, ScrollArea, Stack, Text, TextInput, Title, Tooltip, useMantineColorScheme,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import {
-  IconBook2, IconBuildingWarehouse, IconChartBar, IconCloudUpload, IconFileSpreadsheet, IconListDetails, IconLogout,
-  IconMoon, IconPencilPlus, IconReceipt2, IconSun,
+  IconArrowsExchange, IconBook2, IconBuildingWarehouse, IconCalendarExclamation, IconChartBar, IconClipboardCheck,
+  IconCloudUpload, IconFileSpreadsheet, IconListDetails, IconLogout, IconMoon, IconPackages, IconPencilPlus,
+  IconReceipt2, IconSun,
 } from '@tabler/icons-react';
 import { api, avisoError } from './api';
+import { Logo } from './comun';
 import { Panel } from './paginas/Panel';
 import { Registrar } from './paginas/Registrar';
 import { Consumos } from './paginas/Consumos';
@@ -18,19 +20,36 @@ import { Recetas } from './paginas/Recetas';
 import { Productos } from './paginas/Productos';
 import { ImportarBC } from './paginas/ImportarBC';
 import { Excel } from './paginas/Excel';
+import { Stock } from './paginas/Stock';
+import { Recuento } from './paginas/Recuento';
+import { Traslados } from './paginas/Traslados';
+import { Caducidades } from './paginas/Caducidades';
 
 export type Usuario = { id: string; nombre: string; rol: string; login: string };
 const GESTION = ['direccion', 'administracion'];
+const TODOS = [...GESTION, 'recepcion', 'restaurante'];
 
 const MENU = [
-  { to: '/', label: 'Panel', icon: IconChartBar, roles: GESTION },
-  { to: '/registrar', label: 'Registrar', icon: IconPencilPlus, roles: [...GESTION, 'recepcion', 'restaurante'] },
-  { to: '/excel', label: 'Importar Excel', icon: IconFileSpreadsheet, roles: [...GESTION, 'recepcion', 'restaurante'] },
-  { to: '/consumos', label: 'Consumos', icon: IconListDetails, roles: GESTION },
-  { to: '/tpv', label: 'Ventas TPV', icon: IconReceipt2, roles: GESTION },
-  { to: '/recetas', label: 'Recetas', icon: IconBook2, roles: GESTION },
-  { to: '/productos', label: 'Productos', icon: IconBuildingWarehouse, roles: GESTION },
-  { to: '/bc', label: 'Importar de BC', icon: IconCloudUpload, roles: GESTION },
+  { seccion: 'Operación', items: [
+    { to: '/registrar', label: 'Registrar consumo', icon: IconPencilPlus, roles: TODOS, el: <Registrar /> },
+    { to: '/excel', label: 'Importar Excel', icon: IconFileSpreadsheet, roles: TODOS, el: <Excel /> },
+    { to: '/recuento', label: 'Recuento', icon: IconClipboardCheck, roles: TODOS, el: <Recuento /> },
+    { to: '/caducidades', label: 'Caducidades', icon: IconCalendarExclamation, roles: TODOS, el: <Caducidades /> },
+    { to: '/traslados', label: 'Traslados', icon: IconArrowsExchange, roles: TODOS, el: <Traslados /> },
+  ] },
+  { seccion: 'Control', items: [
+    { to: '/', label: 'Panel', icon: IconChartBar, roles: GESTION, el: <Panel /> },
+    { to: '/consumos', label: 'Consumos', icon: IconListDetails, roles: GESTION, el: <Consumos /> },
+    { to: '/stock', label: 'Stock', icon: IconPackages, roles: GESTION, el: <Stock /> },
+    { to: '/tpv', label: 'Ventas TPV', icon: IconReceipt2, roles: GESTION, el: <Tpv /> },
+  ] },
+  { seccion: 'Catálogo', items: [
+    { to: '/recetas', label: 'Recetas', icon: IconBook2, roles: GESTION, el: <Recetas /> },
+    { to: '/productos', label: 'Productos', icon: IconBuildingWarehouse, roles: GESTION, el: <Productos /> },
+  ] },
+  { seccion: 'Sistema', items: [
+    { to: '/bc', label: 'Importar de BC', icon: IconCloudUpload, roles: GESTION, el: <ImportarBC /> },
+  ] },
 ];
 
 const ROL: Record<string, string> = {
@@ -49,17 +68,20 @@ function Login({ onLogin }: { onLogin: (u: Usuario) => void }) {
     finally { setCargando(false); }
   };
   return (
-    <Center mih="100vh" p="md" bg="var(--mantine-color-marina-9)">
-      <Paper w={380} maw="100%" p="xl" shadow="xl">
+    <Center mih="100vh" p="md" style={{ background: 'linear-gradient(160deg, var(--mantine-color-marina-9) 0%, #0b1730 100%)' }}>
+      <Paper w={400} maw="100%" p={36} shadow="xl" radius="lg">
         <form onSubmit={entrar}>
-          <Stack>
-            <div>
-              <Text c="dimmed" size="sm" fw={600} tt="uppercase" lts={1}>Royal Marina Suites</Text>
-              <Title order={2}>Control F&amp;B</Title>
-            </div>
-            <TextInput label="Usuario" value={login} onChange={(e) => setLogin(e.currentTarget.value)} autoFocus required autoComplete="username" />
-            <PasswordInput label="Contraseña" value={password} onChange={(e) => setPassword(e.currentTarget.value)} required autoComplete="current-password" />
-            <Button type="submit" loading={cargando} size="md">Entrar</Button>
+          <Stack gap="lg">
+            <Group gap="sm">
+              <Logo size={46} />
+              <div>
+                <Text c="dimmed" size="xs" fw={700} tt="uppercase" lts={1.2}>Royal Marina Suites</Text>
+                <Title order={3}>Control F&amp;B e inventario</Title>
+              </div>
+            </Group>
+            <TextInput label="Usuario" value={login} onChange={(e) => setLogin(e.currentTarget.value)} autoFocus required autoComplete="username" size="md" />
+            <PasswordInput label="Contraseña" value={password} onChange={(e) => setPassword(e.currentTarget.value)} required autoComplete="current-password" size="md" />
+            <Button type="submit" loading={cargando} size="md" fullWidth>Entrar</Button>
           </Stack>
         </form>
       </Paper>
@@ -84,19 +106,22 @@ export function App() {
   if (usuario === undefined) return <Center mih="100vh"><Loader /></Center>;
   if (!usuario) return <Login onLogin={setUsuario} />;
 
-  const menu = MENU.filter((m) => m.roles.includes(usuario.rol));
-  const gestion = GESTION.includes(usuario.rol);
+  const menu = MENU.map((s) => ({ ...s, items: s.items.filter((i) => i.roles.includes(usuario.rol)) })).filter((s) => s.items.length);
+  const rutas = menu.flatMap((s) => s.items);
+  const inicio = rutas.some((r) => r.to === '/') ? '/' : '/registrar';
   const salir = async () => { await api('/logout', { method: 'POST' }).catch(() => null); setUsuario(null); };
+  const activo = (to: string) => (to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(to));
 
   return (
-    <AppShell header={{ height: 60 }} navbar={{ width: 240, breakpoint: 'sm', collapsed: { mobile: !abierto } }} padding="lg">
+    <AppShell header={{ height: 60 }} navbar={{ width: 250, breakpoint: 'sm', collapsed: { mobile: !abierto } }} padding="lg">
       <AppShell.Header bg="var(--mantine-color-marina-9)" c="white" withBorder={false}>
         <Group h="100%" px="md" justify="space-between" wrap="nowrap">
           <Group gap="sm" wrap="nowrap">
-            <Burger opened={abierto} onClick={toggle} hiddenFrom="sm" size="sm" color="white" />
-            <Box>
-              <Text fw={700} lh={1.1}>Royal Marina</Text>
-              <Text size="xs" c="marina.2" lh={1.1}>Control F&amp;B</Text>
+            <Burger opened={abierto} onClick={toggle} hiddenFrom="sm" size="sm" color="white" aria-label="Menú" />
+            <Logo size={34} claro />
+            <Box visibleFrom="xs">
+              <Text fw={700} lh={1.15}>Royal Marina</Text>
+              <Text size="xs" c="marina.2" lh={1.15}>Control F&amp;B e inventario</Text>
             </Box>
           </Group>
           <Group gap="xs" wrap="nowrap">
@@ -108,7 +133,7 @@ export function App() {
             <Menu position="bottom-end" shadow="md">
               <Menu.Target>
                 <Group gap={8} style={{ cursor: 'pointer' }} wrap="nowrap">
-                  <Avatar size={32} radius="xl" color="marina.2" variant="filled">{usuario.nombre.slice(0, 1)}</Avatar>
+                  <Avatar size={32} radius="xl" color="cyan" variant="filled">{usuario.nombre.slice(0, 1)}</Avatar>
                   <Box visibleFrom="xs">
                     <Text size="sm" fw={600} lh={1.1}>{usuario.nombre}</Text>
                     <Text size="xs" c="marina.2" lh={1.1}>{ROL[usuario.rol] ?? usuario.rol}</Text>
@@ -123,30 +148,30 @@ export function App() {
         </Group>
       </AppShell.Header>
 
-      <AppShell.Navbar p="sm">
-        <Stack gap={4}>
-          {menu.map((m) => (
-            <NavLink key={m.to} component={RouterLink} to={m.to} end={m.to === '/'} label={m.label}
-              leftSection={<m.icon size={20} stroke={1.6} />} active={m.to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(m.to)}
-              style={{ borderRadius: 'var(--mantine-radius-md)' }} fw={500} />
-          ))}
-        </Stack>
+      <AppShell.Navbar>
+        <ScrollArea p="sm">
+          <Stack gap="md">
+            {menu.map((s) => (
+              <div key={s.seccion}>
+                <Text size="xs" fw={700} c="dimmed" tt="uppercase" lts={0.8} px="sm" mb={4}>{s.seccion}</Text>
+                <Stack gap={2}>
+                  {s.items.map((m) => (
+                    <NavLink key={m.to} component={RouterLink} to={m.to} end={m.to === '/'} label={m.label}
+                      leftSection={<m.icon size={19} stroke={1.6} />} active={activo(m.to)} fw={500}
+                      style={{ borderRadius: 'var(--mantine-radius-md)' }} />
+                  ))}
+                </Stack>
+              </div>
+            ))}
+          </Stack>
+        </ScrollArea>
       </AppShell.Navbar>
 
       <AppShell.Main>
-        <Box maw={1400} mx="auto">
+        <Box maw={1440} mx="auto">
           <Routes>
-            {gestion && <Route path="/" element={<Panel />} />}
-            <Route path="/registrar" element={<Registrar />} />
-            <Route path="/excel" element={<Excel />} />
-            {gestion && <>
-              <Route path="/consumos" element={<Consumos />} />
-              <Route path="/tpv" element={<Tpv />} />
-              <Route path="/recetas" element={<Recetas />} />
-              <Route path="/productos" element={<Productos />} />
-              <Route path="/bc" element={<ImportarBC />} />
-            </>}
-            <Route path="*" element={<Navigate to={gestion ? '/' : '/registrar'} replace />} />
+            {rutas.map((r) => <Route key={r.to} path={r.to} element={r.el} />)}
+            <Route path="*" element={<Navigate to={inicio} replace />} />
           </Routes>
         </Box>
       </AppShell.Main>

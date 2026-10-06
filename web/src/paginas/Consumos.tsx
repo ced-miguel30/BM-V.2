@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import {
-  Badge, Button, Card, Drawer, Group, Loader, Modal, Select, Stack, Table, Text, Textarea, Tooltip,
+  Badge, Button, Drawer, Group, Loader, Modal, Select, Stack, Table, Text, Textarea, Tooltip,
 } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { IconBan } from '@tabler/icons-react';
 import { api, avisoError, avisoOk } from '../api';
-import { BadgeEstado, BadgeServicio, Cabecera, ORIGEN, Vacio } from '../comun';
-import { SERVICIOS, cantidad, euros, fecha } from '../formato';
+import { BadgeEstado, BadgeServicio, Cabecera, ORIGEN } from '../comun';
+import { cantidad, euros, fecha } from '../formato';
+import { useCentros } from '../centros';
+import { Tabla } from '../Tabla';
 
 type Fila = {
   id: number; fecha: string; servicio: string | null; tipo: string; origen: string; comensales: number | null;
@@ -22,6 +24,7 @@ export function Consumos() {
   const [serv, setServ] = useState<string | null>(null);
   const [tipo, setTipo] = useState<string | null>(null);
   const [filas, setFilas] = useState<Fila[] | null>(null);
+  const centros = useCentros();
   const [abierto, setAbierto] = useState<number | null>(null);
   const [det, setDet] = useState<Detalle | null>(null);
   const [anular, setAnular] = useState(false);
@@ -55,36 +58,22 @@ export function Consumos() {
       <Cabecera titulo="Consumos" subtitulo={filas ? `${filas.length} registros · ${euros(total)}` : 'Cargando…'}>
         <DatePickerInput type="range" value={rango} onChange={(x) => setRango([x[0] && String(x[0]).slice(0, 10), x[1] && String(x[1]).slice(0, 10)])}
           valueFormat="DD/MM/YY" w={220} aria-label="Fechas" />
-        <Select placeholder="Servicio" data={SERVICIOS.map((s) => ({ value: s.value, label: s.label }))} value={serv} onChange={setServ} clearable w={150} />
+        <Select placeholder="Servicio" data={centros.map((c) => ({ value: c.codigo, label: c.nombre }))} value={serv} onChange={setServ} clearable w={170} />
         <Select placeholder="Tipo" data={[{ value: 'consumo', label: 'Consumo' }, { value: 'merma', label: 'Merma' }]} value={tipo} onChange={setTipo} clearable w={130} />
       </Cabecera>
-      <Card p={0}>
-        {!filas ? <Group justify="center" p="xl"><Loader /></Group> : !filas.length ? <Vacio texto="No hay registros en estas fechas" /> : (
-          <Table.ScrollContainer minWidth={760}>
-            <Table className="tabla-click" stickyHeader>
-              <Table.Thead>
-                <Table.Tr><Table.Th>Fecha</Table.Th><Table.Th>Servicio</Table.Th><Table.Th>Origen</Table.Th><Table.Th>Detalle</Table.Th>
-                  <Table.Th className="num">Líneas</Table.Th><Table.Th className="num">Coste</Table.Th><Table.Th>Fiabilidad</Table.Th></Table.Tr>
-              </Table.Thead>
-              <Table.Tbody>
-                {filas.map((f) => (
-                  <Table.Tr key={f.id} onClick={() => setAbierto(f.id)} opacity={f.anulado ? 0.45 : 1}>
-                    <Table.Td>{fecha(f.fecha)}</Table.Td>
-                    <Table.Td><Group gap={6}><BadgeServicio valor={f.servicio} />{f.tipo === 'merma' && <Badge color="red" variant="light">Merma</Badge>}</Group></Table.Td>
-                    <Table.Td><Text size="sm">{ORIGEN[f.origen] ?? f.origen}</Text></Table.Td>
-                    <Table.Td maw={320}>
-                      <Text size="sm" truncate>{f.anulado ? 'ANULADO · ' : ''}{f.comensales ? `${f.comensales} comensales · ` : ''}{f.nota ?? ''}</Text>
-                    </Table.Td>
-                    <Table.Td className="num">{f.n_lineas}</Table.Td>
-                    <Table.Td className="num" fw={600}>{euros(f.coste)}</Table.Td>
-                    <Table.Td><BadgeEstado nivel={f.peor} /></Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </Table.ScrollContainer>
-        )}
-      </Card>
+      <Tabla datos={filas} clave={(f) => f.id} alPulsar={(f) => setAbierto(f.id)} atenuar={(f) => !!f.anulado} buscar exportar="consumos"
+        vacio="No hay registros en estas fechas" anchoMin={760}
+        columnas={[
+          { clave: 'fecha', titulo: 'Fecha', render: (f) => fecha(f.fecha) },
+          { clave: 'servicio', titulo: 'Centro', valor: (f) => centros.find((c) => c.codigo === f.servicio)?.nombre ?? f.servicio,
+            render: (f) => <Group gap={6}><BadgeServicio valor={f.servicio} />{f.tipo === 'merma' && <Badge color="red" variant="light">Merma</Badge>}</Group> },
+          { clave: 'origen', titulo: 'Origen', valor: (f) => ORIGEN[f.origen] ?? f.origen },
+          { clave: 'nota', titulo: 'Detalle', valor: (f) => `${f.anulado ? 'ANULADO · ' : ''}${f.comensales ? `${f.comensales} comensales · ` : ''}${f.nota ?? ''}`,
+            render: (f) => <Text size="sm" truncate maw={320}>{f.anulado ? 'ANULADO · ' : ''}{f.comensales ? `${f.comensales} comensales · ` : ''}{f.nota ?? ''}</Text> },
+          { clave: 'n_lineas', titulo: 'Líneas', num: true },
+          { clave: 'coste', titulo: 'Coste', num: true, render: (f) => <Text size="sm" fw={600}>{euros(f.coste)}</Text> },
+          { clave: 'peor', titulo: 'Fiabilidad', render: (f) => <BadgeEstado nivel={f.peor} /> },
+        ]} />
 
       <Drawer opened={abierto != null} onClose={() => setAbierto(null)} position="right" size="xl"
         title={det ? <Group gap="sm"><Text fw={700}>{fecha(det.fecha)}</Text><BadgeServicio valor={det.servicio} /></Group> : 'Detalle'}>

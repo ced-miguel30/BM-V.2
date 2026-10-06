@@ -6,7 +6,8 @@ import { DateInput } from '@mantine/dates';
 import { IconDeviceFloppy, IconPlus, IconTrash } from '@tabler/icons-react';
 import { api, avisoError, avisoOk } from '../api';
 import { Cabecera, Vacio } from '../comun';
-import { SERVICIOS, cantidad, hoy } from '../formato';
+import { cantidad, hoy } from '../formato';
+import { useCentros, useUbicaciones } from '../centros';
 
 type Catalogo = {
   recetas: { id: string; nombre: string; servicio: string | null }[];
@@ -26,6 +27,11 @@ export function Registrar() {
   const [cant, setCant] = useState<number | string>(1);
   const [guardando, setGuardando] = useState(false);
   const cantRef = useRef<HTMLInputElement>(null);
+  const centros = useCentros();
+  const ubicaciones = useUbicaciones();
+  const [ubicacion, setUbicacion] = useState<string | null>(null);
+  const centro = centros.find((c) => c.codigo === servicio);
+  const ubicacionFinal = ubicacion ?? centro?.ubicacion ?? null;
 
   useEffect(() => { api<Catalogo>('/catalogo').then(setCat).catch(avisoError); }, []);
 
@@ -63,6 +69,7 @@ export function Registrar() {
       await api('/consumos', {
         body: {
           fecha, servicio, tipo, nota: nota || null,
+          ubicacion: ubicacion && ubicacion !== centro?.ubicacion ? ubicacion : null,
           comensales: servicio === 'desayuno' && tipo === 'consumo' && comensales !== '' ? Number(comensales) : null,
           items: items.map((x) => (x.clave.startsWith('r:')
             ? { receta_id: x.clave.slice(2), cantidad: x.cantidad } : { producto: x.clave.slice(2), cantidad: x.cantidad })),
@@ -90,16 +97,21 @@ export function Registrar() {
               <div>
                 <Text size="sm" fw={500} mb={4}>Servicio</Text>
                 <SimpleGrid cols={2} spacing={6}>
-                  {SERVICIOS.map((s) => (
-                    <Button key={s.value} variant={servicio === s.value ? 'filled' : 'default'} color={s.color} onClick={() => setServicio(s.value)}>
-                      {s.label}
+                  {centros.filter((c) => c.tipo === 'restauracion' && c.activo).map((c) => (
+                    <Button key={c.codigo} variant={servicio === c.codigo ? 'filled' : 'default'} color={c.color} onClick={() => { setServicio(c.codigo); setUbicacion(null); }}>
+                      {c.nombre}
                     </Button>
                   ))}
                 </SimpleGrid>
+                <Select mt={6} placeholder="…o un departamento" clearable value={centro?.tipo === 'departamento' ? servicio : null}
+                  data={centros.filter((c) => c.tipo === 'departamento' && c.activo).map((c) => ({ value: c.codigo, label: c.nombre }))}
+                  onChange={(x) => { setServicio(x ?? 'desayuno'); setUbicacion(null); }} aria-label="Departamento" />
               </div>
               {servicio === 'desayuno' && tipo === 'consumo' && (
                 <NumberInput label="Comensales" value={comensales} onChange={setComensales} min={0} allowDecimal={false} placeholder="Nº de huéspedes" />
               )}
+              <Select label="Sale del almacén" description="El stock se descuenta de aquí" searchable value={ubicacionFinal}
+                data={ubicaciones.map((u) => ({ value: u.codigo, label: u.nombre }))} onChange={setUbicacion} />
               <Textarea label={tipo === 'merma' ? 'Motivo de la merma' : 'Nota'} value={nota} onChange={(e) => setNota(e.currentTarget.value)}
                 autosize minRows={2} required={tipo === 'merma'} />
             </Stack>

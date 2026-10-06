@@ -8,14 +8,6 @@ export const fecha = (iso: string | null | undefined) =>
 export const fechaCorta = (iso: string) => new Date(`${iso}T00:00:00`).toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
 export const hoy = () => new Date().toISOString().slice(0, 10);
 
-export const SERVICIOS = [
-  { value: 'desayuno', label: 'Desayuno', color: 'orange' },
-  { value: 'comida', label: 'Comida', color: 'teal' },
-  { value: 'cena', label: 'Cena', color: 'indigo' },
-  { value: 'bebidas', label: 'Bebidas', color: 'grape' },
-] as const;
-export const servicio = (v: string | null | undefined) => SERVICIOS.find((s) => s.value === v);
-
 export const ESTADOS: Record<string, { label: string; color: string; ayuda: string }> = {
   fifo: { label: 'Real', color: 'teal', ayuda: 'Coste sacado de albaranes facturados (FIFO)' },
   provisional: { label: 'Provisional', color: 'yellow', ayuda: 'Algún albarán aún sin facturar: último precio facturado' },

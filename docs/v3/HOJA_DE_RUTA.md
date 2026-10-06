@@ -30,4 +30,6 @@ nunca se registra lo mismo dos veces. No se instala en el hotel hasta completar 
 
 - [x] Base: BC → SQLite, FIFO con traza, TPV sin OCR, Excel de desayuno, web inicial (rama `v3`).
 - [x] Fase 1: modelo de inventario (centros, ubicaciones, libro de stock anclado, recuentos, traslados, caducidades)
-- [ ] Fase 2 … 6
+- [x] Fase 2: inventario (stock por ubicación, recuento a ciegas en móvil, traslados, caducidades)
+- [x] Fase 3: sistema de diseño (tabla común con orden/búsqueda/paginación/exportar, logo, Inter, menú por secciones)
+- [ ] Fase 4 … 6

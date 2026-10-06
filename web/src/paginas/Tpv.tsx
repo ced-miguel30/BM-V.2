@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Alert, Badge, Button, Card, FileButton, Group, Loader, Modal, NumberInput, SegmentedControl, Select, Stack, Table, Text, TextInput,
+  Alert, Badge, Button, FileButton, Group, Modal, NumberInput, SegmentedControl, Select, Stack, Text,
 } from '@mantine/core';
-import { IconFileTypePdf, IconSearch } from '@tabler/icons-react';
+import { IconFileTypePdf } from '@tabler/icons-react';
 import { api, avisoError, avisoOk } from '../api';
-import { BadgeServicio, Cabecera, Vacio } from '../comun';
-import { SERVICIOS, euros } from '../formato';
+import { BadgeServicio, Cabecera } from '../comun';
+import { euros } from '../formato';
+import { useCentros } from '../centros';
+import { Tabla } from '../Tabla';
 
 type Articulo = {
   codigo: string; nombre: string; categoria: string | null; servicio: string; receta_id: string | null; producto: string | null;
@@ -20,11 +22,11 @@ export function Tpv() {
   const [arts, setArts] = useState<Articulo[] | null>(null);
   const [cat, setCat] = useState<Catalogo | null>(null);
   const [filtro, setFiltro] = useState('pendiente');
-  const [q, setQ] = useState('');
   const [subiendo, setSubiendo] = useState(false);
   const [ed, setEd] = useState<Articulo | null>(null);
   const [modo, setModo] = useState('receta');
   const [guardando, setGuardando] = useState(false);
+  const servicios = useCentros().filter((c) => c.tipo === 'restauracion').map((c) => ({ value: c.codigo, label: c.nombre }));
 
   const cargar = () => api<Articulo[]>('/tpv/articulos').then(setArts).catch(avisoError);
   useEffect(() => { cargar(); api<Catalogo>('/catalogo').then(setCat).catch(avisoError); }, []);
@@ -61,8 +63,7 @@ export function Tpv() {
   };
 
   const cuenta = useMemo(() => (arts ?? []).reduce<Record<string, number>>((acc, a) => ({ ...acc, [estadoDe(a)]: (acc[estadoDe(a)] ?? 0) + 1 }), {}), [arts]);
-  const visibles = (arts ?? []).filter((a) => (filtro === 'todos' || estadoDe(a) === filtro)
-    && (!q || `${a.nombre} ${a.codigo} ${a.receta ?? ''} ${a.producto_nombre ?? ''}`.toLowerCase().includes(q.toLowerCase())));
+  const visibles = (arts ?? []).filter((a) => filtro === 'todos' || estadoDe(a) === filtro);
   const pendienteImporte = (arts ?? []).filter((a) => estadoDe(a) === 'pendiente').reduce((s, a) => s + a.importe, 0);
 
   return (
@@ -77,39 +78,23 @@ export function Tpv() {
           Mientras no se asignen no descuentan consumo ni cuentan en el food cost. Empieza por los de más importe.
         </Alert>
       )}
-      <Card p={0}>
-        <Group p="md" justify="space-between">
-          <SegmentedControl value={filtro} onChange={setFiltro} data={[
-            { value: 'pendiente', label: `Pendientes (${cuenta.pendiente ?? 0})` }, { value: 'asignado', label: `Asignados (${cuenta.asignado ?? 0})` },
-            { value: 'ignorado', label: `Ignorados (${cuenta.ignorado ?? 0})` }, { value: 'todos', label: 'Todos' },
-          ]} />
-          <TextInput leftSection={<IconSearch size={16} />} placeholder="Buscar" value={q} onChange={(e) => setQ(e.currentTarget.value)} w={240} />
-        </Group>
-        {!arts ? <Group justify="center" p="xl"><Loader /></Group> : !visibles.length ? <Vacio texto="Nada en esta lista" /> : (
-          <Table.ScrollContainer minWidth={760}>
-            <Table className="tabla-click">
-              <Table.Thead><Table.Tr><Table.Th>Artículo TPV</Table.Th><Table.Th>Servicio</Table.Th><Table.Th className="num">Vendido</Table.Th>
-                <Table.Th className="num">PVP</Table.Th><Table.Th>Descuenta</Table.Th></Table.Tr></Table.Thead>
-              <Table.Tbody>
-                {visibles.map((a) => (
-                  <Table.Tr key={a.codigo} onClick={() => abrir(a)}>
-                    <Table.Td><Text size="sm" fw={500}>{a.nombre}</Text><Text size="xs" c="dimmed">{a.codigo} · {a.dias} días</Text></Table.Td>
-                    <Table.Td><BadgeServicio valor={a.servicio} /></Table.Td>
-                    <Table.Td className="num" fw={600}>{euros(a.importe)}</Table.Td>
-                    <Table.Td className="num">{euros(a.precio)}</Table.Td>
-                    <Table.Td>
-                      {a.ignorar ? <Badge color="gray" variant="light">No descuenta</Badge>
-                        : a.receta ? <Text size="sm">Receta: {a.receta}</Text>
-                        : a.producto_nombre ? <Text size="sm">{a.factor !== 1 ? `${a.factor} × ` : ''}{a.producto_nombre}</Text>
-                        : <Badge color="orange" variant="light">Sin asignar</Badge>}
-                    </Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </Table.ScrollContainer>
-        )}
-      </Card>
+      <Tabla datos={arts ? visibles : null} clave={(a) => a.codigo} alPulsar={abrir} buscar exportar="articulos_tpv" vacio="Nada en esta lista"
+        orden={{ clave: 'importe', desc: true }} anchoMin={760}
+        filtros={<SegmentedControl value={filtro} onChange={setFiltro} data={[
+          { value: 'pendiente', label: `Pendientes (${cuenta.pendiente ?? 0})` }, { value: 'asignado', label: `Asignados (${cuenta.asignado ?? 0})` },
+          { value: 'ignorado', label: `Ignorados (${cuenta.ignorado ?? 0})` }, { value: 'todos', label: 'Todos' },
+        ]} />}
+        columnas={[
+          { clave: 'nombre', titulo: 'Artículo TPV', render: (a) => <><Text size="sm" fw={500}>{a.nombre}</Text><Text size="xs" c="dimmed">{a.codigo} · {a.dias} días</Text></> },
+          { clave: 'servicio', titulo: 'Servicio', render: (a) => <BadgeServicio valor={a.servicio} /> },
+          { clave: 'importe', titulo: 'Vendido', num: true, render: (a) => <Text size="sm" fw={600}>{euros(a.importe)}</Text> },
+          { clave: 'precio', titulo: 'PVP', num: true, render: (a) => euros(a.precio) },
+          { clave: 'descuenta', titulo: 'Descuenta', valor: (a) => (a.ignorar ? 'No descuenta' : a.receta ?? a.producto_nombre ?? 'Sin asignar'),
+            render: (a) => a.ignorar ? <Badge color="gray" variant="light">No descuenta</Badge>
+              : a.receta ? <Text size="sm">Receta: {a.receta}</Text>
+              : a.producto_nombre ? <Text size="sm">{a.factor !== 1 ? `${a.factor} × ` : ''}{a.producto_nombre}</Text>
+              : <Badge color="orange" variant="light">Sin asignar</Badge> },
+        ]} />
 
       <Modal opened={!!ed} onClose={() => setEd(null)} title={ed?.nombre} size="lg" centered>
         {ed && (
@@ -134,7 +119,7 @@ export function Tpv() {
             )}
             {modo === 'ignorar' && <Text size="sm">Para servicios sin coste de almacén (p. ej. cubiertos, suplementos o cosas ya contadas en otra receta).</Text>}
             <Group grow>
-              <Select label="Servicio" data={SERVICIOS.map((s) => ({ value: s.value, label: s.label }))} value={ed.servicio}
+              <Select label="Servicio" data={servicios} value={ed.servicio}
                 onChange={(x) => x && setEd({ ...ed, servicio: x })} />
               <NumberInput label="PVP unitario" description="Para pasar de importe a unidades" value={ed.precio ?? ''} min={0} decimalScale={2} suffix=" €"
                 onChange={(x) => setEd({ ...ed, precio: Number(x) || null })} />

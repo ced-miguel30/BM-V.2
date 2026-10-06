@@ -9,7 +9,8 @@ import {
 } from '@tabler/icons-react';
 import { api, avisoError } from '../api';
 import { Cabecera, Vacio } from '../comun';
-import { SERVICIOS, cantidad, euros, fecha, fechaCorta } from '../formato';
+import { cantidad, euros, fecha, fechaCorta } from '../formato';
+import { useCentros } from '../centros';
 
 type Resumen = Record<string, number | null>;
 type Datos = {
@@ -58,6 +59,7 @@ export function Panel() {
   const [mes, setMes] = useState<string>(new Date().toISOString().slice(0, 7));
   const [d, setD] = useState<Datos | null>(null);
   const nav = useNavigate();
+  const centros = useCentros();
 
   useEffect(() => {
     setD(null);
@@ -69,7 +71,8 @@ export function Panel() {
     acc[x.fecha][x.servicio] = x.coste;
     return acc;
   }, {})) : [];
-  const reparto = d ? SERVICIOS.map((s) => ({ name: s.label, value: (d.actual[s.value] as number) ?? 0, color: `${s.color}.6` })).filter((x) => x.value > 0) : [];
+  const reparto = d ? centros.map((c) => ({ name: c.nombre, value: (d.actual[c.codigo] as number) ?? 0, color: `${c.color}.6` })).filter((x) => x.value > 0) : [];
+  const conSerie = centros.filter((c) => d?.serie.some((x) => x.servicio === c.codigo));
   const estados = d?.alertas.lineas_por_estado ?? {};
   const totalLineas = Object.values(estados).reduce((a, b) => a + b, 0);
   const dudosas = (estados.sin_stock ?? 0) + (estados.sin_precio ?? 0);
@@ -100,7 +103,7 @@ export function Panel() {
                 <Text fw={600} mb="md">Coste diario por servicio</Text>
                 {porDia.length ? (
                   <BarChart h={300} data={porDia} dataKey="fecha" type="stacked" valueFormatter={(x) => euros(x)}
-                    series={SERVICIOS.map((s) => ({ name: s.value, label: s.label, color: `${s.color}.6` }))}
+                    series={conSerie.map((c) => ({ name: c.codigo, label: c.nombre, color: `${c.color}.6` }))}
                     withLegend legendProps={{ verticalAlign: 'bottom' }} gridAxis="y" tickLine="none" />
                 ) : <Vacio texto="Sin consumos registrados en este mes" />}
               </Card>

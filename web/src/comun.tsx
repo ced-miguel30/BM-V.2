@@ -1,7 +1,8 @@
 import { Badge, Group, Stack, Text, ThemeIcon, Title, Tooltip } from '@mantine/core';
 import { IconInbox } from '@tabler/icons-react';
 import type { ReactNode } from 'react';
-import { ESTADOS, ESTADO_POR_NIVEL, servicio } from './formato';
+import { ESTADOS, ESTADO_POR_NIVEL } from './formato';
+import { useCentros } from './centros';
 
 export function Cabecera({ titulo, subtitulo, children }: { titulo: string; subtitulo?: ReactNode; children?: ReactNode }) {
   return (
@@ -26,8 +27,22 @@ export function Vacio({ texto, children }: { texto: string; children?: ReactNode
 }
 
 export function BadgeServicio({ valor }: { valor: string | null }) {
-  const s = servicio(valor);
-  return s ? <Badge variant="light" color={s.color}>{s.label}</Badge> : <Text c="dimmed" size="sm">—</Text>;
+  const c = useCentros().find((x) => x.codigo === valor);
+  if (!valor) return <Text c="dimmed" size="sm">—</Text>;
+  return <Badge variant="light" color={c?.color ?? 'gray'}>{c?.nombre ?? valor}</Badge>;
+}
+
+/** Monograma Royal Marina: RM sobre una ola. */
+export function Logo({ size = 34, claro = false }: { size?: number; claro?: boolean }) {
+  const fondo = claro ? '#ffffff' : 'var(--mantine-color-marina-9)';
+  const tinta = claro ? 'var(--mantine-color-marina-9)' : '#ffffff';
+  return (
+    <svg width={size} height={size} viewBox="0 0 40 40" role="img" aria-label="Royal Marina">
+      <rect width="40" height="40" rx="10" fill={fondo} />
+      <text x="20" y="22" textAnchor="middle" fontFamily="Inter Variable, Inter, sans-serif" fontWeight="800" fontSize="15" fill={tinta} letterSpacing="-0.5">RM</text>
+      <path d="M8 29c3-2.6 5.3-2.6 8 0s5 2.6 8 0 5.3-2.6 8 0" fill="none" stroke="var(--mantine-color-cyan-4)" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  );
 }
 
 export function BadgeEstado({ estado, nivel }: { estado?: string | null; nivel?: number | null }) {

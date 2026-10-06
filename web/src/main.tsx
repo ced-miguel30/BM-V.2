@@ -2,6 +2,7 @@ import '@mantine/core/styles.css';
 import '@mantine/charts/styles.css';
 import '@mantine/dates/styles.css';
 import '@mantine/notifications/styles.css';
+import '@fontsource-variable/inter';
 import './app.css';
 
 import 'dayjs/locale/es';
@@ -22,8 +23,8 @@ const theme = createTheme({
   primaryColor: 'marina',
   primaryShade: { light: 7, dark: 5 },
   colors: { marina },
-  fontFamily: 'Inter, "Segoe UI", system-ui, -apple-system, Roboto, sans-serif',
-  headings: { fontFamily: 'Inter, "Segoe UI", system-ui, sans-serif', fontWeight: '650' },
+  fontFamily: '"Inter Variable", Inter, "Segoe UI", system-ui, sans-serif',
+  headings: { fontFamily: '"Inter Variable", Inter, "Segoe UI", system-ui, sans-serif', fontWeight: '700' },
   defaultRadius: 'md',
   components: {
     Card: { defaultProps: { withBorder: true, radius: 'lg', padding: 'lg' } },

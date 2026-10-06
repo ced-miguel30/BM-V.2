@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import {
-  ActionIcon, Badge, Button, Card, Drawer, Group, Loader, NumberInput, Select, Stack, Switch, Table, Text, TextInput, Tooltip,
+  ActionIcon, Badge, Button, Drawer, Group, NumberInput, Select, Stack, Switch, Table, Text, TextInput, Tooltip,
 } from '@mantine/core';
 import { IconAlertTriangle, IconPlus, IconSearch, IconTrash } from '@tabler/icons-react';
 import { api, avisoError, avisoOk } from '../api';
-import { BadgeServicio, Cabecera, Vacio } from '../comun';
-import { SERVICIOS, cantidad, euros } from '../formato';
+import { BadgeServicio, Cabecera } from '../comun';
+import { cantidad, euros } from '../formato';
+import { useCentros } from '../centros';
+import { Tabla } from '../Tabla';
 
 type Resumen = { id: string; nombre: string; servicio: string | null; porciones: number; activo: number; coste_racion: number; completo: boolean; n_ingredientes: number };
 type Linea = { producto: string; nombre?: string; unidad?: string | null; cantidad: number; precio?: number | null; coste?: number | null };
@@ -20,6 +22,7 @@ export function Recetas() {
   const [q, setQ] = useState('');
   const [ed, setEd] = useState<Receta | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const servicios = useCentros().filter((c) => c.tipo === 'restauracion').map((c) => ({ value: c.codigo, label: c.nombre }));
 
   const cargar = () => api<Resumen[]>('/recetas').then(setLista).catch(avisoError);
   useEffect(() => { cargar(); api<{ productos: Producto[] }>('/catalogo').then((c) => setProductos(c.productos)).catch(avisoError); }, []);
@@ -48,38 +51,26 @@ export function Recetas() {
         <TextInput leftSection={<IconSearch size={16} />} placeholder="Buscar receta" value={q} onChange={(e) => setQ(e.currentTarget.value)} w={220} />
         <Button leftSection={<IconPlus size={16} />} onClick={() => setEd({ ...NUEVA, lineas: [] })}>Nueva receta</Button>
       </Cabecera>
-      <Card p={0}>
-        {!lista ? <Group justify="center" p="xl"><Loader /></Group> : !visibles.length ? <Vacio texto="Sin recetas" /> : (
-          <Table.ScrollContainer minWidth={640}>
-            <Table className="tabla-click">
-              <Table.Thead><Table.Tr><Table.Th>Receta</Table.Th><Table.Th>Servicio</Table.Th><Table.Th className="num">Ingredientes</Table.Th>
-                <Table.Th className="num">Coste / ración</Table.Th></Table.Tr></Table.Thead>
-              <Table.Tbody>
-                {visibles.map((r) => (
-                  <Table.Tr key={r.id} onClick={() => abrir(r.id)} opacity={r.activo ? 1 : 0.5}>
-                    <Table.Td><Group gap={6}><Text size="sm" fw={500}>{r.nombre}</Text>{!r.activo && <Badge size="xs" color="gray">Inactiva</Badge>}</Group></Table.Td>
-                    <Table.Td><BadgeServicio valor={r.servicio} /></Table.Td>
-                    <Table.Td className="num">{r.n_ingredientes}</Table.Td>
-                    <Table.Td className="num" fw={600}>
-                      <Group gap={4} justify="flex-end" wrap="nowrap">
-                        {!r.completo && <Tooltip label="Algún ingrediente sin precio en BC"><IconAlertTriangle size={14} color="orange" /></Tooltip>}
-                        {euros(r.coste_racion)}
-                      </Group>
-                    </Table.Td>
-                  </Table.Tr>
-                ))}
-              </Table.Tbody>
-            </Table>
-          </Table.ScrollContainer>
-        )}
-      </Card>
+      <Tabla datos={lista ? visibles : null} clave={(r) => r.id} alPulsar={(r) => abrir(r.id)} atenuar={(r) => !r.activo} exportar="recetas"
+        orden={{ clave: 'nombre' }} vacio="Sin recetas"
+        columnas={[
+          { clave: 'nombre', titulo: 'Receta', render: (r) => <Group gap={6}><Text size="sm" fw={500}>{r.nombre}</Text>{!r.activo && <Badge size="xs" color="gray">Inactiva</Badge>}</Group> },
+          { clave: 'servicio', titulo: 'Servicio', render: (r) => <BadgeServicio valor={r.servicio} /> },
+          { clave: 'porciones', titulo: 'Raciones', num: true },
+          { clave: 'n_ingredientes', titulo: 'Ingredientes', num: true },
+          { clave: 'coste_racion', titulo: 'Coste / ración', num: true, render: (r) => (
+            <Group gap={4} justify="flex-end" wrap="nowrap">
+              {!r.completo && <Tooltip label="Algún ingrediente sin precio en BC"><IconAlertTriangle size={14} color="orange" /></Tooltip>}
+              <Text size="sm" fw={600}>{euros(r.coste_racion)}</Text>
+            </Group>) },
+        ]} />
 
       <Drawer opened={!!ed} onClose={() => setEd(null)} position="right" size="xl" title={ed?.id ? ed.nombre : 'Nueva receta'}>
         {ed && (
           <Stack>
             <TextInput label="Nombre" value={ed.nombre} onChange={(e) => setEd({ ...ed, nombre: e.currentTarget.value })} required />
             <Group grow>
-              <Select label="Servicio" data={SERVICIOS.map((s) => ({ value: s.value, label: s.label }))} value={ed.servicio} onChange={(x) => setEd({ ...ed, servicio: x })} />
+              <Select label="Servicio" data={servicios} value={ed.servicio} onChange={(x) => setEd({ ...ed, servicio: x })} />
               <NumberInput label="Raciones que salen" value={ed.porciones} min={0.01} decimalScale={2} onChange={(x) => setEd({ ...ed, porciones: Number(x) || 1 })} />
             </Group>
             <Switch label="Activa (aparece al registrar)" checked={!!ed.activo} onChange={(e) => setEd({ ...ed, activo: e.currentTarget.checked ? 1 : 0 })} />
