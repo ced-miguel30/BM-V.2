@@ -100,6 +100,11 @@ class TestFlujos(unittest.TestCase):
         ultima = con.execute("SELECT usuario, ruta, estado FROM auditoria ORDER BY id DESC LIMIT 1").fetchone()
         self.assertEqual(tuple(ultima), ("DIR", "/api/config/copias", 200))
 
+    def test_estado_bc_dice_desde_cuando_exportar(self):
+        e = cliente("adm").get("/api/bc/estado").json()
+        self.assertEqual(e["exportar_desde"], "2026-08-25")  # una semana antes del último movimiento (01/09)
+        self.assertEqual(cliente("rest").get("/api/bc/estado").status_code, 403)
+
     def test_segunda_carpeta_de_copias(self):
         c = cliente("dir")
         self.assertEqual(c.put("/api/config/copias_extra", json={"carpeta": str(Path(_tmp.name) / "no-existe")}).status_code, 400)

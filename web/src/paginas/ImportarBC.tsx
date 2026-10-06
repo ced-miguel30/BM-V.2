@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button, Card, FileButton, List, SimpleGrid, Stack, Text, ThemeIcon, Title } from '@mantine/core';
 import { IconFileSpreadsheet } from '@tabler/icons-react';
 import { api, avisoError, avisoOk } from '../api';
 import { Cabecera } from '../comun';
+import { fecha } from '../formato';
 
-function Subida({ tipo, titulo, pasos }: { tipo: string; titulo: string; pasos: string[] }) {
+function Subida({ tipo, titulo, pasos, alSubir }: { tipo: string; titulo: string; pasos: string[]; alSubir?: () => void }) {
   const [cargando, setCargando] = useState(false);
   const subir = async (f: File | null) => {
     if (!f) return;
@@ -14,6 +15,7 @@ function Subida({ tipo, titulo, pasos }: { tipo: string; titulo: string; pasos: 
     try {
       const r = await api<{ filas: number }>(`/bc/${tipo}`, { form });
       avisoOk(`${r.filas.toLocaleString('es-ES')} filas. Costes recalculados.`, titulo);
+      alSubir?.();
     } catch (e) { avisoError(e); } finally { setCargando(false); }
   };
   return (
@@ -31,13 +33,18 @@ function Subida({ tipo, titulo, pasos }: { tipo: string; titulo: string; pasos: 
 }
 
 export function ImportarBC() {
+  const [estado, setEstado] = useState<{ ultimo: string | null; exportar_desde: string | null } | null>(null);
+  const cargar = () => api<typeof estado>('/bc/estado').then(setEstado).catch(avisoError);
+  useEffect(() => { cargar(); }, []);
   return (
     <>
       <Cabecera titulo="Importar de Business Central" subtitulo="Reimportar es seguro: lo que ya existe se actualiza, nunca se duplica." />
       <SimpleGrid cols={{ base: 1, md: 2 }}>
-        <Subida tipo="movimientos" titulo="Movimientos de producto" pasos={[
+        <Subida tipo="movimientos" titulo="Movimientos de producto" alSubir={cargar} pasos={[
           'En BC busca (Alt+Q) "Movimientos de producto".',
-          'Filtra Fecha registro, por ejemplo 01/07/26.. (o todo).',
+          estado?.exportar_desde
+            ? `Filtra Fecha registro escribiendo ${estado.exportar_desde.slice(8, 10)}/${estado.exportar_desde.slice(5, 7)}/${estado.exportar_desde.slice(2, 4)}.. (último importado: ${fecha(estado.ultimo)}). Solo lo nuevo: tarda segundos; todo el histórico, casi un minuto.`
+            : 'Primera vez: sin filtro de fecha (todo el histórico).',
           'Compartir → Abrir en Excel y guarda el fichero.',
           'Súbelo aquí. Recomendado: cada semana y tras el inventario de fin de mes.',
         ]} />

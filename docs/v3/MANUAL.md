@@ -14,8 +14,9 @@ El personal operativo no ve costes. Lo contado en un recuento pasa a ser el stoc
 
 ## Administración
 
-- **Semanal:** BC → *Movimientos de producto* → Abrir en Excel → **Importar de BC**. Actualiza precios y
-  recalcula todos los costes (también los de días pasados).
+- **Semanal:** BC → *Movimientos de producto* → filtrar *Fecha registro* desde la fecha que indica la pantalla
+  **Importar de BC** (solo lo nuevo, tarda segundos) → Abrir en Excel → subir. Actualiza precios y recalcula
+  todos los costes (también los de días pasados).
 - **Tras el inventario de fin de mes en BC:** importar movimientos otra vez; revisar **Control de stock**.
 - **Precios de compra → Precios a revisar en BC:** errores de unidad o importe en facturas. BM no los usa
   mientras tanto; corregirlos en BC y reimportar.

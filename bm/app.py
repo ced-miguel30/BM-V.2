@@ -461,6 +461,15 @@ def excel_importar(archivo: UploadFile, confirmar: bool = False, comensales: str
 
 
 # ---------------------------------------------------------------- Business Central
+@app.get("/api/bc/estado")
+def bc_estado(u: dict = Depends(requiere(*GESTION))):
+    """Último movimiento importado y desde qué fecha exportar la próxima vez (una semana de margen:
+    BC registra con fecha atrasada a veces; reimportar lo repetido no duplica)."""
+    ultimo = con.execute("SELECT MAX(fecha) FROM bc_movs WHERE fecha<=date('now')").fetchone()[0]
+    desde = (date.fromisoformat(ultimo) - timedelta(days=7)).isoformat() if ultimo else None
+    return {"ultimo": ultimo, "exportar_desde": desde}
+
+
 @app.post("/api/bc/{tipo}")
 def bc_subir(tipo: str, archivo: UploadFile, u: dict = Depends(requiere(*GESTION))):
     from bm import compras, inventario
