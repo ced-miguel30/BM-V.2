@@ -128,7 +128,7 @@ function Contar({ gestion }: { gestion: boolean }) {
                 <Group justify="space-between" wrap="nowrap">
                   <div style={{ minWidth: 0 }}>
                     <Text fw={500} lineClamp={2} lh={1.25}>{l.nombre === l.producto ? catalogo.find((c) => c.codigo === l.producto)?.nombre ?? l.nombre : l.nombre}</Text>
-                    <Group gap={6} rowGap={0}>
+                    <Group gap={6} style={{ rowGap: 0 }}>
                       <Text size="xs" c="dimmed">{l.producto}{verTeorico && l.teorico !== undefined ? ` · teórico ${cantidad(l.teorico)}` : ''}</Text>
                       <Menu position="bottom-start" withinPortal>
                         <Menu.Target>
