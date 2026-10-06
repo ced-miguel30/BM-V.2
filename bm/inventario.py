@@ -14,28 +14,47 @@ import sqlite3
 from collections import defaultdict
 from datetime import date
 
-CENTROS_INICIALES = [  # codigo, nombre, tipo, ubicación BC, color, orden
-    ("desayuno", "Desayuno", "restauracion", "DESAYUNO", "orange", 1),
-    ("comida", "Comida", "restauracion", "SNACK COMI", "teal", 2),
-    ("cena", "Cena", "restauracion", "SNACK CENA", "indigo", 3),
-    ("bebidas", "Bebidas", "restauracion", "SNACK BEBI", "grape", 4),
-    ("habitaciones", "Habitaciones", "departamento", "HABITACION", "cyan", 10),
-    ("pisos", "Pisos", "departamento", "PISOS", "blue", 11),
-    ("limpieza", "Limpieza", "departamento", "LIMPIEZA", "lime", 12),
-    ("mantenimiento", "Mantenimiento", "departamento", "MANTEN", "gray", 13),
-    ("personal", "Personal", "departamento", "PERSONAL", "yellow", 14),
-    ("amenities", "Amenities", "departamento", "AMENITIES", "pink", 15),
+FISICAS = [("ECONOMATO", "Economato"), ("RESTAURANTE", "Restaurante y cocina")]
+# Almacenes contables de BC que físicamente están en Restaurante y cocina (nevera, congelador, estanterías).
+EN_RESTAURANTE = {"DESAYUNO", "SNACK BEBI", "SNACK COMI", "SNACK CENA", "SNACK", "COCINA", "RESTAURANT", "BEBIDAS",
+                  "PERSONAL", "ATENCIONES", "ENVASES"}
+CENTROS_INICIALES = [  # codigo, nombre, tipo, ubicación física, color, orden, almacén BC que lo imputa
+    ("desayuno", "Desayuno", "restauracion", "RESTAURANTE", "orange", 1, "DESAYUNO"),
+    ("comida", "Comida", "restauracion", "RESTAURANTE", "teal", 2, "SNACK COMI"),
+    ("cena", "Cena", "restauracion", "RESTAURANTE", "indigo", 3, "SNACK CENA"),
+    ("bebidas", "Bebidas", "restauracion", "RESTAURANTE", "grape", 4, "SNACK BEBI"),
+    ("personal", "Personal", "departamento", "RESTAURANTE", "yellow", 9, "PERSONAL"),
+    ("habitaciones", "Habitaciones", "departamento", "HABITACION", "cyan", 10, "HABITACION"),
+    ("pisos", "Pisos", "departamento", "PISOS", "blue", 11, "PISOS"),
+    ("limpieza", "Limpieza", "departamento", "LIMPIEZA", "lime", 12, "LIMPIEZA"),
+    ("mantenimiento", "Mantenimiento", "departamento", "MANTEN", "gray", 13, "MANTEN"),
+    ("amenities", "Amenities", "departamento", "AMENITIES", "pink", 15, "AMENITIES"),
 ]
 
 
 def sembrar(con: sqlite3.Connection) -> None:
-    """Idempotente: ubicaciones de BC y centros por defecto (editables después)."""
-    con.executemany("INSERT OR IGNORE INTO ubicaciones(codigo, nombre) VALUES(?, ?)",
-                    [(c[3], c[3].title()) for c in CENTROS_INICIALES])
-    con.execute("""INSERT OR IGNORE INTO ubicaciones(codigo, nombre)
-                   SELECT DISTINCT almacen, almacen FROM bc_movs WHERE almacen <> ''""")
+    """Idempotente: ubicaciones físicas, asignación de almacenes BC y centros por defecto (editables después)."""
+    con.executemany("INSERT OR IGNORE INTO ubicaciones(codigo, nombre) VALUES(?, ?)", FISICAS)
+    almacenes = {r[0] for r in con.execute("SELECT DISTINCT almacen FROM bc_movs WHERE almacen <> ''")}
+    almacenes |= {c[6] for c in CENTROS_INICIALES} | {u for u, _ in FISICAS}
+    for a in sorted(almacenes):
+        fisica = "RESTAURANTE" if a in EN_RESTAURANTE else a
+        if fisica == a:  # departamento con su propio almacén (pisos, limpieza...)
+            con.execute("INSERT OR IGNORE INTO ubicaciones(codigo, nombre) VALUES(?, ?)", (a, a.title()))
+        con.execute("INSERT OR IGNORE INTO almacenes_bc(codigo, ubicacion) VALUES(?, ?)", (a, fisica))
     con.executemany("INSERT OR IGNORE INTO centros(codigo, nombre, tipo, ubicacion, color, orden) VALUES(?,?,?,?,?,?)",
-                    CENTROS_INICIALES)
+                    [c[:6] for c in CENTROS_INICIALES])
+    con.executemany("UPDATE almacenes_bc SET centro=? WHERE codigo=? AND centro IS NULL", [(c[0], c[6]) for c in CENTROS_INICIALES])
+    # Bases anteriores: los almacenes contables que eran "ubicación" se funden en su ubicación física.
+    for a, fisica in con.execute("SELECT codigo, ubicacion FROM almacenes_bc WHERE codigo <> ubicacion").fetchall():
+        for tabla in ("centros", "consumos", "recuentos", "caducidades"):
+            con.execute(f"UPDATE {tabla} SET ubicacion=? WHERE ubicacion=?", (fisica, a))
+        con.execute("UPDATE traslados SET origen=? WHERE origen=?", (fisica, a))
+        con.execute("UPDATE traslados SET destino=? WHERE destino=?", (fisica, a))
+        con.execute("DELETE FROM ubicaciones WHERE codigo=?", (a,))
+    con.executemany("UPDATE ubicaciones SET nombre=? WHERE codigo=? AND nombre=codigo", FISICAS)
+    for cod, in con.execute("SELECT codigo FROM ubicaciones WHERE nombre=codigo").fetchall():  # nombre legible por defecto
+        con.execute("UPDATE ubicaciones SET nombre=? WHERE codigo=?", (cod.replace("-", " ").title(), cod))
     con.executemany("INSERT OR IGNORE INTO ajustes VALUES(?, ?)",
                     [("traslados_en", "bc"), ("igic_ventas", "7"), ("objetivo_food_cost", "30")])
     con.commit()
@@ -62,18 +81,26 @@ def _eventos(con, producto=None, ubicacion=None, hasta=None):
     hasta = hasta or "9999-12-31"
     traslados_bc = ajuste(con, "traslados_en", "bc") == "bc"
     ev = defaultdict(list)
-    f, a = _filtro("producto", "almacen", producto, ubicacion)
-    bc_acum = defaultdict(float)
-    ancla_bc = {}
-    for m in con.execute(f"SELECT * FROM bc_movs WHERE almacen<>'' AND fecha<=? {f} ORDER BY fecha, n_mov", [hasta, *a]):
-        k = (m["producto"], m["almacen"])
+    fisica = dict(con.execute("SELECT codigo, ubicacion FROM almacenes_bc").fetchall())
+    sql, args = "SELECT * FROM bc_movs WHERE almacen<>'' AND fecha<=?", [hasta]
+    if producto:
+        sql, args = sql + " AND producto=?", args + [producto]
+    if ubicacion:
+        almacenes = [a for a, u in fisica.items() if u == ubicacion] or [ubicacion]
+        sql += f" AND almacen IN ({','.join('?' * len(almacenes))})"
+        args += almacenes
+    bc_acum, fin_dia, dias_recuento = defaultdict(float), {}, set()
+    for m in con.execute(sql + " ORDER BY fecha, n_mov", args):
+        k = (m["producto"], fisica.get(m["almacen"], m["almacen"]))
         bc_acum[k] += m["cantidad"]
+        fin_dia[(k, m["fecha"])] = bc_acum[k]
         if m["tipo"].startswith("Ajuste"):
-            ancla_bc[(k, m["fecha"])] = bc_acum[k]  # stock real contado por BC al cierre de ese día
+            dias_recuento.add((k, m["fecha"]))
         elif m["tipo"] == "Compra" or traslados_bc:
+            # Un traslado entre dos almacenes contables de la misma ubicación física se anula solo (+x y -x).
             ev[k].append((m["fecha"], 0, "bc", m["cantidad"]))
-    for (k, fecha), valor in ancla_bc.items():
-        ev[k].append((fecha, 2, "recuento_bc", valor))
+    for k, fecha in dias_recuento:  # stock real contado por BC al cierre de ese día
+        ev[k].append((fecha, 2, "recuento_bc", fin_dia[(k, fecha)]))
 
     f, a = _filtro("l.producto", "COALESCE(c.ubicacion, ce.ubicacion)", producto, ubicacion)
     for r in con.execute(

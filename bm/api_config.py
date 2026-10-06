@@ -32,6 +32,8 @@ def config(u: dict = Depends(requiere(*GESTION))):
         "ajustes": dict(con.execute("SELECT clave, valor FROM ajustes").fetchall()),
         "centros": q("SELECT * FROM centros ORDER BY orden, nombre"),
         "ubicaciones": q("SELECT * FROM ubicaciones ORDER BY nombre"),
+        "almacenes_bc": q("""SELECT a.*, (SELECT COUNT(*) FROM bc_movs m WHERE m.almacen=a.codigo) movimientos
+                             FROM almacenes_bc a ORDER BY movimientos DESC"""),
         "atajos": q("""SELECT a.*, p.nombre producto_nombre, p.unidad, r.nombre receta_nombre FROM atajos a
                        LEFT JOIN productos p ON p.codigo=a.producto LEFT JOIN recetas r ON r.id=a.receta_id ORDER BY a.grupo, a.etiqueta"""),
         "recetas_dia": q("SELECT d.*, r.nombre receta_nombre FROM recetas_dia d JOIN recetas r ON r.id=d.receta_id ORDER BY etiqueta, dia_semana"),
@@ -90,6 +92,20 @@ def guardar_ubicacion(codigo: str, d: Ubicacion, u: dict = Depends(requiere(*GES
     con.execute("""INSERT INTO ubicaciones(codigo, nombre, activo) VALUES(?,?,?)
                    ON CONFLICT(codigo) DO UPDATE SET nombre=excluded.nombre, activo=excluded.activo""",
                 (codigo.strip().upper(), d.nombre.strip(), int(d.activo)))
+    con.commit()
+    return {"ok": True}
+
+
+class AlmacenBC(BaseModel):
+    ubicacion: str
+    centro: str | None = None
+
+
+@app.put("/api/config/almacenes/{codigo}")
+def guardar_almacen(codigo: str, d: AlmacenBC, u: dict = Depends(requiere(*GESTION))):
+    if not con.execute("SELECT 1 FROM ubicaciones WHERE codigo=?", (d.ubicacion,)).fetchone():
+        raise HTTPException(400, "Ubicación desconocida")
+    con.execute("UPDATE almacenes_bc SET ubicacion=?, centro=? WHERE codigo=?", (d.ubicacion, d.centro, codigo))
     con.commit()
     return {"ok": True}
 

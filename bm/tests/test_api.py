@@ -49,7 +49,7 @@ class TestPermisos(unittest.TestCase):
         for ruta in ("/api/panel", "/api/consumos?desde=2026-01-01&hasta=2026-12-31", "/api/config", "/api/analisis/precios"):
             self.assertEqual(c.get(ruta).status_code, 403, ruta)
         self.assertEqual(c.get("/api/catalogo").status_code, 200)
-        fila = c.get("/api/stock?ubicacion=DESAYUNO").json()[0]
+        fila = c.get("/api/stock?ubicacion=RESTAURANTE").json()[0]
         self.assertNotIn("valor", fila)
         self.assertNotIn("precio", fila)
 
@@ -75,9 +75,9 @@ class TestFlujos(unittest.TestCase):
 
     def test_recuento_fija_stock(self):
         c = cliente("rest")
-        self.assertEqual(c.post("/api/recuentos", json={"fecha": "2026-09-03", "ubicacion": "DESAYUNO",
+        self.assertEqual(c.post("/api/recuentos", json={"fecha": "2026-09-03", "ubicacion": "RESTAURANTE",
                                                          "lineas": [{"producto": "PAN", "contado": 7}]}).status_code, 200)
-        pan = next(f for f in c.get("/api/stock?ubicacion=DESAYUNO").json() if f["producto"] == "PAN")
+        pan = next(f for f in c.get("/api/stock?ubicacion=RESTAURANTE").json() if f["producto"] == "PAN")
         self.assertEqual(pan["stock"], 7)
 
     def test_servicio_inexistente_rechazado(self):

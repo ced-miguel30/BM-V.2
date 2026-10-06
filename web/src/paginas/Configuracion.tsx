@@ -13,6 +13,7 @@ type Cfg = {
   ajustes: Record<string, string>;
   centros: { codigo: string; nombre: string; tipo: string; ubicacion: string | null; color: string; orden: number; activo: number }[];
   ubicaciones: { codigo: string; nombre: string; activo: number }[];
+  almacenes_bc: { codigo: string; ubicacion: string; centro: string | null; movimientos: number }[];
   atajos: { etiqueta: string; grupo: string; producto: string | null; receta_id: string | null; cantidad: number; sustituye: string | null; activo: number; producto_nombre: string | null; unidad: string | null; receta_nombre: string | null }[];
   recetas_dia: { etiqueta: string; dia_semana: number; receta_id: string; receta_nombre: string }[];
   usuarios: { id: string; nombre: string; login: string | null; rol: string; activo: number }[];
@@ -133,15 +134,31 @@ function Ubicaciones({ cfg, recargar }: { cfg: Cfg; recargar: () => void }) {
     try { await api(`/config/ubicaciones/${encodeURIComponent(ed.codigo)}`, { method: 'PUT', body: { nombre: ed.nombre, activo: !!ed.activo } });
       olvidarCatalogos(); avisoOk('Ubicación guardada', ed.nombre); setEd(null); recargar(); } catch (e) { avisoError(e); }
   };
+  const guardarAlmacen = async (codigo: string, ubicacion: string, centro: string | null) => {
+    try { await api(`/config/almacenes/${encodeURIComponent(codigo)}`, { method: 'PUT', body: { ubicacion, centro } }); avisoOk(codigo, 'Almacén asignado'); recargar(); }
+    catch (e) { avisoError(e); }
+  };
   return (
     <>
       <Group justify="space-between" mb="sm">
-        <Text size="sm" c="dimmed">Vienen de los almacenes de Business Central. Puedes darles un nombre claro o crear ubicaciones propias de BM.</Text>
+        <Text size="sm" c="dimmed">Sitios físicos donde se guarda la mercancía y donde se hacen los recuentos.</Text>
         <Button leftSection={<IconPlus size={16} />} onClick={() => setEd({ codigo: '', nombre: '', activo: 1, nuevo: true })}>Nueva ubicación</Button>
       </Group>
-      <Tabla datos={cfg.ubicaciones} clave={(u) => u.codigo} buscar atenuar={(u) => !u.activo} alPulsar={(u) => setEd({ ...u })}
-        columnas={[{ clave: 'nombre', titulo: 'Nombre' }, { clave: 'codigo', titulo: 'Código BC' },
+      <Tabla datos={cfg.ubicaciones} clave={(u) => u.codigo} atenuar={(u) => !u.activo} alPulsar={(u) => setEd({ ...u })}
+        columnas={[{ clave: 'nombre', titulo: 'Ubicación física' }, { clave: 'codigo', titulo: 'Código' },
           { clave: 'activo', titulo: 'Estado', render: (u) => <Badge color={u.activo ? 'teal' : 'gray'} variant="light">{u.activo ? 'Activa' : 'Oculta'}</Badge> }]} />
+      <Text fw={600} mt="xl" mb={4}>Almacenes de Business Central</Text>
+      <Text size="sm" c="dimmed" mb="sm">En BC son destinos contables. Indica dónde está físicamente su mercancía y a qué centro de consumo corresponde.</Text>
+      <Tabla datos={cfg.almacenes_bc} clave={(a) => a.codigo} buscar porPagina={50} columnas={[
+        { clave: 'codigo', titulo: 'Almacén BC' },
+        { clave: 'movimientos', titulo: 'Movimientos', num: true },
+        { clave: 'ubicacion', titulo: 'Está físicamente en', ordenable: false, render: (a) => (
+          <Select size="xs" w={210} value={a.ubicacion} allowDeselect={false} data={cfg.ubicaciones.map((u) => ({ value: u.codigo, label: u.nombre }))}
+            onChange={(x) => x && guardarAlmacen(a.codigo, x, a.centro)} aria-label={`Ubicación de ${a.codigo}`} />) },
+        { clave: 'centro', titulo: 'Centro de consumo', ordenable: false, render: (a) => (
+          <Select size="xs" w={190} value={a.centro} clearable placeholder="—" data={cfg.centros.map((c) => ({ value: c.codigo, label: c.nombre }))}
+            onChange={(x) => guardarAlmacen(a.codigo, a.ubicacion, x)} aria-label={`Centro de ${a.codigo}`} />) },
+      ]} />
       <Modal opened={!!ed} onClose={() => setEd(null)} title={ed?.nuevo ? 'Nueva ubicación' : ed?.codigo} centered>
         {ed && (
           <Stack>

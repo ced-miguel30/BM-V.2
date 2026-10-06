@@ -157,6 +157,13 @@ CREATE TABLE IF NOT EXISTS ubicaciones(
   nombre TEXT NOT NULL,
   activo INTEGER NOT NULL DEFAULT 1
 );
+-- Almacenes de BC = destinos CONTABLES. Cada uno se asigna a la ubicación FÍSICA donde está el producto
+-- (DESAYUNO, SNACK COMI, SNACK BEBI... están todos físicamente en Restaurante y cocina).
+CREATE TABLE IF NOT EXISTS almacenes_bc(
+  codigo TEXT PRIMARY KEY,
+  ubicacion TEXT NOT NULL REFERENCES ubicaciones(codigo),
+  centro TEXT REFERENCES centros(codigo)      -- a qué centro de consumo imputa BC ese almacén
+);
 -- Centros de consumo: servicios de restauración y departamentos. Exclusivos: cada consumo es de uno.
 CREATE TABLE IF NOT EXISTS centros(
   codigo TEXT PRIMARY KEY,             -- desayuno | comida | cena | bebidas | pisos | ...

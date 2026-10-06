@@ -35,3 +35,25 @@ nunca se registra lo mismo dos veces. No se instala en el hotel hasta completar 
 - [x] Fase 4: análisis (rentabilidad por plato, control real vs teórico, precios de compra y dudosos de BC, tendencia 12 meses, food cost neto de IGIC vs objetivo)
 - [x] Fase 5: configuración y seguridad (ajustes, usuarios, centros, ubicaciones, atajos, recetas del día, sesiones persistentes, registro de actividad, copias diarias, cambio de contraseña)
 - [x] Fase 6: calidad y puesta en marcha (tests de API y permisos, comprobación automática en GitHub, instalador y actualizador para el servidor, manual, limpieza del código v2 en esta rama)
+
+## Segunda etapa — plataforma completa (decidido el 06/10/2026)
+
+Principio: **BM lleva todo solo; la persona solo hace inventarios físicos** (y confirma propuestas con un toque).
+
+Decisiones:
+- Albaranes y facturas los registra administración en BC; BM los importa (líneas, proveedor, factura ↔ albaranes) y guarda la foto/PDF.
+- Ubicaciones **físicas**: Economato y Restaurante-cocina (nevera, congelador, estanterías). Los almacenes de BC son contables y
+  se asignan a una ubicación física. Lo de nevera/congelador entra directo del proveedor a Restaurante-cocina.
+- Traslados: BM propone la reposición economato → restaurante; se registran en BC y BM los importa.
+- Previsión basada en los comensales que se registran con cada desayuno.
+
+Fases:
+7. **Ubicaciones físicas** — almacenes BC → ubicación física; stock e inventarios por ubicación física.
+8. **Compras y proveedores** — documentos de compra desde BC con líneas y adjuntos, factura ↔ albaranes, ficha de proveedor
+   (correo, teléfono, días de reparto deducidos del histórico, plazo).
+9. **Previsión y reposición** — consumo previsto por producto (TPV + desayuno + comensales), mínimos automáticos, propuesta de
+   reposición al restaurante, propuesta de pedido por proveedor según sus días de reparto y aviso de "comprar por fuera".
+10. **Buffet del día** — propuesta de fruta, bollería, yogures y pan según comensales previstos y lo consumido; confirmar = registrado.
+11. **Pérdidas, personal y fichas** — motivos de merma (error de cocina, caducado, rotura…), comida de personal, informe de pérdidas,
+    platos que no salen y revisión automática de fichas que no tienen sentido.
+12. **Automatización y cierre** — tareas diarias automáticas, avisos, cierre de mes guiado, informe mensual, prueba final con datos frescos.
