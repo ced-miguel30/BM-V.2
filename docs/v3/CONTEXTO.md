@@ -29,13 +29,17 @@ inventarios físicos y confirma propuestas.
 
 ## Estado
 Fases 1-12 hechas + comandas + mejoras del 06/10 noche (ver abajo). Datos de prueba cargados: BC hasta 06/10,
-BM v2 hasta 27/09, desayunos Excel 03-12/09, TPV 22/08-06/10. Tests: 44.
+BM v2 hasta 27/09, desayunos Excel 03-12/09, TPV 22/08-06/10. 
 
 Mejoras 06/10 (noche): sugerencias TPV sin parecidos falsos; recuento con borrador en el dispositivo y **zonas**
 (nevera, congelador...) para contar por partes; `index.html` sin caché (tras actualizar, todos ven la versión nueva);
 segunda carpeta de copias con aviso si falla; revisión de fichas avisa de ingredientes que ya no se compran ni quedan;
 "comprar por fuera" y "reponer" solo alarman con stock fiable (inventario ≤ 10 días o consumo registrado en BM);
 Importar de BC indica desde qué fecha exportar; nombres legibles de almacenes de departamento.
+Segunda tanda: comensales automáticos del desayuno = nº de platos (antes contaba líneas: "2 ingles" era 1);
+food cost TPV solo sobre venta asignada (octubre 15,6 % → 19,7 %, el panel dice cuánto queda fuera); cierre de mes
+con días que faltan y solo artículos TPV vendidos ese mes; login bloqueado 15 min tras 10 fallos (queda en Actividad);
+informe/productos/compras adaptados al móvil. Tests: 47.
 
 ## Pendiente de revisar por el usuario
 1. **TPV (47 sin asignar):** las sugerencias ya son fiables, pero revisar: *Pescado del día* (sugiere caldo de
