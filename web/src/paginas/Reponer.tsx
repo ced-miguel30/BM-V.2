@@ -5,7 +5,7 @@ import { api, avisoError } from '../api';
 import { Cabecera, Vacio } from '../comun';
 import { cantidad } from '../formato';
 
-type Linea = { producto: string; nombre: string; unidad: string | null; restaurante: number; minimo: number; economato: number; ritmo: number; subir: number };
+type Linea = { producto: string; nombre: string; unidad: string | null; restaurante: number; minimo: number; economato: number; ritmo: number; subir: number; fiable: boolean };
 
 export function Reponer() {
   const [lista, setLista] = useState<Linea[] | null>(null);
@@ -28,7 +28,7 @@ export function Reponer() {
               <Group justify="space-between" wrap="nowrap">
                 <Checkbox size="md" checked={!!hecho[l.producto]} onChange={(e) => setHecho({ ...hecho, [l.producto]: e.currentTarget.checked })}
                   label={<><Text fw={500} td={hecho[l.producto] ? 'line-through' : undefined}>{l.nombre}</Text>
-                    <Text size="xs" c="dimmed">Queda {cantidad(l.restaurante)} · se gastan {cantidad(l.ritmo)}/día · en economato {cantidad(l.economato)}</Text></>} />
+                    <Text size="xs" c="dimmed">{l.fiable ? `Queda ${cantidad(l.restaurante)}` : 'Puede que quede poco (estimado: míralo antes de subir)'} · se gastan {cantidad(l.ritmo)}/día · en economato {cantidad(l.economato)}</Text></>} />
                 <Text fw={700} fz="lg" style={{ whiteSpace: 'nowrap' }}>{cantidad(l.subir)} {l.unidad}</Text>
               </Group>
             </Card>

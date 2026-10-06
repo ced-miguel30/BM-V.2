@@ -194,8 +194,9 @@ def reposicion(con: sqlite3.Connection, hoy: date | None = None) -> list[dict]:
             subir = math.floor(subir)  # no se sube media botella
         if subir > 0:
             out.append({"producto": p, "nombre": info[p]["nombre"], "unidad": info[p]["unidad"], "restaurante": r["estimado"], "paso": paso,
-                        "minimo": round(minimo, 2), "economato": e["estimado"], "ritmo": r["ritmo"], "subir": subir})
-    return sorted(out, key=lambda x: x["restaurante"] / max(x["minimo"], 1e-9))
+                        "minimo": round(minimo, 2), "economato": e["estimado"], "ritmo": r["ritmo"], "subir": subir,
+                        "fiable": r["fiable"]})  # si no, lo que queda es una extrapolación: mirar antes de subir
+    return sorted(out, key=lambda x: (not x["fiable"], x["restaurante"] / max(x["minimo"], 1e-9)))
 
 
 def favoritos(con: sqlite3.Connection, hoy: date | None = None) -> dict:

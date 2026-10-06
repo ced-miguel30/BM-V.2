@@ -45,7 +45,7 @@ def avisos(con: sqlite3.Connection, rol: str) -> list[dict]:
     caducan = con.execute("SELECT COUNT(*) FROM caducidades WHERE estado='activa' AND caduca<=?", ((hoy + timedelta(days=2)).isoformat(),)).fetchone()[0]
     if caducan:
         aviso("alta", f"{caducan} productos caducan en 2 días o menos", "Úsalos primero o márcalos como tirados", "/caducidades")
-    rep = prevision.reposicion(con)
+    rep = [x for x in prevision.reposicion(con) if x["fiable"]]
     if rep:
         aviso("media", f"Reponer {len(rep)} productos en el restaurante", "La lista de lo que hay que subir del economato está preparada", "/reponer")
     if gestion:
