@@ -24,6 +24,13 @@ class TestComandas(unittest.TestCase):
         self.assertEqual(self._total(con)["BACON"], 0.035)
         self.assertEqual(con.execute("SELECT comensales FROM consumos WHERE ref=?", (f"comandas:{HOY}",)).fetchone()[0], 3)
 
+    def test_comensales_automaticos_cuentan_platos(self):
+        con = _base()
+        con.execute("UPDATE recetas SET servicio='desayuno' WHERE id='r1'")
+        comandas.anadir(con, fecha=HOY, nombre="Desayuno ingles", cantidad=2)
+        comandas.anadir(con, fecha=HOY, nombre="Desayuno ingles")
+        self.assertEqual(comandas.dia(con, HOY)["comensales"], 3)
+
     def test_plato_desconocido_no_se_apunta(self):
         con = _base()
         with self.assertRaises(ValueError):

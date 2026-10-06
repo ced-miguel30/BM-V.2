@@ -64,9 +64,10 @@ def _comensales(con, fecha: str) -> tuple[int, bool]:
     c = con.execute("SELECT comensales FROM comanda_dia WHERE fecha=?", (fecha,)).fetchone()
     if c and c[0]:
         return c[0], False
-    n = sum(1 for (nombre,) in con.execute("SELECT nombre FROM comanda_lineas WHERE fecha=? AND anulada=0", (fecha,))
-            if excel._n(nombre) not in _BEBIDAS and con.execute("SELECT 1 FROM recetas WHERE nombre=? AND servicio='desayuno'", (nombre,)).fetchone())
-    return n, True
+    platos = {r[0] for r in con.execute("SELECT nombre FROM recetas WHERE servicio='desayuno'")}
+    n = sum(q for nombre, q in con.execute("SELECT nombre, cantidad FROM comanda_lineas WHERE fecha=? AND anulada=0", (fecha,))
+            if nombre in platos and excel._n(nombre) not in _BEBIDAS)  # "2 ingles" son 2 huéspedes
+    return round(n), True
 
 
 def dia(con: sqlite3.Connection, fecha: str) -> dict:
