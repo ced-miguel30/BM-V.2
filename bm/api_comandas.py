@@ -46,3 +46,21 @@ class Comensales(BaseModel):
 def comensales(d: Comensales, u: dict = Depends(requiere(*OPERATIVO))):
     _error(comandas.poner_comensales, con, d.fecha, d.comensales)
     return comandas.dia(con, d.fecha)
+
+
+@app.get("/api/desayunos")
+def historial(desde: str, hasta: str, u: dict = Depends(requiere(*OPERATIVO))):
+    """Registro de desayunos día a día (comandas, Excel o histórico), con coste solo para gestión."""
+    filas = [dict(x) for x in con.execute(
+        """SELECT c.fecha, (SELECT SUM(c2.comensales) FROM consumos c2 WHERE c2.fecha=c.fecha AND c2.servicio='desayuno'
+                AND c2.anulado=0 AND c2.tipo='consumo') comensales,
+             GROUP_CONCAT(DISTINCT c.origen) origen, ROUND(SUM(l.coste), 2) coste,
+             (SELECT COUNT(*) FROM comanda_lineas k WHERE k.fecha=c.fecha AND k.anulada=0) comandas,
+             (SELECT COUNT(*) FROM buffet_diario b WHERE b.fecha=c.fecha) buffet
+           FROM consumos c JOIN consumo_lineas l ON l.consumo_id=c.id
+           WHERE c.anulado=0 AND c.servicio='desayuno' AND c.fecha>=? AND c.fecha<=? GROUP BY c.fecha ORDER BY c.fecha DESC""", (desde, hasta))]
+    for f in filas:
+        f["coste_comensal"] = round(f["coste"] / f["comensales"], 2) if f["comensales"] else None
+        if u["rol"] not in ("direccion", "administracion"):
+            f.pop("coste"), f.pop("coste_comensal")
+    return filas

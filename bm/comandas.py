@@ -59,11 +59,21 @@ def catalogo(con: sqlite3.Connection) -> dict:
     }
 
 
-def dia(con: sqlite3.Connection, fecha: str) -> dict:
+def _comensales(con, fecha: str) -> tuple[int, bool]:
+    """Los apuntados a mano mandan; si no, cada línea de plato es un huésped (cómo se hace en el hotel)."""
     c = con.execute("SELECT comensales FROM comanda_dia WHERE fecha=?", (fecha,)).fetchone()
+    if c and c[0]:
+        return c[0], False
+    n = sum(1 for (nombre,) in con.execute("SELECT nombre FROM comanda_lineas WHERE fecha=? AND anulada=0", (fecha,))
+            if excel._n(nombre) not in _BEBIDAS and con.execute("SELECT 1 FROM recetas WHERE nombre=? AND servicio='desayuno'", (nombre,)).fetchone())
+    return n, True
+
+
+def dia(con: sqlite3.Connection, fecha: str) -> dict:
     lineas = [{**dict(r), "extras": json.loads(r["extras"]), "omitir": json.loads(r["omitir"])} for r in con.execute(
         "SELECT * FROM comanda_lineas WHERE fecha=? AND anulada=0 ORDER BY id DESC", (fecha,))]
-    return {"fecha": fecha, "comensales": c[0] if c else 0, "lineas": lineas, "platos": round(sum(l["cantidad"] for l in lineas))}
+    n, auto = _comensales(con, fecha)
+    return {"fecha": fecha, "comensales": n, "comensales_auto": auto, "lineas": lineas, "platos": round(sum(l["cantidad"] for l in lineas))}
 
 
 def _fila(res, f: date, lid: int, nombre: str, cantidad: float, extras, omitir) -> excel.Fila:
@@ -85,7 +95,7 @@ def regenerar(con: sqlite3.Connection, fecha: str) -> None:
         for cid in excel._previos(con, hoja, f, "consumo"):
             con.execute("DELETE FROM consumos WHERE id=?", (cid,))
     con.execute("DELETE FROM consumos WHERE ref=?", (f"comandas:{fecha}",))
-    comensales = (con.execute("SELECT comensales FROM comanda_dia WHERE fecha=?", (fecha,)).fetchone() or [None])[0]
+    comensales = _comensales(con, fecha)[0]
     if lineas or comensales:
         cid = con.execute(
             "INSERT INTO consumos(fecha, servicio, tipo, origen, ref, comensales, nota) VALUES(?, 'desayuno', 'consumo', 'comandas', ?, ?, ?)",

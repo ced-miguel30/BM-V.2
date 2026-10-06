@@ -312,7 +312,8 @@ def planificar(con: sqlite3.Connection, filas: list[Fila], errores_lectura=(), c
         coste = sum(q * (cache.setdefault(p, precio_actual(con, p, g["fecha"])) or 0) for p, q, _ in g["lineas"])
         plan.append({**g, "notas": "; ".join(sorted(g["notas"])) or None, "n_lineas": len(g["lineas"]),
                      "coste_estimado": round(coste, 2), "reemplaza": len(_previos(con, hoja, fecha, tipo)),
-                     "comensales": (comensales or {}).get(g["fecha"], g["comensales"]) if hoja == "Registro" else None})
+                     # Cada línea de desayuno es un huésped (si el Excel no trae la columna Huéspedes rellena)
+                     "comensales": (comensales or {}).get(g["fecha"], g["filas"]) if hoja == "Registro" else None})
     for hoja, fila, msg in errores_lectura:
         plan.append({"hoja": hoja, "fecha": None, "tipo": "consumo", "servicio": HOJAS[hoja][0], "comensales": None, "avisos": [],
                      "filas": 1, "lineas": [], "errores": [{"fila": fila, "mensaje": msg, "nombre": ""}],
