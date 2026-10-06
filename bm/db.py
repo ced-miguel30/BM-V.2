@@ -264,6 +264,16 @@ CREATE TABLE IF NOT EXISTS parametros_producto(
   no_pedir INTEGER NOT NULL DEFAULT 0  -- descatalogado o se compra aparte
 );
 
+-- Buffet del día confirmado: lo sacado y lo que sobró por concepto (el consumo va a consumos, ref buffet:fecha).
+CREATE TABLE IF NOT EXISTS buffet_diario(
+  fecha TEXT NOT NULL,
+  etiqueta TEXT NOT NULL,
+  sacado REAL NOT NULL,
+  sobro REAL NOT NULL DEFAULT 0,
+  comensales INTEGER,
+  PRIMARY KEY(fecha, etiqueta)
+);
+
 CREATE TABLE IF NOT EXISTS ajustes(clave TEXT PRIMARY KEY, valor TEXT);
 
 -- Sesiones (sobreviven a reinicios del servidor). Se guarda el hash del token, nunca el token.
@@ -303,6 +313,9 @@ def connect(path: Path | str | None = None) -> sqlite3.Connection:
 
 def _migrar(con: sqlite3.Connection) -> None:
     """Columnas añadidas después de crear la base (ALTER idempotente)."""
+    if "seccion" not in {r[1] for r in con.execute("PRAGMA table_info(atajos)")}:  # Fruta, Bollería, Pan... (buffet)
+        con.execute("ALTER TABLE atajos ADD COLUMN seccion TEXT")
+        con.commit()
     cols = {r[1] for r in con.execute("PRAGMA table_info(consumos)")}
     if "ubicacion" not in cols:  # de qué ubicación sale el stock de este consumo
         con.execute("ALTER TABLE consumos ADD COLUMN ubicacion TEXT REFERENCES ubicaciones(codigo)")

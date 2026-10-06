@@ -212,6 +212,7 @@ def sembrar_desayuno(con: sqlite3.Connection, semillas) -> dict:
         prod = mapa.get(b["bm2_producto"]) if b["bm2_producto"] else None
         if prod or b["receta_id"] in recetas_ids:
             atajo(b["etiqueta"], "buffet", prod, b["receta_id"], b["cantidad"] or 1, None, b["activo"])
+            con.execute("UPDATE atajos SET seccion=? WHERE grupo='buffet' AND etiqueta=?", (b.get("seccion"), b["etiqueta"]))
     for grupo, ids in s["sustitucion"].items():
         con.executemany("INSERT OR IGNORE INTO sustitucion VALUES(?,?)", [(grupo, mapa[i]) for i in ids if i in mapa])
     for etiqueta, nombres in s["recetas_dia"].items():

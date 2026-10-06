@@ -8,7 +8,7 @@ import { useDisclosure } from '@mantine/hooks';
 import {
   IconArrowsExchange, IconBook2, IconBuildingWarehouse, IconCalendarExclamation, IconChartBar, IconClipboardCheck,
   IconCloudUpload, IconFileSpreadsheet, IconListDetails, IconLogout, IconMoon, IconPackages, IconPencilPlus,
-  IconReceipt2, IconSun, IconChartDots, IconScale, IconTrendingUp, IconSettings, IconKey, IconTruckDelivery, IconShoppingCart, IconStackPush,
+  IconReceipt2, IconSun, IconChartDots, IconScale, IconTrendingUp, IconSettings, IconKey, IconTruckDelivery, IconShoppingCart, IconStackPush, IconBread,
 } from '@tabler/icons-react';
 import { api, avisoError, avisoOk } from './api';
 import { Logo } from './comun';
@@ -31,6 +31,7 @@ import { Configuracion } from './paginas/Configuracion';
 import { Compras } from './paginas/Compras';
 import { Reponer } from './paginas/Reponer';
 import { Pedidos } from './paginas/Pedidos';
+import { Buffet } from './paginas/Buffet';
 
 export type Usuario = { id: string; nombre: string; rol: string; login: string };
 const GESTION = ['direccion', 'administracion'];
@@ -39,6 +40,7 @@ const TODOS = [...GESTION, 'recepcion', 'restaurante'];
 const MENU = [
   { seccion: 'Operación', items: [
     { to: '/registrar', label: 'Registrar consumo', icon: IconPencilPlus, roles: TODOS, el: <Registrar /> },
+    { to: '/buffet', label: 'Buffet del día', icon: IconBread, roles: TODOS, el: <Buffet /> },
     { to: '/excel', label: 'Importar Excel', icon: IconFileSpreadsheet, roles: TODOS, el: <Excel /> },
     { to: '/recuento', label: 'Recuento', icon: IconClipboardCheck, roles: TODOS, el: <Recuento /> },
     { to: '/caducidades', label: 'Caducidades', icon: IconCalendarExclamation, roles: TODOS, el: <Caducidades /> },

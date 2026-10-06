@@ -226,6 +226,8 @@ def _ref(hoja: str, fecha: date, tipo: str) -> str:
 
 def _previos(con, hoja: str, fecha: date, tipo: str) -> list[int]:
     ids = [r[0] for r in con.execute("SELECT id FROM consumos WHERE ref=?", (_ref(hoja, fecha, tipo),))]
+    if hoja == "ConsumoBuffet" and tipo == "consumo":  # el buffet confirmado en BM ese día también se sustituye
+        ids += [r[0] for r in con.execute("SELECT id FROM consumos WHERE ref=?", (f"buffet:{fecha.isoformat()}",))]
     if tipo == "consumo":
         for pre in REEMPLAZA_BM2.get(hoja, ()):
             ids += [r[0] for r in con.execute(
