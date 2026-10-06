@@ -95,6 +95,14 @@ class TestFlujos(unittest.TestCase):
         c.post("/api/logout")
         self.assertEqual(otro.get("/api/me").status_code, 401)
 
+    def test_login_se_bloquea_tras_muchos_fallos(self):
+        usuarios.guardar(con, "temp", "TEMP", "restaurante", "clave-segura")
+        c = TestClient(A.app)
+        for _ in range(A.INTENTOS_LOGIN):
+            self.assertEqual(c.post("/api/login", json={"login": "temp", "password": "mal"}).status_code, 401)
+        self.assertEqual(c.post("/api/login", json={"login": "temp", "password": "clave-segura"}).status_code, 429)
+        self.assertEqual(c.post("/api/login", json={"login": "dir", "password": "clave-segura"}).status_code, 200)  # otros no
+
     def test_escrituras_quedan_auditadas(self):
         cliente("dir").post("/api/config/copias")
         ultima = con.execute("SELECT usuario, ruta, estado FROM auditoria ORDER BY id DESC LIMIT 1").fetchone()

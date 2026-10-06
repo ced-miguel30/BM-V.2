@@ -30,6 +30,7 @@ STATIC = Path(__file__).resolve().parent / "static"
 GESTION = ("direccion", "administracion")
 OPERATIVO = GESTION + ("recepcion", "restaurante")
 HORAS_SESION = 12
+INTENTOS_LOGIN = 10  # fallos seguidos por usuario antes de bloquear 15 minutos
 
 
 def _hash(token: str) -> str:
@@ -93,8 +94,18 @@ class Login(BaseModel):
 
 @app.post("/api/login")
 def login(datos: Login, response: Response):
-    u = con.execute("SELECT * FROM usuarios WHERE login=? AND activo=1", (datos.login.strip().lower(),)).fetchone()
+    nombre = datos.login.strip().lower()
+    fallos = con.execute("""SELECT COUNT(*) FROM auditoria WHERE ruta='/api/login' AND estado=401 AND usuario=?
+                            AND cuando > datetime('now', 'localtime', '-15 minutes')
+                            AND id > COALESCE((SELECT MAX(a.id) FROM auditoria a JOIN usuarios u ON u.nombre=a.usuario
+                                               WHERE a.ruta='/api/login' AND a.estado=200 AND u.login=?), 0)""",
+                         (nombre, nombre)).fetchone()[0]
+    if fallos >= INTENTOS_LOGIN:
+        raise HTTPException(429, "Demasiados intentos fallidos. Espera 15 minutos o pide a Dirección que revise tu contraseña.")
+    u = con.execute("SELECT * FROM usuarios WHERE login=? AND activo=1", (nombre,)).fetchone()
     if not u or not verify_password(datos.password, u["password_hash"]):
+        con.execute("INSERT INTO auditoria(usuario, metodo, ruta, estado) VALUES(?, 'POST', '/api/login', 401)", (nombre,))
+        con.commit()
         raise HTTPException(401, "Usuario o contraseña incorrectos")
     token = secrets.token_urlsafe(32)
     con.execute("DELETE FROM sesiones WHERE expira <= datetime('now')")
