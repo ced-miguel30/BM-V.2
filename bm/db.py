@@ -274,6 +274,24 @@ CREATE TABLE IF NOT EXISTS buffet_diario(
   PRIMARY KEY(fecha, etiqueta)
 );
 
+-- Comandas de desayuno: cada plato tocado en la tablet. El consumo del día se recalcula de aquí (ref comandas:fecha).
+CREATE TABLE IF NOT EXISTS comanda_lineas(
+  id INTEGER PRIMARY KEY,
+  fecha TEXT NOT NULL,
+  hora TEXT NOT NULL DEFAULT (time('now', 'localtime')),
+  nombre TEXT NOT NULL,                -- receta, bebida o suelto, tal cual lo entiende el registro
+  cantidad REAL NOT NULL DEFAULT 1,
+  extras TEXT NOT NULL DEFAULT '[]',   -- JSON [["Bacon", 1], ...]
+  omitir TEXT NOT NULL DEFAULT '[]',   -- JSON ["Sin huevo", ...]
+  usuario TEXT,
+  anulada INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS ix_comanda_fecha ON comanda_lineas(fecha);
+CREATE TABLE IF NOT EXISTS comanda_dia(
+  fecha TEXT PRIMARY KEY,
+  comensales INTEGER NOT NULL DEFAULT 0
+);
+
 CREATE TABLE IF NOT EXISTS ajustes(clave TEXT PRIMARY KEY, valor TEXT);
 
 -- Sesiones (sobreviven a reinicios del servidor). Se guarda el hash del token, nunca el token.

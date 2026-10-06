@@ -56,8 +56,15 @@ class TestExcelDesayuno(unittest.TestCase):
     def test_desconocido_es_error(self):
         with self.assertRaises(ValueError):
             self.r.fila(fila(nombre="Plato inventado"))
-        with self.assertRaises(ValueError):
-            self.r.fila(fila(omitir=["Caviar"]))
+        self.r.avisos = []
+        self.r.fila(fila(omitir=["Caviar"]))  # quitar algo que el plato no lleva: aviso, no bloquea el día
+        self.assertTrue(self.r.avisos)
+
+    def test_errata_se_corrige_avisando(self):
+        self.r.avisos = []
+        t = total(self.r.fila(fila(nombre="Desayuno ingels")))
+        self.assertEqual(t["HUEVO"], 1)
+        self.assertIn("Desayuno ingles", self.r.avisos[0])
 
 
 if __name__ == "__main__":

@@ -8,7 +8,7 @@ import { useDisclosure } from '@mantine/hooks';
 import {
   IconArrowsExchange, IconBook2, IconBuildingWarehouse, IconCalendarExclamation, IconChartBar, IconClipboardCheck,
   IconCloudUpload, IconFileSpreadsheet, IconListDetails, IconLogout, IconMoon, IconPackages, IconPencilPlus,
-  IconReceipt2, IconSun, IconChartDots, IconScale, IconTrendingUp, IconSettings, IconKey, IconTruckDelivery, IconShoppingCart, IconStackPush, IconBread, IconTrashX, IconBell, IconCalendarCheck,
+  IconReceipt2, IconSun, IconChartDots, IconScale, IconTrendingUp, IconSettings, IconKey, IconTruckDelivery, IconShoppingCart, IconStackPush, IconBread, IconTrashX, IconBell, IconCalendarCheck, IconToolsKitchen2,
 } from '@tabler/icons-react';
 import { api, avisoError, avisoOk } from './api';
 import { Logo } from './comun';
@@ -35,6 +35,7 @@ import { Buffet } from './paginas/Buffet';
 import { Perdidas } from './paginas/Perdidas';
 import { Cierre } from './paginas/Cierre';
 import { Informe } from './paginas/Informe';
+import { Comandas } from './paginas/Comandas';
 
 export type Usuario = { id: string; nombre: string; rol: string; login: string };
 const GESTION = ['direccion', 'administracion'];
@@ -42,6 +43,7 @@ const TODOS = [...GESTION, 'recepcion', 'restaurante'];
 
 const MENU = [
   { seccion: 'Operación', items: [
+    { to: '/comandas', label: 'Comandas desayuno', icon: IconToolsKitchen2, roles: TODOS, el: <Comandas /> },
     { to: '/registrar', label: 'Registrar consumo', icon: IconPencilPlus, roles: TODOS, el: <Registrar /> },
     { to: '/buffet', label: 'Buffet del día', icon: IconBread, roles: TODOS, el: <Buffet /> },
     { to: '/excel', label: 'Importar Excel', icon: IconFileSpreadsheet, roles: TODOS, el: <Excel /> },
@@ -192,16 +194,16 @@ export function App() {
 
   const menu = MENU.map((s) => ({ ...s, items: s.items.filter((i) => i.roles.includes(usuario.rol)) })).filter((s) => s.items.length);
   const rutas = menu.flatMap((s) => s.items);
-  const inicio = rutas.some((r) => r.to === '/') ? '/' : '/registrar';
+  const inicio = rutas.some((r) => r.to === '/') ? '/' : '/comandas';
   const salir = async () => { await api('/logout', { method: 'POST' }).catch(() => null); setUsuario(null); };
   const activo = (to: string) => (to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(to));
 
   return (
-    <AppShell header={{ height: 60 }} navbar={{ width: 250, breakpoint: 'sm', collapsed: { mobile: !abierto } }} padding="lg">
+    <AppShell header={{ height: 60 }} navbar={{ width: 250, breakpoint: 'md', collapsed: { mobile: !abierto } }} padding="lg">
       <AppShell.Header bg="var(--mantine-color-marina-9)" c="white" withBorder={false}>
         <Group h="100%" px="md" justify="space-between" wrap="nowrap">
           <Group gap="sm" wrap="nowrap">
-            <Burger opened={abierto} onClick={toggle} hiddenFrom="sm" size="sm" color="white" aria-label="Menú" />
+            <Burger opened={abierto} onClick={toggle} hiddenFrom="md" size="sm" color="white" aria-label="Menú" />
             <Logo size={34} claro />
             <Box visibleFrom="xs">
               <Text fw={700} lh={1.15}>Royal Marina</Text>

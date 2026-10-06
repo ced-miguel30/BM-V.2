@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Anchor, Badge, Button, Card, FileButton, Group, List, Stack, Table, Text } from '@mantine/core';
+import { Alert, Anchor, Badge, Button, Card, FileButton, Group, List, NumberInput, Stack, Table, Text, Tooltip } from '@mantine/core';
 import { IconCheck, IconDownload, IconFileSpreadsheet } from '@tabler/icons-react';
 import { api, avisoError, avisoOk } from '../api';
 import { BadgeServicio, Cabecera, Vacio } from '../comun';
@@ -9,6 +9,7 @@ type Dia = {
   hoja: string; fecha: string | null; tipo: string; servicio: string; comensales: number | null; filas: number;
   n_lineas: number; coste_estimado?: number; reemplaza: number; notas: string | null;
   errores: { fila: number; mensaje: string; nombre: string }[];
+  avisos: string[];
 };
 const HOJA: Record<string, string> = {
   Registro: 'Desayuno', RegistroBebidasDesayuno: 'Bebidas desayuno', RegistroComida: 'Comida', RegistroCena: 'Cena', ConsumoBuffet: 'Buffet',
@@ -18,15 +19,17 @@ export function Excel() {
   const [archivo, setArchivo] = useState<File | null>(null);
   const [plan, setPlan] = useState<Dia[] | null>(null);
   const [cargando, setCargando] = useState(false);
+  const [comensales, setComensales] = useState<Record<string, number | string>>({});
 
   const enviar = async (f: File, confirmar: boolean) => {
     const form = new FormData();
     form.append('archivo', f);
+    form.append('comensales', JSON.stringify(comensales));
     return api<{ plan: Dia[]; importados: number }>(`/excel?confirmar=${confirmar}`, { form });
   };
   const previsualizar = async (f: File | null) => {
     if (!f) return;
-    setCargando(true); setArchivo(f); setPlan(null);
+    setCargando(true); setArchivo(f); setPlan(null); setComensales({});
     try { setPlan((await enviar(f, false)).plan); } catch (e) { avisoError(e); setArchivo(null); } finally { setCargando(false); }
   };
   const importar = async () => {
@@ -64,6 +67,11 @@ export function Excel() {
         </Card>
       ) : (
         <Stack>
+          {plan.some((d) => d.hoja === 'Registro' && d.fecha && !(comensales[d.fecha] ?? d.comensales)) && (
+            <Alert color="yellow" title="Faltan los comensales de algunos días">
+              El Excel no los trae (columna Huéspedes a 0). Escríbelos en la tabla: sin ellos no hay coste por comensal ni previsión del buffet.
+            </Alert>
+          )}
           {conError.length > 0 && (
             <Alert color="red" title={`${conError.length} días con errores (no se importarán)`}>
               Corrige esas filas en el Excel y vuelve a subirlo. {validos.length > 0 && 'Los demás días se pueden importar ya.'}
@@ -81,13 +89,19 @@ export function Excel() {
                       <Table.Td>{d.fecha ? fecha(d.fecha) : '—'}</Table.Td>
                       <Table.Td><Group gap={6}><Text size="sm">{HOJA[d.hoja] ?? d.hoja}</Text>{d.tipo === 'merma' && <Badge size="xs" color="red">Merma</Badge>}</Group></Table.Td>
                       <Table.Td className="num">{d.filas}</Table.Td>
-                      <Table.Td className="num">{d.comensales ?? '—'}</Table.Td>
+                      <Table.Td className="num">{d.hoja === 'Registro' && d.fecha ? (
+                        <NumberInput size="xs" w={90} min={0} allowDecimal={false} placeholder="¿?" ml="auto" aria-label={`Comensales ${d.fecha}`}
+                          value={comensales[d.fecha] ?? (d.comensales || '')} error={!(comensales[d.fecha] ?? d.comensales)}
+                          onChange={(x) => setComensales({ ...comensales, [d.fecha!]: x })} />) : (d.comensales ?? '—')}</Table.Td>
                       <Table.Td className="num">{d.n_lineas}</Table.Td>
                       {verCoste && <Table.Td className="num">{euros(d.coste_estimado)}</Table.Td>}
                       <Table.Td>
                         {d.errores.length ? (
                           <Stack gap={2}>{d.errores.map((e, j) => <Text key={j} size="xs" c="red">Fila {e.fila}: {e.mensaje}</Text>)}</Stack>
-                        ) : d.reemplaza ? <Badge color="yellow" variant="light">Sustituye lo registrado</Badge> : <Badge color="teal" variant="light">Nuevo</Badge>}
+                        ) : <Group gap={6}>
+                          {d.reemplaza ? <Badge color="yellow" variant="light">Sustituye lo registrado</Badge> : <Badge color="teal" variant="light">Nuevo</Badge>}
+                          {d.avisos?.length > 0 && <Tooltip multiline w={360} label={d.avisos.join(' · ')}><Badge color="blue" variant="light">{d.avisos.length} avisos</Badge></Tooltip>}
+                        </Group>}
                       </Table.Td>
                     </Table.Tr>
                   ))}

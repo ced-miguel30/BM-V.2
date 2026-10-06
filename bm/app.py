@@ -7,13 +7,14 @@ from __future__ import annotations
 
 import asyncio
 import hashlib
+import json
 import secrets
 import shutil
 import tempfile
 from datetime import date, timedelta
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException, Request, Response, UploadFile
+from fastapi import Depends, FastAPI, Form, HTTPException, Request, Response, UploadFile
 from fastapi.responses import FileResponse, Response as RawResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -375,7 +376,8 @@ def editar_receta(rid: str, d: Receta, u: dict = Depends(requiere(*GESTION))):
 # ---------------------------------------------------------------- TPV
 @app.get("/api/tpv/articulos")
 def tpv_articulos(u: dict = Depends(requiere(*GESTION))):
-    return [dict(x) for x in con.execute(
+    sug = tpv.sugerencias(con)
+    return [{**dict(x), "sugerencia": sug.get(x["codigo"])} for x in con.execute(
         """SELECT a.*, r.nombre receta, p.nombre producto_nombre, p.unidad producto_unidad,
               ROUND(SUM(v.importe),2) importe, COUNT(DISTINCT v.fecha) dias
             FROM tpv_articulos a JOIN tpv_ventas v ON v.codigo=a.codigo
@@ -443,10 +445,13 @@ def excel_plantilla(u: dict = Depends(requiere(*OPERATIVO))):
 
 
 @app.post("/api/excel")
-def excel_importar(archivo: UploadFile, confirmar: bool = False, u: dict = Depends(requiere(*OPERATIVO))):
-    """Sin confirmar: vista previa (no escribe). Con confirmar: importa los días sin errores."""
+def excel_importar(archivo: UploadFile, confirmar: bool = False, comensales: str | None = Form(None),
+                   u: dict = Depends(requiere(*OPERATIVO))):
+    """Sin confirmar: vista previa (no escribe). Con confirmar: importa los días sin errores.
+    comensales: JSON {"2026-09-05": 34} para los días en que el Excel no los trae."""
     try:
-        r = excel.importar(con, _subida(archivo), usuario=u["nombre"], confirmar=confirmar)
+        extra = {k: int(v) for k, v in json.loads(comensales).items() if v not in (None, "")} if comensales else None
+        r = excel.importar(con, _subida(archivo), usuario=u["nombre"], confirmar=confirmar, comensales=extra)
     except (ValueError, KeyError, OSError) as e:
         raise HTTPException(400, f"No se pudo leer el Excel: {e}") from e
     if u["rol"] not in GESTION:  # el personal operativo no ve costes
@@ -472,7 +477,7 @@ def bc_subir(tipo: str, archivo: UploadFile, u: dict = Depends(requiere(*GESTION
 
 
 # ---------------------------------------------------------------- módulos (registran rutas sobre `app`)
-from bm import api_analisis, api_buffet, api_cierre, api_compras, api_config, api_inventario, api_prevision  # noqa: E402,F401
+from bm import api_analisis, api_buffet, api_cierre, api_comandas, api_compras, api_config, api_inventario, api_prevision  # noqa: E402,F401
 
 # ---------------------------------------------------------------- web (siempre la última ruta)
 if STATIC.exists():

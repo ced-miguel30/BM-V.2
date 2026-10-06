@@ -13,6 +13,7 @@ type Articulo = {
   codigo: string; nombre: string; categoria: string | null; servicio: string; receta_id: string | null; producto: string | null;
   factor: number; precio: number | null; ignorar: number; receta: string | null; producto_nombre: string | null;
   producto_unidad: string | null; importe: number; dias: number;
+  sugerencia: { tipo: 'receta' | 'producto'; id: string; nombre: string; confianza: number } | null;
 };
 type Catalogo = { recetas: { id: string; nombre: string }[]; productos: { codigo: string; nombre: string; unidad: string | null }[] };
 
@@ -43,6 +44,15 @@ export function Tpv() {
     } catch (e) { avisoError(e); } finally { setSubiendo(false); }
   };
 
+  const aceptar = async (a: Articulo) => {
+    const sg = a.sugerencia!;
+    try {
+      await api(`/tpv/articulos/${a.codigo}`, { method: 'PUT', body: {
+        receta_id: sg.tipo === 'receta' ? sg.id : null, producto: sg.tipo === 'producto' ? sg.id : null,
+        factor: 1, servicio: a.servicio, precio: a.precio, ignorar: false } });
+      avisoOk(`${a.nombre} → ${sg.nombre}`, 'Asignado'); cargar();
+    } catch (e) { avisoError(e); }
+  };
   const abrir = (a: Articulo) => { setEd({ ...a }); setModo(a.ignorar ? 'ignorar' : a.producto ? 'producto' : 'receta'); };
 
   const guardar = async () => {
@@ -93,6 +103,11 @@ export function Tpv() {
             render: (a) => a.ignorar ? <Badge color="gray" variant="light">No descuenta</Badge>
               : a.receta ? <Text size="sm">Receta: {a.receta}</Text>
               : a.producto_nombre ? <Text size="sm">{a.factor !== 1 ? `${a.factor} × ` : ''}{a.producto_nombre}</Text>
+              : a.sugerencia ? (
+                <Group gap={6} wrap="nowrap" onClick={(e) => e.stopPropagation()}>
+                  <Text size="sm" c="dimmed" lineClamp={1}>¿{a.sugerencia.tipo === 'receta' ? 'Receta' : 'Producto'}: {a.sugerencia.nombre}?</Text>
+                  <Button size="compact-xs" variant="light" color="teal" onClick={() => aceptar(a)} disabled={!a.precio}>Aceptar</Button>
+                </Group>)
               : <Badge color="orange" variant="light">Sin asignar</Badge> },
         ]} />
 

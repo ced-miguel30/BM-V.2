@@ -150,3 +150,31 @@ def pendientes(con: sqlite3.Connection) -> list[sqlite3.Row]:
            WHERE a.ignorar=0 AND a.receta_id IS NULL AND a.producto IS NULL
            GROUP BY a.codigo ORDER BY importe DESC"""
     ).fetchall()
+
+
+def sugerencias(con: sqlite3.Connection) -> dict:
+    """Para cada artículo sin asignar: la receta de nombre más parecido o, si no hay, el producto más comprado
+    que contiene sus palabras. Solo se sugiere: alguien lo confirma con un clic."""
+    import difflib
+
+    from bm.excel import _n
+
+    recetas = {_n(r["nombre"]): (r["id"], r["nombre"]) for r in con.execute("SELECT id, nombre FROM recetas WHERE activo=1")}
+    compras = {r[0]: r[1] for r in con.execute(
+        """SELECT producto, COUNT(*) FROM bc_movs WHERE tipo='Compra' AND fecha>=date('now','-180 days') GROUP BY 1""")}
+    productos = [(r["codigo"], r["nombre"], _n(r["nombre"]).split()) for r in con.execute(
+        "SELECT codigo, nombre FROM productos WHERE es_tpv=0 AND categoria LIKE '1%' AND activo=1")]
+    out = {}
+    for a in pendientes(con):
+        k = _n(a["nombre"])
+        m = difflib.get_close_matches(k, recetas, n=1, cutoff=0.6)
+        if m:
+            score = difflib.SequenceMatcher(None, k, m[0]).ratio()
+            out[a["codigo"]] = {"tipo": "receta", "id": recetas[m[0]][0], "nombre": recetas[m[0]][1], "confianza": round(score, 2)}
+            continue
+        palabras = [w for w in k.split() if len(w) >= 4]
+        cands = [(compras.get(c, 0), c, n) for c, n, ws in productos if palabras and all(any(w.startswith(p[:5]) for w in ws) for p in palabras)]
+        if cands:
+            _, c, n = max(cands)
+            out[a["codigo"]] = {"tipo": "producto", "id": c, "nombre": n, "confianza": 0.5}
+    return out

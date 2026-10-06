@@ -8,12 +8,14 @@ Hojas: Registro (platos de desayuno), RegistroBebidasDesayuno, RegistroComida, R
 
 from __future__ import annotations
 
+import difflib
 import re
 import sqlite3
 import unicodedata
 from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import date, datetime
+from pathlib import Path
 
 import openpyxl
 
@@ -71,10 +73,25 @@ class Fila:
     nota: str = ""
 
 
+def _fecha_del_nombre(path) -> date | None:
+    """"10-09.xlsx" -> 10/09 del año en curso (lo que hace el hotel: un fichero por día)."""
+    m = re.search(r"(\d{1,2})[-_.](\d{1,2})(?:[-_.](\d{2,4}))?", Path(str(path)).stem)
+    if not m:
+        return None
+    d, mes, y = int(m.group(1)), int(m.group(2)), m.group(3)
+    y = int(y) + (2000 if y and len(y) == 2 else 0) if y else date.today().year
+    try:
+        return date(y, mes, d)
+    except ValueError:
+        return None
+
+
 def leer(path) -> tuple[list[Fila], list[tuple[str, int, str]]]:
-    """-> (filas válidas, errores de lectura [(hoja, fila, mensaje)])"""
+    """-> (filas válidas, errores de lectura [(hoja, fila, mensaje)]).
+    Una fila sin fecha hereda la de la fila anterior (o la del nombre del fichero): así se rellena a mano."""
     wb = openpyxl.load_workbook(path, data_only=True, read_only=True)
     filas, errores = [], []
+    por_defecto = _fecha_del_nombre(path)
     for hoja in HOJAS:
         if hoja not in wb.sheetnames:
             continue
@@ -85,14 +102,17 @@ def leer(path) -> tuple[list[Fila], list[tuple[str, int, str]]]:
             i = _cab.get(nombre)
             return row[i] if i is not None and i < len(row) else None
 
+        anterior = None
         for n_fila, row in enumerate(it, start=2):
             nombre = str(col(row, "nombre") or col(row, "concepto") or "").strip()
             if not nombre:
                 continue
-            f = _fecha(col(row, "fecha"))
+            bruto = col(row, "fecha")
+            f = _fecha(bruto) if bruto not in (None, "") else (anterior or por_defecto)
             if not f:
-                errores.append((hoja, n_fila, f"Fecha no válida: {col(row, 'fecha')!r}"))
+                errores.append((hoja, n_fila, f"Fecha no válida: {bruto!r}"))
                 continue
+            anterior = f
             tipo = str(col(row, "tipo") or "").strip()
             hues = _num(col(row, "huespedes"), None)
             if tipo in ("0", "1", "0.0", "1.0"):  # costumbre del hotel: 0/1 en Tipo = huésped
@@ -117,7 +137,9 @@ class Resolver:
     """Traduce filas del Excel a líneas de producto con los datos actuales (recetas, atajos, sustituciones)."""
 
     def __init__(self, con: sqlite3.Connection):
-        self.recetas = {_n(r["nombre"]): r["id"] for r in con.execute("SELECT id, nombre FROM recetas WHERE activo=1")}
+        filas_recetas = con.execute("SELECT id, nombre FROM recetas WHERE activo=1").fetchall()
+        self.recetas = {_n(r["nombre"]): r["id"] for r in filas_recetas}
+        self.nombre_receta = {_n(r["nombre"]): r["nombre"] for r in filas_recetas}
         self.porciones = dict(con.execute("SELECT id, porciones FROM recetas").fetchall())
         self.ingredientes = defaultdict(list)
         for r in con.execute("SELECT receta_id, producto, cantidad FROM receta_lineas"):
@@ -132,10 +154,19 @@ class Resolver:
             self.productos[_n(p["nombre"])] = p["codigo"]
             self.productos[_n(p["codigo"])] = p["codigo"]
         self.nombre_producto = {v: k for k, v in self.productos.items()}
+        self.avisos: list[str] = []  # erratas corregidas y omisiones que no aplican (no bloquean el día)
+
+    def _parecido(self, k: str, opciones) -> str | None:
+        hit = difflib.get_close_matches(k, list(opciones), n=1, cutoff=0.85)
+        return hit[0] if hit else None
 
     def receta(self, nombre: str, fecha: date) -> str | None:
         k = _n(nombre)
-        return self.del_dia.get((k, fecha.weekday())) or self.recetas.get(k)
+        rid = self.del_dia.get((k, fecha.weekday())) or self.recetas.get(k)
+        if not rid and (p := self._parecido(k, self.recetas)):
+            self.avisos.append(f"«{nombre}» se ha leído como «{self.nombre_receta[p]}»")
+            rid = self.recetas[p]
+        return rid
 
     def lineas_receta(self, rid: str, raciones: float) -> list[list]:
         f = raciones / (self.porciones.get(rid) or 1)
@@ -143,7 +174,13 @@ class Resolver:
 
     def atajo(self, etiqueta: str, grupos) -> dict | None:
         k = _n(etiqueta)
-        return next((self.atajos[g][k] for g in grupos if k in self.atajos[g]), None)
+        a = next((self.atajos[g][k] for g in grupos if k in self.atajos[g]), None)
+        if a is None:
+            for g in grupos:
+                if p := self._parecido(k, self.atajos[g]):
+                    self.avisos.append(f"«{etiqueta}» se ha leído como «{self.atajos[g][p]['etiqueta']}»")
+                    return self.atajos[g][p]
+        return a
 
     def producto(self, nombre: str) -> str | None:
         k = _n(nombre)
@@ -151,6 +188,13 @@ class Resolver:
             return self.productos[k]
         tokens = k.split()
         hits = {c for n, c in self.productos.items() if len(tokens) >= 2 and all(t in n.split() for t in tokens)}
+        if len(hits) != 1 and len(tokens) >= 2:  # erratas palabra a palabra: "queos rulo" -> "queso rulo"
+            if not hasattr(self, "_vocab"):
+                self._vocab = sorted({w for n in self.productos for w in n.split() if len(w) > 2})
+            fijos = [(difflib.get_close_matches(t, self._vocab, n=1, cutoff=0.75) or [t])[0] for t in tokens]
+            hits = {c for n, c in self.productos.items() if all(t in n.split() for t in fijos)}
+            if len(hits) == 1:
+                self.avisos.append(f"«{nombre}» se ha leído como «{' '.join(fijos)}»")
         return hits.pop() if len(hits) == 1 else None
 
     def _cantidad_atajo(self, a: dict, veces: float) -> list[list]:
@@ -189,7 +233,8 @@ class Resolver:
             p = (a or {}).get("producto") or self.producto(etq) or next(
                 (l[0] for l in lineas if _n(etq) in self.nombre_producto.get(l[0], "")), None)
             if not p or not any(l[0] == p for l in lineas):
-                raise ValueError(f"Omitir «{etq}»: no está en la receta")
+                self.avisos.append(f"Quitar «{etq}»: el plato no lo lleva, no se descuenta nada")
+                continue
             lineas = [l for l in lineas if l[0] != p]
         for etq, k in f.extras:  # ...luego añadir extras o sustituir huevo/pan
             a = self.atajo(etq, extras_grupos)
@@ -226,6 +271,8 @@ def _ref(hoja: str, fecha: date, tipo: str) -> str:
 
 def _previos(con, hoja: str, fecha: date, tipo: str) -> list[int]:
     ids = [r[0] for r in con.execute("SELECT id FROM consumos WHERE ref=?", (_ref(hoja, fecha, tipo),))]
+    if hoja in ("Registro", "RegistroBebidasDesayuno") and tipo == "consumo":  # y las comandas de ese día
+        ids += [r[0] for r in con.execute("SELECT id FROM consumos WHERE ref=?", (f"comandas:{fecha.isoformat()}",))]
     if hoja == "ConsumoBuffet" and tipo == "consumo":  # el buffet confirmado en BM ese día también se sustituye
         ids += [r[0] for r in con.execute("SELECT id FROM consumos WHERE ref=?", (f"buffet:{fecha.isoformat()}",))]
     if tipo == "consumo":
@@ -236,7 +283,7 @@ def _previos(con, hoja: str, fecha: date, tipo: str) -> list[int]:
     return ids
 
 
-def planificar(con: sqlite3.Connection, filas: list[Fila], errores_lectura=()) -> list[dict]:
+def planificar(con: sqlite3.Connection, filas: list[Fila], errores_lectura=(), comensales: dict | None = None) -> list[dict]:
     """Agrupa por (hoja, día, consumo|merma) y resuelve cada fila. No escribe nada."""
     from bm.consumos import precio_actual
 
@@ -246,7 +293,7 @@ def planificar(con: sqlite3.Connection, filas: list[Fila], errores_lectura=()) -
         tipo = "consumo" if f.motivo == "consumo" else "merma"
         g = grupos.setdefault((f.hoja, f.fecha, tipo), {
             "hoja": f.hoja, "fecha": f.fecha.isoformat(), "tipo": tipo, "servicio": HOJAS[f.hoja][0],
-            "comensales": 0, "filas": 0, "lineas": [], "errores": [], "notas": set()})
+            "comensales": 0, "filas": 0, "lineas": [], "errores": [], "avisos": [], "notas": set()})
         g["filas"] += 1
         g["comensales"] += f.huesped
         if f.nota and not f.nota.upper().startswith("OK "):
@@ -254,7 +301,9 @@ def planificar(con: sqlite3.Connection, filas: list[Fila], errores_lectura=()) -
         if tipo == "merma":
             g["notas"].add(f"Motivo: {f.motivo}")
         try:
+            res.avisos = []
             g["lineas"] += res.fila(f)
+            g["avisos"] += [f"Fila {f.fila}: {a}" for a in res.avisos]
         except ValueError as e:
             g["errores"].append({"fila": f.fila, "mensaje": str(e), "nombre": f.nombre})
     plan = []
@@ -263,17 +312,18 @@ def planificar(con: sqlite3.Connection, filas: list[Fila], errores_lectura=()) -
         coste = sum(q * (cache.setdefault(p, precio_actual(con, p, g["fecha"])) or 0) for p, q, _ in g["lineas"])
         plan.append({**g, "notas": "; ".join(sorted(g["notas"])) or None, "n_lineas": len(g["lineas"]),
                      "coste_estimado": round(coste, 2), "reemplaza": len(_previos(con, hoja, fecha, tipo)),
-                     "comensales": g["comensales"] if hoja == "Registro" else None})
+                     "comensales": (comensales or {}).get(g["fecha"], g["comensales"]) if hoja == "Registro" else None})
     for hoja, fila, msg in errores_lectura:
-        plan.append({"hoja": hoja, "fecha": None, "tipo": "consumo", "servicio": HOJAS[hoja][0], "comensales": None,
+        plan.append({"hoja": hoja, "fecha": None, "tipo": "consumo", "servicio": HOJAS[hoja][0], "comensales": None, "avisos": [],
                      "filas": 1, "lineas": [], "errores": [{"fila": fila, "mensaje": msg, "nombre": ""}],
                      "notas": None, "n_lineas": 0, "coste_estimado": 0, "reemplaza": 0})
     return plan
 
 
-def importar(con: sqlite3.Connection, path, usuario: str | None = None, confirmar: bool = False) -> dict:
+def importar(con: sqlite3.Connection, path, usuario: str | None = None, confirmar: bool = False,
+             comensales: dict | None = None) -> dict:
     filas, errores = leer(path)
-    plan = planificar(con, filas, errores)
+    plan = planificar(con, filas, errores, comensales)
     if not confirmar:
         return {"plan": [{k: v for k, v in g.items() if k != "lineas"} for g in plan], "importados": 0}
     hechos = 0

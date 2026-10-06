@@ -52,6 +52,8 @@ def sembrar(con: sqlite3.Connection) -> None:
         con.execute("UPDATE traslados SET origen=? WHERE origen=?", (fisica, a))
         con.execute("UPDATE traslados SET destino=? WHERE destino=?", (fisica, a))
         con.execute("DELETE FROM ubicaciones WHERE codigo=?", (a,))
+    # "Tostada del dia" / "Coctel del dia": siempre activas (se resuelven a la receta que toca ese día)
+    con.execute("UPDATE recetas SET activo=1 WHERE lower(nombre) IN (SELECT lower(etiqueta) FROM recetas_dia)")
     con.execute("""INSERT OR IGNORE INTO proveedores(nombre) SELECT DISTINCT proveedor FROM bc_movs
                    WHERE tipo='Compra' AND proveedor <> ''""")
     con.executemany("UPDATE ubicaciones SET nombre=? WHERE codigo=? AND nombre=codigo", FISICAS)

@@ -32,7 +32,7 @@ def avisos(con: sqlite3.Connection, rol: str) -> list[dict]:
     gestion = rol in GESTION
     if not con.execute("SELECT 1 FROM consumos WHERE fecha=? AND servicio='desayuno' AND anulado=0 LIMIT 1", (hoy.isoformat(),)).fetchone() \
             and datetime.now().hour >= 11:
-        aviso("alta", "Desayuno de hoy sin registrar", "Regístralo (con los comensales) o importa el Excel", "/registrar")
+        aviso("alta", "Desayuno de hoy sin registrar", "Apúntalo en Comandas de desayuno (con los comensales) o importa el Excel", "/comandas")
     if not con.execute("SELECT 1 FROM buffet_diario WHERE fecha=? LIMIT 1", (hoy.isoformat(),)).fetchone():
         aviso("media", "Buffet de hoy sin confirmar", "BM propone las cantidades según los comensales", "/buffet")
     ayer = (hoy - timedelta(days=1)).isoformat()
