@@ -46,9 +46,11 @@ export function Tpv() {
 
   const aceptar = async (a: Articulo) => {
     const sg = a.sugerencia!;
+    // Un producto necesita la cantidad por venta (p. ej. croquetas por ración): se abre la ficha para confirmarla.
+    if (sg.tipo === 'producto') { setEd({ ...a, producto: sg.id, factor: a.factor || 1 }); setModo('producto'); return; }
     try {
       await api(`/tpv/articulos/${a.codigo}`, { method: 'PUT', body: {
-        receta_id: sg.tipo === 'receta' ? sg.id : null, producto: sg.tipo === 'producto' ? sg.id : null,
+        receta_id: sg.id, producto: null,
         factor: 1, servicio: a.servicio, precio: a.precio, ignorar: false } });
       avisoOk(`${a.nombre} → ${sg.nombre}`, 'Asignado'); cargar();
     } catch (e) { avisoError(e); }
@@ -106,7 +108,7 @@ export function Tpv() {
               : a.sugerencia ? (
                 <Group gap={6} wrap="nowrap" onClick={(e) => e.stopPropagation()}>
                   <Text size="sm" c="dimmed" lineClamp={1}>¿{a.sugerencia.tipo === 'receta' ? 'Receta' : 'Producto'}: {a.sugerencia.nombre}?</Text>
-                  <Button size="compact-xs" variant="light" color="teal" onClick={() => aceptar(a)} disabled={!a.precio}>Aceptar</Button>
+                  <Button size="compact-xs" variant="light" color="teal" onClick={() => aceptar(a)} disabled={!a.precio}>{a.sugerencia.tipo === 'producto' ? 'Revisar' : 'Aceptar'}</Button>
                 </Group>)
               : <Badge color="orange" variant="light">Sin asignar</Badge> },
         ]} />

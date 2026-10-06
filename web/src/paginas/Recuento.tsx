@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Affix, Badge, Button, Card, Group, Modal, NumberInput, Select, Stack, Switch, Tabs, Text, TextInput, Textarea,
+  Affix, Alert, Badge, Button, Card, Group, Modal, NumberInput, Select, Stack, Switch, Tabs, Text, TextInput, Textarea,
 } from '@mantine/core';
 import { IconCheck, IconPlus, IconSearch } from '@tabler/icons-react';
 import { api, avisoError, avisoOk } from '../api';
@@ -13,6 +13,15 @@ import { Tabla } from '../Tabla';
 type Linea = { producto: string; nombre: string; unidad: string | null; teorico?: number };
 type Historial = { id: number; fecha: string; ubicacion: string; usuario: string | null; n_productos: number; anulado: number; nota: string | null };
 type Detalle = Historial & { lineas: { producto: string; nombre: string; unidad: string; contado: number; teorico: number; diferencia: number; diferencia_valor: number | null }[] };
+
+// Borrador en el dispositivo: si el móvil se bloquea o se recarga a mitad de recuento, no se pierde lo contado.
+const claveBorrador = (ub: string) => `bm.recuento.${ub}`;
+const leerBorrador = (ub: string): Record<string, number | string> => {
+  try { return JSON.parse(localStorage.getItem(claveBorrador(ub)) ?? '{}'); } catch { return {}; }
+};
+const guardarBorrador = (ub: string, v: Record<string, number | string>) => {
+  try { if (Object.keys(v).length) localStorage.setItem(claveBorrador(ub), JSON.stringify(v)); else localStorage.removeItem(claveBorrador(ub)); } catch { /* sin almacenamiento */ }
+};
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
@@ -32,13 +41,19 @@ function Contar({ gestion }: { gestion: boolean }) {
 
   useEffect(() => { api<{ productos: typeof catalogo }>('/catalogo').then((c) => setCatalogo(c.productos)).catch(avisoError); }, []);
   useEffect(() => {
-    setLineas(null); setContado({});
-    if (ub) api<any[]>(`/stock?ubicacion=${encodeURIComponent(ub)}`)
-      .then((xs) => setLineas(xs.filter((x) => x.stock > 1e-6 || x.salidas_desde_recuento > 0)
+    setLineas(null); setContado(ub ? leerBorrador(ub) : {});
+    if (ub) api<any[]>(`/stock?ubicacion=${encodeURIComponent(ub)}`).then((xs) => {
+      const ls: Linea[] = xs.filter((x) => x.stock > 1e-6 || x.salidas_desde_recuento > 0)
         .map((x) => ({ producto: x.producto, nombre: x.nombre, unidad: x.unidad, teorico: x.stock }))
-        .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))))
-      .catch(avisoError);
+        .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+      // Lo añadido a mano en un borrador anterior vuelve arriba de la lista.
+      const extras = Object.keys(leerBorrador(ub)).filter((p) => !ls.some((l) => l.producto === p))
+        .map((p) => ({ producto: p, nombre: p, unidad: null }));
+      setLineas([...extras, ...ls]);
+    }).catch(avisoError);
   }, [ub]);
+
+  const cambiar = (v: Record<string, number | string>) => { setContado(v); if (ub) guardarBorrador(ub, v); };
 
   const contados = Object.entries(contado).filter(([, v]) => v !== '' && v != null);
   const visibles = useMemo(() => (lineas ?? []).filter((l) => !q || norm(`${l.nombre} ${l.producto}`).includes(norm(q))), [lineas, q]);
@@ -53,7 +68,7 @@ function Contar({ gestion }: { gestion: boolean }) {
       await api('/recuentos', { body: { fecha: hoy(), ubicacion: ub, nota: nota || null,
         lineas: contados.map(([producto, v]) => ({ producto, contado: Number(v) })) } });
       avisoOk(`${contados.length} productos contados en ${nombreUbicacion(ubicaciones, ub)}`, 'Recuento guardado');
-      setContado({}); setConfirmar(false); setNota('');
+      cambiar({}); setConfirmar(false); setNota('');
     } catch (e) { avisoError(e); } finally { setGuardando(false); }
   };
 
@@ -67,6 +82,14 @@ function Contar({ gestion }: { gestion: boolean }) {
       </Group>
       {!ub ? <Card><Vacio texto="Elige la ubicación que vas a contar" /></Card> : !lineas ? <Card><Text c="dimmed">Cargando…</Text></Card> : (
         <>
+          {contados.length > 0 && (
+            <Alert color="blue" variant="light" p="xs">
+              <Group justify="space-between" gap="xs">
+                <Text size="sm">{contados.length === 1 ? "1 producto contado guardado" : `${contados.length} productos contados guardados`} en este dispositivo hasta que pulses Guardar.</Text>
+                <Button size="compact-sm" variant="subtle" color="red" onClick={() => cambiar({})}>Empezar de cero</Button>
+              </Group>
+            </Alert>
+          )}
           <Group align="flex-end">
             <Select placeholder="¿Hay algo que no está en la lista? Búscalo" searchable limit={50} value={extra} onChange={setExtra}
               data={catalogo.map((c) => ({ value: c.codigo, label: `${c.nombre} (${c.unidad ?? 'ud'})` }))} style={{ flex: 1 }} />
@@ -77,10 +100,10 @@ function Contar({ gestion }: { gestion: boolean }) {
               <Card key={l.producto} p="sm" withBorder style={{ borderColor: contado[l.producto] !== undefined && contado[l.producto] !== '' ? 'var(--mantine-color-teal-5)' : undefined }}>
                 <Group justify="space-between" wrap="nowrap">
                   <div style={{ minWidth: 0 }}>
-                    <Text fw={500} lineClamp={2} lh={1.25}>{l.nombre}</Text>
+                    <Text fw={500} lineClamp={2} lh={1.25}>{l.nombre === l.producto ? catalogo.find((c) => c.codigo === l.producto)?.nombre ?? l.nombre : l.nombre}</Text>
                     <Text size="xs" c="dimmed">{l.producto}{verTeorico && l.teorico !== undefined ? ` · teórico ${cantidad(l.teorico)}` : ''}</Text>
                   </div>
-                  <NumberInput value={contado[l.producto] ?? ''} onChange={(x) => setContado({ ...contado, [l.producto]: x })} min={0} decimalScale={3}
+                  <NumberInput value={contado[l.producto] ?? ''} onChange={(x) => cambiar({ ...contado, [l.producto]: x })} min={0} decimalScale={3}
                     w={130} style={{ flex: "0 0 130px" }} size="md" placeholder="—" rightSection={<Text size="xs" c="dimmed" pr={6}>{l.unidad}</Text>} rightSectionWidth={44}
                     aria-label={`Cantidad contada de ${l.nombre}`} hideControls />
                 </Group>

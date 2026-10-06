@@ -486,5 +486,8 @@ if STATIC.exists():
     @app.get("/{ruta:path}", include_in_schema=False)
     def spa(ruta: str):
         f = STATIC / ruta
-        return FileResponse(f if ruta and f.is_file() else STATIC / "index.html")
+        if ruta and f.is_file():
+            return FileResponse(f)
+        # Sin caché: tras actualizar BM, cada navegador carga la versión nueva (los assets llevan hash en el nombre).
+        return FileResponse(STATIC / "index.html", headers={"Cache-Control": "no-cache"})
 

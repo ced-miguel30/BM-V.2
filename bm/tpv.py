@@ -152,6 +152,26 @@ def pendientes(con: sqlite3.Connection) -> list[sqlite3.Row]:
     ).fetchall()
 
 
+GENERICAS = {"copa", "botella", "vino", "racion", "vaso", "plato", "media"}
+
+
+def _clave(nombre_n: str) -> list[str]:
+    """Palabras que identifican un artículo: las de 4+ letras y los números (Licor 43, Habana 7), sin las genéricas."""
+    return [w for w in nombre_n.split() if (len(w) >= 4 or w.isdigit()) and w not in GENERICAS]
+
+
+def _parecido(art: list[str], rec: list[str]) -> float:
+    """0..1: palabras en común sobre las del más largo. La primera palabra del artículo (plato o marca) debe estar."""
+    if not art or not rec or not _comparten(art[:1], rec):
+        return 0.0
+    return sum(_comparten([p], rec) for p in art) / max(len(art), len(rec))
+
+
+def _comparten(palabras: list[str], otras: list[str]) -> bool:
+    """Alguna palabra coincide (por las 5 primeras letras: plurales y erratas; los números, exactos)."""
+    return any(w == p if p.isdigit() else w.startswith(p[:5]) for p in palabras for w in otras)
+
+
 def sugerencias(con: sqlite3.Connection) -> dict:
     """Para cada artículo sin asignar: la receta de nombre más parecido o, si no hay, el producto más comprado
     que contiene sus palabras. Solo se sugiere: alguien lo confirma con un clic."""
@@ -167,13 +187,14 @@ def sugerencias(con: sqlite3.Connection) -> dict:
     out = {}
     for a in pendientes(con):
         k = _n(a["nombre"])
-        m = difflib.get_close_matches(k, recetas, n=1, cutoff=0.6)
-        if m:
-            score = difflib.SequenceMatcher(None, k, m[0]).ratio()
-            out[a["codigo"]] = {"tipo": "receta", "id": recetas[m[0]][0], "nombre": recetas[m[0]][1], "confianza": round(score, 2)}
+        palabras = _clave(k)
+        # Receta: la que más palabras con significado comparte (desempata el parecido del texto).
+        score, _, m = max(((_parecido(palabras, _clave(n)), difflib.SequenceMatcher(None, k, n).ratio(), n) for n in recetas),
+                          default=(0, 0, None))
+        if score >= 0.5:
+            out[a["codigo"]] = {"tipo": "receta", "id": recetas[m][0], "nombre": recetas[m][1], "confianza": round(score, 2)}
             continue
-        palabras = [w for w in k.split() if len(w) >= 4]
-        cands = [(compras.get(c, 0), c, n) for c, n, ws in productos if palabras and all(any(w.startswith(p[:5]) for w in ws) for p in palabras)]
+        cands = [(compras.get(c, 0), c, n) for c, n, ws in productos if palabras and all(_comparten([p], ws) for p in palabras)]
         if cands:
             _, c, n = max(cands)
             out[a["codigo"]] = {"tipo": "producto", "id": c, "nombre": n, "confianza": 0.5}
