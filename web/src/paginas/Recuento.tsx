@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
-  Affix, Alert, Badge, Button, Card, Group, Modal, NumberInput, Select, Stack, Switch, Tabs, Text, TextInput, Textarea,
+  Affix, Alert, Badge, Button, Card, Chip, Group, Menu, Modal, NumberInput, Select, Stack, Switch, Tabs, Text, TextInput, Textarea,
 } from '@mantine/core';
-import { IconCheck, IconPlus, IconSearch } from '@tabler/icons-react';
+import { IconCheck, IconMapPin, IconPlus, IconSearch } from '@tabler/icons-react';
 import { api, avisoError, avisoOk } from '../api';
 import { Cabecera, Vacio } from '../comun';
 import { nombreUbicacion, useUbicaciones } from '../centros';
 import { cantidad, euros, fecha, hoy } from '../formato';
 import { Tabla } from '../Tabla';
 
-type Linea = { producto: string; nombre: string; unidad: string | null; teorico?: number };
+type Linea = { producto: string; nombre: string; unidad: string | null; teorico?: number; zona?: string | null };
+
+// Zonas habituales; las que se creen a mano se suman a la lista.
+const ZONAS_BASE = ['Nevera', 'Congelador', 'Cámara', 'Estantería', 'Bar'];
 type Historial = { id: number; fecha: string; ubicacion: string; usuario: string | null; n_productos: number; anulado: number; nota: string | null };
 type Detalle = Historial & { lineas: { producto: string; nombre: string; unidad: string; contado: number; teorico: number; diferencia: number; diferencia_valor: number | null }[] };
 
@@ -33,6 +36,7 @@ function Contar({ gestion }: { gestion: boolean }) {
   const [contado, setContado] = useState<Record<string, number | string>>({});
   const [q, setQ] = useState('');
   const [verTeorico, setVerTeorico] = useState(false);
+  const [zona, setZona] = useState('todas');
   const [extra, setExtra] = useState<string | null>(null);
   const [catalogo, setCatalogo] = useState<{ codigo: string; nombre: string; unidad: string | null }[]>([]);
   const [confirmar, setConfirmar] = useState(false);
@@ -41,10 +45,10 @@ function Contar({ gestion }: { gestion: boolean }) {
 
   useEffect(() => { api<{ productos: typeof catalogo }>('/catalogo').then((c) => setCatalogo(c.productos)).catch(avisoError); }, []);
   useEffect(() => {
-    setLineas(null); setContado(ub ? leerBorrador(ub) : {});
+    setLineas(null); setZona('todas'); setContado(ub ? leerBorrador(ub) : {});
     if (ub) api<any[]>(`/stock?ubicacion=${encodeURIComponent(ub)}`).then((xs) => {
       const ls: Linea[] = xs.filter((x) => x.stock > 1e-6 || x.salidas_desde_recuento > 0)
-        .map((x) => ({ producto: x.producto, nombre: x.nombre, unidad: x.unidad, teorico: x.stock }))
+        .map((x) => ({ producto: x.producto, nombre: x.nombre, unidad: x.unidad, teorico: x.stock, zona: x.zona }))
         .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
       // Lo añadido a mano en un borrador anterior vuelve arriba de la lista.
       const extras = Object.keys(leerBorrador(ub)).filter((p) => !ls.some((l) => l.producto === p))
@@ -56,7 +60,21 @@ function Contar({ gestion }: { gestion: boolean }) {
   const cambiar = (v: Record<string, number | string>) => { setContado(v); if (ub) guardarBorrador(ub, v); };
 
   const contados = Object.entries(contado).filter(([, v]) => v !== '' && v != null);
-  const visibles = useMemo(() => (lineas ?? []).filter((l) => !q || norm(`${l.nombre} ${l.producto}`).includes(norm(q))), [lineas, q]);
+  const visibles = useMemo(() => (lineas ?? []).filter((l) => (!q || norm(`${l.nombre} ${l.producto}`).includes(norm(q)))
+    && (zona === 'todas' || (zona === '' ? !l.zona : l.zona === zona))), [lineas, q, zona]);
+  const zonas = useMemo(() => [...new Set([...ZONAS_BASE, ...(lineas ?? []).map((l) => l.zona).filter((z): z is string => !!z)])], [lineas]);
+  const resumenZona = (z: string) => {
+    const ls = (lineas ?? []).filter((l) => (z === '' ? !l.zona : l.zona === z));
+    return { total: ls.length, hechos: ls.filter((l) => contado[l.producto] !== undefined && contado[l.producto] !== '').length };
+  };
+  const ponerZona = async (l: Linea, z: string | null) => {
+    if (z === null) return;
+    try {
+      await api('/zonas', { method: 'PUT', body: { producto: l.producto, ubicacion: ub, zona: z } });
+      const limpia = z.trim() ? z.trim()[0].toUpperCase() + z.trim().slice(1) : null;
+      setLineas((ls) => (ls ?? []).map((x) => (x.producto === l.producto ? { ...x, zona: limpia } : x)));
+    } catch (e) { avisoError(e); }
+  };
   const anadir = () => {
     const p = catalogo.find((c) => c.codigo === extra);
     if (p && !lineas?.some((l) => l.producto === p.codigo)) setLineas([{ producto: p.codigo, nombre: p.nombre, unidad: p.unidad }, ...(lineas ?? [])]);
@@ -95,13 +113,37 @@ function Contar({ gestion }: { gestion: boolean }) {
               data={catalogo.map((c) => ({ value: c.codigo, label: `${c.nombre} (${c.unidad ?? 'ud'})` }))} style={{ flex: 1 }} />
             <Button variant="light" leftSection={<IconPlus size={16} />} onClick={anadir} disabled={!extra}>Añadir</Button>
           </Group>
+          <Chip.Group value={zona} onChange={(v) => setZona(v as string)}>
+            <Group gap={6}>
+              <Chip value="todas" size="sm">Todas</Chip>
+              {[...zonas, ''].map((z) => {
+                const r = resumenZona(z);
+                return r.total ? <Chip key={z || 'sin'} value={z} size="sm">{z || 'Sin zona'} {r.hechos}/{r.total}</Chip> : null;
+              })}
+            </Group>
+          </Chip.Group>
           <Stack gap={6} pb={90}>
             {visibles.map((l) => (
               <Card key={l.producto} p="sm" withBorder style={{ borderColor: contado[l.producto] !== undefined && contado[l.producto] !== '' ? 'var(--mantine-color-teal-5)' : undefined }}>
                 <Group justify="space-between" wrap="nowrap">
                   <div style={{ minWidth: 0 }}>
                     <Text fw={500} lineClamp={2} lh={1.25}>{l.nombre === l.producto ? catalogo.find((c) => c.codigo === l.producto)?.nombre ?? l.nombre : l.nombre}</Text>
-                    <Text size="xs" c="dimmed">{l.producto}{verTeorico && l.teorico !== undefined ? ` · teórico ${cantidad(l.teorico)}` : ''}</Text>
+                    <Group gap={6} rowGap={0}>
+                      <Text size="xs" c="dimmed">{l.producto}{verTeorico && l.teorico !== undefined ? ` · teórico ${cantidad(l.teorico)}` : ''}</Text>
+                      <Menu position="bottom-start" withinPortal>
+                        <Menu.Target>
+                          <Button size="compact-xs" variant="subtle" color={l.zona ? 'gray' : 'blue'} leftSection={<IconMapPin size={12} />} aria-label={`Zona de ${l.nombre}`}>
+                            {l.zona ?? 'Zona'}
+                          </Button>
+                        </Menu.Target>
+                        <Menu.Dropdown>
+                          {zonas.map((z) => <Menu.Item key={z} onClick={() => ponerZona(l, z)}>{z}</Menu.Item>)}
+                          <Menu.Divider />
+                          <Menu.Item onClick={() => ponerZona(l, window.prompt('Nombre de la zona (p. ej. Estantería 2)'))}>Otra zona…</Menu.Item>
+                          {l.zona && <Menu.Item color="red" onClick={() => ponerZona(l, '')}>Quitar zona</Menu.Item>}
+                        </Menu.Dropdown>
+                      </Menu>
+                    </Group>
                   </div>
                   <NumberInput value={contado[l.producto] ?? ''} onChange={(x) => cambiar({ ...contado, [l.producto]: x })} min={0} decimalScale={3}
                     w={130} style={{ flex: "0 0 130px" }} size="md" placeholder="—" rightSection={<Text size="xs" c="dimmed" pr={6}>{l.unidad}</Text>} rightSectionWidth={44}

@@ -56,6 +56,16 @@ class TestInventario(unittest.TestCase):
         inv.sembrar(con)
         self.assertEqual((st(con, "ECONOMATO"), st(con, "RESTAURANTE")), (6, 4))
 
+    def test_zona_por_ubicacion(self):
+        con = _base()
+        inv.poner_zona(con, "P", "RESTAURANTE", "  nevera ")
+        self.assertEqual(inv.zonas(con, "RESTAURANTE"), {"P": "Nevera"})
+        self.assertEqual(inv.zonas(con, "ECONOMATO"), {})
+        inv.poner_zona(con, "P", "RESTAURANTE", "")
+        self.assertEqual(inv.zonas(con, "RESTAURANTE"), {})
+        with self.assertRaises(ValueError):
+            inv.poner_zona(con, "X", "RESTAURANTE", "Nevera")
+
     def test_caducidad_a_merma(self):
         con = _base()
         cid = inv.registrar_caducidad(con, producto="P", ubicacion="RESTAURANTE", cantidad=1, caduca="2026-09-05")

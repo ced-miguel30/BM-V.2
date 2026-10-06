@@ -255,6 +255,14 @@ CREATE TABLE IF NOT EXISTS adjuntos(
 );
 CREATE INDEX IF NOT EXISTS ix_adjuntos_doc ON adjuntos(documento);
 
+-- Dónde está cada producto dentro de una ubicación (Nevera, Congelador, Estantería...): ordena el recuento.
+CREATE TABLE IF NOT EXISTS zonas_producto(
+  producto TEXT NOT NULL REFERENCES productos(codigo),
+  ubicacion TEXT NOT NULL REFERENCES ubicaciones(codigo),
+  zona TEXT NOT NULL,
+  PRIMARY KEY(producto, ubicacion)
+);
+
 -- Ajustes a mano por producto (si no hay, BM calcula todo solo a partir del consumo).
 CREATE TABLE IF NOT EXISTS parametros_producto(
   producto TEXT PRIMARY KEY REFERENCES productos(codigo),

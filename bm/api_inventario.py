@@ -30,13 +30,14 @@ def stock(ubicacion: str | None = None, u: dict = Depends(requiere(*OPERATIVO)))
     info = {r["codigo"]: r for r in con.execute("SELECT codigo, nombre, unidad, categoria FROM productos")}
     ver_euros = u["rol"] in GESTION
     precios: dict[str, float | None] = {}
+    zona = inventario.zonas(con, ubicacion) if ubicacion else {}
     out = []
     for f in filas:
         if abs(f["stock"]) < 1e-6 and f["desviacion"] in (None, 0) and not f["salidas_desde_recuento"]:
             continue  # producto que pasó por la ubicación pero ya no tiene nada que contar
         p = info.get(f["producto"])
         fila = {**f, "nombre": p["nombre"] if p else f["producto"], "unidad": p["unidad"] if p else None,
-                "categoria": p["categoria"] if p else None}
+                "categoria": p["categoria"] if p else None, "zona": zona.get(f["producto"])}
         if ver_euros:
             pu = precios.setdefault(f["producto"], consumos.precio_actual(con, f["producto"]))
             fila["precio"] = pu
@@ -44,6 +45,18 @@ def stock(ubicacion: str | None = None, u: dict = Depends(requiere(*OPERATIVO)))
             fila["desviacion_valor"] = None if pu is None or f["desviacion"] is None else round(f["desviacion"] * pu, 2)
         out.append(fila)
     return sorted(out, key=lambda x: (x["ubicacion"], x["nombre"]))
+
+
+class Zona(BaseModel):
+    producto: str
+    ubicacion: str
+    zona: str | None = None
+
+
+@app.put("/api/zonas")
+def guardar_zona(d: Zona, u: dict = Depends(requiere(*OPERATIVO))):
+    _error(inventario.poner_zona, con, d.producto, d.ubicacion, d.zona)
+    return {"ok": True}
 
 
 class LineaRecuento(BaseModel):

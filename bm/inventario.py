@@ -155,6 +155,23 @@ def stock(con: sqlite3.Connection, ubicacion: str | None = None, producto: str |
     return out
 
 
+def zonas(con, ubicacion: str) -> dict[str, str]:
+    return dict(con.execute("SELECT producto, zona FROM zonas_producto WHERE ubicacion=?", (ubicacion,)).fetchall())
+
+
+def poner_zona(con, producto: str, ubicacion: str, zona: str | None) -> None:
+    """Zona dentro de la ubicación; vacía la quita."""
+    _validar_ubicacion(con, ubicacion)
+    if not con.execute("SELECT 1 FROM productos WHERE codigo=?", (producto,)).fetchone():
+        raise ValueError(f"Producto desconocido: {producto}")
+    zona = " ".join((zona or "").split())[:40]
+    if zona:
+        con.execute("INSERT OR REPLACE INTO zonas_producto VALUES(?,?,?)", (producto, ubicacion, zona[:1].upper() + zona[1:]))
+    else:
+        con.execute("DELETE FROM zonas_producto WHERE producto=? AND ubicacion=?", (producto, ubicacion))
+    con.commit()
+
+
 def stock_de(con, producto: str, ubicacion: str, hasta: str | None = None) -> float:
     r = stock(con, ubicacion, producto, hasta)
     return r[0]["stock"] if r else 0.0
