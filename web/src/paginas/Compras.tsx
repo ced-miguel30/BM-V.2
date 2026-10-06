@@ -46,7 +46,7 @@ function DetalleDoc({ doc, cerrar, abrir }: { doc: string; cerrar: () => void; a
   const enlazados = [...d.facturas, ...d.albaranes];
   return (
     <Stack>
-      <SimpleGrid cols={3}>
+      <SimpleGrid cols={{ base: 2, sm: 3 }}>
         <div><Text size="xs" c="dimmed">Proveedor</Text><Text fw={600}>{d.proveedor}</Text></div>
         <div><Text size="xs" c="dimmed">Fecha</Text><Text fw={600}>{fecha(d.fecha)}</Text></div>
         <div><Text size="xs" c="dimmed">Importe</Text><Text fw={700} fz="lg">{euros(d.importe)}</Text></div>
@@ -100,7 +100,7 @@ function FichaProveedor({ p, guardado }: { p: Prov; guardado: () => void }) {
   };
   return (
     <Stack>
-      <SimpleGrid cols={3}>
+      <SimpleGrid cols={{ base: 2, sm: 3 }}>
         <div><Text size="xs" c="dimmed">Compras 90 días</Text><Text fw={700}>{euros(p.gasto_90d)}</Text></div>
         <div><Text size="xs" c="dimmed">Entregas 90 días</Text><Text fw={700}>{p.documentos_90d}</Text></div>
         <div><Text size="xs" c="dimmed">Última</Text><Text fw={700}>{fecha(p.ultimo)}</Text></div>

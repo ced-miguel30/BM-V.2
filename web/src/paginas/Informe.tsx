@@ -23,28 +23,28 @@ export function Informe() {
         <Button className="no-imprimir" leftSection={<IconPrinter size={16} />} onClick={() => window.print()}>Imprimir / PDF</Button>
       </Group>
       {!d.estado.listo && <Alert color="orange">Mes sin cerrar del todo: {d.estado.pasos.filter((p: any) => !p.ok && p.obligatorio).map((p: any) => p.titulo.toLowerCase()).join(', ')}. Las cifras pueden cambiar.</Alert>}
-      <SimpleGrid cols={4}>
+      <SimpleGrid cols={{ base: 2, sm: 4 }}>
         <Card><Text size="xs" c="dimmed">Coste de consumo</Text><Text fw={700} fz={22}>{euros(r.consumo)}</Text></Card>
         <Card><Text size="xs" c="dimmed">Ventas TPV (sin IGIC)</Text><Text fw={700} fz={22}>{euros(r.ventas_netas)}</Text></Card>
         <Card><Text size="xs" c="dimmed">Food cost TPV</Text><Text fw={700} fz={22} c={(r.food_cost_pct ?? 0) > d.objetivo_food_cost ? 'red' : 'teal'}>{r.food_cost_pct ?? '—'} %</Text><Text size="xs" c="dimmed">Objetivo {d.objetivo_food_cost} %</Text></Card>
         <Card><Text size="xs" c="dimmed">Desayuno / comensal</Text><Text fw={700} fz={22}>{euros(r.coste_por_comensal)}</Text><Text size="xs" c="dimmed">{r.comensales_desayuno} comensales</Text></Card>
       </SimpleGrid>
       <Grid>
-        <Grid.Col span={6}><Card h="100%"><Text fw={700} mb="xs">Coste por centro</Text><Table><Table.Tbody>
+        <Grid.Col span={{ base: 12, sm: 6 }}><Card h="100%"><Text fw={700} mb="xs">Coste por centro</Text><Table><Table.Tbody>
           {d.centros.filter((c: any) => r[c.codigo]).map((c: any) => fila(c.nombre, euros(r[c.codigo])))}{fila('Mermas', euros(r.mermas))}
         </Table.Tbody></Table></Card></Grid.Col>
-        <Grid.Col span={6}><Card h="100%"><Text fw={700} mb="xs">Pérdidas</Text><Table><Table.Tbody>
+        <Grid.Col span={{ base: 12, sm: 6 }}><Card h="100%"><Text fw={700} mb="xs">Pérdidas</Text><Table><Table.Tbody>
           {fila('Comida de personal', euros(d.perdidas.personal))}{fila('Mermas registradas', euros(d.perdidas.mermas_total))}
           {fila('Salió sin registrar (inventarios)', euros(d.perdidas.diferencias_inventario))}
         </Table.Tbody></Table></Card></Grid.Col>
-        <Grid.Col span={6}><Card h="100%"><Text fw={700} mb="xs">Carta: lo que más deja</Text><Table><Table.Tbody>
+        <Grid.Col span={{ base: 12, sm: 6 }}><Card h="100%"><Text fw={700} mb="xs">Carta: lo que más deja</Text><Table><Table.Tbody>
           {d.estrellas.map((p: any) => fila(p.nombre, euros(p.margen_total)))}</Table.Tbody></Table>
           <Group gap={6} mt="xs">{Object.entries(d.clases).map(([k, v]) => <Badge key={k} variant="light">{k}: {String(v)}</Badge>)}</Group></Card></Grid.Col>
-        <Grid.Col span={6}><Card h="100%"><Text fw={700} mb="xs">Platos que no salen</Text><Table><Table.Tbody>
+        <Grid.Col span={{ base: 12, sm: 6 }}><Card h="100%"><Text fw={700} mb="xs">Platos que no salen</Text><Table><Table.Tbody>
           {d.perros.length ? d.perros.map((p: any) => fila(p.nombre, `${p.unidades} uds`)) : fila('Ninguno', '')}</Table.Tbody></Table></Card></Grid.Col>
-        <Grid.Col span={6}><Card h="100%"><Text fw={700} mb="xs">Mayores diferencias de inventario</Text><Table><Table.Tbody>
+        <Grid.Col span={{ base: 12, sm: 6 }}><Card h="100%"><Text fw={700} mb="xs">Mayores diferencias de inventario</Text><Table><Table.Tbody>
           {d.desviaciones.map((x: any) => fila(x.nombre, euros(x.valor)))}</Table.Tbody></Table></Card></Grid.Col>
-        <Grid.Col span={6}><Card h="100%"><Text fw={700} mb="xs">Compras por proveedor</Text><Table><Table.Tbody>
+        <Grid.Col span={{ base: 12, sm: 6 }}><Card h="100%"><Text fw={700} mb="xs">Compras por proveedor</Text><Table><Table.Tbody>
           {d.compras.map((x: any) => fila(`${x.proveedor} (${x.documentos})`, euros(x.importe)))}</Table.Tbody></Table></Card></Grid.Col>
       </Grid>
       <Text size="xs" c="dimmed" ta="center">Generado por BM el {new Date().toLocaleString('es-ES')} · costes FIFO con precios reales de compra de Business Central</Text>

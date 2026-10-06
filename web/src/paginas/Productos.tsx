@@ -35,7 +35,7 @@ function Reposicion({ codigo, unidad }: { codigo: string; unidad: string | null 
   const h = d.hotel, r = d.restaurante;
   return (
     <Stack>
-      <SimpleGrid cols={3}>
+      <SimpleGrid cols={{ base: 2, sm: 3 }}>
         <div><Text size="xs" c="dimmed">Gasto diario (hotel)</Text><Text fw={700}>{cantidad(h?.ritmo)} {unidad}</Text>
           <Text size="xs" c="dimmed">real {cantidad(h?.ritmo_real)} · registrado {cantidad(h?.ritmo_bm)}</Text></div>
         <div><Text size="xs" c="dimmed">Stock estimado (hotel)</Text><Text fw={700}>{cantidad(h?.estimado)} {unidad}</Text>
@@ -86,7 +86,7 @@ export function Productos() {
       <Drawer opened={!!codigo} onClose={() => setParams({})} position="right" size="xl" title={ficha?.nombre ?? 'Producto'}>
         {!ficha ? <Loader /> : (
           <Stack>
-            <SimpleGrid cols={3}>
+            <SimpleGrid cols={{ base: 2, sm: 3 }}>
               <div><Text size="xs" c="dimmed">Precio actual</Text><Text fw={700} fz="lg">{euros(ficha.precio_actual)} / {ficha.unidad}</Text></div>
               <div><Text size="xs" c="dimmed">Código BC</Text><Text fw={600}>{ficha.codigo}</Text></div>
               <div><Text size="xs" c="dimmed">Usado en</Text><Text fw={600}>{ficha.recetas.length} recetas</Text></div>
