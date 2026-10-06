@@ -255,6 +255,15 @@ CREATE TABLE IF NOT EXISTS adjuntos(
 );
 CREATE INDEX IF NOT EXISTS ix_adjuntos_doc ON adjuntos(documento);
 
+-- Ajustes a mano por producto (si no hay, BM calcula todo solo a partir del consumo).
+CREATE TABLE IF NOT EXISTS parametros_producto(
+  producto TEXT PRIMARY KEY REFERENCES productos(codigo),
+  stock_minimo REAL,                   -- colchón fijo en el hotel (sustituye a los días de seguridad)
+  minimo_restaurante REAL,             -- lo mínimo que debe haber en Restaurante y cocina
+  lote REAL,                           -- se pide en múltiplos de esto (caja, pack)
+  no_pedir INTEGER NOT NULL DEFAULT 0  -- descatalogado o se compra aparte
+);
+
 CREATE TABLE IF NOT EXISTS ajustes(clave TEXT PRIMARY KEY, valor TEXT);
 
 -- Sesiones (sobreviven a reinicios del servidor). Se guarda el hash del token, nunca el token.

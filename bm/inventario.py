@@ -58,7 +58,8 @@ def sembrar(con: sqlite3.Connection) -> None:
     for cod, in con.execute("SELECT codigo FROM ubicaciones WHERE nombre=codigo").fetchall():  # nombre legible por defecto
         con.execute("UPDATE ubicaciones SET nombre=? WHERE codigo=?", (cod.replace("-", " ").title(), cod))
     con.executemany("INSERT OR IGNORE INTO ajustes VALUES(?, ?)",
-                    [("traslados_en", "bc"), ("igic_ventas", "7"), ("objetivo_food_cost", "30")])
+                    [("traslados_en", "bc"), ("igic_ventas", "7"), ("objetivo_food_cost", "30"),
+                     ("dias_seguridad", "2"), ("dias_reposicion", "3")])
     con.commit()
 
 

@@ -94,16 +94,21 @@ def guardar_adjunto(con, doc: str, nombre: str, origen: Path, tipo: str | None, 
     return aid
 
 
+_cache_dias: dict = {}
+
+
 def dias_reparto_deducidos(con, proveedor: str, dias: int = 180) -> list[int]:
     """Días de la semana en que suele llegar (>= 15 % de sus entregas de los últimos 6 meses)."""
+    clave = (proveedor, date.today(), con.execute("SELECT MAX(n_mov) FROM bc_movs").fetchone()[0])
+    if clave in _cache_dias:  # se recalcula al importar movimientos nuevos o al cambiar de día
+        return _cache_dias[clave]
     desde = (date.today() - timedelta(days=dias)).isoformat()
     fechas = [r[0] for r in con.execute(
         "SELECT DISTINCT fecha FROM bc_movs WHERE tipo='Compra' AND proveedor=? AND fecha>=? AND fecha<=?",
         (proveedor, desde, date.today().isoformat()))]
-    if len(fechas) < 3:
-        return []
     c = Counter(date.fromisoformat(f).weekday() for f in fechas)
-    return sorted(d for d, n in c.items() if n / len(fechas) >= 0.15)
+    _cache_dias[clave] = [] if len(fechas) < 3 else sorted(d for d, n in c.items() if n / len(fechas) >= 0.15)
+    return _cache_dias[clave]
 
 
 def dias_reparto(con, p) -> list[int]:

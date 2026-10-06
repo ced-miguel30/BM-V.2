@@ -8,7 +8,7 @@ import { useDisclosure } from '@mantine/hooks';
 import {
   IconArrowsExchange, IconBook2, IconBuildingWarehouse, IconCalendarExclamation, IconChartBar, IconClipboardCheck,
   IconCloudUpload, IconFileSpreadsheet, IconListDetails, IconLogout, IconMoon, IconPackages, IconPencilPlus,
-  IconReceipt2, IconSun, IconChartDots, IconScale, IconTrendingUp, IconSettings, IconKey, IconTruckDelivery,
+  IconReceipt2, IconSun, IconChartDots, IconScale, IconTrendingUp, IconSettings, IconKey, IconTruckDelivery, IconShoppingCart, IconStackPush,
 } from '@tabler/icons-react';
 import { api, avisoError, avisoOk } from './api';
 import { Logo } from './comun';
@@ -29,6 +29,8 @@ import { Control } from './paginas/Control';
 import { Precios } from './paginas/Precios';
 import { Configuracion } from './paginas/Configuracion';
 import { Compras } from './paginas/Compras';
+import { Reponer } from './paginas/Reponer';
+import { Pedidos } from './paginas/Pedidos';
 
 export type Usuario = { id: string; nombre: string; rol: string; login: string };
 const GESTION = ['direccion', 'administracion'];
@@ -40,6 +42,7 @@ const MENU = [
     { to: '/excel', label: 'Importar Excel', icon: IconFileSpreadsheet, roles: TODOS, el: <Excel /> },
     { to: '/recuento', label: 'Recuento', icon: IconClipboardCheck, roles: TODOS, el: <Recuento /> },
     { to: '/caducidades', label: 'Caducidades', icon: IconCalendarExclamation, roles: TODOS, el: <Caducidades /> },
+    { to: '/reponer', label: 'Reponer restaurante', icon: IconStackPush, roles: TODOS, el: <Reponer /> },
     { to: '/traslados', label: 'Traslados', icon: IconArrowsExchange, roles: TODOS, el: <Traslados /> },
   ] },
   { seccion: 'Control', items: [
@@ -47,6 +50,7 @@ const MENU = [
     { to: '/consumos', label: 'Consumos', icon: IconListDetails, roles: GESTION, el: <Consumos /> },
     { to: '/stock', label: 'Stock', icon: IconPackages, roles: GESTION, el: <Stock /> },
     { to: '/tpv', label: 'Ventas TPV', icon: IconReceipt2, roles: GESTION, el: <Tpv /> },
+    { to: '/pedidos', label: 'Pedidos', icon: IconShoppingCart, roles: GESTION, el: <Pedidos /> },
     { to: '/compras', label: 'Compras y proveedores', icon: IconTruckDelivery, roles: GESTION, el: <Compras /> },
   ] },
   { seccion: 'Análisis', items: [

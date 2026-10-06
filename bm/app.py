@@ -470,7 +470,7 @@ def bc_subir(tipo: str, archivo: UploadFile, u: dict = Depends(requiere(*GESTION
 
 
 # ---------------------------------------------------------------- módulos (registran rutas sobre `app`)
-from bm import api_analisis, api_compras, api_config, api_inventario  # noqa: E402,F401
+from bm import api_analisis, api_compras, api_config, api_inventario, api_prevision  # noqa: E402,F401
 
 # ---------------------------------------------------------------- web (siempre la última ruta)
 if STATIC.exists():
