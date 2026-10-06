@@ -28,14 +28,29 @@ inventarios físicos y confirma propuestas.
 - IGIC ventas 7 %, objetivo food cost 30 % (configurables).
 
 ## Estado
-Fases 1-12 hechas + comandas (ver `docs/v3/HOJA_DE_RUTA.md`). Datos de prueba cargados: BC hasta 06/10, BM v2 hasta 27/09,
-desayunos Excel 03-12/09, TPV 22/08-06/10.
+Fases 1-12 hechas + comandas + mejoras del 06/10 noche (ver abajo). Datos de prueba cargados: BC hasta 06/10,
+BM v2 hasta 27/09, desayunos Excel 03-12/09, TPV 22/08-06/10. Tests: 44.
 
-## Pendiente / siguiente
-- El usuario debe revisar la aplicación; ajustar según su uso real.
-- 47 artículos TPV sin asignar (32 con sugerencia): Smoothie (497 €) y Ración croquetas (280 €) necesitan receta.
-- 10 fichas de receta con errores (Recetas → A revisar); 58 precios dudosos en BC.
-- Buffet no registrado desde agosto: usar "Buffet del día".
-- Falta: export de BC "Líneas factura compra registradas" (enlace factura↔albarán) y datos de contacto de proveedores.
-- Antes de instalar: cargar datos frescos, prueba con el personal, ejecutar `instalar\instalar.ps1` en el servidor.
+Mejoras 06/10 (noche): sugerencias TPV sin parecidos falsos; recuento con borrador en el dispositivo y **zonas**
+(nevera, congelador...) para contar por partes; `index.html` sin caché (tras actualizar, todos ven la versión nueva);
+segunda carpeta de copias con aviso si falla; revisión de fichas avisa de ingredientes que ya no se compran ni quedan;
+"comprar por fuera" y "reponer" solo alarman con stock fiable (inventario ≤ 10 días o consumo registrado en BM);
+Importar de BC indica desde qué fecha exportar; nombres legibles de almacenes de departamento.
+
+## Pendiente de revisar por el usuario
+1. **TPV (47 sin asignar):** las sugerencias ya son fiables, pero revisar: *Pescado del día* (sugiere caldo de
+   pescado: no aceptar), *Ración croquetas* → producto Croquetas de pollo (¿cuántas por ración?), *Smoothie* →
+   producto Smoothies B2 (¿es el que se usa?). Sin sugerencia: Espagueti boloñesa, Paella, Surtido ibérico, etc.
+2. **Fichas:** 10 con problemas (food cost bajísimo: ¿faltan ingredientes?) y ~20 con ingredientes que ya no se
+   compran (Lechuga romana, Queso emmental lonchas, Vino tinto brik desde 2023, Leche de coco, Jack Daniel's...):
+   decir qué producto se usa ahora. Recetas → Avisos.
+3. **Datos de BC para administración:** *Langostinos Nº 2 salvaje* a 3,65 €/KG siempre (¿unidad mal en BC?);
+   productos con nombre vacío o raro (C0000027 ",", PV00000253 "1", LIM, VINO, V000001, TPV00000001); precios dudosos.
+4. **Zonas del recuento:** se asignan solas al contar la primera vez (botón "Zona" de cada producto).
+5. **Copias:** decidir la segunda carpeta en el servidor (NAS, otro disco u OneDrive) → Configuración → Copias.
+6. **Pedidos:** con el último inventario del 31/08 las propuestas son extrapolación; mejoran con recuentos frecuentes.
+7. **Idea no hecha (necesita a administración de BC):** leer BC directamente por su API (OData/API web) en vez de
+   exportar Excel. Sería lo que más trabajo quita; requiere usuario/permiso de servicio en BC.
+8. Sigue faltando: export "Líneas factura compra registradas", contactos de proveedores, datos frescos, prueba con
+   el personal, `instalar\instalar.ps1` en el servidor.
 - Entorno: Bash corta heredocs > ~7 KB (escribir ficheros en trozos); `gh` sin sesión (CI en GitHub sin verificar).
