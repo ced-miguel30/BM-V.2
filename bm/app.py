@@ -456,18 +456,21 @@ def excel_importar(archivo: UploadFile, confirmar: bool = False, u: dict = Depen
 # ---------------------------------------------------------------- Business Central
 @app.post("/api/bc/{tipo}")
 def bc_subir(tipo: str, archivo: UploadFile, u: dict = Depends(requiere(*GESTION))):
-    fn = {"movimientos": bc.importar_movimientos, "productos": bc.importar_productos}.get(tipo)
+    from bm import compras, inventario
+    fn = {"movimientos": bc.importar_movimientos, "productos": bc.importar_productos,
+          "facturas": compras.importar_facturas}.get(tipo)
     if not fn:
         raise HTTPException(404, "Tipo desconocido")
     try:
         n = fn(con, _subida(archivo))
     except KeyError as e:
         raise HTTPException(400, str(e)) from e
+    inventario.sembrar(con)  # almacenes y proveedores nuevos que traiga BC
     return {"filas": n, "valoracion": costing.valorar(con)}
 
 
 # ---------------------------------------------------------------- módulos (registran rutas sobre `app`)
-from bm import api_analisis, api_config, api_inventario  # noqa: E402,F401
+from bm import api_analisis, api_compras, api_config, api_inventario  # noqa: E402,F401
 
 # ---------------------------------------------------------------- web (siempre la última ruta)
 if STATIC.exists():

@@ -46,6 +46,11 @@ export function ImportarBC() {
           'Compartir → Abrir en Excel.',
           'Súbelo aquí cuando se den de alta artículos nuevos.',
         ]} />
+        <Subida tipo="facturas" titulo="Facturas de compra (enlace con albaranes)" pasos={[
+          'En BC busca "Líneas factura compra registradas" (o "Hist. líneas factura compra").',
+          'Comprueba que se ven las columnas Nº documento y Nº albarán (⚙ Personalizar si falta).',
+          'Filtra por fecha, Compartir → Abrir en Excel y súbelo aquí.',
+        ]} />
       </SimpleGrid>
       <Text size="sm" c="dimmed" mt="lg">
         Cada compra de BC es un lote con su precio real. Los consumos de BM gastan lotes por orden de entrada (FIFO) y el inventario

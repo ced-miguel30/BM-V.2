@@ -20,9 +20,12 @@ con.executemany("INSERT INTO bc_movs(n_mov, fecha, tipo, almacen, producto, cant
     (1, "2026-09-01", "Compra", "DESAYUNO", "HUEVO", 100, 30.0),
     (2, "2026-09-01", "Compra", "DESAYUNO", "PAN", 10, 20.0),
 ])
+con.execute("UPDATE bc_movs SET documento='AL0001', proveedor='GRANJA SL', tipo_doc='Albarán compra'")
 con.execute("INSERT INTO recetas(id, nombre, servicio, porciones) VALUES('r1', 'Huevos con tostada', 'desayuno', 1)")
 con.executemany("INSERT INTO receta_lineas VALUES('r1', ?, ?)", [("HUEVO", 2), ("PAN", 0.1)])
 con.commit()
+from bm import inventario  # noqa: E402
+inventario.sembrar(con)  # proveedores y almacenes de los movimientos de prueba
 for login, rol in (("dir", "direccion"), ("adm", "administracion"), ("rest", "restaurante")):
     usuarios.guardar(con, login, login.upper(), rol, "clave-segura")
 
@@ -96,6 +99,24 @@ class TestFlujos(unittest.TestCase):
         cliente("dir").post("/api/config/copias")
         ultima = con.execute("SELECT usuario, ruta, estado FROM auditoria ORDER BY id DESC LIMIT 1").fetchone()
         self.assertEqual(tuple(ultima), ("DIR", "/api/config/copias", 200))
+
+
+class TestCompras(unittest.TestCase):
+    def test_documento_adjunto_y_proveedor(self):
+        c = cliente("adm")
+        docs = c.get("/api/compras?desde=2026-09-01&hasta=2026-09-30").json()
+        self.assertEqual([(d["documento"], d["estado"], d["importe"]) for d in docs], [("AL0001", "facturado", 50.0)])
+        r = c.post("/api/compras/AL0001/adjuntos", files={"archivo": ("albaran.png", b"PNG-falso", "image/png")})
+        self.assertEqual(r.status_code, 200, r.text)
+        self.assertEqual(c.post("/api/compras/AL0001/adjuntos", files={"archivo": ("virus.exe", b"x")}).status_code, 400)
+        det = c.get("/api/compras/AL0001").json()
+        self.assertEqual(len(det["adjuntos"]), 1)
+        self.assertEqual(c.get(f"/api/adjuntos/{det['adjuntos'][0]['id']}").content, b"PNG-falso")
+        ficha = {"email": "pedidos@granja.es", "dias_reparto": [0, 3], "plazo_dias": 1}
+        self.assertEqual(c.put("/api/proveedores/GRANJA SL", json=ficha).status_code, 200)
+        p = next(x for x in c.get("/api/proveedores").json() if x["nombre"] == "GRANJA SL")
+        self.assertEqual((p["email"], p["dias"]), ("pedidos@granja.es", [0, 3]))
+        self.assertEqual(cliente("rest").get("/api/compras?desde=2026-09-01&hasta=2026-09-30").status_code, 403)
 
 
 if __name__ == "__main__":

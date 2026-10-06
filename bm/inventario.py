@@ -52,6 +52,8 @@ def sembrar(con: sqlite3.Connection) -> None:
         con.execute("UPDATE traslados SET origen=? WHERE origen=?", (fisica, a))
         con.execute("UPDATE traslados SET destino=? WHERE destino=?", (fisica, a))
         con.execute("DELETE FROM ubicaciones WHERE codigo=?", (a,))
+    con.execute("""INSERT OR IGNORE INTO proveedores(nombre) SELECT DISTINCT proveedor FROM bc_movs
+                   WHERE tipo='Compra' AND proveedor <> ''""")
     con.executemany("UPDATE ubicaciones SET nombre=? WHERE codigo=? AND nombre=codigo", FISICAS)
     for cod, in con.execute("SELECT codigo FROM ubicaciones WHERE nombre=codigo").fetchall():  # nombre legible por defecto
         con.execute("UPDATE ubicaciones SET nombre=? WHERE codigo=?", (cod.replace("-", " ").title(), cod))

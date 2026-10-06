@@ -36,6 +36,7 @@ CREATE TABLE IF NOT EXISTS bc_movs(
   coste_total REAL
 );
 CREATE INDEX IF NOT EXISTS ix_bc_movs_prod ON bc_movs(producto, fecha);
+CREATE INDEX IF NOT EXISTS ix_bc_movs_doc ON bc_movs(documento);
 
 CREATE TABLE IF NOT EXISTS recetas(
   id TEXT PRIMARY KEY,
@@ -223,6 +224,36 @@ CREATE TABLE IF NOT EXISTS caducidades(
   cerrado TEXT,
   consumo_id INTEGER REFERENCES consumos(id)
 );
+
+-- Proveedores (nombre tal cual llega de BC) con lo que BC no sabe: contacto y cuándo reparten.
+CREATE TABLE IF NOT EXISTS proveedores(
+  nombre TEXT PRIMARY KEY,
+  email TEXT,
+  telefono TEXT,
+  contacto TEXT,
+  dias_reparto TEXT,                   -- "0,3" (0 = lunes). NULL = se deduce del histórico de albaranes
+  plazo_dias INTEGER,                  -- días desde que se pide hasta que llega
+  pedido_minimo REAL,
+  notas TEXT,
+  activo INTEGER NOT NULL DEFAULT 1
+);
+-- Qué albaranes recoge cada factura (export de BC "Líneas factura compra registradas").
+CREATE TABLE IF NOT EXISTS factura_albaran(
+  factura TEXT NOT NULL,
+  albaran TEXT NOT NULL,
+  PRIMARY KEY(factura, albaran)
+);
+-- Foto o PDF del papel (albarán/factura) guardado junto al documento de BC.
+CREATE TABLE IF NOT EXISTS adjuntos(
+  id INTEGER PRIMARY KEY,
+  documento TEXT NOT NULL,
+  nombre TEXT NOT NULL,
+  fichero TEXT NOT NULL,
+  tipo TEXT,
+  subido TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+  usuario TEXT
+);
+CREATE INDEX IF NOT EXISTS ix_adjuntos_doc ON adjuntos(documento);
 
 CREATE TABLE IF NOT EXISTS ajustes(clave TEXT PRIMARY KEY, valor TEXT);
 

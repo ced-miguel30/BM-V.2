@@ -8,7 +8,7 @@ import { useDisclosure } from '@mantine/hooks';
 import {
   IconArrowsExchange, IconBook2, IconBuildingWarehouse, IconCalendarExclamation, IconChartBar, IconClipboardCheck,
   IconCloudUpload, IconFileSpreadsheet, IconListDetails, IconLogout, IconMoon, IconPackages, IconPencilPlus,
-  IconReceipt2, IconSun, IconChartDots, IconScale, IconTrendingUp, IconSettings, IconKey,
+  IconReceipt2, IconSun, IconChartDots, IconScale, IconTrendingUp, IconSettings, IconKey, IconTruckDelivery,
 } from '@tabler/icons-react';
 import { api, avisoError, avisoOk } from './api';
 import { Logo } from './comun';
@@ -28,6 +28,7 @@ import { Rentabilidad } from './paginas/Rentabilidad';
 import { Control } from './paginas/Control';
 import { Precios } from './paginas/Precios';
 import { Configuracion } from './paginas/Configuracion';
+import { Compras } from './paginas/Compras';
 
 export type Usuario = { id: string; nombre: string; rol: string; login: string };
 const GESTION = ['direccion', 'administracion'];
@@ -46,6 +47,7 @@ const MENU = [
     { to: '/consumos', label: 'Consumos', icon: IconListDetails, roles: GESTION, el: <Consumos /> },
     { to: '/stock', label: 'Stock', icon: IconPackages, roles: GESTION, el: <Stock /> },
     { to: '/tpv', label: 'Ventas TPV', icon: IconReceipt2, roles: GESTION, el: <Tpv /> },
+    { to: '/compras', label: 'Compras y proveedores', icon: IconTruckDelivery, roles: GESTION, el: <Compras /> },
   ] },
   { seccion: 'Análisis', items: [
     { to: '/rentabilidad', label: 'Rentabilidad por plato', icon: IconChartDots, roles: GESTION, el: <Rentabilidad /> },
