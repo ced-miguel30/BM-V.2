@@ -169,7 +169,13 @@ def _resumen(ini: str, fin: str) -> dict:
         "SELECT COALESCE(SUM(comensales),0) FROM consumos WHERE anulado=0 AND servicio='desayuno' AND tipo='consumo' AND fecha>=? AND fecha<?",
         (ini, fin)).fetchone()[0]
     r["comensales_desayuno"] = com
-    r["coste_por_comensal"] = round(r["desayuno"] / com, 2) if com else None
+    # Solo el coste de los días con comensales apuntados (un buffet sin comandas ese día inflaría la media).
+    coste_con_com = con.execute(
+        """SELECT COALESCE(SUM(l.coste),0) FROM consumos c JOIN consumo_lineas l ON l.consumo_id=c.id
+           WHERE c.anulado=0 AND c.servicio='desayuno' AND c.tipo='consumo' AND c.fecha>=? AND c.fecha<?
+             AND c.fecha IN (SELECT fecha FROM consumos WHERE anulado=0 AND servicio='desayuno' AND comensales>0)""",
+        (ini, fin)).fetchone()[0]
+    r["coste_por_comensal"] = round(coste_con_com / com, 2) if com else None
     return {k: (round(v, 2) if isinstance(v, float) else v) for k, v in r.items()}
 
 

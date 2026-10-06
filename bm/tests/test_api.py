@@ -118,6 +118,13 @@ class TestFlujos(unittest.TestCase):
         self.assertEqual(r["ventas_sin_asignar"], 107)
         self.assertAlmostEqual(r["food_cost_pct"], round(100 * r["coste_tpv"] / 100, 1))  # sobre 100 € netos, no 200
 
+    def test_coste_por_comensal_solo_dias_con_comensales(self):
+        from bm import consumos
+        consumos.registrar(con, fecha="2026-06-01", servicio="desayuno", comensales=2, items=[{"receta_id": "r1", "cantidad": 2}])
+        consumos.registrar(con, fecha="2026-06-02", servicio="desayuno", items=[{"receta_id": "r1", "cantidad": 5}])  # sin comensales
+        r = cliente("dir").get("/api/panel?mes=2026-06").json()["actual"]
+        self.assertAlmostEqual(r["coste_por_comensal"], round(r["desayuno"] * 2 / 7 / 2, 2), places=2)
+
     def test_estado_bc_dice_desde_cuando_exportar(self):
         e = cliente("adm").get("/api/bc/estado").json()
         self.assertEqual(e["exportar_desde"], "2026-08-25")  # una semana antes del último movimiento (01/09)
