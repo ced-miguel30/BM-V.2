@@ -33,7 +33,8 @@ Hace copia de seguridad, actualiza el código, pasa los tests y vuelve a arranca
 ## Copias de seguridad
 
 Automáticas cada día en `datos\copias` (se guardan 30). Desde Configuración → Copias se puede hacer una
-al momento y descargarla. Para restaurar: parar la tarea "BM servidor", copiar la copia elegida sobre
+al momento y descargarla, y poner una **segunda carpeta** (otro disco, carpeta de red u OneDrive) donde se
+guarda también cada copia; si esa copia falla, BM lo avisa en la campana. Para restaurar: parar la tarea "BM servidor", copiar la copia elegida sobre
 `datos\bm.sqlite` y arrancar la tarea.
 
 ## Acceso desde fuera del hotel (opcional, más adelante)

@@ -206,6 +206,22 @@ def copia_ahora(u: dict = Depends(requiere(*GESTION))):
     return {"nombre": copias.hacer(con, "manual").name}
 
 
+class CarpetaCopias(BaseModel):
+    carpeta: str = ""
+
+
+@app.put("/api/config/copias_extra")
+def guardar_copias_extra(d: CarpetaCopias, u: dict = Depends(requiere(*DIRECCION))):
+    ruta = d.carpeta.strip()
+    if ruta:
+        _error(copias.probar_carpeta, ruta)
+    con.executemany("INSERT OR REPLACE INTO ajustes VALUES(?, ?)", [("copias_extra", ruta), ("copias_extra_error", "")])
+    con.commit()
+    if ruta:
+        copias.hacer(con, "manual")  # la primera copia ya en la carpeta nueva
+    return {"ok": True}
+
+
 @app.get("/api/config/copias/{nombre}")
 def descargar_copia(nombre: str, u: dict = Depends(requiere(*DIRECCION))):
     f = copias.carpeta() / nombre

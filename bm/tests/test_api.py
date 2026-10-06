@@ -100,6 +100,16 @@ class TestFlujos(unittest.TestCase):
         ultima = con.execute("SELECT usuario, ruta, estado FROM auditoria ORDER BY id DESC LIMIT 1").fetchone()
         self.assertEqual(tuple(ultima), ("DIR", "/api/config/copias", 200))
 
+    def test_segunda_carpeta_de_copias(self):
+        c = cliente("dir")
+        self.assertEqual(c.put("/api/config/copias_extra", json={"carpeta": str(Path(_tmp.name) / "no-existe")}).status_code, 400)
+        extra = Path(_tmp.name) / "nas"
+        extra.mkdir()
+        self.assertEqual(c.put("/api/config/copias_extra", json={"carpeta": str(extra)}).status_code, 200)
+        self.assertEqual(len(list(extra.glob("bm_*.sqlite"))), 1)
+        self.assertEqual(cliente("adm").put("/api/config/copias_extra", json={"carpeta": ""}).status_code, 403)
+        c.put("/api/config/copias_extra", json={"carpeta": ""})
+
 
 class TestPerdidas(unittest.TestCase):
     def test_merma_con_motivo_y_informe(self):

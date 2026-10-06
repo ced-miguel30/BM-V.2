@@ -249,9 +249,21 @@ function RecetasDia({ cfg, recargar }: { cfg: Cfg; recargar: () => void }) {
 
 function Copias({ cfg, recargar }: { cfg: Cfg; recargar: () => void }) {
   const ahora = async () => { try { const r = await api<{ nombre: string }>('/config/copias', { method: 'POST' }); avisoOk(r.nombre, 'Copia hecha'); recargar(); } catch (e) { avisoError(e); } };
+  const [extra, setExtra] = useState(cfg.ajustes.copias_extra ?? '');
+  const guardarExtra = async () => {
+    try { await api('/config/copias_extra', { method: 'PUT', body: { carpeta: extra } }); avisoOk(extra ? 'Copia hecha también en la segunda carpeta' : 'Sin segunda copia', 'Carpeta guardada'); recargar(); }
+    catch (e) { avisoError(e); }
+  };
   return (
     <>
-      <Alert color="blue" mb="md">BM hace una copia completa cada día automáticamente y guarda las 30 últimas en el servidor. Conviene descargar una de vez en cuando a otro sitio.</Alert>
+      <Alert color="blue" mb="md">BM hace una copia completa cada día automáticamente y guarda las 30 últimas en el servidor.
+        Si se indica una segunda carpeta (otro disco, carpeta de red u OneDrive), cada copia se guarda también allí.</Alert>
+      {cfg.ajustes.copias_extra_error && <Alert color="red" mb="md" title="Falló la última copia en la segunda carpeta">{cfg.ajustes.copias_extra_error}</Alert>}
+      <Group align="flex-end" mb="md">
+        <TextInput label="Segunda carpeta de copias" description="Ruta vista desde el servidor: otro disco, una carpeta compartida de la red o la de OneDrive" style={{ flex: 1 }}
+          value={extra} onChange={(e) => setExtra(e.currentTarget.value)} placeholder="Sin segunda copia" />
+        <Button variant="light" onClick={guardarExtra} disabled={extra === (cfg.ajustes.copias_extra ?? '')}>Guardar carpeta</Button>
+      </Group>
       <Group justify="flex-end" mb="sm"><Button leftSection={<IconDatabaseExport size={16} />} onClick={ahora}>Hacer copia ahora</Button></Group>
       <Tabla datos={cfg.copias} clave={(c) => c.nombre} vacio="Aún no hay copias" columnas={[
         { clave: 'fecha', titulo: 'Fecha', render: (c) => c.fecha.replace('T', ' ') },

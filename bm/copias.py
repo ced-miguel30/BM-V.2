@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import shutil
 import sqlite3
 from datetime import datetime
 from pathlib import Path
@@ -24,7 +25,39 @@ def hacer(con: sqlite3.Connection, motivo: str = "auto") -> Path:
     copia.close()
     for viejo in listar()[CONSERVAR:]:
         (carpeta() / viejo["nombre"]).unlink(missing_ok=True)
+    _duplicar(con, destino)
     return destino
+
+
+def _duplicar(con: sqlite3.Connection, copia: Path) -> None:
+    """Segunda copia fuera del servidor (carpeta de red, OneDrive...), si está configurada.
+    Si falla, queda anotado en ajustes y sale como aviso; la copia local ya está hecha."""
+    extra = (con.execute("SELECT valor FROM ajustes WHERE clave='copias_extra'").fetchone() or [""])[0]
+    if not extra:
+        return
+    try:
+        d = Path(extra)
+        shutil.copy2(copia, d / copia.name)
+        for viejo in sorted(d.glob("bm_*.sqlite"), reverse=True)[CONSERVAR:]:
+            viejo.unlink(missing_ok=True)
+        error = ""
+    except OSError as e:
+        error = f"{datetime.now():%d/%m/%Y %H:%M}: {e}"
+    con.execute("INSERT OR REPLACE INTO ajustes VALUES('copias_extra_error', ?)", (error,))
+    con.commit()
+
+
+def probar_carpeta(ruta: str) -> None:
+    """Comprueba que la carpeta existe y se puede escribir en ella (ValueError si no)."""
+    d = Path(ruta)
+    if not d.is_dir():
+        raise ValueError(f"No existe la carpeta {ruta}")
+    prueba = d / ".bm_prueba"
+    try:
+        prueba.write_text("ok")
+        prueba.unlink()
+    except OSError as e:
+        raise ValueError(f"No se puede escribir en {ruta}: {e}") from e
 
 
 def listar() -> list[dict]:

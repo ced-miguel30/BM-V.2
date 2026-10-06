@@ -6,7 +6,7 @@ import sqlite3
 import time
 from datetime import date, datetime, timedelta
 
-from bm import analisis, prevision, tpv
+from bm import analisis, inventario, prevision, tpv
 
 GESTION = ("direccion", "administracion")
 _cache: dict = {}
@@ -45,6 +45,9 @@ def avisos(con: sqlite3.Connection, rol: str) -> list[dict]:
     if rep:
         aviso("media", f"Reponer {len(rep)} productos en el restaurante", "La lista de lo que hay que subir del economato está preparada", "/reponer")
     if gestion:
+        error_copia = inventario.ajuste(con, "copias_extra_error")
+        if error_copia:
+            aviso("alta", "La copia de seguridad externa ha fallado", error_copia, "/configuracion")
         ultimo_bc = con.execute("SELECT MAX(fecha) FROM bc_movs WHERE fecha<=?", (hoy.isoformat(),)).fetchone()[0]
         if not ultimo_bc or ultimo_bc < (hoy - timedelta(days=7)).isoformat():
             aviso("alta", "Movimientos de BC sin importar desde hace más de una semana",
