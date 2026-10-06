@@ -167,7 +167,7 @@ export function Comandas() {
       <Group justify="space-between" mb="md" wrap="wrap">
         <div>
           <Text fz={26} fw={700}>Comandas de desayuno</Text>
-          <Text size="sm" c="dimmed">Toca cada plato que sale de cocina. Todo se guarda al momento.</Text>
+          <Text size="sm" c="dimmed">Pasa las comandas en papel del día elegido: escribe o toca cada plato. Todo se guarda al momento.</Text>
         </div>
         <Group gap={6}>
           <SegmentedControl value={vista} onChange={setVista} data={[{ value: 'apuntar', label: 'Apuntar' }, { value: 'historial', label: 'Historial' }]} />
@@ -207,7 +207,7 @@ export function Comandas() {
         </Grid.Col>
         <Grid.Col span={{ base: 12, md: 4 }}>
           <Card style={{ position: 'sticky', top: 76 }}>
-            <Group justify="space-between" mb="sm"><Text fw={700}>Hoy</Text><Badge size="lg" variant="light">{d?.platos ?? 0} platos</Badge></Group>
+            <Group justify="space-between" mb="sm"><Text fw={700}>{fecha === hoy() ? "Hoy" : ffecha(fecha)}</Text><Badge size="lg" variant="light">{d?.platos ?? 0} platos</Badge></Group>
             <ScrollArea.Autosize mah="calc(100vh - 220px)">
               <Stack gap={6}>
                 {!d?.lineas.length && <Text c="dimmed" size="sm">Aún no hay nada apuntado.</Text>}
