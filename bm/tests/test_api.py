@@ -101,6 +101,23 @@ class TestFlujos(unittest.TestCase):
         self.assertEqual(tuple(ultima), ("DIR", "/api/config/copias", 200))
 
 
+class TestPerdidas(unittest.TestCase):
+    def test_merma_con_motivo_y_informe(self):
+        c = cliente("dir")
+        base = {"fecha": "2026-09-04", "servicio": "desayuno", "tipo": "merma", "items": [{"producto": "HUEVO", "cantidad": 3}]}
+        self.assertEqual(c.post("/api/consumos", json={**base, "motivo": "inventado"}).status_code, 400)
+        self.assertEqual(c.post("/api/consumos", json={**base, "motivo": "error_cocina"}).status_code, 200)
+        p = c.get("/api/analisis/perdidas?desde=2026-09-01&hasta=2026-09-30").json()
+        self.assertEqual([(m["motivo"], m["coste"]) for m in p["mermas"]], [("error_cocina", 0.9)])
+        self.assertIn("error_cocina", c.get("/api/catalogo").json()["motivos"])
+
+    def test_revision_de_fichas(self):
+        con.execute("INSERT OR IGNORE INTO recetas(id, nombre, servicio) VALUES('vacia', 'Receta vacía', 'comida')")
+        con.commit()
+        f = {x["id"]: x for x in cliente("dir").get("/api/analisis/fichas").json()}
+        self.assertIn("Sin ingredientes", f["vacia"]["problemas"])
+
+
 class TestCompras(unittest.TestCase):
     def test_documento_adjunto_y_proveedor(self):
         c = cliente("adm")

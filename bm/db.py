@@ -317,6 +317,9 @@ def _migrar(con: sqlite3.Connection) -> None:
         con.execute("ALTER TABLE atajos ADD COLUMN seccion TEXT")
         con.commit()
     cols = {r[1] for r in con.execute("PRAGMA table_info(consumos)")}
+    if "motivo" not in cols:  # mermas: error_cocina | caducado | rotura | devolucion | invitacion | otro
+        con.execute("ALTER TABLE consumos ADD COLUMN motivo TEXT")
+        con.commit()
     if "ubicacion" not in cols:  # de qué ubicación sale el stock de este consumo
         con.execute("ALTER TABLE consumos ADD COLUMN ubicacion TEXT REFERENCES ubicaciones(codigo)")
         con.commit()

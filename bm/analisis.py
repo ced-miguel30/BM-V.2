@@ -195,3 +195,68 @@ def precios_dudosos(con: sqlite3.Connection) -> list[dict]:
                             "importe": c["coste_total"], "precio": round(abs(c["coste_total"] / c["cantidad"]), 4),
                             "precio_habitual": round(med, 4)})
     return sorted(out, key=lambda x: x["fecha"], reverse=True)
+
+
+def perdidas(con: sqlite3.Connection, desde: str, hasta: str) -> dict:
+    """A dónde se va el dinero que no se vende: personal, mermas por motivo, diferencias de inventario y platos que no salen."""
+    def suma(sql, *a):
+        return round(con.execute(sql, a).fetchone()[0] or 0.0, 2)
+    base = """SELECT SUM(l.coste) FROM consumos c JOIN consumo_lineas l ON l.consumo_id=c.id
+              WHERE c.anulado=0 AND c.fecha>=? AND c.fecha<=?"""
+    personal = suma(base + " AND c.tipo='consumo' AND c.servicio='personal'", desde, hasta)
+    mermas = [{"motivo": r["motivo"] or "sin_motivo", "coste": round(r["coste"] or 0, 2), "registros": r["n"]} for r in con.execute(
+        """SELECT c.motivo, SUM(l.coste) coste, COUNT(DISTINCT c.id) n FROM consumos c JOIN consumo_lineas l ON l.consumo_id=c.id
+           WHERE c.anulado=0 AND c.tipo='merma' AND c.fecha>=? AND c.fecha<=? GROUP BY 1 ORDER BY 2 DESC""", (desde, hasta))]
+    top_mermas = [dict(r) for r in con.execute(
+        """SELECT l.producto, p.nombre, p.unidad, c.motivo, ROUND(SUM(l.cantidad), 3) cantidad, ROUND(SUM(l.coste), 2) coste
+           FROM consumos c JOIN consumo_lineas l ON l.consumo_id=c.id JOIN productos p ON p.codigo=l.producto
+           WHERE c.anulado=0 AND c.tipo='merma' AND c.fecha>=? AND c.fecha<=? GROUP BY 1, 4 ORDER BY coste DESC LIMIT 20""", (desde, hasta))]
+    dif = desviaciones(con, desde, hasta)
+    no_registrado = round(sum(d["valor"] or 0 for d in dif if (d["valor"] or 0) < 0), 2)
+    platos = rentabilidad(con, desde, hasta)
+    perros = [p for p in platos if p.get("clase") == "perro"]
+    return {"personal": personal, "mermas": mermas, "mermas_total": round(sum(m["coste"] for m in mermas), 2),
+            "top_mermas": top_mermas, "diferencias_inventario": no_registrado,
+            "platos_que_no_salen": sorted(perros, key=lambda p: p["unidades"])}
+
+
+def revision_fichas(con: sqlite3.Connection) -> list[dict]:
+    """Recetas que no tienen sentido y por qué (para revisarlas antes de fiarse de sus costes)."""
+    imp = igic(con)
+    pvp = {r["receta_id"]: r["precio"] for r in con.execute(
+        "SELECT receta_id, MAX(precio) precio FROM tpv_articulos WHERE receta_id IS NOT NULL AND precio>0 GROUP BY receta_id")}
+    usadas = {r[0] for r in con.execute(
+        """SELECT DISTINCT l.receta_id FROM consumo_lineas l JOIN consumos c ON c.id=l.consumo_id
+           WHERE c.anulado=0 AND l.receta_id IS NOT NULL AND c.fecha>=date('now','-90 days')""")}
+    del_dia = {r[0] for r in con.execute("SELECT DISTINCT r.id FROM recetas r JOIN recetas_dia d ON lower(d.etiqueta)=lower(r.nombre)")}
+    out = []
+    for r in con.execute("SELECT id FROM recetas WHERE activo=1"):
+        if r["id"] in del_dia:
+            continue  # "Tostada/Cóctel del día": se resuelve por día, no tiene ingredientes propios
+        c = consumos.coste_receta(con, r["id"])
+        problemas, avisos = [], []
+        if not c["lineas"]:
+            problemas.append("Sin ingredientes")
+        for l in c["lineas"]:
+            racion = l["cantidad"] / (c["porciones"] or 1)
+            u = (l["unidad"] or "").upper()
+            if l["precio"] is None:
+                problemas.append(f"{l['nombre']}: sin precio de compra")
+            if (u in ("KG", "LT") and racion > 1.5) or (u == "UD" and racion > 12):
+                problemas.append(f"{l['nombre']}: {racion:g} {u} por ración parece demasiado")
+            if u in ("KG", "LT") and 0 < racion < 0.0005:
+                problemas.append(f"{l['nombre']}: {racion:g} {u} por ración parece muy poco")
+        precio = pvp.get(r["id"])
+        if precio and c["lineas"] and c["completo"]:
+            fc = 100 * c["coste_racion"] / (precio / (1 + imp))
+            minimo = 4 if c["servicio"] == "bebidas" else 12  # una copa puede estar al 6 %; un plato casi nunca
+            if fc < minimo:
+                problemas.append(f"Food cost {fc:.1f} % sobre un PVP de {precio:.2f} €: ¿faltan ingredientes?")
+            elif fc > 60:
+                problemas.append(f"Food cost {fc:.1f} % sobre un PVP de {precio:.2f} €: ¿cantidades altas o precio bajo?")
+        if r["id"] not in usadas and not precio:
+            avisos.append("No se ha usado en 90 días ni se vende en el TPV")
+        if problemas or avisos:
+            out.append({"id": r["id"], "nombre": c["nombre"], "servicio": c["servicio"], "coste_racion": c["coste_racion"],
+                        "pvp": precio, "problemas": problemas, "avisos": avisos})
+    return sorted(out, key=lambda x: (-len(x["problemas"]), x["nombre"]))

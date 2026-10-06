@@ -54,3 +54,14 @@ def precios(dias: int = 90, u: dict = Depends(requiere(*GESTION))):
 def tendencia(meses: int = 12, u: dict = Depends(requiere(*GESTION))):
     return {"meses": analisis.tendencia(con, meses), "objetivo_food_cost": float(inventario.ajuste(con, "objetivo_food_cost", "30")),
             "hoy": date.today().isoformat()}
+
+
+@app.get("/api/analisis/perdidas")
+def perdidas(desde: str, hasta: str, u: dict = Depends(requiere(*GESTION))):
+    from bm.consumos import MOTIVOS_MERMA
+    return {**analisis.perdidas(con, desde, hasta), "motivos": MOTIVOS_MERMA}
+
+
+@app.get("/api/analisis/fichas")
+def fichas(u: dict = Depends(requiere(*GESTION))):
+    return analisis.revision_fichas(con)

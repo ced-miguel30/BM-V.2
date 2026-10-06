@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  ActionIcon, Badge, Button, Drawer, Group, NumberInput, Select, Stack, Switch, Table, Text, TextInput, Tooltip,
+  ActionIcon, Badge, Button, Drawer, Group, List, NumberInput, SegmentedControl, Select, Stack, Switch, Table, Text, TextInput, Tooltip,
 } from '@mantine/core';
 import { IconAlertTriangle, IconPlus, IconSearch, IconTrash } from '@tabler/icons-react';
 import { api, avisoError, avisoOk } from '../api';
@@ -22,9 +22,11 @@ export function Recetas() {
   const [q, setQ] = useState('');
   const [ed, setEd] = useState<Receta | null>(null);
   const [guardando, setGuardando] = useState(false);
+  const [vista, setVista] = useState('todas');
+  const [fichas, setFichas] = useState<{ id: string; nombre: string; servicio: string | null; coste_racion: number; pvp: number | null; problemas: string[]; avisos: string[] }[] | null>(null);
   const servicios = useCentros().filter((c) => c.tipo === 'restauracion').map((c) => ({ value: c.codigo, label: c.nombre }));
 
-  const cargar = () => api<Resumen[]>('/recetas').then(setLista).catch(avisoError);
+  const cargar = () => { api<Resumen[]>('/recetas').then(setLista).catch(avisoError); api<NonNullable<typeof fichas>>('/analisis/fichas').then(setFichas).catch(avisoError); };
   useEffect(() => { cargar(); api<{ productos: Producto[] }>('/catalogo').then((c) => setProductos(c.productos)).catch(avisoError); }, []);
 
   const abrir = (id: string) => api<Receta>(`/recetas/${id}`).then(setEd).catch(avisoError);
@@ -48,9 +50,23 @@ export function Recetas() {
   return (
     <>
       <Cabecera titulo="Recetas" subtitulo="Coste teórico con el precio de la última compra en BC">
+        <SegmentedControl value={vista} onChange={setVista} data={[{ value: 'todas', label: 'Todas' },
+          { value: 'revisar', label: `A revisar (${fichas?.filter((f) => f.problemas.length).length ?? '…'})` }, { value: 'avisos', label: 'Sin uso' }]} />
         <TextInput leftSection={<IconSearch size={16} />} placeholder="Buscar receta" value={q} onChange={(e) => setQ(e.currentTarget.value)} w={220} />
         <Button leftSection={<IconPlus size={16} />} onClick={() => setEd({ ...NUEVA, lineas: [] })}>Nueva receta</Button>
       </Cabecera>
+      {vista !== 'todas' ? (
+        <Tabla datos={fichas ? fichas.filter((f) => (vista === 'revisar' ? f.problemas.length : !f.problemas.length && f.avisos.length) && (!q || f.nombre.toLowerCase().includes(q.toLowerCase()))) : null}
+          clave={(f) => f.id} alPulsar={(f) => abrir(f.id)} exportar="fichas_a_revisar" vacio="Ninguna ficha con problemas" anchoMin={760}
+          columnas={[
+            { clave: 'nombre', titulo: 'Receta', render: (f) => <Text size="sm" fw={500}>{f.nombre}</Text> },
+            { clave: 'servicio', titulo: 'Servicio', render: (f) => <BadgeServicio valor={f.servicio} /> },
+            { clave: 'problemas', titulo: 'Qué revisar', valor: (f) => [...f.problemas, ...f.avisos].join('; '), render: (f) => (
+              <List size="sm" spacing={2}>{[...f.problemas, ...f.avisos].map((x) => <List.Item key={x}><Text size="sm" c={f.problemas.includes(x) ? 'red' : 'dimmed'}>{x}</Text></List.Item>)}</List>) },
+            { clave: 'coste_racion', titulo: 'Coste / ración', num: true, render: (f) => euros(f.coste_racion) },
+            { clave: 'pvp', titulo: 'PVP', num: true, render: (f) => euros(f.pvp) },
+          ]} />
+      ) : (
       <Tabla datos={lista ? visibles : null} clave={(r) => r.id} alPulsar={(r) => abrir(r.id)} atenuar={(r) => !r.activo} exportar="recetas"
         orden={{ clave: 'nombre' }} vacio="Sin recetas"
         columnas={[
@@ -64,6 +80,7 @@ export function Recetas() {
               <Text size="sm" fw={600}>{euros(r.coste_racion)}</Text>
             </Group>) },
         ]} />
+      )}
 
       <Drawer opened={!!ed} onClose={() => setEd(null)} position="right" size="xl" title={ed?.id ? ed.nombre : 'Nueva receta'}>
         {ed && (

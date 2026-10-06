@@ -42,15 +42,25 @@ def expandir(con: sqlite3.Connection, items: list[dict], fecha: str | None = Non
     return out
 
 
+MOTIVOS_MERMA = {"error_cocina": "Error de cocina", "caducado": "Caducado", "rotura": "Rotura / caída",
+                 "devolucion": "Devuelto por el cliente", "invitacion": "Invitación", "otro": "Otro"}
+
+
 def centro_valido(con: sqlite3.Connection, codigo: str | None) -> bool:
     return bool(codigo) and bool(con.execute("SELECT 1 FROM centros WHERE codigo=? AND activo=1", (codigo,)).fetchone())
 
 
 def registrar(con: sqlite3.Connection, *, fecha: str, servicio: str | None, items: list[dict], tipo: str = "consumo",
               comensales: int | None = None, nota: str | None = None, usuario: str | None = None,
-              origen: str = "manual", ref: str | None = None, ubicacion: str | None = None) -> int:
+              origen: str = "manual", ref: str | None = None, ubicacion: str | None = None, motivo: str | None = None) -> int:
     if servicio and not centro_valido(con, servicio):
         raise ValueError(f"Centro de consumo no válido: {servicio}")
+    if tipo == "merma":
+        motivo = motivo or "otro"
+        if motivo not in MOTIVOS_MERMA:
+            raise ValueError(f"Motivo de merma no válido: {motivo}")
+    else:
+        motivo = None
     if tipo == "consumo" and not servicio:
         raise ValueError("Indica el servicio o departamento")
     if ubicacion and not con.execute("SELECT 1 FROM ubicaciones WHERE codigo=?", (ubicacion,)).fetchone():
@@ -62,8 +72,8 @@ def registrar(con: sqlite3.Connection, *, fecha: str, servicio: str | None, item
     if ref and con.execute("SELECT 1 FROM consumos WHERE ref=?", (ref,)).fetchone():
         raise ValueError("Este registro ya existe (misma referencia)")
     cid = con.execute(
-        "INSERT INTO consumos(fecha, servicio, tipo, origen, ref, comensales, nota, usuario, ubicacion) VALUES(?,?,?,?,?,?,?,?,?)",
-        (fecha, servicio, tipo, origen, ref, comensales, nota, usuario, ubicacion),
+        "INSERT INTO consumos(fecha, servicio, tipo, origen, ref, comensales, nota, usuario, ubicacion, motivo) VALUES(?,?,?,?,?,?,?,?,?,?)",
+        (fecha, servicio, tipo, origen, ref, comensales, nota, usuario, ubicacion, motivo),
     ).lastrowid
     con.executemany(
         "INSERT INTO consumo_lineas(consumo_id, producto, cantidad, receta_id) VALUES(?,?,?,?)",

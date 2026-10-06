@@ -254,7 +254,7 @@ def cerrar_caducidad(con, cid: int, estado: str, usuario: str | None = None) -> 
                              (c["ubicacion"],)).fetchone()
         consumo_id = consumos.registrar(
             con, fecha=date.today().isoformat(), servicio=centro[0] if centro else None, tipo="merma",
-            ubicacion=c["ubicacion"], items=[{"producto": c["producto"], "cantidad": c["cantidad"]}],
+            ubicacion=c["ubicacion"], motivo="caducado", items=[{"producto": c["producto"], "cantidad": c["cantidad"]}],
             nota=f"Caducado el {c['caduca']}" + (f" · {c['nota']}" if c["nota"] else ""), usuario=usuario)
     con.execute("UPDATE caducidades SET estado=?, cerrado=CURRENT_TIMESTAMP, consumo_id=? WHERE id=?",
                 (estado, consumo_id, cid))

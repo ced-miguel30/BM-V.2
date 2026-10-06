@@ -12,6 +12,7 @@ import { useCentros, useUbicaciones } from '../centros';
 type Catalogo = {
   recetas: { id: string; nombre: string; servicio: string | null }[];
   productos: { codigo: string; nombre: string; unidad: string | null }[];
+  motivos: Record<string, string>;
 };
 type Item = { clave: string; nombre: string; unidad: string; cantidad: number };
 
@@ -22,6 +23,7 @@ export function Registrar() {
   const [tipo, setTipo] = useState<string>('consumo');
   const [comensales, setComensales] = useState<number | string>('');
   const [nota, setNota] = useState('');
+  const [motivo, setMotivo] = useState<string | null>(null);
   const [items, setItems] = useState<Item[]>([]);
   const [sel, setSel] = useState<string | null>(null);
   const [cant, setCant] = useState<number | string>(1);
@@ -68,7 +70,7 @@ export function Registrar() {
     try {
       await api('/consumos', {
         body: {
-          fecha, servicio, tipo, nota: nota || null,
+          fecha, servicio, tipo, nota: nota || null, motivo: tipo === 'merma' ? motivo : null,
           ubicacion: ubicacion && ubicacion !== centro?.ubicacion ? ubicacion : null,
           comensales: servicio === 'desayuno' && tipo === 'consumo' && comensales !== '' ? Number(comensales) : null,
           items: items.map((x) => (x.clave.startsWith('r:')
@@ -112,8 +114,11 @@ export function Registrar() {
               )}
               <Select label="Sale del almacén" description="El stock se descuenta de aquí" searchable value={ubicacionFinal}
                 data={ubicaciones.map((u) => ({ value: u.codigo, label: u.nombre }))} onChange={setUbicacion} />
-              <Textarea label={tipo === 'merma' ? 'Motivo de la merma' : 'Nota'} value={nota} onChange={(e) => setNota(e.currentTarget.value)}
-                autosize minRows={2} required={tipo === 'merma'} />
+              {tipo === 'merma' && (
+                <Select label="Motivo de la merma" required value={motivo} onChange={setMotivo}
+                  data={Object.entries(cat?.motivos ?? {}).map(([value, label]) => ({ value, label }))} />
+              )}
+              <Textarea label="Nota" value={nota} onChange={(e) => setNota(e.currentTarget.value)} autosize minRows={2} />
             </Stack>
           </Card>
         </Grid.Col>
@@ -149,7 +154,7 @@ export function Registrar() {
 
             <Group justify="flex-end" mt="md">
               <Button size="md" leftSection={<IconDeviceFloppy size={18} />} onClick={guardar} loading={guardando}
-                disabled={!items.length || (tipo === 'merma' && !nota.trim())}>
+                disabled={!items.length || (tipo === 'merma' && !motivo)}>
                 Guardar {tipo === 'merma' ? 'merma' : 'consumo'}
               </Button>
             </Group>
