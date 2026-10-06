@@ -11,7 +11,7 @@ db.DB_PATH = Path(_tmp.name) / "test.sqlite"  # antes de importar bm.app, que ab
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from bm import app as A, usuarios  # noqa: E402
+from bm import app as A, tpv, usuarios  # noqa: E402
 
 con = A.con
 con.executemany("INSERT INTO productos(codigo, nombre, unidad, categoria) VALUES(?,?,?,'101')",
@@ -107,6 +107,16 @@ class TestFlujos(unittest.TestCase):
         cliente("dir").post("/api/config/copias")
         ultima = con.execute("SELECT usuario, ruta, estado FROM auditoria ORDER BY id DESC LIMIT 1").fetchone()
         self.assertEqual(tuple(ultima), ("DIR", "/api/config/copias", 200))
+
+    def test_food_cost_sin_ventas_sin_asignar(self):
+        con.executemany("INSERT OR IGNORE INTO tpv_articulos(codigo, nombre, receta_id, precio) VALUES(?,?,?,?)",
+                        [("PV1", "HUEVOS", "r1", 10.7), ("PV2", "SIN ASIGNAR", None, 10.7)])
+        con.executemany("INSERT OR IGNORE INTO tpv_ventas VALUES('2026-07-01', ?, 107)", [("PV1",), ("PV2",)])
+        con.commit()
+        tpv.regenerar(con, ["2026-07-01"])
+        r = cliente("dir").get("/api/panel?mes=2026-07").json()["actual"]
+        self.assertEqual(r["ventas_sin_asignar"], 107)
+        self.assertAlmostEqual(r["food_cost_pct"], round(100 * r["coste_tpv"] / 100, 1))  # sobre 100 € netos, no 200
 
     def test_estado_bc_dice_desde_cuando_exportar(self):
         e = cliente("adm").get("/api/bc/estado").json()

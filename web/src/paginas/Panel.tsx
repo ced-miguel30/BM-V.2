@@ -97,7 +97,7 @@ export function Panel() {
             <Kpi titulo="Coste de consumo" valor={d.actual.consumo} anterior={d.anterior.consumo} formato={euros} icono={IconScale} color="marina" />
             <Kpi titulo="Ventas TPV" valor={d.actual.ventas_tpv} anterior={d.anterior.ventas_tpv} formato={euros} icono={IconReceipt2} color="teal" menosEsMejor={false} />
             <Kpi titulo="Food cost TPV" valor={d.actual.food_cost_pct} anterior={d.anterior.food_cost_pct} formato={pct} icono={IconPercentage}
-              color={(d.actual.food_cost_pct ?? 0) > objetivo ? 'red' : 'grape'} ayuda={`Objetivo ${objetivo} % · sobre venta sin IGIC`} />
+              color={(d.actual.food_cost_pct ?? 0) > objetivo ? 'red' : 'grape'} ayuda={`Objetivo ${objetivo} % · sobre venta sin IGIC${(d.actual.ventas_sin_asignar ?? 0) > 0.5 ? ` · no incluye ${euros(d.actual.ventas_sin_asignar)} vendidos sin asignar` : ''}`} />
             <Kpi titulo="Desayuno por comensal" valor={d.actual.coste_por_comensal} anterior={d.anterior.coste_por_comensal} formato={euros} icono={IconCoffee} color="orange"
               ayuda={`${d.actual.comensales_desayuno ?? 0} comensales`} />
           </SimpleGrid>

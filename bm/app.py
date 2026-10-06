@@ -161,7 +161,10 @@ def _resumen(ini: str, fin: str) -> dict:
     r["coste_tpv"] = coste_tpv
     # Food cost sobre venta NETA (los importes del TPV llevan IGIC)
     r["ventas_netas"] = r["ventas_tpv"] / (1 + analisis.igic(con))
-    r["food_cost_pct"] = round(100 * coste_tpv / r["ventas_netas"], 1) if r["ventas_netas"] else None
+    asignada = con.execute(f"SELECT COALESCE(SUM(importe),0) FROM ({analisis.VENTA_ASIGNADA}) WHERE fecha>=? AND fecha<?", (ini, fin)).fetchone()[0]
+    r["ventas_sin_asignar"] = r["ventas_tpv"] - asignada
+    neta_asignada = asignada / (1 + analisis.igic(con))
+    r["food_cost_pct"] = round(100 * coste_tpv / neta_asignada, 1) if neta_asignada else None
     com = con.execute(
         "SELECT COALESCE(SUM(comensales),0) FROM consumos WHERE anulado=0 AND servicio='desayuno' AND tipo='consumo' AND fecha>=? AND fecha<?",
         (ini, fin)).fetchone()[0]

@@ -16,6 +16,12 @@ def _num(con, clave: str, defecto: float) -> float:
         return defecto
 
 
+# Ventas que cuentan para el food cost: las de artículos asignados (o marcados "no descuenta"). Un artículo sin asignar
+# vende pero no descuenta coste; si entrara, el food cost saldría más bajo de lo real.
+VENTA_ASIGNADA = """SELECT v.fecha, v.importe FROM tpv_ventas v JOIN tpv_articulos a ON a.codigo=v.codigo
+                    WHERE a.ignorar=1 OR a.receta_id IS NOT NULL OR a.producto IS NOT NULL"""
+
+
 def igic(con) -> float:
     """IGIC incluido en los importes del TPV (Canarias, 7 % por defecto)."""
     return _num(con, "igic_ventas", 7.0) / 100
@@ -151,7 +157,7 @@ def tendencia(con: sqlite3.Connection, meses: int = 12) -> list[dict]:
         (ini.isoformat(),)
     ):
         filas[r["mes"]][r["grupo"] or "sin_centro"] += r["coste"] or 0
-    for r in con.execute("SELECT substr(fecha,1,7) mes, SUM(importe) FROM tpv_ventas WHERE fecha>=? GROUP BY 1", (ini.isoformat(),)):
+    for r in con.execute(f"SELECT substr(fecha,1,7) mes, SUM(importe) FROM ({VENTA_ASIGNADA}) WHERE fecha>=? GROUP BY 1", (ini.isoformat(),)):
         filas[r[0]]["ventas_netas"] = r[1] / (1 + imp)
     for r in con.execute(
         """SELECT substr(c.fecha,1,7) mes, SUM(l.coste) FROM consumos c JOIN consumo_lineas l ON l.consumo_id=c.id
