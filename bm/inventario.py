@@ -18,6 +18,10 @@ FISICAS = [("ECONOMATO", "Economato"), ("RESTAURANTE", "Restaurante y cocina")]
 # Almacenes contables de BC que físicamente están en Restaurante y cocina (nevera, congelador, estanterías).
 EN_RESTAURANTE = {"DESAYUNO", "SNACK BEBI", "SNACK COMI", "SNACK CENA", "SNACK", "COCINA", "RESTAURANT", "BEBIDAS",
                   "PERSONAL", "ATENCIONES", "ENVASES"}
+# Nombre legible de los almacenes de departamento de BC (los códigos van cortados a 10 letras).
+NOMBRES = {"HABITACION": "Habitaciones", "LIMPI-REST": "Limpieza restaurante", "LIMPI-COCI": "Limpieza cocina",
+           "MANTEN": "Mantenimiento", "MENAJE-COC": "Menaje cocina", "MENAJE-RES": "Menaje restaurante",
+           "MENAJE-PIS": "Menaje pisos", "UNIFORMIDA": "Uniformidad", "MATER-OFIC": "Material de oficina"}
 CENTROS_INICIALES = [  # codigo, nombre, tipo, ubicación física, color, orden, almacén BC que lo imputa
     ("desayuno", "Desayuno", "restauracion", "RESTAURANTE", "orange", 1, "DESAYUNO"),
     ("comida", "Comida", "restauracion", "RESTAURANTE", "teal", 2, "SNACK COMI"),
@@ -57,8 +61,10 @@ def sembrar(con: sqlite3.Connection) -> None:
     con.execute("""INSERT OR IGNORE INTO proveedores(nombre) SELECT DISTINCT proveedor FROM bc_movs
                    WHERE tipo='Compra' AND proveedor <> ''""")
     con.executemany("UPDATE ubicaciones SET nombre=? WHERE codigo=? AND nombre=codigo", FISICAS)
-    for cod, in con.execute("SELECT codigo FROM ubicaciones WHERE nombre=codigo").fetchall():  # nombre legible por defecto
-        con.execute("UPDATE ubicaciones SET nombre=? WHERE codigo=?", (cod.replace("-", " ").title(), cod))
+    for cod, nombre in con.execute("SELECT codigo, nombre FROM ubicaciones").fetchall():  # nombre legible si no se ha cambiado a mano
+        auto = cod.replace("-", " ").title()
+        if nombre in (cod, cod.title(), auto):
+            con.execute("UPDATE ubicaciones SET nombre=? WHERE codigo=?", (NOMBRES.get(cod, auto), cod))
     con.executemany("INSERT OR IGNORE INTO ajustes VALUES(?, ?)",
                     [("traslados_en", "bc"), ("igic_ventas", "7"), ("objetivo_food_cost", "30"),
                      ("dias_seguridad", "2"), ("dias_reposicion", "3")])
