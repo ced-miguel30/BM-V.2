@@ -41,6 +41,11 @@ food cost TPV solo sobre venta asignada (octubre 15,6 % → 19,7 %, el panel dic
 con días que faltan y solo artículos TPV vendidos ese mes; login bloqueado 15 min tras 10 fallos (queda en Actividad);
 informe/productos/compras adaptados al móvil. Tests: 47.
 
+Bloque "funciones nuevas" (11/10/2026): pedidos enviados + control del albarán (`bm/pedidos.py`, Pedidos → Enviados);
+carpeta de entrada que importa sola TPV y Excel de BC (`bm/entrada.py`, `datos\entrada`); PVP objetivo por plato y aviso
+de subidas de ingredientes de carta; etiquetas de caducidad 60×40 mm (`web/src/etiqueta.ts`); escáner de códigos en el
+recuento (USB/Bluetooth siempre; cámara solo con https). Paleta de gráficos elegante (variables `--serie-*` en app.css).
+
 ## Pendiente de revisar por el usuario
 1. **TPV (47 sin asignar):** las sugerencias ya son fiables, pero revisar: *Pescado del día* (sugiere caldo de
    pescado: no aceptar), *Ración croquetas* → producto Croquetas de pollo (¿cuántas por ración?), *Smoothie* →
@@ -53,8 +58,10 @@ informe/productos/compras adaptados al móvil. Tests: 47.
 4. **Zonas del recuento:** se asignan solas al contar la primera vez (botón "Zona" de cada producto).
 5. **Copias:** decidir la segunda carpeta en el servidor (NAS, otro disco u OneDrive) → Configuración → Copias.
 6. **Pedidos:** con el último inventario del 31/08 las propuestas son extrapolación; mejoran con recuentos frecuentes.
-7. **Idea no hecha (necesita a administración de BC):** leer BC directamente por su API (OData/API web) en vez de
+7. **Cámara del escáner:** requiere abrir BM por https en la red del hotel (certificado o Cloudflare Tunnel). Sin eso,
+   lector USB/Bluetooth. Envío de pedidos: abre el correo del PC (mailto); envío directo necesitaría datos SMTP.
+8. **Idea no hecha (necesita a administración de BC):** leer BC directamente por su API (OData/API web) en vez de
    exportar Excel. Sería lo que más trabajo quita; requiere usuario/permiso de servicio en BC.
-8. Sigue faltando: export "Líneas factura compra registradas", contactos de proveedores, datos frescos, prueba con
+9. Sigue faltando: export "Líneas factura compra registradas", contactos de proveedores, datos frescos, prueba con
    el personal, `instalar\instalar.ps1` en el servidor.
 - Entorno: Bash corta heredocs > ~7 KB (escribir ficheros en trozos); `gh` sin sesión (CI en GitHub sin verificar).

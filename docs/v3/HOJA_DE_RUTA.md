@@ -60,3 +60,14 @@ Fases:
 
 Estado segunda etapa (06/10/2026): fases 7 a 12 completadas y subidas a `v3`.
 Pendiente para la puesta en marcha: carga de datos frescos, pruebas con el personal y revisión de fichas/precios marcados.
+
+## Tercera etapa — cerrar ciclos (11/10/2026)
+
+- [x] Pedidos enviados y su seguimiento (lo pedido no se vuelve a proponer)
+- [x] Comprobación del albarán contra el pedido (recibido / incompleto / sin albarán) con avisos
+- [x] Carpeta de entrada: ventas TPV y Excel de BC se importan solos
+- [x] PVP objetivo por plato y aviso de subidas en ingredientes de carta
+- [x] Etiquetas de caducidad
+- [x] Recuento con escáner de códigos de barras
+- [ ] Conexión directa con la API de BC (necesita aplicación de servicio en BC)
+- [ ] Coste por habitación ocupada (necesita la ocupación diaria)
