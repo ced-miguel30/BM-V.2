@@ -29,7 +29,8 @@ def _euros(s: str) -> float:
 
 def leer_pdf(path) -> list[dict]:
     """-> [{'fecha','codigo','nombre','categoria','importe'}] una por línea de ticket."""
-    texto = "\n".join(p.get_text() for p in pymupdf.open(path))
+    with pymupdf.open(path) as doc:  # cerrar: en Windows un PDF abierto no se puede mover
+        texto = "\n".join(p.get_text() for p in doc)
     if "PV" not in texto:
         raise ValueError("El PDF no contiene texto de ventas TPV (¿es el informe 'Ventas TPV por categoría'?)")
     filas, categoria, actual, nombre = [], None, None, []

@@ -130,6 +130,7 @@ def leer(path) -> tuple[list[Fila], list[tuple[str, int, str]]]:
                 extras=extras, omitir=[str(x).strip() for x in (col(row, "omitir1"), col(row, "omitir2")) if x],
                 motivo="consumo" if motivo in ("", "consumo") else motivo, nota=str(col(row, "notas") or "").strip(),
             ))
+    wb.close()  # read_only deja el fichero abierto (Windows no deja moverlo)
     return filas, errores
 
 

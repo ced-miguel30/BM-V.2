@@ -20,6 +20,8 @@ El personal operativo no ve costes. Lo contado en un recuento pasa a ser el stoc
 - **Tras el inventario de fin de mes en BC:** importar movimientos otra vez; revisar **Control de stock**.
 - **Precios de compra → Precios a revisar en BC:** errores de unidad o importe en facturas. BM no los usa
   mientras tanto; corregirlos en BC y reimportar.
+- **Carpeta de entrada:** en vez de subir ficheros, guardar el PDF de ventas TPV y los Excel de BC en la carpeta
+  compartida de BM. Se importan solos en unos minutos; el resultado se ve en **Importar de BC**.
 - **Pedidos:** BM propone qué pedir a cada proveedor. Al pedir, pulsar **Enviar correo** (abre el correo ya redactado)
   o **Ya pedido** (si se pidió por teléfono o WhatsApp). Lo pedido deja de proponerse. Al importar los movimientos de BC,
   BM cruza el albarán con el pedido: *Recibido completo*, *Incompleto* (aviso con lo que falta, para reclamar) o

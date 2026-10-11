@@ -8,8 +8,8 @@ from fastapi import Depends, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from bm import copias, usuarios as usuarios_mod
-from bm.app import GESTION, _error, app, con, requiere, usuario
+from bm import copias, entrada, usuarios as usuarios_mod
+from bm.app import GESTION, _error, _escritura, app, con, requiere, usuario
 from bm.passwords import hash_password, verify_password
 
 DIRECCION = ("direccion",)
@@ -23,6 +23,16 @@ async def copia_diaria():
                 copias.hacer(con)
             await asyncio.sleep(3600)
     asyncio.create_task(bucle())
+
+    async def vigilar_entrada():
+        while True:
+            await asyncio.sleep(300)
+            async with _escritura:  # como una petición más: nunca a la vez que otra escritura
+                try:
+                    await asyncio.to_thread(entrada.procesar, con)
+                except Exception as e:  # noqa: BLE001 - la carpeta no debe tumbar el servidor
+                    print("Carpeta de entrada:", e)
+    asyncio.create_task(vigilar_entrada())
 
 
 @app.get("/api/config")
@@ -228,3 +238,24 @@ def descargar_copia(nombre: str, u: dict = Depends(requiere(*DIRECCION))):
     if "/" in nombre or "\\" in nombre or not f.is_file():
         raise HTTPException(404, "No existe")
     return FileResponse(f, filename=nombre, media_type="application/octet-stream")
+
+
+@app.get("/api/entrada")
+def ver_entrada(u: dict = Depends(requiere(*GESTION))):
+    return {"carpeta": str(entrada.carpeta(con)),
+            "log": [dict(x) for x in con.execute("SELECT * FROM entrada_log ORDER BY id DESC LIMIT 30")]}
+
+
+@app.post("/api/entrada/ahora")
+def entrada_ahora(u: dict = Depends(requiere(*GESTION))):
+    return entrada.procesar(con, ahora=float("inf"))  # lo que haya, sin esperar
+
+
+@app.put("/api/entrada")
+def guardar_entrada(d: CarpetaCopias, u: dict = Depends(requiere(*DIRECCION))):
+    ruta = d.carpeta.strip()
+    if ruta:
+        _error(copias.probar_carpeta, ruta)
+    con.execute("INSERT OR REPLACE INTO ajustes VALUES('carpeta_entrada', ?)", (ruta,))
+    con.commit()
+    return {"carpeta": str(entrada.carpeta(con))}

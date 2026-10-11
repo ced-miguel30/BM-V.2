@@ -23,10 +23,13 @@ def _norm(s) -> str:
 
 def _filas(path) -> list[dict]:
     """Filas como dicts con cabeceras normalizadas (sin tildes/º: BC cambia la codificación)."""
-    ws = openpyxl.load_workbook(path, read_only=True, data_only=True).active
-    it = ws.iter_rows(values_only=True)
-    cab = [_norm(c) for c in next(it)]
-    return [dict(zip(cab, f)) for f in it if any(v not in (None, "") for v in f)]
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    try:  # read_only deja el fichero abierto hasta close() (en Windows no se puede mover ni borrar)
+        it = wb.active.iter_rows(values_only=True)
+        cab = [_norm(c) for c in next(it)]
+        return [dict(zip(cab, f)) for f in it if any(v not in (None, "") for v in f)]
+    finally:
+        wb.close()
 
 
 def _col(fila: dict, *nombres):

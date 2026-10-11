@@ -30,6 +30,13 @@ powershell -ExecutionPolicy Bypass -File C:\BM\instalar\actualizar.ps1
 ```
 Hace copia de seguridad, actualiza el código, pasa los tests y vuelve a arrancar. Los datos no se tocan.
 
+## Carpeta de entrada (importación automática)
+
+BM importa solo, cada 5 minutos, lo que se guarde en `datos\entrada`: el PDF "Ventas TPV por categoría" y los Excel
+de BC (Movimientos de producto, Productos, Líneas factura compra). Compartir esa carpeta en la red solo para
+administración (botón derecho → Propiedades → Compartir) para que guarden ahí directamente. Lo importado pasa a
+`importados`, lo que falla a `con_error` (y sale un aviso). La carpeta se puede cambiar en **Importar de BC**.
+
 ## Copias de seguridad
 
 Automáticas cada día en `datos\copias` (se guardan 30). Desde Configuración → Copias se puede hacer una

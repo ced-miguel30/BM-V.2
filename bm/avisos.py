@@ -50,6 +50,10 @@ def avisos(con: sqlite3.Connection, rol: str) -> list[dict]:
     if rep:
         aviso("media", f"Reponer {len(rep)} productos en el restaurante", "La lista de lo que hay que subir del economato está preparada", "/reponer")
     if gestion:
+        fallo = con.execute("""SELECT fichero, detalle FROM entrada_log WHERE ok=0 AND cuando >= datetime('now', 'localtime', '-3 days')
+                               ORDER BY id DESC LIMIT 1""").fetchone()
+        if fallo:
+            aviso("alta", f"No se pudo importar {fallo['fichero']}", f"{fallo['detalle']}. Está en la carpeta con_error.", "/bc")
         error_copia = inventario.ajuste(con, "copias_extra_error")
         if error_copia:
             aviso("alta", "La copia de seguridad externa ha fallado", error_copia, "/configuracion")

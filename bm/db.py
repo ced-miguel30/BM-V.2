@@ -255,6 +255,16 @@ CREATE TABLE IF NOT EXISTS adjuntos(
 );
 CREATE INDEX IF NOT EXISTS ix_adjuntos_doc ON adjuntos(documento);
 
+-- Lo importado solo desde la carpeta de entrada (bm/entrada.py).
+CREATE TABLE IF NOT EXISTS entrada_log(
+  id INTEGER PRIMARY KEY,
+  cuando TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+  fichero TEXT NOT NULL,
+  tipo TEXT,
+  detalle TEXT,
+  ok INTEGER NOT NULL
+);
+
 -- Pedidos hechos a proveedores desde BM. Al importar BC se cruzan con sus albaranes (recibido / incompleto).
 CREATE TABLE IF NOT EXISTS pedidos(
   id INTEGER PRIMARY KEY,
