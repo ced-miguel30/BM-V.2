@@ -134,6 +134,14 @@ class TestFlujos(unittest.TestCase):
         self.assertEqual(c.post(f"/api/pedidos/{pid}/cerrar", json={"estado": "anulado", "nota": "prueba"}).status_code, 200)
         self.assertEqual(cliente("rest").get("/api/pedidos").status_code, 403)
 
+    def test_pvp_recomendado_segun_objetivo(self):
+        con.execute("INSERT OR IGNORE INTO tpv_articulos(codigo, nombre, receta_id, precio, servicio) VALUES('PV9', 'HUEVOS', 'r1', 2, 'comida')")
+        con.execute("INSERT OR IGNORE INTO tpv_ventas VALUES('2026-05-01', 'PV9', 20)")
+        con.commit()
+        p = {x["codigo"]: x for x in cliente("dir").get("/api/analisis/rentabilidad?desde=2026-05-01&hasta=2026-05-31").json()["platos"]}["PV9"]
+        # coste 0,80 € (2 huevos a 0,30 + 0,1 pan a 2 €) / 30 % objetivo × 1,07 IGIC = 2,853… -> 2,90 €
+        self.assertEqual((p["coste_unidad"], p["pvp_recomendado"]), (0.8, 2.9))
+
     def test_estado_bc_dice_desde_cuando_exportar(self):
         e = cliente("adm").get("/api/bc/estado").json()
         self.assertEqual(e["exportar_desde"], "2026-08-25")  # una semana antes del último movimiento (01/09)

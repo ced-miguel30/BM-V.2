@@ -80,6 +80,10 @@ def avisos(con: sqlite3.Connection, rol: str) -> list[dict]:
         pend = tpv.pendientes(con)
         if pend:
             aviso("media", f"{len(pend)} artículos del TPV sin asignar", "No descuentan stock ni coste hasta asignarlos", "/tpv")
+        subidas = analisis.subidas_en_carta(con)
+        if subidas:
+            aviso("media", f"{len(subidas)} ingredientes de la carta han subido más de un 10 %",
+                  ", ".join(f"{x['nombre']} (+{x['variacion']} %)" for x in subidas[:3]) + ". Revisa sus platos en Rentabilidad", "/precios")
         fichas = [f for f in analisis.revision_fichas(con) if f["problemas"]]
         if fichas:
             aviso("info", f"{len(fichas)} fichas de receta a revisar", "Sus costes pueden no ser reales", "/recetas")

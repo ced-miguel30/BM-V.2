@@ -7,7 +7,8 @@ import { Cabecera } from '../comun';
 import { cantidad, euros, fecha } from '../formato';
 import { Tabla } from '../Tabla';
 
-type Var = { producto: string; nombre: string; proveedor: string; fecha: string; precio: number; referencia: number; variacion: number; consumo_30d: number; impacto_mes: number };
+type Var = { producto: string; nombre: string; proveedor: string; fecha: string; precio: number; referencia: number; variacion: number; consumo_30d: number; impacto_mes: number;
+  platos: string[]; cambio_proveedor: boolean };
 type Dud = { producto: string; nombre: string; unidad: string | null; documento: string; fecha: string; proveedor: string; cantidad: number; importe: number; precio: number; precio_habitual: number };
 
 export function Precios() {
@@ -27,12 +28,15 @@ export function Precios() {
         <Tabs.Panel value="variaciones">
           <Tabla datos={d?.variaciones ?? null} clave={(v) => v.producto} buscar exportar="variacion_precios" alPulsar={ir} anchoMin={900}
             vacio="Sin cambios de precio en los últimos 90 días" columnas={[
-              { clave: 'nombre', titulo: 'Producto', render: (v) => <><Text size="sm" fw={500}>{v.nombre}</Text><Text size="xs" c="dimmed">{v.proveedor}</Text></> },
+              { clave: 'nombre', titulo: 'Producto', render: (v) => <><Text size="sm" fw={500}>{v.nombre}</Text>
+                <Text size="xs" c="dimmed">{v.proveedor}{v.cambio_proveedor ? ' · otro proveedor que antes' : ''}</Text></> },
               { clave: 'fecha', titulo: 'Última compra', render: (v) => fecha(v.fecha) },
               { clave: 'referencia', titulo: 'Antes', num: true, render: (v) => euros(v.referencia) },
               { clave: 'precio', titulo: 'Ahora', num: true, render: (v) => <Text size="sm" fw={600}>{euros(v.precio)}</Text> },
               { clave: 'variacion', titulo: 'Cambio', num: true, render: (v) => <Badge color={v.variacion > 0 ? 'red' : 'teal'} variant="light">{v.variacion > 0 ? '+' : ''}{v.variacion} %</Badge> },
               { clave: 'consumo_30d', titulo: 'Consumo 30 d', num: true, render: (v) => cantidad(v.consumo_30d) },
+              { clave: 'platos', titulo: 'Platos de carta', valor: (v) => v.platos.join(', '), render: (v) => v.platos.length
+                ? <Text size="xs" lineClamp={2} maw={220}>{v.platos.join(', ')}</Text> : <Text size="xs" c="dimmed">—</Text> },
               { clave: 'impacto_mes', titulo: 'Impacto / mes', num: true, render: (v) => <Text size="sm" fw={600} c={v.impacto_mes > 0 ? 'red' : v.impacto_mes < 0 ? 'teal' : undefined}>{euros(v.impacto_mes)}</Text> },
             ]} />
         </Tabs.Panel>

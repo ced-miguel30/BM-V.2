@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import sqlite3
 from collections import defaultdict
 from datetime import date, timedelta
@@ -57,6 +58,9 @@ def rentabilidad(con: sqlite3.Connection, desde: str, hasta: str) -> list[dict]:
         asignado = bool(a["receta_id"] or a["producto"])
         coste = _coste_unidad(con, a, cache) if asignado else None
         pvp_neto = a["precio"] / (1 + imp)
+        objetivo = _num(con, "objetivo_food_cost", 30.0) / 100
+        # PVP con IGIC que deja el food cost en el objetivo, redondeado a 10 céntimos hacia arriba
+        recomendado = None if coste is None else math.ceil(coste / objetivo * (1 + imp) * 10 - 1e-9) / 10
         filas.append({
             "codigo": a["codigo"], "nombre": a["nombre"], "servicio": a["servicio"], "unidades": uds, "dias": a["dias"],
             "pvp": a["precio"], "pvp_neto": round(pvp_neto, 4), "ventas_netas": round(a["importe"] / (1 + imp), 2),
@@ -64,7 +68,7 @@ def rentabilidad(con: sqlite3.Connection, desde: str, hasta: str) -> list[dict]:
             "margen_unidad": None if coste is None else round(pvp_neto - coste, 4),
             "food_cost": None if coste is None or not pvp_neto else round(100 * coste / pvp_neto, 1),
             "margen_total": None if coste is None else round((pvp_neto - coste) * uds, 2),
-            "asignado": asignado,
+            "asignado": asignado, "pvp_recomendado": recomendado,
         })
     # Clasificación por servicio, solo con platos que tienen coste
     por_servicio = defaultdict(list)
@@ -104,6 +108,26 @@ def desviaciones(con: sqlite3.Connection, desde: str, hasta: str, ubicacion: str
     return out
 
 
+def platos_de_carta(con: sqlite3.Connection, dias: int = 60) -> dict[str, list[str]]:
+    """Producto -> platos del TPV vendidos últimamente que lo llevan (por su receta o directamente)."""
+    out: dict[str, set] = defaultdict(set)
+    for r in con.execute(
+        """SELECT DISTINCT a.nombre, a.producto, l.producto ingrediente FROM tpv_articulos a
+           JOIN tpv_ventas v ON v.codigo=a.codigo AND v.fecha>=date('now', ?)
+           LEFT JOIN receta_lineas l ON l.receta_id=a.receta_id WHERE a.ignorar=0""", (f"-{dias} days",)):
+        for p in (r["producto"], r["ingrediente"]):
+            if p:
+                out[p].add(r["nombre"])
+    return {p: sorted(n) for p, n in out.items()}
+
+
+def subidas_en_carta(con: sqlite3.Connection, minimo: float = 10.0) -> list[dict]:
+    """Ingredientes de platos de carta cuya última compra (del último mes, al proveedor habitual) subió al menos un `minimo` %."""
+    mes = (date.today() - timedelta(days=30)).isoformat()
+    return [v for v in variacion_precios(con) if v["platos"] and minimo <= v["variacion"] <= 100 and v["fecha"] >= mes
+            and not v["cambio_proveedor"]]  # >100 % suele ser error de unidad (sale en Precios a revisar)
+
+
 def variacion_precios(con: sqlite3.Connection, dias: int = 90) -> list[dict]:
     """Última compra frente a la media de los 90 días anteriores, con impacto mensual según el consumo de BM."""
     hoy = date.today()
@@ -119,6 +143,7 @@ def variacion_precios(con: sqlite3.Connection, dias: int = 90) -> list[dict]:
         """SELECT l.producto, SUM(l.cantidad) FROM consumo_lineas l JOIN consumos c ON c.id=l.consumo_id
            WHERE c.anulado=0 AND c.fecha>=? GROUP BY 1""", ((hoy - timedelta(days=30)).isoformat(),)).fetchall())
     nombres = dict(con.execute("SELECT codigo, nombre FROM productos").fetchall())
+    platos = platos_de_carta(con)
     out = []
     for p, cs in compras.items():
         malos = costing.dudosos(cs)
@@ -139,7 +164,11 @@ def variacion_precios(con: sqlite3.Connection, dias: int = 90) -> list[dict]:
         out.append({"producto": p, "nombre": nombres.get(p, p), "proveedor": ultima["proveedor"], "fecha": ultima["fecha"],
                     "precio": round(ultima["precio"], 4), "referencia": round(ref, 4),
                     "variacion": round(100 * (ultima["precio"] - ref) / ref, 1),
-                    "consumo_30d": round(uso, 3), "impacto_mes": round((ultima["precio"] - ref) * uso, 2)})
+                    "consumo_30d": round(uso, 3), "impacto_mes": round((ultima["precio"] - ref) * uso, 2),
+                    "platos": platos.get(p, []),
+                    # otro proveedor que el de las compras previas (p. ej. comprado por fuera): no es una subida de tarifa
+                    "cambio_proveedor": ultima["proveedor"] != max(set(c["proveedor"] for c in previas),
+                                                                   key=[c["proveedor"] for c in previas].count)})
     return sorted(out, key=lambda x: (-abs(x["impacto_mes"]), -abs(x["variacion"])))
 
 
