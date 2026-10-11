@@ -172,3 +172,25 @@ class Cierre(BaseModel):
 def cerrar_caducidad(cid: int, d: Cierre, u: dict = Depends(requiere(*OPERATIVO))):
     _error(inventario.cerrar_caducidad, con, cid, d.estado, u["nombre"])
     return {"ok": True}
+
+
+@app.get("/api/codigos")
+def codigos_barras(u: dict = Depends(requiere(*OPERATIVO))):
+    return dict(con.execute("SELECT codigo, producto FROM codigos_barras").fetchall())
+
+
+class CodigoBarras(BaseModel):
+    codigo: str
+    producto: str
+
+
+@app.put("/api/codigos")
+def guardar_codigo(d: CodigoBarras, u: dict = Depends(requiere(*OPERATIVO))):
+    codigo = d.codigo.strip()
+    if not codigo or len(codigo) > 64:
+        raise HTTPException(400, "Código no válido")
+    if not con.execute("SELECT 1 FROM productos WHERE codigo=?", (d.producto,)).fetchone():
+        raise HTTPException(400, "Producto desconocido")
+    con.execute("INSERT OR REPLACE INTO codigos_barras VALUES(?, ?)", (codigo, d.producto))
+    con.commit()
+    return {"ok": True}

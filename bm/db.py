@@ -255,6 +255,12 @@ CREATE TABLE IF NOT EXISTS adjuntos(
 );
 CREATE INDEX IF NOT EXISTS ix_adjuntos_doc ON adjuntos(documento);
 
+-- Códigos de barras (EAN) aprendidos al escanear en el recuento: código -> producto de BC.
+CREATE TABLE IF NOT EXISTS codigos_barras(
+  codigo TEXT PRIMARY KEY,
+  producto TEXT NOT NULL REFERENCES productos(codigo)
+);
+
 -- Lo importado solo desde la carpeta de entrada (bm/entrada.py).
 CREATE TABLE IF NOT EXISTS entrada_log(
   id INTEGER PRIMARY KEY,

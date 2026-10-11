@@ -12,6 +12,13 @@
 
 El personal operativo no ve costes. Lo contado en un recuento pasa a ser el stock real.
 
+## Recuento con escáner
+
+En **Recuento**, el buscador acepta códigos de barras: con un lector USB o Bluetooth (funciona como un teclado) se
+escanea el envase y BM salta al producto con el cursor en la cantidad. La primera vez que aparece un código, BM
+pregunta qué producto es y lo recuerda. Con la cámara del móvil (Chrome en Android) aparece un botón de código de
+barras en el buscador; el navegador solo permite la cámara si BM se abre con **https** (o en el propio servidor).
+
 ## Administración
 
 - **Semanal:** BC → *Movimientos de producto* → filtrar *Fecha registro* desde la fecha que indica la pantalla

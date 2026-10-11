@@ -3,12 +3,13 @@ import { useSearchParams } from 'react-router-dom';
 import {
   Affix, Alert, Badge, Button, Card, Chip, Group, Menu, Modal, NumberInput, Select, Stack, Switch, Tabs, Text, TextInput, Textarea,
 } from '@mantine/core';
-import { IconCheck, IconMapPin, IconPlus, IconSearch } from '@tabler/icons-react';
+import { IconBarcode, IconCheck, IconMapPin, IconPlus, IconSearch } from '@tabler/icons-react';
 import { api, avisoError, avisoOk } from '../api';
 import { Cabecera, Vacio } from '../comun';
 import { nombreUbicacion, useUbicaciones } from '../centros';
 import { cantidad, euros, fecha, hoy } from '../formato';
 import { Tabla } from '../Tabla';
+import { Escaner, hayCamara } from '../Escaner';
 
 type Linea = { producto: string; nombre: string; unidad: string | null; teorico?: number; zona?: string | null };
 
@@ -42,6 +43,26 @@ function Contar({ gestion }: { gestion: boolean }) {
   const [confirmar, setConfirmar] = useState(false);
   const [nota, setNota] = useState('');
   const [guardando, setGuardando] = useState(false);
+  const [codigos, setCodigos] = useState<Record<string, string>>({});
+  const [camara, setCamara] = useState(false);
+  const [nuevo, setNuevo] = useState<{ codigo: string; producto: string | null } | null>(null);
+
+  useEffect(() => { api<Record<string, string>>('/codigos').then(setCodigos).catch(() => null); }, []);
+  // Ir a un producto escaneado: se añade a la lista si no estaba y se pone el cursor en su cantidad.
+  const irA = (producto: string) => {
+    const p = catalogo.find((c) => c.codigo === producto);
+    setLineas((ls) => (ls && !ls.some((l) => l.producto === producto) ? [{ producto, nombre: p?.nombre ?? producto, unidad: p?.unidad ?? null }, ...ls] : ls));
+    setZona('todas'); setQ(producto);
+    setTimeout(() => document.getElementById(`cuenta-${producto}`)?.focus(), 150);
+  };
+  const leido = (codigo: string) => (codigos[codigo] ? irA(codigos[codigo]) : setNuevo({ codigo, producto: null }));
+  const aprender = async () => {
+    if (!nuevo?.producto) return;
+    try {
+      await api('/codigos', { method: 'PUT', body: nuevo });
+      setCodigos({ ...codigos, [nuevo.codigo]: nuevo.producto }); irA(nuevo.producto); setNuevo(null);
+    } catch (e) { avisoError(e); }
+  };
 
   useEffect(() => { api<{ productos: typeof catalogo }>('/catalogo').then((c) => setCatalogo(c.productos)).catch(avisoError); }, []);
   useEffect(() => {
@@ -95,7 +116,11 @@ function Contar({ gestion }: { gestion: boolean }) {
       <Group align="flex-end" wrap="wrap">
         <Select label="Ubicación que vas a contar" data={ubicaciones.map((u) => ({ value: u.codigo, label: u.nombre }))} value={ub}
           onChange={(x) => x && setParams({ ubicacion: x })} searchable w={260} placeholder="Elige ubicación" size="md" />
-        {ub && <TextInput leftSection={<IconSearch size={16} />} placeholder="Buscar producto" value={q} onChange={(e) => setQ(e.currentTarget.value)} size="md" style={{ flex: 1, minWidth: 200 }} />}
+        {ub && <TextInput leftSection={<IconSearch size={16} />} placeholder="Buscar producto o escanear código" value={q} onChange={(e) => setQ(e.currentTarget.value)}
+          onKeyDown={(e) => { const v = q.trim(); if (e.key === 'Enter' && /^\d{6,}$/.test(v)) { e.preventDefault(); leido(v); } }}
+          size="md" style={{ flex: 1, minWidth: 200 }}
+          rightSection={hayCamara() ? <Button size="compact-sm" variant="subtle" onClick={() => setCamara(true)} aria-label="Escanear con la cámara"><IconBarcode size={18} /></Button> : undefined}
+          rightSectionWidth={hayCamara() ? 48 : undefined} />}
         {ub && gestion && <Switch label="Mostrar teórico" checked={verTeorico} onChange={(e) => setVerTeorico(e.currentTarget.checked)} />}
       </Group>
       {!ub ? <Card><Vacio texto="Elige la ubicación que vas a contar" /></Card> : !lineas ? <Card><Text c="dimmed">Cargando…</Text></Card> : (
@@ -145,7 +170,7 @@ function Contar({ gestion }: { gestion: boolean }) {
                       </Menu>
                     </Group>
                   </div>
-                  <NumberInput value={contado[l.producto] ?? ''} onChange={(x) => cambiar({ ...contado, [l.producto]: x })} min={0} decimalScale={3}
+                  <NumberInput id={`cuenta-${l.producto}`} value={contado[l.producto] ?? ''} onChange={(x) => cambiar({ ...contado, [l.producto]: x })} min={0} decimalScale={3}
                     w={130} style={{ flex: "0 0 130px" }} size="md" placeholder="—" rightSection={<Text size="xs" c="dimmed" pr={6}>{l.unidad}</Text>} rightSectionWidth={44}
                     aria-label={`Cantidad contada de ${l.nombre}`} hideControls />
                 </Group>
@@ -160,6 +185,17 @@ function Contar({ gestion }: { gestion: boolean }) {
           </Affix>
         </>
       )}
+      <Escaner abierto={camara} cerrar={() => setCamara(false)} leido={leido} />
+      <Modal opened={!!nuevo} onClose={() => setNuevo(null)} title="Código nuevo" centered>
+        {nuevo && (
+          <Stack>
+            <Text size="sm">El código <b>{nuevo.codigo}</b> aún no está asociado. ¿Qué producto es? BM lo recordará para la próxima vez.</Text>
+            <Select searchable limit={50} autoFocus placeholder="Busca el producto" value={nuevo.producto} onChange={(x) => setNuevo({ ...nuevo, producto: x })}
+              data={catalogo.map((c) => ({ value: c.codigo, label: `${c.nombre} (${c.unidad ?? 'ud'})` }))} />
+            <Group justify="flex-end"><Button variant="default" onClick={() => setNuevo(null)}>Cancelar</Button><Button onClick={aprender} disabled={!nuevo.producto}>Asociar y contar</Button></Group>
+          </Stack>
+        )}
+      </Modal>
       <Modal opened={confirmar} onClose={() => setConfirmar(false)} title="Guardar recuento" centered>
         <Stack>
           <Text size="sm">{contados.length} productos contados en <b>{nombreUbicacion(ubicaciones, ub)}</b>. Lo contado pasa a ser el stock real; la diferencia con lo esperado queda registrada.</Text>

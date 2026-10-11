@@ -142,6 +142,12 @@ class TestFlujos(unittest.TestCase):
         # coste 0,80 € (2 huevos a 0,30 + 0,1 pan a 2 €) / 30 % objetivo × 1,07 IGIC = 2,853… -> 2,90 €
         self.assertEqual((p["coste_unidad"], p["pvp_recomendado"]), (0.8, 2.9))
 
+    def test_codigo_de_barras_se_aprende(self):
+        c = cliente("rest")
+        self.assertEqual(c.put("/api/codigos", json={"codigo": "8410000000001", "producto": "HUEVO"}).status_code, 200)
+        self.assertEqual(c.get("/api/codigos").json()["8410000000001"], "HUEVO")
+        self.assertEqual(c.put("/api/codigos", json={"codigo": "1", "producto": "NO-EXISTE"}).status_code, 400)
+
     def test_estado_bc_dice_desde_cuando_exportar(self):
         e = cliente("adm").get("/api/bc/estado").json()
         self.assertEqual(e["exportar_desde"], "2026-08-25")  # una semana antes del último movimiento (01/09)
