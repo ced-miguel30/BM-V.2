@@ -2,7 +2,7 @@ import { Badge, Group, Stack, Text, ThemeIcon, Title, Tooltip } from '@mantine/c
 import { IconInbox } from '@tabler/icons-react';
 import type { ReactNode } from 'react';
 import { ESTADOS, ESTADO_POR_NIVEL } from './formato';
-import { useCentros } from './centros';
+import { colorGrafico, useCentros } from './centros';
 
 export function Cabecera({ titulo, subtitulo, children }: { titulo: string; subtitulo?: ReactNode; children?: ReactNode }) {
   return (
@@ -29,7 +29,13 @@ export function Vacio({ texto, children }: { texto: string; children?: ReactNode
 export function BadgeServicio({ valor }: { valor: string | null }) {
   const c = useCentros().find((x) => x.codigo === valor);
   if (!valor) return <Text c="dimmed" size="sm">—</Text>;
-  return <Badge variant="light" color={c?.color ?? 'gray'}>{c?.nombre ?? valor}</Badge>;
+  return (
+    <Badge variant="default" fw={500} tt="none" leftSection={<Punto color={colorGrafico(c?.color)} />}>{c?.nombre ?? valor}</Badge>
+  );
+}
+
+export function Punto({ color }: { color: string }) {
+  return <span style={{ display: 'inline-block', width: 8, height: 8, borderRadius: 4, background: color }} />;
 }
 
 /** Monograma Royal Marina: RM sobre una ola. */

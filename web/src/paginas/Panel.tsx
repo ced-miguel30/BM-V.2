@@ -8,7 +8,7 @@ import {
   IconReceipt2, IconScale, IconTrash,
 } from '@tabler/icons-react';
 import { api, avisoError } from '../api';
-import { Cabecera, Vacio } from '../comun';
+import { Cabecera, Punto, Vacio } from '../comun';
 import { cantidad, euros, fecha, fechaCorta } from '../formato';
 import { colorGrafico, useCentros } from '../centros';
 
@@ -123,7 +123,7 @@ export function Panel() {
                     <Stack gap={6} w="100%">
                       {reparto.map((r) => (
                         <Group key={r.name} justify="space-between">
-                          <Group gap={8}><Badge color={r.color} variant="filled" size="xs" circle> </Badge><Text size="sm">{r.name}</Text></Group>
+                          <Group gap={8}><Punto color={r.color} /><Text size="sm">{r.name}</Text></Group>
                           <Text size="sm" fw={600} className="num">{euros(r.value)}</Text>
                         </Group>
                       ))}

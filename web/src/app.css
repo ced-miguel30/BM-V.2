@@ -5,3 +5,11 @@ body { background: var(--mantine-color-gray-0); }
   .mantine-AppShell-navbar, .mantine-AppShell-header, .no-imprimir, button { display: none !important; }
   .mantine-AppShell-main { padding: 0 !important; }
 }
+
+/* Paleta de gráficos: dorado arena, azul petróleo, terracota, azul marino y pizarra (validada para daltonismo). */
+:root {
+  --serie-dorado: #d2a249; --serie-petroleo: #068fa7; --serie-terracota: #c26b4c; --serie-marino: #3860ac; --serie-pizarra: #8a94a6;
+}
+[data-mantine-color-scheme='dark'] {
+  --serie-dorado: #b8892d; --serie-petroleo: #1896ad; --serie-terracota: #c56e4f; --serie-marino: #547ecd; --serie-pizarra: #9aa3b2;
+}

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, Grid, Group, SimpleGrid, Stack, Text } from '@mantine/core';
 import { DatePickerInput } from '@mantine/dates';
 import { DonutChart } from '@mantine/charts';
+import { PALETA } from '../centros';
 import { api, avisoError } from '../api';
 import { BadgeServicio, Cabecera, Vacio } from '../comun';
 import { cantidad, euros } from '../formato';
@@ -14,7 +15,7 @@ type Datos = {
   top_mermas: { producto: string; nombre: string; unidad: string | null; motivo: string | null; cantidad: number; coste: number }[];
   platos_que_no_salen: { codigo: string; nombre: string; servicio: string; unidades: number; ventas_netas: number; margen_total: number | null }[];
 };
-const COLORES = ['#3b5bdb', '#eda100', '#1098ad', '#e34948', '#2a78d6', '#d6336c', '#868e96'];  // validada para daltonismo
+const COLORES = PALETA;
 const hace = (d: number) => new Date(Date.now() - d * 864e5).toISOString().slice(0, 10);
 
 function Dato({ titulo, valor, ayuda, color }: { titulo: string; valor: string; ayuda: string; color?: string }) {
