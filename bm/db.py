@@ -255,6 +255,24 @@ CREATE TABLE IF NOT EXISTS adjuntos(
 );
 CREATE INDEX IF NOT EXISTS ix_adjuntos_doc ON adjuntos(documento);
 
+-- Pedidos hechos a proveedores desde BM. Al importar BC se cruzan con sus albaranes (recibido / incompleto).
+CREATE TABLE IF NOT EXISTS pedidos(
+  id INTEGER PRIMARY KEY,
+  proveedor TEXT NOT NULL,
+  fecha TEXT NOT NULL,                 -- cuándo se pidió
+  entrega TEXT,                        -- cuándo debería llegar
+  estado TEXT NOT NULL DEFAULT 'enviado',  -- enviado | recibido | incompleto | cerrado | anulado
+  albaranes TEXT,                      -- documentos de BC que lo traen (separados por coma)
+  usuario TEXT,
+  nota TEXT
+);
+CREATE TABLE IF NOT EXISTS pedido_lineas(
+  pedido_id INTEGER NOT NULL REFERENCES pedidos(id) ON DELETE CASCADE,
+  producto TEXT NOT NULL REFERENCES productos(codigo),
+  cantidad REAL NOT NULL,
+  PRIMARY KEY(pedido_id, producto)
+);
+
 -- Dónde está cada producto dentro de una ubicación (Nevera, Congelador, Estantería...): ordena el recuento.
 CREATE TABLE IF NOT EXISTS zonas_producto(
   producto TEXT NOT NULL REFERENCES productos(codigo),

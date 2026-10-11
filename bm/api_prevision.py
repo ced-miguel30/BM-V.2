@@ -5,8 +5,8 @@ from __future__ import annotations
 from fastapi import Depends, HTTPException
 from pydantic import BaseModel
 
-from bm import prevision
-from bm.app import GESTION, OPERATIVO, app, con, requiere
+from bm import pedidos as pedidos_mod, prevision
+from bm.app import GESTION, OPERATIVO, _error, app, con, requiere
 
 
 @app.get("/api/prevision/pedidos")
@@ -48,4 +48,40 @@ def guardar_parametros(producto: str, d: Parametros, u: dict = Depends(requiere(
     con.execute("INSERT OR REPLACE INTO parametros_producto VALUES(?,?,?,?,?)",
                 (producto, d.stock_minimo, d.minimo_restaurante, d.lote, int(d.no_pedir)))
     con.commit()
+    return {"ok": True}
+
+
+class LineaPedido(BaseModel):
+    producto: str
+    cantidad: float
+
+
+class NuevoPedido(BaseModel):
+    proveedor: str
+    entrega: str | None = None
+    nota: str | None = None
+    lineas: list[LineaPedido]
+
+
+@app.post("/api/pedidos")
+def crear_pedido(d: NuevoPedido, u: dict = Depends(requiere(*GESTION))):
+    pid = _error(pedidos_mod.crear, con, proveedor=d.proveedor, entrega=d.entrega, nota=d.nota, usuario=u["nombre"],
+                 lineas=[x.model_dump() for x in d.lineas])
+    return {"id": pid}
+
+
+@app.get("/api/pedidos")
+def listar_pedidos(u: dict = Depends(requiere(*GESTION))):
+    pedidos_mod.conciliar(con)
+    return pedidos_mod.listar(con)
+
+
+class CierrePedido(BaseModel):
+    estado: str
+    nota: str | None = None
+
+
+@app.post("/api/pedidos/{pid}/cerrar")
+def cerrar_pedido(pid: int, d: CierrePedido, u: dict = Depends(requiere(*GESTION))):
+    _error(pedidos_mod.cerrar, con, pid, d.estado, d.nota, u["nombre"])
     return {"ok": True}

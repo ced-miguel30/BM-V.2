@@ -6,7 +6,7 @@ import sqlite3
 import time
 from datetime import date, datetime, timedelta
 
-from bm import analisis, inventario, prevision, tpv
+from bm import analisis, inventario, pedidos, prevision, tpv
 
 GESTION = ("direccion", "administracion")
 _cache: dict = {}
@@ -16,7 +16,8 @@ TTL = 120  # ponytail: caché de 2 min; los cálculos de pedidos tardan ~1 s
 def _version(con) -> tuple:
     return tuple(con.execute("""SELECT (SELECT MAX(n_mov) FROM bc_movs), (SELECT MAX(id) FROM consumos),
         (SELECT COUNT(*) FROM tpv_ventas), (SELECT MAX(id) FROM recuentos), (SELECT MAX(id) FROM caducidades),
-        (SELECT COUNT(*) FROM buffet_diario), (SELECT COUNT(*) FROM tpv_articulos WHERE receta_id IS NULL AND producto IS NULL)""").fetchone())
+        (SELECT COUNT(*) FROM buffet_diario), (SELECT COUNT(*) FROM tpv_articulos WHERE receta_id IS NULL AND producto IS NULL),
+        (SELECT MAX(id) || COUNT(*) FROM pedidos WHERE estado IN ('enviado','incompleto'))""").fetchone())
 
 
 def _f(iso: str | None) -> str | None:
@@ -56,6 +57,16 @@ def avisos(con: sqlite3.Connection, rol: str) -> list[dict]:
         if not ultimo_bc or ultimo_bc < (hoy - timedelta(days=7)).isoformat():
             aviso("alta", "Movimientos de BC sin importar desde hace más de una semana",
                   f"Último movimiento: {_f(ultimo_bc) or 'ninguno'}. Sin esto los costes y el stock se quedan atrás", "/bc")
+        pedidos.conciliar(con)
+        lista = pedidos.listar(con, 30)
+        incompletos = [x for x in lista if x["estado"] == "incompleto"]
+        if incompletos:
+            aviso("alta", f"{len(incompletos)} pedidos llegaron incompletos",
+                  ", ".join(f"{x['proveedor']} (faltan {x['faltan']})" for x in incompletos[:3]) + ". Reclamar o cerrar", "/pedidos?vista=enviados")
+        retrasados = [x for x in lista if x["retrasado"]]
+        if retrasados:
+            aviso("media", f"{len(retrasados)} pedidos sin albarán en BC", ", ".join(x["proveedor"] for x in retrasados[:3])
+                  + ". ¿Llegaron? Si es así, falta registrarlos en BC", "/pedidos?vista=enviados")
         p = prevision.pedidos(con)
         if p["urgentes"]:
             aviso("alta", f"Comprar por fuera: {len(p['urgentes'])} productos", "Se acaban antes del próximo reparto", "/pedidos")

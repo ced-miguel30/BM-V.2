@@ -14,7 +14,7 @@ import sqlite3
 from collections import defaultdict
 from datetime import date, timedelta
 
-from bm import compras, consumos, inventario
+from bm import compras, consumos, inventario, pedidos as pedidos_mod
 
 FB = ("ECONOMATO", "RESTAURANTE")  # ubicaciones físicas de alimentación y bebida
 
@@ -120,6 +120,7 @@ def pedidos(con: sqlite3.Connection, hoy: date | None = None) -> dict:
     info = {r["codigo"]: r for r in con.execute("SELECT codigo, nombre, unidad, categoria FROM productos")}
     params = {r["producto"]: r for r in con.execute("SELECT * FROM parametros_producto")}
     recientes = _compras_recientes(con)
+    camino = pedidos_mod.en_camino(con)  # ya pedido y sin llegar: no se vuelve a proponer
     hace120 = (hoy - timedelta(days=120)).isoformat()
     entregas: dict = {}
 
@@ -142,10 +143,11 @@ def pedidos(con: sqlite3.Connection, hoy: date | None = None) -> dict:
         hasta_d1 = d["ritmo"] * (d1 - hoy).days
         necesario = d["ritmo"] * (d2 - hoy).days + colchon
         lote = (par["lote"] if par and par["lote"] else None) or rc.get("lote")
-        pedir = _redondear(necesario - d["estimado"], lote, prod["unidad"])
+        pedir = _redondear(necesario - d["estimado"] - camino.get(p, 0.0), lote, prod["unidad"])
         linea = {"producto": p, "nombre": prod["nombre"], "unidad": prod["unidad"], "stock": d["estimado"],
                  "ritmo": d["ritmo"], "dias_quedan": round(d["estimado"] / d["ritmo"], 1), "pedir": pedir, "lote": lote,
-                 "precio": consumos.precio_actual(con, p), "llega": d1.isoformat(), "inventario": d["ultimo_inventario"]}
+                 "precio": consumos.precio_actual(con, p), "llega": d1.isoformat(), "inventario": d["ultimo_inventario"],
+                 "en_camino": camino.get(p, 0.0)}
         if d["estimado"] < hasta_d1 and d["fiable"] and (rc.get("ultima") or "") >= hace120:  # si no se compra, es la ficha
             urgentes.append({**linea, "proveedor": prov, "falta": _redondear(hasta_d1 + colchon - d["estimado"], None, prod["unidad"])})
         if pedir > 0:

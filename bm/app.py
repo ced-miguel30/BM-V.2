@@ -502,7 +502,8 @@ def bc_subir(tipo: str, archivo: UploadFile, u: dict = Depends(requiere(*GESTION
     except KeyError as e:
         raise HTTPException(400, str(e)) from e
     inventario.sembrar(con)  # almacenes y proveedores nuevos que traiga BC
-    return {"filas": n, "valoracion": costing.valorar(con)}
+    from bm import pedidos
+    return {"filas": n, "valoracion": costing.valorar(con), "pedidos_conciliados": pedidos.conciliar(con)}
 
 
 # ---------------------------------------------------------------- módulos (registran rutas sobre `app`)

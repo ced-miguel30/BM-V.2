@@ -125,6 +125,15 @@ class TestFlujos(unittest.TestCase):
         r = cliente("dir").get("/api/panel?mes=2026-06").json()["actual"]
         self.assertAlmostEqual(r["coste_por_comensal"], round(r["desayuno"] * 2 / 7 / 2, 2), places=2)
 
+    def test_pedido_enviado_y_cerrado(self):
+        c = cliente("adm")
+        pid = c.post("/api/pedidos", json={"proveedor": "GRANJA SL", "entrega": "2026-09-05",
+                                           "lineas": [{"producto": "HUEVO", "cantidad": 30}]}).json()["id"]
+        e = {x["id"]: x for x in c.get("/api/pedidos").json()}[pid]
+        self.assertEqual(e["estado"], "enviado")
+        self.assertEqual(c.post(f"/api/pedidos/{pid}/cerrar", json={"estado": "anulado", "nota": "prueba"}).status_code, 200)
+        self.assertEqual(cliente("rest").get("/api/pedidos").status_code, 403)
+
     def test_estado_bc_dice_desde_cuando_exportar(self):
         e = cliente("adm").get("/api/bc/estado").json()
         self.assertEqual(e["exportar_desde"], "2026-08-25")  # una semana antes del último movimiento (01/09)

@@ -20,6 +20,11 @@ El personal operativo no ve costes. Lo contado en un recuento pasa a ser el stoc
 - **Tras el inventario de fin de mes en BC:** importar movimientos otra vez; revisar **Control de stock**.
 - **Precios de compra → Precios a revisar en BC:** errores de unidad o importe en facturas. BM no los usa
   mientras tanto; corregirlos en BC y reimportar.
+- **Pedidos:** BM propone qué pedir a cada proveedor. Al pedir, pulsar **Enviar correo** (abre el correo ya redactado)
+  o **Ya pedido** (si se pidió por teléfono o WhatsApp). Lo pedido deja de proponerse. Al importar los movimientos de BC,
+  BM cruza el albarán con el pedido: *Recibido completo*, *Incompleto* (aviso con lo que falta, para reclamar) o
+  *Sin albarán* si pasó la entrega. **Pedidos → Enviados** muestra pedido contra recibido; *Dar por cerrado* cuando
+  lo que faltaba ya no se espera.
 - **Ventas TPV → Pendientes:** asignar cada artículo nuevo a su receta o producto (una vez).
 - **Recetas:** mantener las fichas completas; un food cost muy bajo suele ser una ficha incompleta.
 
