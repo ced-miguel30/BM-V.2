@@ -159,7 +159,9 @@ def listar_caducidades(estado: str = "activa", u: dict = Depends(requiere(*OPERA
 
 @app.post("/api/caducidades")
 def crear_caducidad(d: NuevaCaducidad, u: dict = Depends(requiere(*OPERATIVO))):
-    return {"id": _error(inventario.registrar_caducidad, con, usuario=u["nombre"], **d.model_dump())}
+    cid = _error(inventario.registrar_caducidad, con, usuario=u["nombre"], **d.model_dump())
+    r = con.execute("SELECT c.*, p.nombre, p.unidad FROM caducidades c JOIN productos p ON p.codigo=c.producto WHERE c.id=?", (cid,)).fetchone()
+    return dict(r)  # todo lo que lleva la etiqueta
 
 
 class Cierre(BaseModel):

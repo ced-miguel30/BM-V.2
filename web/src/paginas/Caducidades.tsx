@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react';
-import { Badge, Button, Card, Grid, Group, NumberInput, SegmentedControl, Select, Stack, Text, TextInput } from '@mantine/core';
+import { ActionIcon, Badge, Button, Card, Checkbox, Grid, Group, NumberInput, SegmentedControl, Select, Stack, Text, TextInput, Tooltip } from '@mantine/core';
 import { DateInput } from '@mantine/dates';
-import { IconCheck, IconPlus, IconTrash } from '@tabler/icons-react';
+import { IconCheck, IconPlus, IconPrinter, IconTrash } from '@tabler/icons-react';
 import { api, avisoError, avisoOk } from '../api';
 import { Cabecera } from '../comun';
 import { nombreUbicacion, useUbicaciones } from '../centros';
-import { cantidad, fecha } from '../formato';
+import { cantidad, fecha, hoy } from '../formato';
+import { imprimirEtiqueta, type DatosEtiqueta } from '../etiqueta';
 import { Tabla } from '../Tabla';
 
 type Cad = { id: number; producto: string; nombre: string; unidad: string | null; ubicacion: string | null; cantidad: number;
-  caduca: string; dias: number; nota: string | null; usuario: string | null; estado: string; cerrado: string | null };
+  caduca: string; dias: number; nota: string | null; usuario: string | null; estado: string; cerrado: string | null; creado: string };
+
+const masDias = (n: number) => { const d = new Date(`${hoy()}T12:00:00`); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
 
 function Plazo({ dias }: { dias: number }) {
   if (dias < 0) return <Badge color="red">Caducado hace {-dias} d</Badge>;
@@ -23,6 +26,7 @@ export function Caducidades() {
   const [estado, setEstado] = useState('activa');
   const [lista, setLista] = useState<Cad[] | null>(null);
   const [productos, setProductos] = useState<{ codigo: string; nombre: string; unidad: string | null }[]>([]);
+  const [etiqueta, setEtiqueta] = useState(true);
   const [form, setForm] = useState({ producto: null as string | null, ubicacion: null as string | null, cantidad: 1 as number | string, caduca: null as string | null, nota: '' });
 
   const cargar = () => { setLista(null); api<Cad[]>(`/caducidades?estado=${estado}`).then(setLista).catch(avisoError); };
@@ -31,8 +35,9 @@ export function Caducidades() {
 
   const crear = async () => {
     try {
-      await api('/caducidades', { body: { ...form, cantidad: Number(form.cantidad), nota: form.nota || null } });
+      const r = await api<DatosEtiqueta>('/caducidades', { body: { ...form, cantidad: Number(form.cantidad), nota: form.nota || null } });
       avisoOk('Te avisaremos antes de que caduque', 'Caducidad registrada');
+      if (etiqueta) imprimirEtiqueta(r, r.ubicacion ? nombreUbicacion(ubicaciones, r.ubicacion) : "");
       setForm({ ...form, producto: null, cantidad: 1, nota: '' });
       if (estado === 'activa') cargar();
     } catch (e) { avisoError(e); }
@@ -63,7 +68,14 @@ export function Caducidades() {
                   rightSection={<Text size="xs" c="dimmed" pr={6}>{unidad}</Text>} rightSectionWidth={40} />
                 <DateInput label="Caduca el" value={form.caduca} onChange={(x) => setForm({ ...form, caduca: x ? String(x).slice(0, 10) : null })} valueFormat="DD/MM/YYYY" />
               </Group>
+              <Group gap={6}>
+                <Text size="xs" c="dimmed">Abierto o elaborado hoy, caduca en</Text>
+                {[1, 2, 3, 5].map((n) => (
+                  <Button key={n} size="compact-xs" variant={form.caduca === masDias(n) ? 'filled' : 'default'} onClick={() => setForm({ ...form, caduca: masDias(n) })}>+{n} d</Button>
+                ))}
+              </Group>
               <TextInput label="Nota" placeholder="Lote, envase abierto…" value={form.nota} onChange={(e) => setForm({ ...form, nota: e.currentTarget.value })} />
+              <Checkbox label="Imprimir etiqueta para el envase" checked={etiqueta} onChange={(e) => setEtiqueta(e.currentTarget.checked)} />
               <Button leftSection={<IconPlus size={16} />} onClick={crear} disabled={!form.producto || !form.caduca || !(Number(form.cantidad) > 0)}>Registrar</Button>
             </Stack>
           </Card>
@@ -80,6 +92,8 @@ export function Caducidades() {
               { clave: 'caduca', titulo: 'Caduca', render: (c) => <Group gap={6} wrap="nowrap"><Text size="sm">{fecha(c.caduca)}</Text>{c.estado === 'activa' && <Plazo dias={c.dias} />}</Group> },
               { clave: 'acciones', titulo: '', ordenable: false, exportar: false, render: (c) => c.estado === 'activa' ? (
                 <Group gap={6} wrap="nowrap" justify="flex-end">
+                  <Tooltip label="Imprimir etiqueta"><ActionIcon variant="subtle" color="gray" aria-label="Imprimir etiqueta"
+                    onClick={() => imprimirEtiqueta(c, c.ubicacion ? nombreUbicacion(ubicaciones, c.ubicacion) : "")}><IconPrinter size={16} /></ActionIcon></Tooltip>
                   <Button size="compact-sm" variant="light" color="teal" leftSection={<IconCheck size={14} />} onClick={() => cerrar(c, 'usada')}>Usado</Button>
                   <Button size="compact-sm" variant="light" color="red" leftSection={<IconTrash size={14} />} onClick={() => cerrar(c, 'merma')}>Tirar</Button>
                 </Group>) : <Text size="xs" c="dimmed">{c.cerrado?.slice(0, 10)}</Text> },
