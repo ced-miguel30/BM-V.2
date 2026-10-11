@@ -10,7 +10,7 @@ import {
 import { api, avisoError } from '../api';
 import { Cabecera, Vacio } from '../comun';
 import { cantidad, euros, fecha, fechaCorta } from '../formato';
-import { useCentros } from '../centros';
+import { colorGrafico, useCentros } from '../centros';
 
 type Resumen = Record<string, number | null>;
 type Datos = {
@@ -73,7 +73,7 @@ export function Panel() {
     acc[x.fecha][x.servicio] = x.coste;
     return acc;
   }, {})) : [];
-  const reparto = d ? centros.map((c) => ({ name: c.nombre, value: (d.actual[c.codigo] as number) ?? 0, color: `${c.color}.6` })).filter((x) => x.value > 0) : [];
+  const reparto = d ? centros.map((c) => ({ name: c.nombre, value: (d.actual[c.codigo] as number) ?? 0, color: colorGrafico(c.color) })).filter((x) => x.value > 0) : [];
   const conSerie = centros.filter((c) => d?.serie.some((x) => x.servicio === c.codigo));
   const conTendencia = centros.filter((c) => t?.meses.some((m) => m[c.codigo]));
   const meses = (t?.meses ?? []).map((m) => ({ ...m, etiqueta: new Date(`${m.mes}-01T00:00:00`).toLocaleDateString('es-ES', { month: 'short', year: '2-digit' }) }));
@@ -95,10 +95,10 @@ export function Panel() {
         <Stack gap="lg">
           <SimpleGrid cols={{ base: 1, xs: 2, lg: 4 }}>
             <Kpi titulo="Coste de consumo" valor={d.actual.consumo} anterior={d.anterior.consumo} formato={euros} icono={IconScale} color="marina" />
-            <Kpi titulo="Ventas TPV" valor={d.actual.ventas_tpv} anterior={d.anterior.ventas_tpv} formato={euros} icono={IconReceipt2} color="teal" menosEsMejor={false} />
+            <Kpi titulo="Ventas TPV" valor={d.actual.ventas_tpv} anterior={d.anterior.ventas_tpv} formato={euros} icono={IconReceipt2} color="marina" menosEsMejor={false} />
             <Kpi titulo="Food cost TPV" valor={d.actual.food_cost_pct} anterior={d.anterior.food_cost_pct} formato={pct} icono={IconPercentage}
-              color={(d.actual.food_cost_pct ?? 0) > objetivo ? 'red' : 'grape'} ayuda={`Objetivo ${objetivo} % · sobre venta sin IGIC${(d.actual.ventas_sin_asignar ?? 0) > 0.5 ? ` · no incluye ${euros(d.actual.ventas_sin_asignar)} vendidos sin asignar` : ''}`} />
-            <Kpi titulo="Desayuno por comensal" valor={d.actual.coste_por_comensal} anterior={d.anterior.coste_por_comensal} formato={euros} icono={IconCoffee} color="orange"
+              color={(d.actual.food_cost_pct ?? 0) > objetivo ? 'red' : 'marina'} ayuda={`Objetivo ${objetivo} % · sobre venta sin IGIC${(d.actual.ventas_sin_asignar ?? 0) > 0.5 ? ` · no incluye ${euros(d.actual.ventas_sin_asignar)} vendidos sin asignar` : ''}`} />
+            <Kpi titulo="Desayuno por comensal" valor={d.actual.coste_por_comensal} anterior={d.anterior.coste_por_comensal} formato={euros} icono={IconCoffee} color="marina"
               ayuda={`${d.actual.comensales_desayuno ?? 0} comensales`} />
           </SimpleGrid>
 
@@ -108,7 +108,7 @@ export function Panel() {
                 <Text fw={600} mb="md">Coste diario por servicio</Text>
                 {porDia.length ? (
                   <BarChart h={300} data={porDia} dataKey="fecha" type="stacked" valueFormatter={(x) => euros(x)}
-                    series={conSerie.map((c) => ({ name: c.codigo, label: c.nombre, color: `${c.color}.6` }))}
+                    series={conSerie.map((c) => ({ name: c.codigo, label: c.nombre, color: colorGrafico(c.color) }))}
                     withLegend legendProps={{ verticalAlign: 'bottom' }} gridAxis="y" tickLine="none" />
                 ) : <Vacio texto="Sin consumos registrados en este mes" />}
               </Card>
@@ -144,13 +144,13 @@ export function Panel() {
                 <Card h="100%">
                   <Text fw={600} mb="md">Coste por mes (12 meses)</Text>
                   <BarChart h={260} data={meses} dataKey="etiqueta" type="stacked" valueFormatter={(x) => euros(x)} gridAxis="y" tickLine="none"
-                    series={conTendencia.map((c) => ({ name: c.codigo, label: c.nombre, color: `${c.color}.6` }))} withLegend legendProps={{ verticalAlign: 'bottom' }} />
+                    series={conTendencia.map((c) => ({ name: c.codigo, label: c.nombre, color: colorGrafico(c.color) }))} withLegend legendProps={{ verticalAlign: 'bottom' }} />
                 </Card>
               </Grid.Col>
               <Grid.Col span={{ base: 12, lg: 4 }}>
                 <Card h="100%">
                   <Text fw={600} mb="md">Food cost TPV vs objetivo</Text>
-                  <LineChart h={260} data={meses} dataKey="etiqueta" series={[{ name: 'food_cost', label: 'Food cost', color: 'grape.6' }]}
+                  <LineChart h={260} data={meses} dataKey="etiqueta" series={[{ name: 'food_cost', label: 'Food cost', color: 'marina.7' }]}
                     valueFormatter={(x) => `${x} %`} referenceLines={[{ y: objetivo, label: `Objetivo ${objetivo} %`, color: 'red.6' }]}
                     connectNulls gridAxis="y" tickLine="none" yAxisProps={{ domain: [0, 'auto'] }} />
                 </Card>

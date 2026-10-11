@@ -20,7 +20,7 @@ type Cfg = {
   copias: { nombre: string; tamano: number; fecha: string }[];
 };
 const ROLES = [{ value: 'direccion', label: 'Dirección' }, { value: 'administracion', label: 'Administración' }, { value: 'recepcion', label: 'Recepción' }, { value: 'restaurante', label: 'Restaurante' }];
-const COLORES = ['orange', 'teal', 'indigo', 'grape', 'cyan', 'blue', 'lime', 'gray', 'yellow', 'pink', 'red', 'green', 'violet'];
+const COLORES = ['yellow', 'cyan', 'indigo', 'red', 'blue', 'pink', 'gray', 'orange', 'teal', 'grape', 'lime', 'green', 'violet'];  // los 7 primeros: paleta de gráficos
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const GRUPOS: Record<string, string> = { extra: 'Extras de plato', leche: 'Leches', bebida: 'Bebidas', buffet: 'Buffet', omitir: 'Quitar' };
 

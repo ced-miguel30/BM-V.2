@@ -33,3 +33,11 @@ export const nombreUbicacion = (us: Ubicacion[], codigo: string | null | undefin
 
 /** Para que la configuración refresque tras editar. */
 export function olvidarCatalogos() { centros = ubicaciones = null; pc = pu = null; }
+
+// Colores de gráficos (validados para daltonismo y contraste): ámbar (desayuno), mar (comida), coral (cena) y noche (bebidas);
+// el resto, tonos de la misma familia. El nombre es el color del centro (Configuración); si no está, su tono 7.
+const HEX: Record<string, string> = {
+  yellow: '#eda100', cyan: '#1098ad', indigo: '#3b5bdb', red: '#e34948', blue: '#2a78d6', pink: '#d6336c',
+  gray: '#868e96', marina: '#21509e',
+};
+export const colorGrafico = (color: string | null | undefined) => (color ? HEX[color] ?? `${color}.7` : HEX.gray);

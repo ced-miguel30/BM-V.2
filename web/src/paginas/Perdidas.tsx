@@ -14,7 +14,7 @@ type Datos = {
   top_mermas: { producto: string; nombre: string; unidad: string | null; motivo: string | null; cantidad: number; coste: number }[];
   platos_que_no_salen: { codigo: string; nombre: string; servicio: string; unidades: number; ventas_netas: number; margen_total: number | null }[];
 };
-const COLORES = ['red.6', 'orange.6', 'yellow.6', 'grape.6', 'blue.6', 'gray.6', 'teal.6'];
+const COLORES = ['#3b5bdb', '#eda100', '#1098ad', '#e34948', '#2a78d6', '#d6336c', '#868e96'];  // validada para daltonismo
 const hace = (d: number) => new Date(Date.now() - d * 864e5).toISOString().slice(0, 10);
 
 function Dato({ titulo, valor, ayuda, color }: { titulo: string; valor: string; ayuda: string; color?: string }) {

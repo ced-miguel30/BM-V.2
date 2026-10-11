@@ -23,14 +23,14 @@ NOMBRES = {"HABITACION": "Habitaciones", "LIMPI-REST": "Limpieza restaurante", "
            "MANTEN": "Mantenimiento", "MENAJE-COC": "Menaje cocina", "MENAJE-RES": "Menaje restaurante",
            "MENAJE-PIS": "Menaje pisos", "UNIFORMIDA": "Uniformidad", "MATER-OFIC": "Material de oficina", "LAVANDERIA": "Lavandería"}
 CENTROS_INICIALES = [  # codigo, nombre, tipo, ubicación física, color, orden, almacén BC que lo imputa
-    ("desayuno", "Desayuno", "restauracion", "RESTAURANTE", "orange", 1, "DESAYUNO"),
-    ("comida", "Comida", "restauracion", "RESTAURANTE", "teal", 2, "SNACK COMI"),
-    ("cena", "Cena", "restauracion", "RESTAURANTE", "indigo", 3, "SNACK CENA"),
-    ("bebidas", "Bebidas", "restauracion", "RESTAURANTE", "grape", 4, "SNACK BEBI"),
-    ("personal", "Personal", "departamento", "RESTAURANTE", "yellow", 9, "PERSONAL"),
-    ("habitaciones", "Habitaciones", "departamento", "HABITACION", "cyan", 10, "HABITACION"),
-    ("pisos", "Pisos", "departamento", "PISOS", "blue", 11, "PISOS"),
-    ("limpieza", "Limpieza", "departamento", "LIMPIEZA", "lime", 12, "LIMPIEZA"),
+    ("desayuno", "Desayuno", "restauracion", "RESTAURANTE", "yellow", 1, "DESAYUNO"),
+    ("comida", "Comida", "restauracion", "RESTAURANTE", "cyan", 2, "SNACK COMI"),
+    ("cena", "Cena", "restauracion", "RESTAURANTE", "red", 3, "SNACK CENA"),
+    ("bebidas", "Bebidas", "restauracion", "RESTAURANTE", "indigo", 4, "SNACK BEBI"),
+    ("personal", "Personal", "departamento", "RESTAURANTE", "gray", 9, "PERSONAL"),
+    ("habitaciones", "Habitaciones", "departamento", "HABITACION", "blue", 10, "HABITACION"),
+    ("pisos", "Pisos", "departamento", "PISOS", "pink", 11, "PISOS"),
+    ("limpieza", "Limpieza", "departamento", "LIMPIEZA", "gray", 12, "LIMPIEZA"),
     ("mantenimiento", "Mantenimiento", "departamento", "MANTEN", "gray", 13, "MANTEN"),
     ("amenities", "Amenities", "departamento", "AMENITIES", "pink", 15, "AMENITIES"),
 ]
@@ -48,6 +48,13 @@ def sembrar(con: sqlite3.Connection) -> None:
         con.execute("INSERT OR IGNORE INTO almacenes_bc(codigo, ubicacion) VALUES(?, ?)", (a, fisica))
     con.executemany("INSERT OR IGNORE INTO centros(codigo, nombre, tipo, ubicacion, color, orden) VALUES(?,?,?,?,?,?)",
                     [c[:6] for c in CENTROS_INICIALES])
+    # Paleta de 2026-10: cambia los colores que siguen siendo los de antes (no los elegidos a mano).
+    antes = {"desayuno": "orange", "comida": "teal", "cena": "indigo", "bebidas": "grape", "personal": "yellow",
+             "habitaciones": "cyan", "pisos": "blue", "limpieza": "lime"}
+    if not ajuste(con, "paleta_2026_10"):  # una sola vez, para no pisar lo que se cambie a mano después
+        con.executemany("UPDATE centros SET color=? WHERE codigo=? AND color IN (?, ?)",
+                        [(c[4], c[0], antes[c[0]], "red" if c[0] == "bebidas" else antes[c[0]]) for c in CENTROS_INICIALES if c[0] in antes])
+        con.execute("INSERT OR REPLACE INTO ajustes VALUES('paleta_2026_10', '1')")
     con.executemany("UPDATE almacenes_bc SET centro=? WHERE codigo=? AND centro IS NULL", [(c[0], c[6]) for c in CENTROS_INICIALES])
     # Bases anteriores: los almacenes contables que eran "ubicación" se funden en su ubicación física.
     for a, fisica in con.execute("SELECT codigo, ubicacion FROM almacenes_bc WHERE codigo <> ubicacion").fetchall():
