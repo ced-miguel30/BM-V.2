@@ -92,6 +92,11 @@ export function ImportarBC() {
           'Compartir → Abrir en Excel.',
           'Súbelo aquí cuando se den de alta artículos nuevos.',
         ]} />
+        <Subida tipo="proveedores" titulo="Proveedores" pasos={[
+          'En BC busca "Proveedores".',
+          'Compartir → Abrir en Excel.',
+          'Súbelo aquí: trae código, CIF, teléfono y correo (lo completado a mano en BM no se borra).',
+        ]} />
         <Subida tipo="facturas" titulo="Facturas de compra (enlace con albaranes)" pasos={[
           'En BC busca "Líneas factura compra registradas" (o "Hist. líneas factura compra").',
           'Comprueba que se ven las columnas Nº documento y Nº albarán (⚙ Personalizar si falta).',

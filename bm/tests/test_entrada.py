@@ -35,6 +35,20 @@ class TestEntrada(unittest.TestCase):
         self.assertEqual(len(list((tmp / "con_error").iterdir())), 2)  # el Excel raro y el PDF vacío
         con.close()
 
+    def test_proveedores_de_bc(self):
+        tmp = Path(tempfile.mkdtemp())
+        con = db.connect(":memory:")
+        con.execute("INSERT INTO proveedores(nombre, email) VALUES('GRANJA SL', 'pedidos@granja.es')")
+        _excel(tmp / "prov.xlsx", [["Nº", "Nombre", "Nº teléfono", "CIF/NIF", "Correo electrónico"],
+                                    ["PR1", "GRANJA  SL ", "928 000 000", "B1", None], ["PR2", "ABOGADOS", None, "B2", "A@B.ES"]])
+        self.assertEqual(entrada._tipo_excel(tmp / "prov.xlsx"), "proveedores")
+        from bm import compras
+        self.assertEqual(compras.importar_proveedores(con, tmp / "prov.xlsx"), 2)
+        g = con.execute("SELECT * FROM proveedores WHERE nombre='GRANJA SL'").fetchone()
+        self.assertEqual((g["codigo"], g["telefono"], g["email"]), ("PR1", "928 000 000", "pedidos@granja.es"))  # el correo no se pierde
+        self.assertEqual(con.execute("SELECT email FROM proveedores WHERE nombre='ABOGADOS'").fetchone()[0], "a@b.es")
+        con.close()
+
 
 if __name__ == "__main__":
     unittest.main()

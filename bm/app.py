@@ -494,7 +494,7 @@ def bc_estado(u: dict = Depends(requiere(*GESTION))):
 def bc_subir(tipo: str, archivo: UploadFile, u: dict = Depends(requiere(*GESTION))):
     from bm import compras, inventario
     fn = {"movimientos": bc.importar_movimientos, "productos": bc.importar_productos,
-          "facturas": compras.importar_facturas}.get(tipo)
+          "facturas": compras.importar_facturas, "proveedores": compras.importar_proveedores}.get(tipo)
     if not fn:
         raise HTTPException(404, "Tipo desconocido")
     try:

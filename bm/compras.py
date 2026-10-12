@@ -76,6 +76,25 @@ def importar_facturas(con: sqlite3.Connection, path) -> int:
     return len(pares)
 
 
+def importar_proveedores(con: sqlite3.Connection, path) -> int:
+    """Maestro "Proveedores" de BC: código, CIF, teléfono, correo y contacto. Se guardan todos (también los que no
+    son de restaurante). Lo que BC trae vacío no borra lo que se haya completado a mano en BM."""
+    filas = [f for f in bc._filas(path) if str(f.get("nombre") or "").strip()]
+    if filas and "nombre" not in filas[0]:
+        raise KeyError("El Excel debe ser el listado de Proveedores de BC (columna Nombre)")
+    for f in filas:
+        val = lambda k: str(f.get(k) or "").strip() or None  # noqa: E731
+        con.execute(
+            """INSERT INTO proveedores(nombre, codigo, cif, almacen, telefono, email, contacto) VALUES(?,?,?,?,?,?,?)
+               ON CONFLICT(nombre) DO UPDATE SET codigo=COALESCE(excluded.codigo, codigo), cif=COALESCE(excluded.cif, cif),
+                 almacen=COALESCE(excluded.almacen, almacen), telefono=COALESCE(excluded.telefono, telefono),
+                 email=COALESCE(excluded.email, email), contacto=COALESCE(excluded.contacto, contacto)""",
+            (" ".join(str(f["nombre"]).split()), val("n") or val("no"), val("cif/nif"), val("cod. almacen"),
+             val("n telefono") or val("no telefono"), (val("correo electronico") or "").lower() or None, val("contacto")))
+    con.commit()
+    return len(filas)
+
+
 def carpeta_adjuntos(doc: str) -> Path:
     d = Path(db.DB_PATH).parent / "adjuntos" / re.sub(r"[^A-Za-z0-9_-]", "_", doc)
     d.mkdir(parents=True, exist_ok=True)

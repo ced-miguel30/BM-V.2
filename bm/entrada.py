@@ -1,7 +1,7 @@
 """Carpeta de entrada: lo que se deja ahí lo importa BM solo (cada pocos minutos).
 
 - PDF "Ventas TPV por categoría" de BC          -> ventas TPV
-- Excel de BC: Movimientos de producto, Productos o Líneas factura compra (se reconoce por sus columnas)
+- Excel de BC: Movimientos de producto, Productos, Líneas factura compra o Proveedores (se reconoce por sus columnas)
 
 Lo importado pasa a `importados/`, lo que falla a `con_error/` (con aviso). Así administración solo guarda el
 fichero en la carpeta compartida y BM hace el resto.
@@ -38,6 +38,8 @@ def _tipo_excel(path: Path) -> str:
         return "movimientos"
     if "unidad medida base" in cab:
         return "productos"
+    if "cif/nif" in cab and "nombre" in cab:
+        return "proveedores"
     if any("albaran" in c or "recepcion" in c for c in cab):
         return "facturas"
     raise ValueError("Excel no reconocido: se esperan Movimientos de producto, Productos o Líneas factura compra de BC")
@@ -48,7 +50,8 @@ def _importar(con, f: Path) -> tuple[str, str]:
         r = tpv.importar_pdf(con, f)
         return "ventas TPV", f"{len(r['dias'])} días, {r['importe']:.2f} €"
     tipo = _tipo_excel(f)
-    fn = {"movimientos": bc.importar_movimientos, "productos": bc.importar_productos, "facturas": compras.importar_facturas}[tipo]
+    fn = {"movimientos": bc.importar_movimientos, "productos": bc.importar_productos, "facturas": compras.importar_facturas,
+          "proveedores": compras.importar_proveedores}[tipo]
     return tipo, f"{fn(con, f)} filas"
 
 

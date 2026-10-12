@@ -373,6 +373,11 @@ def connect(path: Path | str | None = None) -> sqlite3.Connection:
 
 def _migrar(con: sqlite3.Connection) -> None:
     """Columnas añadidas después de crear la base (ALTER idempotente)."""
+    prov = {r[1] for r in con.execute("PRAGMA table_info(proveedores)")}
+    for col in ("codigo", "cif", "almacen"):  # del maestro de proveedores de BC
+        if col not in prov:
+            con.execute(f"ALTER TABLE proveedores ADD COLUMN {col} TEXT")
+    con.commit()
     if "seccion" not in {r[1] for r in con.execute("PRAGMA table_info(atajos)")}:  # Fruta, Bollería, Pan... (buffet)
         con.execute("ALTER TABLE atajos ADD COLUMN seccion TEXT")
         con.commit()
