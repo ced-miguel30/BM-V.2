@@ -1,0 +1,31 @@
+{
+  "_nota": "Datos de la carta que BM siembra al cargar (no pisa lo cambiado a mano). Recetas ESTIMADAS el 12/10/2026 a partir de lo que compra el hotel: ajustar con cocina.",
+  "intercambiables": {
+    "Lechugas": ["C00000366", "C00000100", "C00000118", "C00000099"],
+    "Queso para sándwich": ["C00000349", "C00000348", "C00000070"],
+    "Queso canario semicurado": ["C00000082", "C00000062", "C00000079"],
+    "Croquetas": ["C00001200", "C00001407", "C00001201"],
+    "Bolsas de smoothie": ["C00001255", "C00001340", "C00000013", "C00000031"]
+  },
+  "recetas": [
+    {"id": "c_smoothie", "nombre": "Smoothie", "servicio": "bebidas", "porciones": 1,
+     "nota": "1 bolsa de smoothie (la que se tenga) + 200 ml de zumo de naranja de brik",
+     "lineas": [["C00001255", 1], ["C00000339", 0.2]], "tpv": "PV00000286"},
+    {"id": "c_croquetas", "nombre": "Ración de croquetas", "servicio": "comida", "porciones": 1,
+     "nota": "6 croquetas de unos 35 g",
+     "lineas": [["C00001200", 0.21]], "tpv": "PV00000204"},
+    {"id": "c_espagueti", "nombre": "Espagueti boloñesa", "servicio": "comida", "porciones": 1,
+     "nota": "120 g de pasta, 150 g de carne picada, 125 g de tomate frito, sofrito y queso rallado",
+     "lineas": [["C00000241", 0.024], ["C00000240", 0.15], ["C00000542", 0.25], ["C00000097", 0.05], ["C00000104", 0.005],
+                ["C00000071", 0.015], ["C00000329", 0.002]], "tpv": "PV00000158"},
+    {"id": "c_paella", "nombre": "Paella mixta (4 personas)", "servicio": "comida", "porciones": 1,
+     "nota": "Paella para 4: 400 g de arroz bomba, pollo, calamar, mejillón y langostino, sofrito y caldo",
+     "lineas": [["C00000243", 0.4], ["C00000056", 0.3], ["C00001177", 0.2], ["C00001387", 0.3], ["C00000061", 0.2],
+                ["C00000093", 0.1], ["C00000590", 0.08], ["C00000097", 0.1], ["C00000104", 0.01], ["C00000542", 0.3],
+                ["C00001008", 1.2], ["C00000325", 0.004], ["C00000329", 0.012]], "tpv": "PV00000258"},
+    {"id": "c_surtido_iberico", "nombre": "Surtido ibérico con quesos canarios y vino km0", "servicio": "comida", "porciones": 1,
+     "nota": "Para compartir: ibéricos y quesos canarios con 2 copas de El Grifo malvasía",
+     "lineas": [["C00001347", 0.06], ["C00000058", 0.04], ["C00000059", 0.04], ["C00000082", 0.12], ["C00000064", 0.06],
+                ["C00000011", 0.5], ["C00000234", 0.4]], "tpv": "PV00000066"}
+  ]
+}

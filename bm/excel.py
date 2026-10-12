@@ -19,7 +19,7 @@ from pathlib import Path
 
 import openpyxl
 
-from bm import costing
+from bm import costing, intercambiables
 
 HOJAS = {  # hoja -> (servicio, grupos de atajos válidos como línea suelta)
     "Registro": ("desayuno", ("extra", "leche", "bebida")),
@@ -329,6 +329,7 @@ def importar(con: sqlite3.Connection, path, usuario: str | None = None, confirma
     if not confirmar:
         return {"plan": [{k: v for k, v in g.items() if k != "lineas"} for g in plan], "importados": 0}
     hechos = 0
+    sel = intercambiables.Selector(con)
     for g in plan:
         if g["errores"] or not g["lineas"]:
             continue
@@ -343,7 +344,7 @@ def importar(con: sqlite3.Connection, path, usuario: str | None = None, confirma
         ).lastrowid
         con.executemany(
             "INSERT INTO consumo_lineas(consumo_id, producto, cantidad, receta_id) VALUES(?,?,?,?)",
-            [(cid, p, q, r) for p, q, r in g["lineas"] if q > 0],
+            [(cid, p, q, r) for p, q, r in sel.lineas(g["lineas"], g["fecha"]) if q > 0],
         )
         hechos += 1
     con.commit()

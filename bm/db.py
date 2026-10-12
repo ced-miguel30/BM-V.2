@@ -255,6 +255,13 @@ CREATE TABLE IF NOT EXISTS adjuntos(
 );
 CREATE INDEX IF NOT EXISTS ix_adjuntos_doc ON adjuntos(documento);
 
+-- Ingredientes intercambiables: la receta lleva uno del grupo y al consumir se usa el que toque
+-- (caducidad próxima, lo que se está comprando, el más barato). Misma unidad dentro del grupo.
+CREATE TABLE IF NOT EXISTS intercambiables(
+  producto TEXT PRIMARY KEY REFERENCES productos(codigo),
+  grupo TEXT NOT NULL
+);
+
 -- Códigos de barras (EAN) aprendidos al escanear en el recuento: código -> producto de BC.
 CREATE TABLE IF NOT EXISTS codigos_barras(
   codigo TEXT PRIMARY KEY,
@@ -373,6 +380,8 @@ def connect(path: Path | str | None = None) -> sqlite3.Connection:
 
 def _migrar(con: sqlite3.Connection) -> None:
     """Columnas añadidas después de crear la base (ALTER idempotente)."""
+    if "nota" not in {r[1] for r in con.execute("PRAGMA table_info(recetas)")}:  # p. ej. "estimada por BM: ajustar"
+        con.execute("ALTER TABLE recetas ADD COLUMN nota TEXT")
     prov = {r[1] for r in con.execute("PRAGMA table_info(proveedores)")}
     for col in ("codigo", "cif", "almacen"):  # del maestro de proveedores de BC
         if col not in prov:

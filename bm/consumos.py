@@ -5,7 +5,7 @@ from __future__ import annotations
 import sqlite3
 from datetime import date
 
-from bm import costing
+from bm import costing, intercambiables
 
 
 
@@ -39,7 +39,7 @@ def expandir(con: sqlite3.Connection, items: list[dict], fecha: str | None = Non
             out.append((it["producto"], q, None))
     if not out:
         raise ValueError("No hay líneas con cantidad")
-    return out
+    return intercambiables.Selector(con).lineas(out, fecha) if fecha else out
 
 
 MOTIVOS_MERMA = {"error_cocina": "Error de cocina", "caducado": "Caducado", "rotura": "Rotura / caída",
@@ -121,15 +121,18 @@ def precio_actual(con: sqlite3.Connection, producto: str, fecha: str | None = No
 def coste_receta(con: sqlite3.Connection, receta_id: str) -> dict:
     r = con.execute("SELECT * FROM recetas WHERE id=?", (receta_id,)).fetchone()
     lineas, total, completo = [], 0.0, True
+    sel, hoy = intercambiables.Selector(con), date.today().isoformat()
     for l in con.execute(
         """SELECT l.producto, l.cantidad, p.nombre, p.unidad FROM receta_lineas l
            JOIN productos p ON p.codigo=l.producto WHERE l.receta_id=?""", (receta_id,)
     ):
-        pu = precio_actual(con, l["producto"])
+        usa = sel.elegir(l["producto"], hoy)  # intercambiable: el que se usa ahora
+        pu = precio_actual(con, usa)
         coste = None if pu is None else round(pu * l["cantidad"], 4)
         completo &= coste is not None
         total += coste or 0
-        lineas.append({**dict(l), "precio": pu, "coste": coste})
+        lineas.append({**dict(l), "precio": pu, "coste": coste, "usa": None if usa == l["producto"] else usa,
+                       "grupo": sel.grupo_de.get(l["producto"])})
     porciones = r["porciones"] or 1
     return {**dict(r), "lineas": lineas, "coste_total": round(total, 4),
             "coste_racion": round(total / porciones, 4), "completo": completo}

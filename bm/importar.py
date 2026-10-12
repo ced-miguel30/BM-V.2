@@ -9,7 +9,7 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from bm import bc, bm2, costing, db, tpv
+from bm import bc, bm2, costing, db, intercambiables, tpv
 
 
 
@@ -38,6 +38,7 @@ def main(argv=None) -> None:
     for pdf in a.tpv_pdf:
         r = tpv.importar_lineas(con, tpv.leer_pdf(pdf))
         print(f"TPV {Path(pdf).name}: {len(r['dias'])} días, {r['lineas']} líneas, {r['importe']} EUR")
+    print("carta (intercambiables y recetas estimadas):", intercambiables.sembrar_carta(con, Path(__file__).parent / "semillas_carta.json"))
     print("TPV -> consumos:", tpv.regenerar(con))
     print("valoración:", costing.valorar(con))
 

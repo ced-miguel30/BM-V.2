@@ -16,6 +16,7 @@ from collections import Counter, defaultdict
 
 import pymupdf
 
+from bm import intercambiables
 from bm.consumos import receta_real
 
 _LINEA = re.compile(r"^(\d{2})/(\d{2})/(\d{4})\s+(PV\d+)\s*$")
@@ -108,6 +109,7 @@ def regenerar(con: sqlite3.Connection, fechas: list[str] | None = None) -> dict:
         recetas[r["receta_id"]].append((r["producto"], r["cantidad"]))
 
     n = 0
+    sel = intercambiables.Selector(con)
     for fecha in fechas:
         con.execute("DELETE FROM consumos WHERE origen='tpv' AND fecha=?", (fecha,))
         con.execute(
@@ -136,7 +138,7 @@ def regenerar(con: sqlite3.Connection, fechas: list[str] | None = None) -> dict:
             ).lastrowid
             con.executemany(
                 "INSERT INTO consumo_lineas(consumo_id, producto, cantidad, receta_id) VALUES(?,?,?,?)",
-                [(cid, p, q, r) for p, q, r in ls],
+                [(cid, p, q, r) for p, q, r in sel.lineas(ls, fecha)],
             )
             n += 1
     con.commit()

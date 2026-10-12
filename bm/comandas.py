@@ -8,7 +8,7 @@ import sqlite3
 from datetime import date
 from pathlib import Path
 
-from bm import costing, excel
+from bm import costing, excel, intercambiables
 
 _BEBIDAS = {excel._n(n) for n in json.loads((Path(__file__).parent / "semillas_desayuno.json").read_text(encoding="utf-8"))
             .get("recetas_bebidas_desayuno", [])}
@@ -102,7 +102,7 @@ def regenerar(con: sqlite3.Connection, fecha: str) -> None:
             "INSERT INTO consumos(fecha, servicio, tipo, origen, ref, comensales, nota) VALUES(?, 'desayuno', 'consumo', 'comandas', ?, ?, ?)",
             (fecha, f"comandas:{fecha}", comensales or None, "Comandas de desayuno")).lastrowid
         con.executemany("INSERT INTO consumo_lineas(consumo_id, producto, cantidad, receta_id) VALUES(?,?,?,?)",
-                        [(cid, p, q, r) for p, q, r in lineas if q > 0])
+                        [(cid, p, q, r) for p, q, r in intercambiables.Selector(con).lineas(lineas, fecha) if q > 0])
     con.commit()
     costing.valorar(con)
 

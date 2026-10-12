@@ -369,7 +369,7 @@ def _guardar_receta(rid: str, d: Receta) -> None:
     con.execute(
         """INSERT INTO recetas(id, nombre, servicio, porciones, activo) VALUES(?,?,?,?,?)
            ON CONFLICT(id) DO UPDATE SET nombre=excluded.nombre, servicio=excluded.servicio,
-             porciones=excluded.porciones, activo=excluded.activo""",
+             porciones=excluded.porciones, activo=excluded.activo, nota=NULL""",  # guardar a mano = ya revisada (quita "estimada")
         (rid, d.nombre.strip(), d.servicio, d.porciones, int(d.activo)),
     )
     con.execute("DELETE FROM receta_lineas WHERE receta_id=?", (rid,))
@@ -478,6 +478,33 @@ def excel_importar(archivo: UploadFile, confirmar: bool = False, comensales: str
         for g in r["plan"]:
             g.pop("coste_estimado", None)
     return r
+
+
+# ---------------------------------------------------------------- ingredientes intercambiables
+@app.get("/api/intercambiables")
+def ver_intercambiables(u: dict = Depends(requiere(*GESTION))):
+    from bm import intercambiables
+    sel, hoy = intercambiables.Selector(con), date.today().isoformat()
+    info = {r["codigo"]: dict(r) for r in con.execute("SELECT codigo, nombre, unidad FROM productos")}
+    return [{"grupo": g, "hoy": sel.elegir(ps[0], hoy), "productos": [info[p] for p in ps if p in info]}
+            for g, ps in intercambiables.grupos(con).items()]
+
+
+class Grupo(BaseModel):
+    grupo: str
+    productos: list[str]
+    antes: str | None = None  # nombre anterior si se renombra
+
+
+@app.put("/api/intercambiables")
+def guardar_intercambiables(d: Grupo, u: dict = Depends(requiere(*GESTION))):
+    from bm import intercambiables
+    if d.antes and d.antes != d.grupo:
+        con.execute("DELETE FROM intercambiables WHERE grupo=?", (d.antes,))
+    _error(intercambiables.poner, con, d.grupo, d.productos)
+    tpv.regenerar(con)  # los consumos TPV se rehacen con el grupo nuevo
+    costing.valorar(con)
+    return {"ok": True}
 
 
 # ---------------------------------------------------------------- Business Central

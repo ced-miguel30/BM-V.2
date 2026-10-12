@@ -7,7 +7,7 @@ import sqlite3
 from collections import defaultdict
 from datetime import date, timedelta
 
-from bm import consumos, costing, inventario
+from bm import consumos, costing, intercambiables, inventario
 
 
 def _num(con, clave: str, defecto: float) -> float:
@@ -266,6 +266,7 @@ def revision_fichas(con: sqlite3.Connection) -> list[dict]:
     del_dia = {r[0] for r in con.execute("SELECT DISTINCT r.id FROM recetas r JOIN recetas_dia d ON lower(d.etiqueta)=lower(r.nombre)")}
     ultima_compra = dict(con.execute("SELECT producto, MAX(fecha) FROM bc_movs WHERE tipo='Compra' AND cantidad>0 GROUP BY producto").fetchall())
     hace_6m = (date.today() - timedelta(days=180)).isoformat()
+    sel, hoy = intercambiables.Selector(con), date.today().isoformat()
     out = []
     for r in con.execute("SELECT id FROM recetas WHERE activo=1"):
         if r["id"] in del_dia:
@@ -284,7 +285,7 @@ def revision_fichas(con: sqlite3.Connection) -> list[dict]:
             if u in ("KG", "LT") and 0 < racion < 0.0005:
                 problemas.append(f"{l['nombre']}: {racion:g} {u} por ración parece muy poco")
             uc = ultima_compra.get(l["producto"])
-            if uc and uc < hace_6m and sum(x["stock"] for x in inventario.stock(con, producto=l["producto"])) <= 0:
+            if uc and uc < hace_6m and sel.elegir(l["producto"], hoy) == l["producto"] and sum(x["stock"] for x in inventario.stock(con, producto=l["producto"])) <= 0:
                 avisos.append(f"{l['nombre']}: no se compra desde {uc[8:10]}/{uc[5:7]}/{uc[:4]} y no queda stock; "
                               "¿la ficha usa un producto antiguo?")
         precio = pvp.get(r["id"])
