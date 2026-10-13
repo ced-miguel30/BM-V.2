@@ -1,6 +1,6 @@
 """Alta / cambio de contraseña de usuarios desde el servidor.
 
-    python -m bm.usuarios <login> "<Nombre>" <rol>     (rol: direccion | administracion | recepcion | restaurante)
+    python -m bm.usuarios <login> "<Nombre>" <rol>     (rol: direccion | administracion | jefe | cocina | comandero)
 """
 
 import getpass
@@ -9,7 +9,7 @@ import sys
 from bm import db
 from bm.passwords import hash_password
 
-ROLES = ("direccion", "administracion", "recepcion", "restaurante", "cocina")  # cocina: solo recuento, sin cifras
+ROLES = ("direccion", "administracion", "jefe", "cocina", "comandero")  # ver bm/app.py
 
 
 def guardar(con, login: str, nombre: str, rol: str, password: str) -> None:

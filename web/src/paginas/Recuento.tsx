@@ -313,7 +313,7 @@ function Historico() {
 
 export function Recuento() {
   const [gestion, setGestion] = useState(false);
-  useEffect(() => { api<{ rol: string }>('/me').then((u) => setGestion(['direccion', 'administracion'].includes(u.rol))).catch(() => null); }, []);
+  useEffect(() => { api<{ rol: string }>('/me').then((u) => setGestion(['direccion', 'administracion', 'jefe'].includes(u.rol))).catch(() => null); }, []);
   return (
     <>
       <Cabecera titulo="Recuento" subtitulo="Cuenta lo que hay. Lo contado pasa a ser el stock real y la diferencia queda registrada." />

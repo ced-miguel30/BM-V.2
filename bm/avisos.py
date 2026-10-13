@@ -112,8 +112,9 @@ def avisos(con: sqlite3.Connection, rol: str) -> list[dict]:
                 nombre = con.execute("SELECT nombre FROM ubicaciones WHERE codigo=?", (ub,)).fetchone()[0]
                 aviso("media", f"Contar {n} productos frescos o caros en {nombre}", "Poco a poco antes del cierre del mes; lo demás lo calcula BM",
                       f"/recuento?ubicacion={ub}&recomendados=1")
-    if rol == "cocina":  # solo ve sus recuentos
-        out = [x for x in out if x["ruta"].startswith("/recuento")]
+    suyos = {"cocina": ("/recuento", "/caducidades", "/reponer"), "comandero": ("/comandas", "/buffet")}.get(rol)
+    if suyos:  # cada perfil solo ve los avisos de lo que hace
+        out = [x for x in out if x["ruta"].startswith(suyos)]
     orden = {"alta": 0, "media": 1, "info": 2}
     out.sort(key=lambda a: orden[a["nivel"]])
     for k in [k for k in _cache if k[0] == rol]:  # una entrada por perfil

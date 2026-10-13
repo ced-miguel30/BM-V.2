@@ -27,9 +27,19 @@ app = FastAPI(title="BM", docs_url="/api/docs", openapi_url="/api/openapi.json")
 STATIC = Path(__file__).resolve().parent / "static"
 
 # ---------------------------------------------------------------- sesión y permisos
+# Perfiles (13/10/2026). El dueño puede «ver como» cualquier otro perfil (cabecera X-Ver-Como, ver usuario()).
+#   direccion      Dueño: todo
+#   administracion casi todo; decide qué es confidencial
+#   jefe           jefe de restaurante: recuentos, mermas y pérdidas, caducidades, stock, pedir a administración
+#   cocina         camareros y cocineros: recuento, mermas, caducidades, recibir… sin análisis ni euros
+#   comandero      comandas de desayuno desde el móvil de la empresa
+ROLES = ("direccion", "administracion", "jefe", "cocina", "comandero")
 GESTION = ("direccion", "administracion")
-OPERATIVO = GESTION + ("recepcion", "restaurante")
-CONTAR = OPERATIVO + ("cocina",)  # cocina solo cuenta: no ve stock esperado, precios ni nada de gestión
+JEFE = GESTION + ("jefe",)
+EQUIPO = JEFE + ("cocina",)
+COMANDAS = JEFE + ("comandero",)
+OPERATIVO = EQUIPO + ("comandero",)  # cualquiera que trabaje en BM
+CONTAR = EQUIPO  # cocina cuenta a ciegas: no ve stock esperado, precios ni nada de gestión
 HORAS_SESION = 12
 INTENTOS_LOGIN = 10  # fallos seguidos por usuario antes de bloquear 15 minutos
 
@@ -51,6 +61,10 @@ def usuario(request: Request) -> dict:
     u = sesion(request.cookies.get("bm_sesion"))
     if not u:
         raise HTTPException(401, "Sesión no iniciada")
+    como = request.headers.get("X-Ver-Como")
+    if como and u["rol"] == "direccion" and como in ROLES and como != "direccion":
+        # El dueño ve BM exactamente como ese perfil (permisos y cifras); lo que haga queda a su nombre.
+        u = {**u, "rol": como, "rol_real": "direccion"}
     return u
 
 
@@ -271,7 +285,7 @@ class NuevoConsumo(BaseModel):
 
 
 @app.post("/api/consumos")
-def crear_consumo(d: NuevoConsumo, u: dict = Depends(requiere(*OPERATIVO))):
+def crear_consumo(d: NuevoConsumo, u: dict = Depends(requiere(*EQUIPO))):
     cid = _error(consumos.registrar, con, fecha=d.fecha, servicio=d.servicio, tipo=d.tipo, comensales=d.comensales,
                  nota=d.nota, usuario=u["nombre"], ubicacion=d.ubicacion, motivo=d.motivo, items=[i.model_dump() for i in d.items])
     return {"id": cid}
@@ -441,7 +455,7 @@ def _subida(f: UploadFile) -> Path:
 
 
 @app.post("/api/tpv/pdf")
-def tpv_subir(archivo: UploadFile, u: dict = Depends(requiere(*GESTION, "recepcion"))):
+def tpv_subir(archivo: UploadFile, u: dict = Depends(requiere(*GESTION))):
     r = _error(tpv.importar_pdf, con, _subida(archivo))
     costing.valorar(con)
     return {**r, "pendientes": len(tpv.pendientes(con))}
@@ -457,7 +471,7 @@ def tpv_ventas(mes: str | None = None, u: dict = Depends(requiere(*GESTION))):
 
 # ---------------------------------------------------------------- Excel operativo
 @app.get("/api/excel/plantilla")
-def excel_plantilla(u: dict = Depends(requiere(*OPERATIVO))):
+def excel_plantilla(u: dict = Depends(requiere(*GESTION))):
     return RawResponse(
         plantilla.generar(con),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -467,7 +481,7 @@ def excel_plantilla(u: dict = Depends(requiere(*OPERATIVO))):
 
 @app.post("/api/excel")
 def excel_importar(archivo: UploadFile, confirmar: bool = False, comensales: str | None = Form(None),
-                   u: dict = Depends(requiere(*OPERATIVO))):
+                   u: dict = Depends(requiere(*GESTION))):
     """Sin confirmar: vista previa (no escribe). Con confirmar: importa los días sin errores.
     comensales: JSON {"2026-09-05": 34} para los días en que el Excel no los trae."""
     try:

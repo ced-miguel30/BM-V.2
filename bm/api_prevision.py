@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException
 from pydantic import BaseModel
 
 from bm import pedidos as pedidos_mod, prevision
-from bm.app import GESTION, OPERATIVO, _error, app, con, requiere
+from bm.app import EQUIPO, GESTION, _error, app, con, requiere
 
 
 @app.get("/api/prevision/pedidos")
@@ -15,7 +15,7 @@ def pedidos(u: dict = Depends(requiere(*GESTION))):
 
 
 @app.get("/api/prevision/reposicion")
-def reposicion(u: dict = Depends(requiere(*OPERATIVO))):
+def reposicion(u: dict = Depends(requiere(*EQUIPO))):
     return prevision.reposicion(con)
 
 
@@ -88,7 +88,7 @@ def cerrar_pedido(pid: int, d: CierrePedido, u: dict = Depends(requiere(*GESTION
 
 
 @app.get("/api/recepcion/pedidos")
-def por_recibir(u: dict = Depends(requiere(*OPERATIVO))):
+def por_recibir(u: dict = Depends(requiere(*EQUIPO))):
     return {"pedidos": pedidos_mod.por_recibir(con),
             "proveedores": [r[0] for r in con.execute("SELECT nombre FROM proveedores ORDER BY nombre")]}
 
@@ -108,6 +108,6 @@ class NuevaRecepcion(BaseModel):
 
 
 @app.post("/api/recepciones")
-def recibir(d: NuevaRecepcion, u: dict = Depends(requiere(*OPERATIVO))):
+def recibir(d: NuevaRecepcion, u: dict = Depends(requiere(*EQUIPO))):
     return _error(pedidos_mod.recibir, con, pedido_id=d.pedido_id, proveedor=d.proveedor, fecha=d.fecha, nota=d.nota,
                   ref=d.ref, usuario=u["nombre"], lineas=[x.model_dump() for x in d.lineas])

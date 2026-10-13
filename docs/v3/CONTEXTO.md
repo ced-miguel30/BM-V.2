@@ -96,5 +96,11 @@ evita duplicados. Todo exige https en producción. Pendiente de decisión: escri
     (`/consulta`, `/api/consulta/{p}`: dónde está, zona, último recuento, caducidades; precio solo gestión).
     **Recibir mercancía** (`/recibir`, tablas `recepciones`): se escanea lo que llega, dice al momento qué falta del pedido
     (también sin cobertura); no mueve stock. Aviso si el albarán de Noray tiene más de lo que llegó (`pedidos.descuadres`) o si
-    llegó y falta registrar el albarán. Pendiente: dividir la interfaz por perfil (y un perfil "owner" que lo vea todo).
+    llegó y falta registrar el albarán.
+13. **Perfiles** (13/10, `bm/app.py` ROLES/GESTION/JEFE/EQUIPO/COMANDAS): Dueño (`direccion`, todo + «Ver como…» con cabecera
+    `X-Ver-Como`: el servidor le trata exactamente como ese perfil), Administración, Jefe de restaurante (recuentos e historial,
+    stock sin euros, pérdidas, caducidades, traslados), Cocina y sala (recuento a ciegas, mermas, caducidades, recibir, reponer,
+    consultar; nunca euros), Comandero (comandas y buffet). `restaurante`→jefe y `recepcion`→comandero se migran solos.
+    Pendiente por fases: administración decide qué es confidencial; jefe pide pedidos a administración y pide solo lo
+    autorizado; cocina avisa de stock bajo y recomienda pedido al jefe; comandero digital en móviles de empresa.
 - Entorno: Bash corta heredocs > ~7 KB (escribir ficheros en trozos); `gh` sin sesión (CI en GitHub sin verificar).

@@ -26,7 +26,7 @@ con.executemany("INSERT INTO receta_lineas VALUES('r1', ?, ?)", [("HUEVO", 2), (
 con.commit()
 from bm import inventario  # noqa: E402
 inventario.sembrar(con)  # proveedores y almacenes de los movimientos de prueba
-for login, rol in (("dir", "direccion"), ("adm", "administracion"), ("rest", "restaurante"), ("coc", "cocina")):
+for login, rol in (("dir", "direccion"), ("adm", "administracion"), ("rest", "jefe"), ("coc", "cocina"), ("com", "comandero")):
     usuarios.guardar(con, login, login.upper(), rol, "clave-segura")
 
 
@@ -57,7 +57,7 @@ class TestPermisos(unittest.TestCase):
         self.assertNotIn("precio", fila)
 
     def test_solo_direccion_gestiona_usuarios(self):
-        body = {"login": "nuevo", "nombre": "Nuevo", "rol": "restaurante", "password": "clave-segura"}
+        body = {"login": "nuevo", "nombre": "Nuevo", "rol": "jefe", "password": "clave-segura"}
         self.assertEqual(cliente("adm").post("/api/config/usuarios", json=body).status_code, 403)
         self.assertEqual(cliente("dir").post("/api/config/usuarios", json=body).status_code, 200)
 
@@ -88,11 +88,28 @@ class TestFlujos(unittest.TestCase):
         self.assertEqual(r["codigo"], "PAN")
         self.assertIsNone(r["precio"])
         self.assertTrue(all(x["valor"] is None for x in r["sitios"]))
-        self.assertEqual(cliente("coc").get("/api/consulta/PAN").status_code, 403)
+        self.assertTrue(all(x["stock"] is None for x in cliente("coc").get("/api/consulta/PAN").json()["sitios"]))  # a ciegas
+
+    def test_dueno_ve_como_otro_perfil(self):
+        d = cliente("dir")
+        self.assertEqual(d.get("/api/me", headers={"X-Ver-Como": "cocina"}).json()["rol"], "cocina")
+        self.assertEqual(d.get("/api/panel", headers={"X-Ver-Como": "cocina"}).status_code, 403)  # como cocina, sin panel
+        fila = d.get("/api/stock?ubicacion=RESTAURANTE", headers={"X-Ver-Como": "cocina"}).json()[0]
+        self.assertNotIn("stock", fila)  # y a ciegas, igual que cocina
+        self.assertEqual(d.get("/api/panel").status_code, 200)
+        a = cliente("adm")  # solo el dueño puede
+        self.assertEqual(a.get("/api/me", headers={"X-Ver-Como": "cocina"}).json()["rol"], "administracion")
+
+    def test_comandero_solo_comandas(self):
+        c = cliente("com")
+        self.assertEqual(c.get("/api/comandas").status_code, 200)
+        for ruta in ("/api/stock", "/api/caducidades", "/api/recepcion/pedidos", "/api/analisis/perdidas?desde=2026-09-01&hasta=2026-09-30"):
+            self.assertEqual(c.get(ruta).status_code, 403, ruta)
+        self.assertEqual(cliente("rest").get("/api/analisis/perdidas?desde=2026-09-01&hasta=2026-09-30").status_code, 200)  # el jefe sí
 
     def test_cocina_solo_cuenta_y_a_ciegas(self):
         c = cliente("coc")
-        for ruta in ("/api/consumos", "/api/comandas", "/api/caducidades", "/api/traslados", "/api/recuentos", "/api/productos"):
+        for ruta in ("/api/consumos", "/api/comandas", "/api/traslados", "/api/recuentos", "/api/productos", "/api/analisis/perdidas?desde=2026-09-01&hasta=2026-09-30"):
             self.assertEqual(c.get(ruta).status_code, 403, ruta)
         filas = c.get("/api/stock?ubicacion=RESTAURANTE").json()
         self.assertTrue(filas and all(set(f) == {"producto", "ubicacion", "nombre", "unidad", "zona"} for f in filas))  # sin cifras
@@ -126,7 +143,7 @@ class TestFlujos(unittest.TestCase):
         self.assertEqual(otro.get("/api/me").status_code, 401)
 
     def test_login_se_bloquea_tras_muchos_fallos(self):
-        usuarios.guardar(con, "temp", "TEMP", "restaurante", "clave-segura")
+        usuarios.guardar(con, "temp", "TEMP", "jefe", "clave-segura")
         c = TestClient(A.app)
         for _ in range(A.INTENTOS_LOGIN):
             self.assertEqual(c.post("/api/login", json={"login": "temp", "password": "mal"}).status_code, 401)

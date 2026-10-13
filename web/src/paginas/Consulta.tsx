@@ -8,7 +8,7 @@ import { cantidad, euros, fecha } from '../formato';
 import { BotonEscanear, type Producto } from '../EscanearProducto';
 
 type Ficha = Producto & {
-  sitios: { ubicacion: string; zona: string | null; stock: number; ultimo_recuento: string | null; valor: number | null }[];
+  sitios: { ubicacion: string; zona: string | null; stock: number | null; ultimo_recuento: string | null; valor: number | null }[];
   caducidades: { id: number; ubicacion: string | null; cantidad: number; caduca: string; dias: number }[];
   precio: number | null; ultima_compra: { fecha: string; proveedor: string } | null; codigos: string[];
 };
@@ -54,7 +54,7 @@ export function Consulta() {
                       <Text size="xs" c="dimmed">Contado por última vez: {s.ultimo_recuento ? fecha(s.ultimo_recuento) : 'nunca'}</Text>
                     </div>
                     <Group gap="xs" wrap="nowrap">
-                      <Text fw={600}>{cantidad(s.stock)} {f.unidad}{s.valor !== null ? ` · ${euros(s.valor)}` : ''}</Text>
+                      {s.stock !== null && <Text fw={600}>{cantidad(s.stock)} {f.unidad}{s.valor !== null ? ` · ${euros(s.valor)}` : ''}</Text>}
                       <Button size="compact-sm" variant="light" onClick={() => nav(`/recuento?ubicacion=${s.ubicacion}`)}>Contar</Button>
                     </Group>
                   </Group>

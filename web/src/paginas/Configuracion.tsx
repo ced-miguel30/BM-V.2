@@ -19,7 +19,8 @@ type Cfg = {
   usuarios: { id: string; nombre: string; login: string | null; rol: string; activo: number }[];
   copias: { nombre: string; tamano: number; fecha: string }[];
 };
-const ROLES = [{ value: 'direccion', label: 'Dirección' }, { value: 'administracion', label: 'Administración' }, { value: 'recepcion', label: 'Recepción' }, { value: 'restaurante', label: 'Restaurante' }, { value: 'cocina', label: 'Cocina (solo recuento)' }];
+const ROLES = [{ value: 'direccion', label: 'Dueño (todo)' }, { value: 'administracion', label: 'Administración' }, { value: 'jefe', label: 'Jefe de restaurante' },
+  { value: 'cocina', label: 'Cocina y sala (camareros, cocineros)' }, { value: 'comandero', label: 'Comandero (desayunos)' }];
 const COLORES = ['yellow', 'cyan', 'indigo', 'red', 'blue', 'pink', 'gray', 'orange', 'teal', 'grape', 'lime', 'green', 'violet'];  // los 7 primeros: paleta de gráficos
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
 const GRUPOS: Record<string, string> = { extra: 'Extras de plato', leche: 'Leches', bebida: 'Bebidas', buffet: 'Buffet', omitir: 'Quitar' };
@@ -46,7 +47,7 @@ function General({ cfg, recargar }: { cfg: Cfg; recargar: () => void }) {
 }
 
 function Usuarios({ cfg, recargar }: { cfg: Cfg; recargar: () => void }) {
-  const vacio = { login: '', nombre: '', rol: 'restaurante', activo: true, password: '', nuevo: true };
+  const vacio = { login: '', nombre: '', rol: 'cocina', activo: true, password: '', nuevo: true };
   const [ed, setEd] = useState<typeof vacio | null>(null);
   const guardar = async () => {
     if (!ed) return;

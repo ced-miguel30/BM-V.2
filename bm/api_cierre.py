@@ -59,8 +59,9 @@ def cierre_noray(mes: str, u: dict = Depends(requiere(*GESTION))):
 def recomendados(ubicacion: str, desde: str | None = None, u: dict = Depends(requiere(*CONTAR))):
     """Fresco y caro sin contar desde `desde` (por defecto, desde el día 1 de este mes)."""
     xs = cierre.recomendados(con, ubicacion, desde or date.today().replace(day=1).isoformat())
-    if u["rol"] not in GESTION:  # el personal ve qué contar, no cuánto espera BM ni lo que vale
-        xs = [{k: x[k] for k in ("producto", "nombre", "unidad", "motivos")} for x in xs]
+    if u["rol"] not in GESTION:  # el jefe ve cuánto espera BM pero no lo que vale; el resto, solo qué contar
+        campos = ("producto", "nombre", "unidad", "motivos") + (("stock", "ultimo_recuento") if u["rol"] == "jefe" else ())
+        xs = [{k: x[k] for k in campos} for x in xs]
     return xs
 
 

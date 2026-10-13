@@ -9,7 +9,7 @@ from fastapi import Depends, HTTPException
 from pydantic import BaseModel
 
 from bm import consumos, inventario
-from bm.app import CONTAR, GESTION, OPERATIVO, _error, app, con, requiere
+from bm.app import CONTAR, EQUIPO, GESTION, JEFE, OPERATIVO, _error, app, con, requiere
 
 
 @app.get("/api/centros")
@@ -83,14 +83,14 @@ def crear_recuento(d: NuevoRecuento, u: dict = Depends(requiere(*CONTAR))):
 
 
 @app.get("/api/recuentos")
-def listar_recuentos(u: dict = Depends(requiere(*GESTION))):
+def listar_recuentos(u: dict = Depends(requiere(*JEFE))):
     return [dict(x) for x in con.execute(
         """SELECT r.*, COUNT(l.producto) n_productos, ROUND(SUM(l.contado - l.teorico), 3) diferencia_uds
            FROM recuentos r LEFT JOIN recuento_lineas l ON l.recuento_id=r.id GROUP BY r.id ORDER BY r.fecha DESC, r.id DESC LIMIT 200""")]
 
 
 @app.get("/api/recuentos/{rid}")
-def ver_recuento(rid: int, u: dict = Depends(requiere(*GESTION))):
+def ver_recuento(rid: int, u: dict = Depends(requiere(*JEFE))):
     r = con.execute("SELECT * FROM recuentos WHERE id=?", (rid,)).fetchone()
     if not r:
         raise HTTPException(404, "No existe")
@@ -114,13 +114,13 @@ class NuevoTraslado(BaseModel):
 
 
 @app.post("/api/traslados")
-def crear_traslado(d: NuevoTraslado, u: dict = Depends(requiere(*OPERATIVO))):
+def crear_traslado(d: NuevoTraslado, u: dict = Depends(requiere(*JEFE))):
     return {"id": _error(inventario.registrar_traslado, con, fecha=d.fecha, origen=d.origen, destino=d.destino,
                          nota=d.nota, usuario=u["nombre"], items=d.items)}
 
 
 @app.get("/api/traslados")
-def listar_traslados(u: dict = Depends(requiere(*OPERATIVO))):
+def listar_traslados(u: dict = Depends(requiere(*JEFE))):
     return {
         "traslados_en": inventario.ajuste(con, "traslados_en", "bc"),
         "lista": [dict(x) for x in con.execute(
@@ -150,7 +150,7 @@ class NuevaCaducidad(BaseModel):
 
 
 @app.get("/api/caducidades")
-def listar_caducidades(estado: str = "activa", u: dict = Depends(requiere(*OPERATIVO))):
+def listar_caducidades(estado: str = "activa", u: dict = Depends(requiere(*EQUIPO))):
     hoy = date.today()
     out = []
     for c in con.execute(
@@ -162,7 +162,7 @@ def listar_caducidades(estado: str = "activa", u: dict = Depends(requiere(*OPERA
 
 
 @app.post("/api/caducidades")
-def crear_caducidad(d: NuevaCaducidad, u: dict = Depends(requiere(*OPERATIVO))):
+def crear_caducidad(d: NuevaCaducidad, u: dict = Depends(requiere(*EQUIPO))):
     cid = _error(inventario.registrar_caducidad, con, usuario=u["nombre"], **d.model_dump())
     r = con.execute("SELECT c.*, p.nombre, p.unidad FROM caducidades c JOIN productos p ON p.codigo=c.producto WHERE c.id=?", (cid,)).fetchone()
     return dict(r)  # todo lo que lleva la etiqueta
@@ -173,7 +173,7 @@ class Cierre(BaseModel):
 
 
 @app.post("/api/caducidades/{cid}/cerrar")
-def cerrar_caducidad(cid: int, d: Cierre, u: dict = Depends(requiere(*OPERATIVO))):
+def cerrar_caducidad(cid: int, d: Cierre, u: dict = Depends(requiere(*EQUIPO))):
     _error(inventario.cerrar_caducidad, con, cid, d.estado, u["nombre"])
     return {"ok": True}
 
@@ -201,7 +201,7 @@ def guardar_codigo(d: CodigoBarras, u: dict = Depends(requiere(*CONTAR))):
 
 
 @app.get("/api/consulta/{producto}")
-def consulta(producto: str, u: dict = Depends(requiere(*OPERATIVO))):
+def consulta(producto: str, u: dict = Depends(requiere(*EQUIPO))):
     """Ficha rápida al escanear: dónde está, zona, último recuento y caducidades; cifras y precio solo para gestión."""
     p = con.execute("SELECT codigo, nombre, unidad FROM productos WHERE codigo=?", (producto,)).fetchone()
     if not p:
@@ -213,7 +213,8 @@ def consulta(producto: str, u: dict = Depends(requiere(*OPERATIVO))):
         if abs(s["stock"]) < 1e-6 and not s["salidas_desde_recuento"]:
             continue
         zona = con.execute("SELECT zona FROM zonas_producto WHERE producto=? AND ubicacion=?", (producto, s["ubicacion"])).fetchone()
-        sitios.append({"ubicacion": s["ubicacion"], "zona": zona[0] if zona else None, "stock": s["stock"],
+        sitios.append({"ubicacion": s["ubicacion"], "zona": zona[0] if zona else None,
+                       "stock": None if u["rol"] == "cocina" else s["stock"],  # cocina cuenta a ciegas
                        "ultimo_recuento": s["ultimo_recuento"], "valor": None if pu is None else round(max(s["stock"], 0) * pu, 2)})
     hoy = date.today()
     caducidades = [{**dict(c), "dias": (date.fromisoformat(c["caduca"]) - hoy).days} for c in con.execute(

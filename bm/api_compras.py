@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
 from bm import compras
-from bm.app import GESTION, OPERATIVO, _error, _subida, app, con, requiere
+from bm.app import EQUIPO, GESTION, _error, _subida, app, con, requiere
 
 TIPOS_ADJUNTO = {".pdf", ".jpg", ".jpeg", ".png", ".heic", ".webp"}
 
@@ -29,7 +29,7 @@ def ver(doc: str, u: dict = Depends(requiere(*GESTION))):
 
 
 @app.post("/api/compras/{doc}/adjuntos")
-def adjuntar(doc: str, archivo: UploadFile, u: dict = Depends(requiere(*OPERATIVO))):
+def adjuntar(doc: str, archivo: UploadFile, u: dict = Depends(requiere(*EQUIPO))):
     ext = Path(archivo.filename or "").suffix.lower()
     if ext not in TIPOS_ADJUNTO:
         raise HTTPException(400, "Sube una foto (JPG/PNG) o un PDF")

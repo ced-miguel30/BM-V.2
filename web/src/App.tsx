@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Navigate, NavLink as RouterLink, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
-import {
+import { Alert, 
   ActionIcon, AppShell, Avatar, Box, Burger, Button, Center, Group, Indicator, Loader, Menu, Modal, NavLink, Paper, Popover, ThemeIcon,
   PasswordInput, ScrollArea, Stack, Text, TextInput, Title, Tooltip, useMantineColorScheme,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconScan,
+import { IconEye,  IconScan,
   IconArrowsExchange, IconBook2, IconBuildingWarehouse, IconCalendarExclamation, IconChartBar, IconClipboardCheck,
   IconCloudUpload, IconFileSpreadsheet, IconListDetails, IconLogout, IconMoon, IconPackages, IconPencilPlus,
   IconReceipt2, IconSun, IconChartDots, IconScale, IconTrendingUp, IconSettings, IconKey, IconTruckDelivery, IconShoppingCart, IconStackPush, IconBread, IconTrashX, IconBell, IconCalendarCheck, IconToolsKitchen2,
@@ -40,28 +40,31 @@ import { Cierre } from './paginas/Cierre';
 import { Informe } from './paginas/Informe';
 import { Comandas } from './paginas/Comandas';
 
-export type Usuario = { id: string; nombre: string; rol: string; login: string };
+export type Usuario = { id: string; nombre: string; rol: string; login: string; rol_real?: string };
 const GESTION = ['direccion', 'administracion'];
-const TODOS = [...GESTION, 'recepcion', 'restaurante'];
-const CONTAR = [...TODOS, 'cocina']; // cocina: solo recuento
+// Perfiles: ver bm/app.py (el servidor es quien manda; esto solo decide qué se enseña en el menú).
+const JEFE = [...GESTION, 'jefe'];
+const EQUIPO = [...JEFE, 'cocina'];
+const COMANDAS = [...JEFE, 'comandero'];
+const TODOS = [...EQUIPO, 'comandero'];
 
 const MENU = [
   { seccion: 'Operación', items: [
-    { to: '/comandas', label: 'Comandas desayuno', icon: IconToolsKitchen2, roles: TODOS, el: <Comandas /> },
-    { to: '/registrar', label: 'Registrar consumo', icon: IconPencilPlus, roles: TODOS, el: <Registrar /> },
+    { to: '/comandas', label: 'Comandas desayuno', icon: IconToolsKitchen2, roles: COMANDAS, el: <Comandas /> },
+    { to: '/registrar', label: 'Registrar consumo', icon: IconPencilPlus, roles: EQUIPO, el: <Registrar /> },
     { to: '/buffet', label: 'Buffet del día', icon: IconBread, roles: TODOS, el: <Buffet /> },
-    { to: '/excel', label: 'Importar Excel', icon: IconFileSpreadsheet, roles: TODOS, el: <Excel /> },
-    { to: '/recuento', label: 'Recuento', icon: IconClipboardCheck, roles: CONTAR, el: <Recuento /> },
-    { to: '/recibir', label: 'Recibir mercancía', icon: IconTruckDelivery, roles: TODOS, el: <Recibir /> },
-    { to: '/consulta', label: 'Consultar producto', icon: IconScan, roles: TODOS, el: <Consulta /> },
-    { to: '/caducidades', label: 'Caducidades', icon: IconCalendarExclamation, roles: TODOS, el: <Caducidades /> },
-    { to: '/reponer', label: 'Reponer restaurante', icon: IconStackPush, roles: TODOS, el: <Reponer /> },
-    { to: '/traslados', label: 'Traslados', icon: IconArrowsExchange, roles: TODOS, el: <Traslados /> },
+    { to: '/excel', label: 'Importar Excel', icon: IconFileSpreadsheet, roles: GESTION, el: <Excel /> },
+    { to: '/recuento', label: 'Recuento', icon: IconClipboardCheck, roles: EQUIPO, el: <Recuento /> },
+    { to: '/recibir', label: 'Recibir mercancía', icon: IconTruckDelivery, roles: EQUIPO, el: <Recibir /> },
+    { to: '/consulta', label: 'Consultar producto', icon: IconScan, roles: EQUIPO, el: <Consulta /> },
+    { to: '/caducidades', label: 'Caducidades', icon: IconCalendarExclamation, roles: EQUIPO, el: <Caducidades /> },
+    { to: '/reponer', label: 'Reponer restaurante', icon: IconStackPush, roles: EQUIPO, el: <Reponer /> },
+    { to: '/traslados', label: 'Traslados', icon: IconArrowsExchange, roles: JEFE, el: <Traslados /> },
   ] },
   { seccion: 'Control', items: [
     { to: '/', label: 'Panel', icon: IconChartBar, roles: GESTION, el: <Panel /> },
     { to: '/consumos', label: 'Consumos', icon: IconListDetails, roles: GESTION, el: <Consumos /> },
-    { to: '/stock', label: 'Stock', icon: IconPackages, roles: GESTION, el: <Stock /> },
+    { to: '/stock', label: 'Stock', icon: IconPackages, roles: JEFE, el: <Stock /> },
     { to: '/tpv', label: 'Ventas TPV', icon: IconReceipt2, roles: GESTION, el: <Tpv /> },
     { to: '/pedidos', label: 'Pedidos', icon: IconShoppingCart, roles: GESTION, el: <Pedidos /> },
     { to: '/compras', label: 'Compras y proveedores', icon: IconTruckDelivery, roles: GESTION, el: <Compras /> },
@@ -69,7 +72,7 @@ const MENU = [
   { seccion: 'Análisis', items: [
     { to: '/rentabilidad', label: 'Rentabilidad por plato', icon: IconChartDots, roles: GESTION, el: <Rentabilidad /> },
     { to: '/control', label: 'Control de stock', icon: IconScale, roles: GESTION, el: <Control /> },
-    { to: '/perdidas', label: 'Pérdidas', icon: IconTrashX, roles: GESTION, el: <Perdidas /> },
+    { to: '/perdidas', label: 'Pérdidas', icon: IconTrashX, roles: JEFE, el: <Perdidas /> },
     { to: '/precios', label: 'Precios de compra', icon: IconTrendingUp, roles: GESTION, el: <Precios /> },
   ] },
   { seccion: 'Catálogo', items: [
@@ -84,7 +87,13 @@ const MENU = [
 ];
 
 const ROL: Record<string, string> = {
-  direccion: 'Dirección', administracion: 'Administración', recepcion: 'Recepción', restaurante: 'Restaurante',
+  direccion: 'Dueño', administracion: 'Administración', jefe: 'Jefe de restaurante', cocina: 'Cocina y sala', comandero: 'Comandero',
+};
+// Pantalla con la que empieza cada perfil (si no la tiene, la primera de su menú).
+const INICIO: Record<string, string> = { direccion: '/', administracion: '/', jefe: '/recuento', cocina: '/recuento', comandero: '/comandas' };
+const cambiarVista = (rol: string | null) => {
+  try { if (rol) localStorage.setItem('bm.verComo', rol); else localStorage.removeItem('bm.verComo'); } catch { /* sin almacenamiento */ }
+  window.location.href = '/';  // empezar limpio, con el menú y la pantalla de inicio de ese perfil
 };
 
 function Login({ onLogin }: { onLogin: (u: Usuario) => void }) {
@@ -207,9 +216,11 @@ export function App() {
 
   const menu = MENU.map((s) => ({ ...s, items: s.items.filter((i) => i.roles.includes(usuario.rol)) })).filter((s) => s.items.length);
   const rutas = menu.flatMap((s) => s.items);
-  const inicio = rutas.some((r) => r.to === '/') ? '/' : rutas[0].to;
+  const inicio = rutas.some((r) => r.to === INICIO[usuario.rol]) ? INICIO[usuario.rol] : rutas[0].to;
+  const dueno = (usuario.rol_real ?? usuario.rol) === 'direccion';
   const salir = async () => {
     await api('/logout', { method: 'POST' }).catch(() => null);
+    try { localStorage.removeItem('bm.verComo'); } catch { /* sin almacenamiento */ }
     await window.caches?.delete('bm-v1').catch(() => null);  // datos guardados para usar sin cobertura: no quedan en el móvil
     setUsuario(null);
   };
@@ -245,6 +256,16 @@ export function App() {
                 </Group>
               </Menu.Target>
               <Menu.Dropdown>
+                {dueno && (
+                  <>
+                    <Menu.Label>Ver BM como…</Menu.Label>
+                    {Object.entries(ROL).map(([rol, nombre]) => (
+                      <Menu.Item key={rol} leftSection={<IconEye size={16} />} onClick={() => cambiarVista(rol === 'direccion' ? null : rol)}
+                        fw={usuario.rol === rol ? 700 : undefined}>{nombre}{usuario.rol === rol ? ' ✓' : ''}</Menu.Item>
+                    ))}
+                    <Menu.Divider />
+                  </>
+                )}
                 <Menu.Item leftSection={<IconKey size={16} />} onClick={() => setClave(true)}>Cambiar contraseña</Menu.Item>
                 <Menu.Item leftSection={<IconLogout size={16} />} onClick={salir}>Cerrar sesión</Menu.Item>
               </Menu.Dropdown>
@@ -275,6 +296,14 @@ export function App() {
       <CambiarClave abierto={clave} cerrar={() => setClave(false)} />
       <AppShell.Main>
         <Box maw={1440} mx="auto">
+          {usuario.rol_real && (
+            <Alert color="grape" variant="light" mb="md" icon={<IconEye />} title={`Estás viendo BM como ${ROL[usuario.rol] ?? usuario.rol}`}>
+              <Group justify="space-between" gap="xs">
+                <Text size="sm">Ves exactamente lo que ve ese perfil. Lo que hagas se guarda de verdad, a tu nombre.</Text>
+                <Button size="xs" color="grape" onClick={() => cambiarVista(null)}>Volver a Dueño</Button>
+              </Group>
+            </Alert>
+          )}
           <Routes>
             {rutas.map((r) => <Route key={r.to} path={r.to} element={r.el} />)}
             {rutas.some((r) => r.to === '/cierre') && <Route path="/informe" element={<Informe />} />}
