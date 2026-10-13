@@ -8,7 +8,7 @@ from fastapi import Depends, HTTPException
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
-from bm import copias, entrada, usuarios as usuarios_mod
+from bm import copias, entrada, permisos, usuarios as usuarios_mod
 from bm.app import GESTION, _error, _escritura, app, con, requiere, usuario
 from bm.passwords import hash_password, verify_password
 
@@ -259,3 +259,15 @@ def guardar_entrada(d: CarpetaCopias, u: dict = Depends(requiere(*DIRECCION))):
     con.execute("INSERT OR REPLACE INTO ajustes VALUES('carpeta_entrada', ?)", (ruta,))
     con.commit()
     return {"carpeta": str(entrada.carpeta(con))}
+
+
+@app.get("/api/config/permisos")
+def ver_permisos(u: dict = Depends(requiere(*GESTION))):
+    """Qué puede abrir administración a cada perfil y qué tiene cada uno ahora."""
+    return permisos.todos(con)
+
+
+@app.put("/api/config/permisos")
+def guardar_permisos(d: dict[str, list[str]], u: dict = Depends(requiere(*GESTION))):
+    _error(permisos.guardar, con, d)
+    return permisos.todos(con)

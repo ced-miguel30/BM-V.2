@@ -52,7 +52,7 @@ class TestPermisos(unittest.TestCase):
         for ruta in ("/api/panel", "/api/consumos?desde=2026-01-01&hasta=2026-12-31", "/api/config", "/api/analisis/precios"):
             self.assertEqual(c.get(ruta).status_code, 403, ruta)
         self.assertEqual(c.get("/api/catalogo").status_code, 200)
-        fila = c.get("/api/stock?ubicacion=RESTAURANTE").json()[0]
+        fila = cliente("coc").get("/api/stock?ubicacion=RESTAURANTE").json()[0]  # el personal no ve costes
         self.assertNotIn("valor", fila)
         self.assertNotIn("precio", fila)
 
@@ -84,7 +84,7 @@ class TestFlujos(unittest.TestCase):
         self.assertEqual(pan["stock"], 7)
 
     def test_consulta_rapida_sin_precios_para_el_personal(self):
-        r = cliente("rest").get("/api/consulta/PAN").json()
+        r = cliente("coc").get("/api/consulta/PAN").json()
         self.assertEqual(r["codigo"], "PAN")
         self.assertIsNone(r["precio"])
         self.assertTrue(all(x["valor"] is None for x in r["sitios"]))
@@ -99,6 +99,20 @@ class TestFlujos(unittest.TestCase):
         self.assertEqual(d.get("/api/panel").status_code, 200)
         a = cliente("adm")  # solo el dueño puede
         self.assertEqual(a.get("/api/me", headers={"X-Ver-Como": "cocina"}).json()["rol"], "administracion")
+
+    def test_administracion_decide_lo_confidencial(self):
+        jefe, adm = cliente("rest"), cliente("adm")
+        perdidas = "/api/analisis/perdidas?desde=2026-09-01&hasta=2026-09-30"
+        self.assertEqual(jefe.get("/api/recetas").status_code, 403)  # por defecto, recetas no
+        self.assertIn("valor", jefe.get("/api/stock?ubicacion=RESTAURANTE").json()[0])  # euros sí
+        self.assertEqual(jefe.put("/api/config/permisos", json={"jefe": ["recetas"]}).status_code, 403)  # no lo decide él
+        r = adm.put("/api/config/permisos", json={"jefe": ["recetas", "stock"]}).json()
+        self.assertEqual(r["actual"]["jefe"], ["stock", "recetas"])
+        self.assertEqual(jefe.get("/api/recetas").status_code, 200)
+        self.assertNotIn("valor", jefe.get("/api/stock?ubicacion=RESTAURANTE").json()[0])  # euros, ahora confidencial
+        self.assertEqual(jefe.get(perdidas).status_code, 403)
+        self.assertIn("recetas", jefe.get("/api/me").json()["permisos"])
+        adm.put("/api/config/permisos", json={"jefe": ["euros", "stock", "perdidas", "traslados"]})  # como estaba
 
     def test_comandero_solo_comandas(self):
         c = cliente("com")

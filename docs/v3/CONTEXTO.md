@@ -101,6 +101,9 @@ evita duplicados. Todo exige https en producción. Pendiente de decisión: escri
     `X-Ver-Como`: el servidor le trata exactamente como ese perfil), Administración, Jefe de restaurante (recuentos e historial,
     stock sin euros, pérdidas, caducidades, traslados), Cocina y sala (recuento a ciegas, mermas, caducidades, recibir, reponer,
     consultar; nunca euros), Comandero (comandas y buffet). `restaurante`→jefe y `recepcion`→comandero se migran solos.
-    Pendiente por fases: administración decide qué es confidencial; jefe pide pedidos a administración y pide solo lo
+    **Confidencial** (`bm/permisos.py`, Configuración → Permisos): administración/dueño abren a cada perfil euros, stock,
+    pérdidas, traslados, recetas (jefe) y comandas (cocina); por defecto el jefe tiene euros/stock/pérdidas/traslados.
+    Endpoints con `permiso("clave")`; cifras en euros con `ve_euros(u)`; `/api/me` devuelve `permisos` y el menú los usa.
+    Pendiente por fases: jefe pide pedidos a administración y pide solo lo
     autorizado; cocina avisa de stock bajo y recomienda pedido al jefe; comandero digital en móviles de empresa.
 - Entorno: Bash corta heredocs > ~7 KB (escribir ficheros en trozos); `gh` sin sesión (CI en GitHub sin verificar).

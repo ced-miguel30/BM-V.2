@@ -5,10 +5,10 @@ from __future__ import annotations
 from collections import defaultdict
 from datetime import date
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 
 from bm import analisis, inventario
-from bm.app import GESTION, JEFE, app, con, requiere
+from bm.app import GESTION, app, con, permiso, requiere, ve_euros
 
 
 def _nombres():
@@ -57,11 +57,13 @@ def tendencia(meses: int = 12, u: dict = Depends(requiere(*GESTION))):
 
 
 @app.get("/api/analisis/perdidas")
-def perdidas(desde: str, hasta: str, u: dict = Depends(requiere(*JEFE))):
+def perdidas(desde: str, hasta: str, u: dict = Depends(permiso("perdidas"))):
     from bm.consumos import MOTIVOS_MERMA
+    if not ve_euros(u):
+        raise HTTPException(403, "Pérdidas es confidencial para tu perfil (sin permiso para ver euros)")
     return {**analisis.perdidas(con, desde, hasta), "motivos": MOTIVOS_MERMA}
 
 
 @app.get("/api/analisis/fichas")
-def fichas(u: dict = Depends(requiere(*GESTION))):
+def fichas(u: dict = Depends(permiso("recetas"))):
     return analisis.revision_fichas(con)

@@ -19,7 +19,7 @@ from fastapi.responses import FileResponse, Response as RawResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from bm import analisis, bc, consumos, costing, db, excel, inventario, plantilla, tpv
+from bm import analisis, bc, consumos, costing, db, excel, inventario, permisos, plantilla, tpv
 from bm.passwords import verify_password
 
 con = db.connect()
@@ -87,6 +87,19 @@ async def auditar(request: Request, call_next):
     return response
 
 
+def permiso(clave: str, *roles):
+    """Gestión siempre; `roles` por su perfil; el resto, si administración se lo ha dado (bm/permisos.py)."""
+    def dep(u: dict = Depends(usuario)) -> dict:
+        if u["rol"] in GESTION or u["rol"] in roles or clave in permisos.de(con, u["rol"]):
+            return u
+        raise HTTPException(403, "Sin permiso para esta acción")
+    return dep
+
+
+def ve_euros(u: dict) -> bool:
+    return "euros" in permisos.de(con, u["rol"])
+
+
 def requiere(*roles):
     def dep(u: dict = Depends(usuario)) -> dict:
         if u["rol"] not in roles:
@@ -142,7 +155,7 @@ def logout(request: Request, response: Response):
 
 @app.get("/api/me")
 def me(u: dict = Depends(usuario)):
-    return u
+    return {**u, "permisos": permisos.de(con, u["rol"])}
 
 
 # ---------------------------------------------------------------- panel
@@ -349,7 +362,7 @@ def ver_producto(codigo: str, u: dict = Depends(requiere(*GESTION))):
 
 
 @app.get("/api/recetas")
-def listar_recetas(u: dict = Depends(requiere(*GESTION))):
+def listar_recetas(u: dict = Depends(permiso("recetas"))):
     out = []
     for r in con.execute("SELECT id FROM recetas ORDER BY nombre"):
         c = consumos.coste_receta(con, r["id"])
@@ -359,7 +372,7 @@ def listar_recetas(u: dict = Depends(requiere(*GESTION))):
 
 
 @app.get("/api/recetas/{rid}")
-def ver_receta(rid: str, u: dict = Depends(requiere(*GESTION))):
+def ver_receta(rid: str, u: dict = Depends(permiso("recetas"))):
     if not con.execute("SELECT 1 FROM recetas WHERE id=?", (rid,)).fetchone():
         raise HTTPException(404, "No existe")
     return consumos.coste_receta(con, rid)
@@ -396,14 +409,14 @@ def _guardar_receta(rid: str, d: Receta) -> None:
 
 
 @app.post("/api/recetas")
-def crear_receta(d: Receta, u: dict = Depends(requiere(*GESTION))):
+def crear_receta(d: Receta, u: dict = Depends(permiso("recetas"))):
     rid = "r" + secrets.token_hex(4)
     _guardar_receta(rid, d)
     return {"id": rid}
 
 
 @app.put("/api/recetas/{rid}")
-def editar_receta(rid: str, d: Receta, u: dict = Depends(requiere(*GESTION))):
+def editar_receta(rid: str, d: Receta, u: dict = Depends(permiso("recetas"))):
     _guardar_receta(rid, d)
     return {"id": rid}
 
@@ -497,7 +510,7 @@ def excel_importar(archivo: UploadFile, confirmar: bool = False, comensales: str
 
 # ---------------------------------------------------------------- ingredientes intercambiables
 @app.get("/api/intercambiables")
-def ver_intercambiables(u: dict = Depends(requiere(*GESTION))):
+def ver_intercambiables(u: dict = Depends(permiso("recetas"))):
     from bm import intercambiables
     sel, hoy = intercambiables.Selector(con), date.today().isoformat()
     info = {r["codigo"]: dict(r) for r in con.execute("SELECT codigo, nombre, unidad FROM productos")}
@@ -512,7 +525,7 @@ class Grupo(BaseModel):
 
 
 @app.put("/api/intercambiables")
-def guardar_intercambiables(d: Grupo, u: dict = Depends(requiere(*GESTION))):
+def guardar_intercambiables(d: Grupo, u: dict = Depends(permiso("recetas"))):
     from bm import intercambiables
     if d.antes and d.antes != d.grupo:
         con.execute("DELETE FROM intercambiables WHERE grupo=?", (d.antes,))

@@ -8,11 +8,11 @@ from fastapi import Depends
 from pydantic import BaseModel
 
 from bm import comandas
-from bm.app import COMANDAS, _error, app, con, requiere
+from bm.app import _error, app, con, permiso
 
 
 @app.get("/api/comandas")
-def ver(fecha: str | None = None, u: dict = Depends(requiere(*COMANDAS))):
+def ver(fecha: str | None = None, u: dict = Depends(permiso("comandas", "jefe", "comandero"))):
     return {**comandas.dia(con, fecha or date.today().isoformat()), "catalogo": comandas.catalogo(con)}
 
 
@@ -25,13 +25,13 @@ class Linea(BaseModel):
 
 
 @app.post("/api/comandas")
-def anadir(d: Linea, u: dict = Depends(requiere(*COMANDAS))):
+def anadir(d: Linea, u: dict = Depends(permiso("comandas", "jefe", "comandero"))):
     lid = _error(comandas.anadir, con, fecha=d.fecha, nombre=d.nombre, cantidad=d.cantidad, extras=d.extras, omitir=d.omitir, usuario=u["nombre"])
     return comandas.dia(con, d.fecha) | {"id": lid}
 
 
 @app.delete("/api/comandas/{lid}")
-def quitar(lid: int, u: dict = Depends(requiere(*COMANDAS))):
+def quitar(lid: int, u: dict = Depends(permiso("comandas", "jefe", "comandero"))):
     fecha = con.execute("SELECT fecha FROM comanda_lineas WHERE id=?", (lid,)).fetchone()
     _error(comandas.quitar, con, lid)
     return comandas.dia(con, fecha[0])
@@ -43,13 +43,13 @@ class Comensales(BaseModel):
 
 
 @app.put("/api/comandas/comensales")
-def comensales(d: Comensales, u: dict = Depends(requiere(*COMANDAS))):
+def comensales(d: Comensales, u: dict = Depends(permiso("comandas", "jefe", "comandero"))):
     _error(comandas.poner_comensales, con, d.fecha, d.comensales)
     return comandas.dia(con, d.fecha)
 
 
 @app.get("/api/desayunos")
-def historial(desde: str, hasta: str, u: dict = Depends(requiere(*COMANDAS))):
+def historial(desde: str, hasta: str, u: dict = Depends(permiso("comandas", "jefe", "comandero"))):
     """Registro de desayunos día a día (comandas, Excel o histórico), con coste solo para gestión."""
     filas = [dict(x) for x in con.execute(
         """SELECT c.fecha, (SELECT SUM(c2.comensales) FROM consumos c2 WHERE c2.fecha=c.fecha AND c2.servicio='desayuno'

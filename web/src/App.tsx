@@ -40,7 +40,7 @@ import { Cierre } from './paginas/Cierre';
 import { Informe } from './paginas/Informe';
 import { Comandas } from './paginas/Comandas';
 
-export type Usuario = { id: string; nombre: string; rol: string; login: string; rol_real?: string };
+export type Usuario = { id: string; nombre: string; rol: string; login: string; rol_real?: string; permisos?: string[] };
 const GESTION = ['direccion', 'administracion'];
 // Perfiles: ver bm/app.py (el servidor es quien manda; esto solo decide qué se enseña en el menú).
 const JEFE = [...GESTION, 'jefe'];
@@ -50,7 +50,7 @@ const TODOS = [...EQUIPO, 'comandero'];
 
 const MENU = [
   { seccion: 'Operación', items: [
-    { to: '/comandas', label: 'Comandas desayuno', icon: IconToolsKitchen2, roles: COMANDAS, el: <Comandas /> },
+    { to: '/comandas', label: 'Comandas desayuno', icon: IconToolsKitchen2, roles: COMANDAS, permisos: ['comandas'], el: <Comandas /> },
     { to: '/registrar', label: 'Registrar consumo', icon: IconPencilPlus, roles: EQUIPO, el: <Registrar /> },
     { to: '/buffet', label: 'Buffet del día', icon: IconBread, roles: TODOS, el: <Buffet /> },
     { to: '/excel', label: 'Importar Excel', icon: IconFileSpreadsheet, roles: GESTION, el: <Excel /> },
@@ -59,12 +59,12 @@ const MENU = [
     { to: '/consulta', label: 'Consultar producto', icon: IconScan, roles: EQUIPO, el: <Consulta /> },
     { to: '/caducidades', label: 'Caducidades', icon: IconCalendarExclamation, roles: EQUIPO, el: <Caducidades /> },
     { to: '/reponer', label: 'Reponer restaurante', icon: IconStackPush, roles: EQUIPO, el: <Reponer /> },
-    { to: '/traslados', label: 'Traslados', icon: IconArrowsExchange, roles: JEFE, el: <Traslados /> },
+    { to: '/traslados', label: 'Traslados', icon: IconArrowsExchange, roles: GESTION, permisos: ['traslados'], el: <Traslados /> },
   ] },
   { seccion: 'Control', items: [
     { to: '/', label: 'Panel', icon: IconChartBar, roles: GESTION, el: <Panel /> },
     { to: '/consumos', label: 'Consumos', icon: IconListDetails, roles: GESTION, el: <Consumos /> },
-    { to: '/stock', label: 'Stock', icon: IconPackages, roles: JEFE, el: <Stock /> },
+    { to: '/stock', label: 'Stock', icon: IconPackages, roles: GESTION, permisos: ['stock'], el: <Stock /> },
     { to: '/tpv', label: 'Ventas TPV', icon: IconReceipt2, roles: GESTION, el: <Tpv /> },
     { to: '/pedidos', label: 'Pedidos', icon: IconShoppingCart, roles: GESTION, el: <Pedidos /> },
     { to: '/compras', label: 'Compras y proveedores', icon: IconTruckDelivery, roles: GESTION, el: <Compras /> },
@@ -72,11 +72,11 @@ const MENU = [
   { seccion: 'Análisis', items: [
     { to: '/rentabilidad', label: 'Rentabilidad por plato', icon: IconChartDots, roles: GESTION, el: <Rentabilidad /> },
     { to: '/control', label: 'Control de stock', icon: IconScale, roles: GESTION, el: <Control /> },
-    { to: '/perdidas', label: 'Pérdidas', icon: IconTrashX, roles: JEFE, el: <Perdidas /> },
+    { to: '/perdidas', label: 'Pérdidas', icon: IconTrashX, roles: GESTION, permisos: ['perdidas', 'euros'], el: <Perdidas /> },
     { to: '/precios', label: 'Precios de compra', icon: IconTrendingUp, roles: GESTION, el: <Precios /> },
   ] },
   { seccion: 'Catálogo', items: [
-    { to: '/recetas', label: 'Recetas', icon: IconBook2, roles: GESTION, el: <Recetas /> },
+    { to: '/recetas', label: 'Recetas', icon: IconBook2, roles: GESTION, permisos: ['recetas'], el: <Recetas /> },
     { to: '/productos', label: 'Productos', icon: IconBuildingWarehouse, roles: GESTION, el: <Productos /> },
   ] },
   { seccion: 'Sistema', items: [
@@ -214,7 +214,9 @@ export function App() {
   if (usuario === undefined) return <Center mih="100vh"><Loader /></Center>;
   if (!usuario) return <Login onLogin={setUsuario} />;
 
-  const menu = MENU.map((s) => ({ ...s, items: s.items.filter((i) => i.roles.includes(usuario.rol)) })).filter((s) => s.items.length);
+  // Una pantalla se ve por perfil o porque administración le ha dado todos sus permisos (Configuración → Permisos).
+  const puede = (i: { roles: string[]; permisos?: string[] }) => i.roles.includes(usuario.rol) || (!!i.permisos && i.permisos.every((p) => usuario.permisos?.includes(p)));
+  const menu = MENU.map((s) => ({ ...s, items: s.items.filter(puede) })).filter((s) => s.items.length);
   const rutas = menu.flatMap((s) => s.items);
   const inicio = rutas.some((r) => r.to === INICIO[usuario.rol]) ? INICIO[usuario.rol] : rutas[0].to;
   const dueno = (usuario.rol_real ?? usuario.rol) === 'direccion';

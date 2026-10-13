@@ -290,6 +290,40 @@ function Actividad() {
   );
 }
 
+// Administración (o el dueño) decide qué abre a cada perfil del personal; lo demás queda confidencial.
+type Permisos = { catalogo: { clave: string; nombre: string; detalle: string; perfiles: string[] }[]; actual: Record<string, string[]> };
+const PERFIL: Record<string, string> = { jefe: 'Jefe de restaurante', cocina: 'Cocina y sala', comandero: 'Comandero' };
+
+function PermisosPerfiles() {
+  const [d, setD] = useState<Permisos | null>(null);
+  useEffect(() => { api<Permisos>('/config/permisos').then(setD).catch(avisoError); }, []);
+  const cambiar = async (perfil: string, clave: string, si: boolean) => {
+    if (!d) return;
+    const lista = si ? [...d.actual[perfil], clave] : d.actual[perfil].filter((c) => c !== clave);
+    try { setD(await api<Permisos>('/config/permisos', { method: 'PUT', body: { [perfil]: lista } })); avisoOk('Cambia en cuanto esa persona recargue BM', 'Permiso guardado'); }
+    catch (e) { avisoError(e); }
+  };
+  if (!d) return <Text c="dimmed">Cargando…</Text>;
+  const perfiles = Object.keys(d.actual);
+  return (
+    <Stack>
+      <Text size="sm" c="dimmed">Dueño y Administración lo ven siempre todo. Aquí decides qué más puede ver cada perfil del personal;
+        lo que no marques es confidencial para él. Para comprobarlo, el dueño puede usar «Ver BM como…» en su menú.</Text>
+      {perfiles.map((perfil) => (
+        <Card key={perfil}>
+          <Text fw={600} mb="sm">{PERFIL[perfil] ?? perfil}</Text>
+          <Stack gap="sm">
+            {d.catalogo.filter((c) => c.perfiles.includes(perfil)).map((c) => (
+              <Switch key={c.clave} checked={d.actual[perfil].includes(c.clave)} onChange={(e) => cambiar(perfil, c.clave, e.currentTarget.checked)}
+                label={c.nombre} description={c.detalle} />
+            ))}
+          </Stack>
+        </Card>
+      ))}
+    </Stack>
+  );
+}
+
 export function Configuracion() {
   const [cfg, setCfg] = useState<Cfg | null>(null);
   const [rol, setRol] = useState('');
@@ -304,6 +338,7 @@ export function Configuracion() {
           <Tabs.List mb="md">
             <Tabs.Tab value="general">General</Tabs.Tab>
             {dir && <Tabs.Tab value="usuarios">Usuarios</Tabs.Tab>}
+            <Tabs.Tab value="permisos">Permisos</Tabs.Tab>
             <Tabs.Tab value="centros">Centros de consumo</Tabs.Tab>
             <Tabs.Tab value="ubicaciones">Ubicaciones</Tabs.Tab>
             <Tabs.Tab value="atajos">Atajos del Excel</Tabs.Tab>
@@ -311,8 +346,9 @@ export function Configuracion() {
             <Tabs.Tab value="copias">Copias de seguridad</Tabs.Tab>
             {dir && <Tabs.Tab value="actividad">Actividad</Tabs.Tab>}
           </Tabs.List>
-          <Tabs.Panel value="general">{dir ? <General cfg={cfg} recargar={recargar} /> : <Text c="dimmed">Solo Dirección puede cambiar los ajustes generales.</Text>}</Tabs.Panel>
+          <Tabs.Panel value="general">{dir ? <General cfg={cfg} recargar={recargar} /> : <Text c="dimmed">Solo el dueño puede cambiar los ajustes generales.</Text>}</Tabs.Panel>
           <Tabs.Panel value="usuarios"><Usuarios cfg={cfg} recargar={recargar} /></Tabs.Panel>
+          <Tabs.Panel value="permisos"><PermisosPerfiles /></Tabs.Panel>
           <Tabs.Panel value="centros"><Centros cfg={cfg} recargar={recargar} /></Tabs.Panel>
           <Tabs.Panel value="ubicaciones"><Ubicaciones cfg={cfg} recargar={recargar} /></Tabs.Panel>
           <Tabs.Panel value="atajos"><Atajos cfg={cfg} recargar={recargar} /></Tabs.Panel>

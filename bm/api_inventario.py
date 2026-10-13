@@ -9,7 +9,7 @@ from fastapi import Depends, HTTPException
 from pydantic import BaseModel
 
 from bm import consumos, inventario
-from bm.app import CONTAR, EQUIPO, GESTION, JEFE, OPERATIVO, _error, app, con, requiere
+from bm.app import CONTAR, EQUIPO, GESTION, JEFE, OPERATIVO, _error, app, con, permiso, requiere, ve_euros
 
 
 @app.get("/api/centros")
@@ -28,7 +28,7 @@ def ubicaciones(u: dict = Depends(requiere(*CONTAR))):
 def stock(ubicacion: str | None = None, u: dict = Depends(requiere(*CONTAR))):
     filas = inventario.stock(con, ubicacion)
     info = {r["codigo"]: r for r in con.execute("SELECT codigo, nombre, unidad, categoria FROM productos")}
-    ver_euros = u["rol"] in GESTION
+    ver_euros = ve_euros(u)
     precios: dict[str, float | None] = {}
     zona = inventario.zonas(con, ubicacion) if ubicacion else {}
     out = []
@@ -102,6 +102,9 @@ def ver_recuento(rid: int, u: dict = Depends(requiere(*JEFE))):
         pu = consumos.precio_actual(con, l["producto"], r["fecha"])
         dif = l["contado"] - (l["teorico"] or 0)
         lineas.append({**dict(l), "diferencia": round(dif, 4), "diferencia_valor": None if pu is None else round(dif * pu, 2)})
+    if not ve_euros(u):  # confidencial para su perfil
+        for x in lineas:
+            x["diferencia_valor"] = None
     return {**dict(r), "lineas": lineas}
 
 
@@ -114,13 +117,13 @@ class NuevoTraslado(BaseModel):
 
 
 @app.post("/api/traslados")
-def crear_traslado(d: NuevoTraslado, u: dict = Depends(requiere(*JEFE))):
+def crear_traslado(d: NuevoTraslado, u: dict = Depends(permiso("traslados"))):
     return {"id": _error(inventario.registrar_traslado, con, fecha=d.fecha, origen=d.origen, destino=d.destino,
                          nota=d.nota, usuario=u["nombre"], items=d.items)}
 
 
 @app.get("/api/traslados")
-def listar_traslados(u: dict = Depends(requiere(*JEFE))):
+def listar_traslados(u: dict = Depends(permiso("traslados"))):
     return {
         "traslados_en": inventario.ajuste(con, "traslados_en", "bc"),
         "lista": [dict(x) for x in con.execute(
@@ -206,7 +209,7 @@ def consulta(producto: str, u: dict = Depends(requiere(*EQUIPO))):
     p = con.execute("SELECT codigo, nombre, unidad FROM productos WHERE codigo=?", (producto,)).fetchone()
     if not p:
         raise HTTPException(404, "Producto desconocido")
-    gestion = u["rol"] in GESTION
+    gestion = ve_euros(u)
     pu = consumos.precio_actual(con, producto) if gestion else None
     sitios = []
     for s in inventario.stock(con, producto=producto):
