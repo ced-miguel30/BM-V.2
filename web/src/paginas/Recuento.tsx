@@ -110,9 +110,17 @@ function Contar({ gestion }: { gestion: boolean }) {
 
   const contados = Object.entries(contado).filter(([, v]) => v !== '' && v != null);
   const [soloFaltan, setSoloFaltan] = useState(false);
+  // Fresco y caro sin contar este mes (ver Cierre → Contar antes del cierre): se marcan y se pueden filtrar.
+  const [recomendados, setRecomendados] = useState<Set<string>>(new Set());
+  const [soloRec, setSoloRec] = useState(params.get('recomendados') === '1');
+  useEffect(() => {
+    setRecomendados(new Set());
+    if (ub) api<{ producto: string }[]>(`/cierre/recomendados?ubicacion=${encodeURIComponent(ub)}`).then((xs) => setRecomendados(new Set(xs.map((x) => x.producto)))).catch(() => null);
+  }, [ub]);
   const visibles = useMemo(() => (lineas ?? []).filter((l) => (!q || norm(`${l.nombre} ${l.producto}`).includes(norm(q)))
     && (zona === 'todas' || (zona === '' ? !l.zona : l.zona === zona))
-    && (!soloFaltan || contado[l.producto] === undefined || contado[l.producto] === '')), [lineas, q, zona, soloFaltan, contado]);
+    && (!soloFaltan || contado[l.producto] === undefined || contado[l.producto] === '')
+    && (!soloRec || recomendados.has(l.producto))), [lineas, q, zona, soloFaltan, contado, soloRec, recomendados]);
   const zonas = useMemo(() => [...new Set([...ZONAS_BASE, ...(lineas ?? []).map((l) => l.zona).filter((z): z is string => !!z)])], [lineas]);
   const resumenZona = (z: string) => {
     const ls = (lineas ?? []).filter((l) => (z === '' ? !l.zona : l.zona === z));
@@ -179,6 +187,7 @@ function Contar({ gestion }: { gestion: boolean }) {
           <Chip.Group value={zona} onChange={(v) => setZona(v as string)}>
             <Group gap={6}>
               <Switch size="sm" label="Solo lo que falta" checked={soloFaltan} onChange={(e) => setSoloFaltan(e.currentTarget.checked)} mr="xs" />
+              {recomendados.size > 0 && <Switch size="sm" color="grape" label={`Recomendados este mes (${recomendados.size})`} checked={soloRec} onChange={(e) => setSoloRec(e.currentTarget.checked)} mr="xs" />}
               <Chip value="todas" size="sm">Todas</Chip>
               {[...zonas, ''].map((z) => {
                 const r = resumenZona(z);
@@ -193,6 +202,7 @@ function Contar({ gestion }: { gestion: boolean }) {
                   <div style={{ minWidth: 0 }}>
                     <Text fw={500} lineClamp={2} lh={1.25}>{l.nombre === l.producto ? catalogo.find((c) => c.codigo === l.producto)?.nombre ?? l.nombre : l.nombre}</Text>
                     <Group gap={6} style={{ rowGap: 0 }}>
+                      {recomendados.has(l.producto) && <Badge size="xs" color="grape" variant="light">contar este mes</Badge>}
                       <Text size="xs" c="dimmed">{l.producto}{verTeorico && l.teorico !== undefined ? ` · teórico ${cantidad(l.teorico)}` : ''}</Text>
                       <Menu position="bottom-start" withinPortal>
                         <Menu.Target>
@@ -227,7 +237,7 @@ function Contar({ gestion }: { gestion: boolean }) {
       {ub && lineas && (
         <ModoEscaner abierto={camara} cerrar={() => setCamara(false)} ubicacion={nombreUbicacion(ubicaciones, ub)} lineas={lineas} catalogo={catalogo}
           contado={contado} cambiar={cambiar} anadirLinea={anadirLinea} zona={zona} setZona={setZona} zonas={zonas} ponerZona={ponerZona}
-          codigos={codigos} setCodigos={setCodigos} />
+          codigos={codigos} setCodigos={setCodigos} recomendados={recomendados} />
       )}
       <Modal opened={!!nuevo} onClose={() => setNuevo(null)} title="Código nuevo" centered>
         {nuevo && (

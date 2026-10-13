@@ -6,7 +6,7 @@ import sqlite3
 import time
 from datetime import date, datetime, timedelta
 
-from bm import analisis, inventario, pedidos, prevision, tpv
+from bm import analisis, cierre, inventario, pedidos, prevision, tpv
 
 GESTION = ("direccion", "administracion")
 _cache: dict = {}
@@ -91,14 +91,18 @@ def avisos(con: sqlite3.Connection, rol: str) -> list[dict]:
         dudosos = [x for x in analisis.precios_dudosos(con) if x["fecha"] >= mes]
         if dudosos:
             aviso("info", f"{len(dudosos)} precios de compra a revisar en BC", "Probables errores de unidad o importe", "/precios")
+        raros = analisis.anomalias(con)
+        if raros:
+            aviso("info", f"{len(raros)} productos con consumo o recuento raro", ", ".join(x["nombre"] for x in raros[:3])
+                  + ". Contarlos y revisar su receta", "/cierre?vista=revisar")
+    # Ya no se cuenta todo a fin de mes: solo lo fresco y lo caro, en recuentos pequeños durante el mes.
+    if hoy.day >= 10:
         for ub in prevision.FB:
-            r = con.execute(
-                """SELECT MAX(f) FROM (SELECT MAX(r.fecha) f FROM recuentos r WHERE r.anulado=0 AND r.ubicacion=?
-                   UNION ALL SELECT MAX(m.fecha) FROM bc_movs m JOIN almacenes_bc a ON a.codigo=m.almacen
-                   WHERE a.ubicacion=? AND m.tipo LIKE 'Ajuste%' AND m.fecha<=?)""", (ub, ub, hoy.isoformat())).fetchone()[0]
-            if not r or r < (hoy - timedelta(days=35)).isoformat():
+            n = len(cierre.recomendados(con, ub, hoy.replace(day=1).isoformat()))
+            if n:
                 nombre = con.execute("SELECT nombre FROM ubicaciones WHERE codigo=?", (ub,)).fetchone()[0]
-                aviso("media", f"Hace más de un mes que no se cuenta {nombre}", f"Último inventario: {_f(r) or 'nunca'}", f"/recuento?ubicacion={ub}")
+                aviso("media", f"Contar {n} productos frescos o caros en {nombre}", "Poco a poco antes del cierre del mes; lo demás lo calcula BM",
+                      f"/recuento?ubicacion={ub}&recomendados=1")
     orden = {"alta": 0, "media": 1, "info": 2}
     out.sort(key=lambda a: orden[a["nivel"]])
     for k in [k for k in _cache if k[0] == rol]:  # una entrada por perfil

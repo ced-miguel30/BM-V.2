@@ -5,7 +5,10 @@ from __future__ import annotations
 import sqlite3
 from datetime import date, timedelta
 
-from bm import analisis, prevision, tpv
+from bm import analisis, consumos, inventario, prevision, tpv
+
+CARO = 0.5        # caro = los pocos productos que juntos suman la mitad del valor de la ubicación (análisis ABC)
+FRESCO = 4        # compras en 60 días: se compra casi cada semana → perecedero
 
 
 def _limites(mes: str) -> tuple[date, date]:
@@ -24,6 +27,49 @@ def _dias(fechas: list[str]) -> str:
     return f"Faltan {len(fechas)} días" + (f": {', '.join(_f(d)[:5] for d in fechas[:8])}{'…' if len(fechas) > 8 else ''}" if fechas else "")
 
 
+def recomendados(con: sqlite3.Connection, ubicacion: str, desde: str, hasta: str | None = None) -> list[dict]:
+    """Lo que conviene contar a mano porque la estimación de BM no basta: fresco (se compra casi cada semana) o caro,
+    y sin contar desde `desde`. El resto puede ir a Noray con lo que calcula BM."""
+    hasta = hasta or date.today().isoformat()
+    ini60 = (date.fromisoformat(hasta) - timedelta(days=60)).isoformat()
+    compras = dict(con.execute("SELECT producto, COUNT(DISTINCT fecha) FROM bc_movs WHERE tipo='Compra' AND fecha>? AND fecha<=? GROUP BY 1",
+                               (ini60, hasta)).fetchall())
+    caduca = {r[0] for r in con.execute("SELECT DISTINCT producto FROM caducidades WHERE estado='activa'")}
+    # Lo que no sale en 60 días (estanterías, menaje guardado...) no cambia: BM ya sabe cuánto hay.
+    movidos = {r[0] for r in con.execute(
+        """SELECT m.producto FROM bc_movs m JOIN almacenes_bc a ON a.codigo=m.almacen
+           WHERE a.ubicacion=? AND m.cantidad<0 AND m.fecha>? AND m.fecha<=?
+           UNION SELECT l.producto FROM consumos c JOIN consumo_lineas l ON l.consumo_id=c.id
+           WHERE c.anulado=0 AND c.fecha>? AND c.fecha<=?""", (ubicacion, ini60, hasta, ini60, hasta))}
+    info = {r["codigo"]: r for r in con.execute("SELECT codigo, nombre, unidad FROM productos")}
+    filas = [s for s in inventario.stock(con, ubicacion, hasta=hasta) if s["stock"] > 1e-6]
+    for s in filas:
+        pu = consumos.precio_actual(con, s["producto"], hasta)
+        s["valor"] = None if pu is None else round(s["stock"] * pu, 2)
+    caros, acumulado = set(), 0.0
+    total = sum(s["valor"] or 0 for s in filas)
+    for s in sorted(filas, key=lambda s: -(s["valor"] or 0)):
+        if acumulado >= CARO * total:
+            break
+        caros.add(s["producto"])
+        acumulado += s["valor"] or 0
+    out = []
+    for s in filas:
+        if (s["ultimo_recuento"] or "") >= desde or s["producto"] not in movidos:
+            continue
+        valor = s["valor"]
+        motivos = []
+        if compras.get(s["producto"], 0) >= FRESCO or s["producto"] in caduca:
+            motivos.append("fresco")
+        if s["producto"] in caros:
+            motivos.append("caro")
+        if motivos:
+            p = info.get(s["producto"])
+            out.append({"producto": s["producto"], "nombre": p["nombre"] if p else s["producto"], "unidad": p["unidad"] if p else None,
+                        "stock": s["stock"], "valor": valor, "motivos": motivos, "ultimo_recuento": s["ultimo_recuento"]})
+    return sorted(out, key=lambda x: -(x["valor"] or 0))
+
+
 def estado(con: sqlite3.Connection, mes: str) -> dict:
     ini, fin = _limites(mes)
     corte = min(fin, date.today() - timedelta(days=1))
@@ -36,16 +82,10 @@ def estado(con: sqlite3.Connection, mes: str) -> dict:
     ultimo_bc = con.execute("SELECT MAX(fecha) FROM bc_movs WHERE fecha<=?", (date.today().isoformat(),)).fetchone()[0] or ""
     paso("bc", "Movimientos de BC importados hasta fin de mes", ultimo_bc >= corte.isoformat(),
          f"Último movimiento importado: {_f(ultimo_bc) or 'ninguno'}", "/bc")
-    inventario_ok = []
-    for ub in prevision.FB:
-        f = con.execute(
-            """SELECT MAX(f) FROM (SELECT MAX(fecha) f FROM recuentos WHERE anulado=0 AND ubicacion=? AND fecha>=?
-               UNION ALL SELECT MAX(m.fecha) FROM bc_movs m JOIN almacenes_bc a ON a.codigo=m.almacen
-               WHERE a.ubicacion=? AND m.tipo LIKE 'Ajuste%' AND m.fecha>=? AND m.fecha<=?)""",
-            (ub, (fin - timedelta(days=3)).isoformat(), ub, (fin - timedelta(days=3)).isoformat(), (fin + timedelta(days=3)).isoformat())).fetchone()[0]
-        inventario_ok.append((ub, f))
-    paso("inventario", "Inventario de fin de mes (Economato y Restaurante)", all(f for _, f in inventario_ok),
-         " · ".join(f"{ub.title()}: {_f(f) or 'sin contar'}" for ub, f in inventario_ok), "/recuento")
+    # Ya no hace falta contarlo todo: basta con lo fresco y lo caro; el resto lo calcula BM (ver bm/noray.py).
+    faltan = {ub: len(recomendados(con, ub, ini.isoformat(), corte.isoformat())) for ub in prevision.FB}
+    paso("inventario", "Productos frescos y caros contados este mes", not any(faltan.values()),
+         " · ".join(f"{ub.title()}: {f'faltan {n}' if n else 'hecho'}" for ub, n in faltan.items()), "/cierre?vista=contar")
     con_tpv = {r[0] for r in con.execute("SELECT DISTINCT fecha FROM tpv_ventas WHERE fecha>=? AND fecha<=?", (ini.isoformat(), corte.isoformat()))}
     sin_tpv = [d.isoformat() for d in dias if d.isoformat() not in con_tpv]
     paso("tpv", "Ventas TPV de todos los días", not sin_tpv, _dias(sin_tpv), "/tpv")

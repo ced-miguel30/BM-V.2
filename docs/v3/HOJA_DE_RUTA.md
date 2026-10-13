@@ -70,6 +70,7 @@ Pendiente para la puesta en marcha: carga de datos frescos, pruebas con el perso
 - [x] Etiquetas de caducidad
 - [x] Recuento con escáner de códigos de barras
 - [x] Recuento como app en el móvil (Android e iPhone): instalable, modo escáner, sin cobertura con envío posterior
-- [ ] Recuento → Noray (BC): decidir API o fichero para administración
+- [x] Cierre para Noray: cantidad física por almacén de Noray, conteo solo de lo fresco y caro, aviso de patrones raros
+- [ ] Escribir el cierre en el diario de inventario de Noray por API (sin registrar; necesita permiso de escritura)
 - [ ] Conexión directa con la API de BC (necesita aplicación de servicio en BC)
 - [ ] Coste por habitación ocupada (necesita la ocupación diaria)

@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 from collections import Counter
-from datetime import timedelta
+from datetime import date, timedelta
 
 from fastapi import Depends
 
-from bm import analisis, avisos, cierre, inventario
-from bm.app import GESTION, _resumen, app, con, requiere, usuario
+from bm import analisis, avisos, cierre, inventario, noray
+from bm.app import GESTION, OPERATIVO, _resumen, app, con, requiere, usuario
 
 
 @app.get("/api/avisos")
@@ -46,3 +46,21 @@ def informe(mes: str, u: dict = Depends(requiere(*GESTION))):
                WHERE tipo='Compra' AND fecha>=? AND fecha<=? GROUP BY 1 ORDER BY 3 DESC LIMIT 10""", (a, b))],
         "precios": analisis.variacion_precios(con)[:5],
     }
+
+
+@app.get("/api/cierre/noray")
+def cierre_noray(mes: str, u: dict = Depends(requiere(*GESTION))):
+    """Cantidad física por almacén de Noray a fin de mes (o a hoy si el mes no ha terminado), para su diario de inventario."""
+    fin = min(cierre._limites(mes)[1], date.today())
+    return {"fecha": fin.isoformat(), "lineas": noray.cierre(con, fin.isoformat())}
+
+
+@app.get("/api/cierre/recomendados")
+def recomendados(ubicacion: str, desde: str | None = None, u: dict = Depends(requiere(*OPERATIVO))):
+    """Fresco y caro sin contar desde `desde` (por defecto, desde el día 1 de este mes)."""
+    return cierre.recomendados(con, ubicacion, desde or date.today().replace(day=1).isoformat())
+
+
+@app.get("/api/anomalias")
+def anomalias(u: dict = Depends(requiere(*GESTION))):
+    return analisis.anomalias(con)

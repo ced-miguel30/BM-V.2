@@ -80,6 +80,12 @@ evita duplicados. Todo exige https en producción. Pendiente de decisión: escri
    exportar Excel. Sería lo que más trabajo quita; requiere usuario/permiso de servicio en BC.
 9. Sigue faltando: export "Líneas factura compra registradas", contactos de proveedores, datos frescos, prueba con
    el personal, `instalar\instalar.ps1` en el servidor.
-10. **Recuento → Noray (BC):** opciones explicadas al usuario el 13/10 (escribir en el diario de inventario físico por API,
-   o fichero para que administración lo importe). Falta su decisión; la API de BC sigue a la espera del administrador.
+10. **Recuento → Noray (BC), decidido el 13/10:** ya no se hace inventario completo. BM calcula el stock a diario, se cuenta
+   solo lo **fresco** (comprado ≥4 días en 60) y lo **caro** (productos que suman el 50 % del valor), y solo si se ha movido
+   en 60 días (`cierre.recomendados`). A fin de mes, Cierre → **Para Noray** (`bm/noray.py`) da la cantidad física por
+   almacén de Noray: lo del restaurante se reparte entre DESAYUNO, SNACK… según lo que Noray tiene en cada uno menos lo que
+   BM vio gastar a su centro (opción "a" del usuario). Administración la pega en el diario de inventario físico y registra.
+   El usuario acepta la estimación de BM para lo no contado. Cierre → **Revisar** (`analisis.anomalias`): actividad de 14 días
+   fuera de lo habitual (×2 o −60 %) y recuentos que no cuadran con lo gastado por recetas → contar y revisar receta.
+   Siguiente paso cuando la API de BC esté activa: escribir esas líneas en el diario **sin registrar** (necesita permiso de escritura).
 - Entorno: Bash corta heredocs > ~7 KB (escribir ficheros en trozos); `gh` sin sesión (CI en GitHub sin verificar).

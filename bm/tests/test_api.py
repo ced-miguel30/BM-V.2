@@ -83,6 +83,13 @@ class TestFlujos(unittest.TestCase):
         pan = next(f for f in c.get("/api/stock?ubicacion=RESTAURANTE").json() if f["producto"] == "PAN")
         self.assertEqual(pan["stock"], 7)
 
+    def test_cierre_para_noray_solo_gestion(self):
+        self.assertEqual(cliente("rest").get("/api/cierre/noray?mes=2026-09").status_code, 403)
+        r = cliente("dir").get("/api/cierre/noray?mes=2026-09").json()
+        self.assertEqual(r["fecha"], "2026-09-30")
+        self.assertTrue(all({"almacen", "fisica", "calculada", "origen"} <= set(x) for x in r["lineas"]))
+        self.assertEqual(cliente("rest").get("/api/cierre/recomendados?ubicacion=RESTAURANTE").status_code, 200)
+
     def test_recuento_reenviado_sin_cobertura_no_se_duplica(self):
         c = cliente("rest")
         cuerpo = {"fecha": "2026-09-03", "ubicacion": "RESTAURANTE", "ref": "movil-1", "lineas": [{"producto": "PAN", "contado": 5}]}

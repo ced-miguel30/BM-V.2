@@ -11,11 +11,11 @@ type Valor = number | string;
 
 // Recuento a pie de estantería: la cámara queda abierta; se escanea, se escribe la cantidad, «Siguiente» y vuelta a escanear.
 // Debajo, lo que falta por contar en la zona elegida.
-export function ModoEscaner({ abierto, cerrar, ubicacion, lineas, catalogo, contado, cambiar, anadirLinea, zona, setZona, zonas, ponerZona, codigos, setCodigos }: {
+export function ModoEscaner({ abierto, cerrar, ubicacion, lineas, catalogo, contado, cambiar, anadirLinea, zona, setZona, zonas, ponerZona, codigos, setCodigos, recomendados }: {
   abierto: boolean; cerrar: () => void; ubicacion: string; lineas: Linea[]; catalogo: Producto[];
   contado: Record<string, Valor>; cambiar: (v: Record<string, Valor>) => void; anadirLinea: (p: string) => void;
   zona: string; setZona: (z: string) => void; zonas: string[]; ponerZona: (l: Linea, z: string, silencioso?: boolean) => void;
-  codigos: Record<string, string>; setCodigos: (c: Record<string, string>) => void;
+  codigos: Record<string, string>; setCodigos: (c: Record<string, string>) => void; recomendados: Set<string>;
 }) {
   const [actual, setActual] = useState<{ codigo?: string; producto: string | null } | null>(null);
   const [q, setQ] = useState<Valor>('');
@@ -25,7 +25,9 @@ export function ModoEscaner({ abierto, cerrar, ubicacion, lineas, catalogo, cont
 
   const hecho = (p: string) => contado[p] !== undefined && contado[p] !== '';
   const enZona = (l: Linea) => zona === 'todas' || (zona === '' ? !l.zona : l.zona === zona);
-  const faltan = lineas.filter((l) => enZona(l) && !hecho(l.producto));
+  // Lo recomendado (fresco y caro sin contar este mes) va primero.
+  const faltan = lineas.filter((l) => enZona(l) && !hecho(l.producto))
+    .sort((a, b) => Number(recomendados.has(b.producto)) - Number(recomendados.has(a.producto)));
   const vacia = !lineas.some(enZona);
   const n = Object.values(contado).filter((v) => v !== '' && v != null).length;
   const nombre = (p: string) => lineas.find((l) => l.producto === p && l.nombre !== p)?.nombre ?? catalogo.find((c) => c.codigo === p)?.nombre ?? p;
@@ -126,6 +128,7 @@ export function ModoEscaner({ abierto, cerrar, ubicacion, lineas, catalogo, cont
           <Stack gap={4}>
             {faltan.map((l) => (
               <Button key={l.producto} variant="default" justify="space-between" fullWidth onClick={() => elegir(l.producto)}
+                leftSection={recomendados.has(l.producto) ? '★' : undefined}
                 rightSection={<Text size="xs" c="dimmed">{l.unidad}</Text>} styles={{ inner: { minWidth: 0 }, label: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }}>
                 {l.nombre}
               </Button>

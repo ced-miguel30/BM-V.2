@@ -93,7 +93,7 @@ def desviaciones(con: sqlite3.Connection, desde: str, hasta: str, ubicacion: str
     out, precios = [], {}
     for (p, u), evs in inventario._eventos(con, ubicacion=ubicacion, hasta=hasta).items():
         evs.sort(key=lambda e: (e[0], e[1]))
-        s = 0.0
+        s, gastado = 0.0, 0.0
         for fecha, orden, tipo, v in evs:
             if orden >= 2:
                 dif = v - s
@@ -101,10 +101,11 @@ def desviaciones(con: sqlite3.Connection, desde: str, hasta: str, ubicacion: str
                     pu = precios.setdefault((p, fecha[:7]), consumos.precio_actual(con, p, fecha))
                     out.append({"producto": p, "ubicacion": u, "fecha": fecha, "fuente": "BM" if tipo == "recuento" else "BC",
                                 "esperado": round(s, 4), "contado": round(v, 4), "diferencia": round(dif, 4),
-                                "valor": None if pu is None else round(dif * pu, 2)})
-                s = v
+                                "valor": None if pu is None else round(dif * pu, 2), "consumo": round(gastado, 4)})
+                s, gastado = v, 0.0
             else:
                 s += v
+                gastado += -v if orden == 1 else 0  # lo que registraron recetas y mermas desde el recuento anterior
     return out
 
 
@@ -302,3 +303,61 @@ def revision_fichas(con: sqlite3.Connection) -> list[dict]:
             out.append({"id": r["id"], "nombre": c["nombre"], "servicio": c["servicio"], "coste_racion": c["coste_racion"],
                         "pvp": precio, "problemas": problemas, "avisos": avisos})
     return sorted(out, key=lambda x: (-len(x["problemas"]), x["nombre"]))
+
+
+def _n(x: float, dec: int | None = None) -> str:
+    """Número a la española para los textos de aviso: 699,5 · 12591,90."""
+    return (f"{x:.{dec}f}" if dec is not None else f"{x:.4g}").replace(".", ",")
+
+
+def anomalias(con: sqlite3.Connection, hoy: date | None = None) -> list[dict]:
+    """Patrones raros que piden contar el producto y revisar su receta:
+    - actividad: lo registrado en los últimos 14 días frente a lo habitual (las 8 semanas anteriores);
+    - recuento: al contar faltó o sobró mucho para lo que gastaron las recetas."""
+    hoy = hoy or date.today()
+    a14, a70, a45 = ((hoy - timedelta(days=d)).isoformat() for d in (14, 70, 45))
+    info = {r["codigo"]: r for r in con.execute("SELECT codigo, nombre, unidad FROM productos")}
+    out = []
+
+    def nota(tipo, p, impacto, detalle):
+        pr = info.get(p)
+        out.append({"tipo": tipo, "producto": p, "nombre": pr["nombre"] if pr else p, "unidad": pr["unidad"] if pr else None,
+                    "impacto": round(impacto, 2), "detalle": detalle})
+
+    dias = con.execute("SELECT COUNT(DISTINCT fecha) FROM consumos WHERE anulado=0 AND fecha>? AND fecha<=?", (a14, hoy.isoformat())).fetchone()[0]
+    if dias >= 10:  # con muchos días sin registrar, "menos actividad" sería una falsa alarma
+        for r in con.execute(
+            """SELECT l.producto, SUM(CASE WHEN c.fecha>? THEN l.cantidad ELSE 0 END) rec,
+                      SUM(CASE WHEN c.fecha<=? THEN l.cantidad ELSE 0 END) / 4.0 base,
+                      COUNT(DISTINCT CASE WHEN c.fecha<=? THEN c.fecha END) dias_base
+               FROM consumos c JOIN consumo_lineas l ON l.consumo_id=c.id
+               WHERE c.anulado=0 AND c.fecha>? AND c.fecha<=? GROUP BY 1""", (a14, a14, a14, a70, hoy.isoformat())):
+            if r["dias_base"] < 6 or r["base"] <= 0 or 0.4 < r["rec"] / r["base"] < 2:
+                continue
+            pu = consumos.precio_actual(con, r["producto"])
+            if pu is None or abs(r["rec"] - r["base"]) * pu < 10:
+                continue
+            u = (info.get(r["producto"]) or {"unidad": ""})["unidad"] or ""
+            cifras = f"Últimos 14 días: {_n(r['rec'])} {u}; lo habitual: {_n(r['base'])} {u}."
+            if r["rec"] > r["base"]:
+                nota("actividad", r["producto"], (r["rec"] - r["base"]) * pu, f"{cifras} Se ha registrado más actividad de lo normal: "
+                     "¿más ventas, receta cambiada o algo apuntado dos veces? Cuéntalo y revisa la receta.")
+            else:
+                nota("actividad", r["producto"], (r["base"] - r["rec"]) * pu, f"{cifras} Se ha registrado menos actividad de lo normal: "
+                     "¿se usa otro producto, cambió la receta o faltan ventas por registrar? Cuéntalo y revisa la receta.")
+
+    ultimo = {}
+    for d in desviaciones(con, a45, hoy.isoformat()):
+        ultimo[(d["producto"], d["ubicacion"])] = d  # vienen en orden de fecha: queda el último recuento
+    for d in ultimo.values():
+        if d["consumo"] <= 0 or d["valor"] is None or abs(d["valor"]) < 15 or abs(d["diferencia"]) < 0.2 * d["consumo"]:
+            continue
+        u = (info.get(d["producto"]) or {"unidad": ""})["unidad"] or ""
+        f = f"{d['fecha'][8:10]}/{d['fecha'][5:7]}"
+        if d["diferencia"] < 0:
+            nota("recuento", d["producto"], -d["valor"], f"Al contar el {f} faltaban {_n(-d['diferencia'])} {u} ({_n(d['valor'], 2)} €) con "
+                 f"{_n(d['consumo'])} {u} gastados según las recetas. Se gasta más de lo que dicen las fichas o hay merma sin anotar: revisa la receta.")
+        else:
+            nota("recuento", d["producto"], d["valor"], f"Al contar el {f} sobraban {_n(d['diferencia'])} {u} (+{_n(d['valor'], 2)} €) con "
+                 f"{_n(d['consumo'])} {u} gastados según las recetas. Las fichas descuentan de más o falta registrar una entrada: revisa la receta.")
+    return sorted(out, key=lambda x: -x["impacto"])
