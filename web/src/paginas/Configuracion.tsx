@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  Alert, Badge, Button, Card, Group, Modal, NumberInput, PasswordInput, SegmentedControl, Select, SimpleGrid, Stack, Switch, Tabs, Text, TextInput,
+  Alert, Badge, Button, Card, Group, Modal, MultiSelect, NumberInput, PasswordInput, SegmentedControl, Select, SimpleGrid, Stack, Switch, Tabs, Text, TextInput,
 } from '@mantine/core';
 import { IconDatabaseExport, IconDownload, IconPlus } from '@tabler/icons-react';
 import { api, avisoError, avisoOk } from '../api';
@@ -291,7 +291,8 @@ function Actividad() {
 }
 
 // Administración (o el dueño) decide qué abre a cada perfil del personal; lo demás queda confidencial.
-type Permisos = { catalogo: { clave: string; nombre: string; detalle: string; perfiles: string[] }[]; actual: Record<string, string[]> };
+type Permisos = { catalogo: { clave: string; nombre: string; detalle: string; perfiles: string[] }[]; actual: Record<string, string[]>;
+  directos: Record<string, string[]>; proveedores: string[] };
 const PERFIL: Record<string, string> = { jefe: 'Jefe de restaurante', cocina: 'Cocina y sala', comandero: 'Comandero' };
 
 function PermisosPerfiles() {
@@ -301,6 +302,10 @@ function PermisosPerfiles() {
     if (!d) return;
     const lista = si ? [...d.actual[perfil], clave] : d.actual[perfil].filter((c) => c !== clave);
     try { setD(await api<Permisos>('/config/permisos', { method: 'PUT', body: { [perfil]: lista } })); avisoOk('Cambia en cuanto esa persona recargue BM', 'Permiso guardado'); }
+    catch (e) { avisoError(e); }
+  };
+  const directos = async (proveedores: string[]) => {
+    try { setD(await api<Permisos>('/config/pedido-directo', { method: 'PUT', body: { rol: 'jefe', proveedores } })); }
     catch (e) { avisoError(e); }
   };
   if (!d) return <Text c="dimmed">Cargando…</Text>;
@@ -317,6 +322,11 @@ function PermisosPerfiles() {
               <Switch key={c.clave} checked={d.actual[perfil].includes(c.clave)} onChange={(e) => cambiar(perfil, c.clave, e.currentTarget.checked)}
                 label={c.nombre} description={c.detalle} />
             ))}
+            {perfil === 'jefe' && (
+              <MultiSelect label="Puede hacer él mismo el pedido a estos proveedores" searchable clearable value={d.directos.jefe ?? []} onChange={directos}
+                description="Del resto, envía una solicitud a administración. Vacío: todos los pedidos pasan por administración."
+                data={d.proveedores} placeholder="Ninguno" />
+            )}
           </Stack>
         </Card>
       ))}

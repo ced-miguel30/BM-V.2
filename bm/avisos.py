@@ -17,7 +17,8 @@ def _version(con) -> tuple:
     return tuple(con.execute("""SELECT (SELECT MAX(n_mov) FROM bc_movs), (SELECT MAX(id) FROM consumos),
         (SELECT COUNT(*) FROM tpv_ventas), (SELECT MAX(id) FROM recuentos), (SELECT MAX(id) FROM caducidades),
         (SELECT COUNT(*) FROM buffet_diario), (SELECT COUNT(*) FROM tpv_articulos WHERE receta_id IS NULL AND producto IS NULL),
-        (SELECT MAX(id) || COUNT(*) FROM pedidos WHERE estado IN ('enviado','incompleto'))""").fetchone())
+        (SELECT MAX(id) || COUNT(*) FROM pedidos WHERE estado IN ('enviado','incompleto')),
+        (SELECT MAX(id) || COUNT(*) FROM solicitudes WHERE estado='pendiente'), (SELECT MAX(id) FROM recepciones)""").fetchone())
 
 
 def _f(iso: str | None) -> str | None:
@@ -67,6 +68,10 @@ def avisos(con: sqlite3.Connection, rol: str) -> list[dict]:
         if incompletos:
             aviso("alta", f"{len(incompletos)} pedidos llegaron incompletos",
                   ", ".join(f"{x['proveedor']} (faltan {x['faltan']})" for x in incompletos[:3]) + ". Reclamar o cerrar", "/pedidos?vista=enviados")
+        pedir = con.execute("SELECT COUNT(*) FROM solicitudes WHERE estado='pendiente' AND para='administracion'").fetchone()[0]
+        if pedir:
+            aviso("alta", f"{pedir} {'solicitud' if pedir == 1 else 'solicitudes'} de pedido del restaurante", "El jefe de restaurante pide que se haga un pedido",
+                  "/pedidos?vista=solicitudes")
         caro = pedidos.descuadres(con)
         if caro:
             aviso("alta", f"El albarán de Noray tiene más de lo que llegó en {len(caro)} productos",

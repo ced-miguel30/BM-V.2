@@ -5,8 +5,8 @@ from __future__ import annotations
 from fastapi import Depends, HTTPException
 from pydantic import BaseModel
 
-from bm import pedidos as pedidos_mod, prevision
-from bm.app import EQUIPO, GESTION, _error, app, con, requiere
+from bm import pedidos as pedidos_mod, permisos, prevision, solicitudes
+from bm.app import EQUIPO, GESTION, JEFE, _error, app, con, permiso, requiere, ve_euros
 
 
 @app.get("/api/prevision/pedidos")
@@ -64,7 +64,9 @@ class NuevoPedido(BaseModel):
 
 
 @app.post("/api/pedidos")
-def crear_pedido(d: NuevoPedido, u: dict = Depends(requiere(*GESTION))):
+def crear_pedido(d: NuevoPedido, u: dict = Depends(requiere(*JEFE))):
+    if u["rol"] not in GESTION and d.proveedor not in permisos.proveedores_directos(con, u["rol"]):
+        raise HTTPException(403, "Administración no te ha autorizado a pedir a este proveedor: envíale una solicitud")
     pid = _error(pedidos_mod.crear, con, proveedor=d.proveedor, entrega=d.entrega, nota=d.nota, usuario=u["nombre"],
                  lineas=[x.model_dump() for x in d.lineas])
     return {"id": pid}
@@ -111,3 +113,54 @@ class NuevaRecepcion(BaseModel):
 def recibir(d: NuevaRecepcion, u: dict = Depends(requiere(*EQUIPO))):
     return _error(pedidos_mod.recibir, con, pedido_id=d.pedido_id, proveedor=d.proveedor, fecha=d.fecha, nota=d.nota,
                   ref=d.ref, usuario=u["nombre"], lineas=[x.model_dump() for x in d.lineas])
+
+
+@app.get("/api/pedidos/directos")
+def pedidos_directos(u: dict = Depends(requiere(*JEFE))):
+    """La propuesta de BM solo de los proveedores a los que este perfil puede pedir él mismo."""
+    todos = prevision.pedidos(con)
+    if u["rol"] in GESTION:
+        return {"proveedores": None, **todos}
+    mios = set(permisos.proveedores_directos(con, u["rol"]))
+    out = {"proveedores": sorted(mios), "pedidos": [p for p in todos["pedidos"] if p["proveedor"] in mios],
+           "urgentes": [x for x in todos["urgentes"] if x["proveedor"] in mios]}
+    if not ve_euros(u):  # confidencial: sin precios ni importes
+        for p in out["pedidos"]:
+            p["importe"], p["pedido_minimo"] = 0, None
+            for l in p["lineas"]:
+                l["precio"] = None
+    return out
+
+
+class LineaSolicitud(BaseModel):
+    producto: str
+    cantidad: float
+
+
+class NuevaSolicitud(BaseModel):
+    lineas: list[LineaSolicitud]
+    nota: str | None = None
+
+
+@app.post("/api/solicitudes")
+def crear_solicitud(d: NuevaSolicitud, u: dict = Depends(permiso("solicitar"))):
+    return {"id": _error(solicitudes.crear, con, lineas=[x.model_dump() for x in d.lineas], nota=d.nota, usuario=u["nombre"])}
+
+
+@app.get("/api/solicitudes")
+def listar_solicitudes(u: dict = Depends(requiere(*JEFE))):
+    """Administración ve todas las que le llegan; el jefe, las suyas y cómo están."""
+    if u["rol"] in GESTION:
+        return solicitudes.listar(con, para="administracion")
+    return solicitudes.listar(con, usuario=u["nombre"])
+
+
+class Respuesta(BaseModel):
+    estado: str
+    respuesta: str | None = None
+
+
+@app.post("/api/solicitudes/{sid}/responder")
+def responder_solicitud(sid: int, d: Respuesta, u: dict = Depends(requiere(*GESTION))):
+    _error(solicitudes.responder, con, sid, d.estado, d.respuesta, u["nombre"])
+    return {"ok": True}

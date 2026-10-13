@@ -104,6 +104,8 @@ evita duplicados. Todo exige https en producción. Pendiente de decisión: escri
     **Confidencial** (`bm/permisos.py`, Configuración → Permisos): administración/dueño abren a cada perfil euros, stock,
     pérdidas, traslados, recetas (jefe) y comandas (cocina); por defecto el jefe tiene euros/stock/pérdidas/traslados.
     Endpoints con `permiso("clave")`; cifras en euros con `ve_euros(u)`; `/api/me` devuelve `permisos` y el menú los usa.
-    Pendiente por fases: jefe pide pedidos a administración y pide solo lo
-    autorizado; cocina avisa de stock bajo y recomienda pedido al jefe; comandero digital en móviles de empresa.
+    **Pedir** (`/pedir`, `bm/solicitudes.py`): el jefe envía solicitudes a administración (Pedidos → Solicitudes, aviso alto;
+    responde «pedido» o «rechazada» con motivo) y hace él el pedido solo a los proveedores que administración le autorice
+    (Configuración → Permisos, `ajustes.pedido_directo`; `/api/pedidos` lo comprueba). Siguiente: cocina avisa de stock bajo y
+    recomienda pedido al jefe (`solicitudes.para='jefe'` ya existe); comandero digital en móviles de empresa.
 - Entorno: Bash corta heredocs > ~7 KB (escribir ficheros en trozos); `gh` sin sesión (CI en GitHub sin verificar).

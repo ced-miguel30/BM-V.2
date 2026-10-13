@@ -25,6 +25,7 @@ import { Stock } from './paginas/Stock';
 import { Recuento } from './paginas/Recuento';
 import { Consulta } from './paginas/Consulta';
 import { Recibir } from './paginas/Recibir';
+import { Pedir } from './paginas/Pedir';
 import { Traslados } from './paginas/Traslados';
 import { Caducidades } from './paginas/Caducidades';
 import { Rentabilidad } from './paginas/Rentabilidad';
@@ -55,6 +56,7 @@ const MENU = [
     { to: '/buffet', label: 'Buffet del día', icon: IconBread, roles: TODOS, el: <Buffet /> },
     { to: '/excel', label: 'Importar Excel', icon: IconFileSpreadsheet, roles: GESTION, el: <Excel /> },
     { to: '/recuento', label: 'Recuento', icon: IconClipboardCheck, roles: EQUIPO, el: <Recuento /> },
+    { to: '/pedir', label: 'Pedir', icon: IconShoppingCart, roles: ['jefe'], permisos: ['solicitar'], ambos: true, el: <Pedir /> },
     { to: '/recibir', label: 'Recibir mercancía', icon: IconTruckDelivery, roles: EQUIPO, el: <Recibir /> },
     { to: '/consulta', label: 'Consultar producto', icon: IconScan, roles: EQUIPO, el: <Consulta /> },
     { to: '/caducidades', label: 'Caducidades', icon: IconCalendarExclamation, roles: EQUIPO, el: <Caducidades /> },
@@ -215,7 +217,9 @@ export function App() {
   if (!usuario) return <Login onLogin={setUsuario} />;
 
   // Una pantalla se ve por perfil o porque administración le ha dado todos sus permisos (Configuración → Permisos).
-  const puede = (i: { roles: string[]; permisos?: string[] }) => i.roles.includes(usuario.rol) || (!!i.permisos && i.permisos.every((p) => usuario.permisos?.includes(p)));
+  // `ambos`: hace falta el perfil Y el permiso (p. ej. Pedir: solo el jefe, y si administración no se lo ha quitado).
+  const tiene = (i: { permisos?: string[] }) => !!i.permisos && i.permisos.every((p) => usuario.permisos?.includes(p));
+  const puede = (i: { roles: string[]; permisos?: string[]; ambos?: boolean }) => (i.ambos ? i.roles.includes(usuario.rol) && tiene(i) : i.roles.includes(usuario.rol) || tiene(i));
   const menu = MENU.map((s) => ({ ...s, items: s.items.filter(puede) })).filter((s) => s.items.length);
   const rutas = menu.flatMap((s) => s.items);
   const inicio = rutas.some((r) => r.to === INICIO[usuario.rol]) ? INICIO[usuario.rol] : rutas[0].to;

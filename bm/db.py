@@ -296,6 +296,26 @@ CREATE TABLE IF NOT EXISTS pedido_lineas(
   PRIMARY KEY(pedido_id, producto)
 );
 
+-- Solicitudes de pedido: el jefe pide a administración (y, más adelante, el equipo al jefe). Administración
+-- responde (pedida / rechazada); el pedido de verdad se hace aparte, por el flujo normal de Pedidos.
+CREATE TABLE IF NOT EXISTS solicitudes(
+  id INTEGER PRIMARY KEY,
+  creado TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
+  usuario TEXT,
+  para TEXT NOT NULL DEFAULT 'administracion',
+  estado TEXT NOT NULL DEFAULT 'pendiente',  -- pendiente | pedida | rechazada
+  nota TEXT,
+  respuesta TEXT,
+  respondido TEXT,
+  respondido_por TEXT
+);
+CREATE TABLE IF NOT EXISTS solicitud_lineas(
+  solicitud_id INTEGER NOT NULL REFERENCES solicitudes(id) ON DELETE CASCADE,
+  producto TEXT NOT NULL REFERENCES productos(codigo),
+  cantidad REAL NOT NULL CHECK(cantidad > 0),
+  PRIMARY KEY(solicitud_id, producto)
+);
+
 -- Lo que llegó de verdad a la puerta (escaneado al descargar). No mueve stock: la compra la registra Noray.
 -- Sirve para reclamar en el momento y para comprobar que el albarán de Noray no cobra lo que no llegó.
 CREATE TABLE IF NOT EXISTS recepciones(

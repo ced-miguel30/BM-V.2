@@ -7,10 +7,11 @@ import { api, avisoError, avisoOk } from '../api';
 import { BadgeServicio, Cabecera, Vacio } from '../comun';
 import { cantidad, euros, fecha, fechaCorta } from '../formato';
 import { Tabla } from '../Tabla';
+import { ListaSolicitudes, type Solicitud } from '../Solicitudes';
 
 type Linea = { producto: string; nombre: string; unidad: string | null; stock: number; ritmo: number; dias_quedan: number; pedir: number;
   lote: number | null; precio: number | null; llega: string; inventario: string | null; en_camino: number };
-type Pedido = { proveedor: string; email: string | null; telefono: string | null; pedido_minimo: number | null; llega: string; importe: number; lineas: Linea[] };
+export type Pedido = { proveedor: string; email: string | null; telefono: string | null; pedido_minimo: number | null; llega: string; importe: number; lineas: Linea[] };
 type Urgente = Linea & { proveedor: string; falta: number };
 type Fav = { top: { codigo: string; nombre: string; servicio: string; uds_28d: number; por_dia: number; tendencia: number | null }[];
   comensales: { fecha: string; comensales: number | null }[] };
@@ -21,7 +22,7 @@ function texto(p: Pedido, cant: Record<string, number>) {
   return `Buenos días,\n\nOs pasamos el pedido de Royal Marina Suites para la entrega del ${fecha(p.llega)}:\n\n${lineas.join('\n')}\n\nGracias.\nUn saludo.`;
 }
 
-function TarjetaPedido({ p, alPedir }: { p: Pedido; alPedir: () => void }) {
+export function TarjetaPedido({ p, alPedir }: { p: Pedido; alPedir: () => void }) {
   const [cant, setCant] = useState<Record<string, number>>({});
   const nav = useNavigate();
   const importe = p.lineas.reduce((s, l) => s + (cant[l.producto] ?? l.pedir) * (l.precio ?? 0), 0);
@@ -139,7 +140,9 @@ export function Pedidos() {
   const [enviados, setEnviados] = useState<Enviado[] | null>(null);
   const [params, setParams] = useSearchParams();
   const nav = useNavigate();
+  const [solicitudes, setSolicitudes] = useState<Solicitud[] | null>(null);
   const cargar = () => {
+    api<Solicitud[]>('/solicitudes').then(setSolicitudes).catch(avisoError);
     api<typeof d>('/prevision/pedidos').then(setD).catch(avisoError);
     api<Enviado[]>('/pedidos').then(setEnviados).catch(avisoError);
   };
@@ -157,6 +160,7 @@ export function Pedidos() {
           <Tabs.Tab value="enviados">Enviados ({enviados?.filter((e) => ['enviado', 'incompleto'].includes(e.estado)).length ?? '…'} abiertos)</Tabs.Tab>
           <Tabs.Tab value="urgentes" color="red">Comprar por fuera ({d?.urgentes.length ?? '…'})</Tabs.Tab>
           <Tabs.Tab value="prevision">Previsión</Tabs.Tab>
+          <Tabs.Tab value="solicitudes" color="orange">Solicitudes ({solicitudes?.filter((s) => s.estado === 'pendiente').length ?? '…'})</Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel value="pedidos">
           {!d ? <Text c="dimmed">Calculando…</Text> : !d.pedidos.length ? <Card><Vacio texto="No hace falta pedir nada ahora" /></Card> : (
@@ -164,6 +168,7 @@ export function Pedidos() {
           )}
         </Tabs.Panel>
         <Tabs.Panel value="enviados"><Enviados lista={enviados} recargar={cargar} /></Tabs.Panel>
+        <Tabs.Panel value="solicitudes"><ListaSolicitudes lista={solicitudes} recargar={cargar} /></Tabs.Panel>
         <Tabs.Panel value="urgentes">
           <Alert color="red" icon={<IconAlertTriangle />} mb="md" title="Se acaban antes de que llegue el próximo reparto">
             Si no se compran por fuera (supermercado, cash) faltarán. La cantidad cubre hasta la entrega del proveedor más el margen de seguridad.

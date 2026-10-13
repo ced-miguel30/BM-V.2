@@ -271,3 +271,14 @@ def ver_permisos(u: dict = Depends(requiere(*GESTION))):
 def guardar_permisos(d: dict[str, list[str]], u: dict = Depends(requiere(*GESTION))):
     _error(permisos.guardar, con, d)
     return permisos.todos(con)
+
+
+class Directos(BaseModel):
+    rol: str
+    proveedores: list[str]
+
+
+@app.put("/api/config/pedido-directo")
+def guardar_directos(d: Directos, u: dict = Depends(requiere(*GESTION))):
+    _error(permisos.guardar_proveedores, con, d.rol, d.proveedores)
+    return permisos.todos(con)

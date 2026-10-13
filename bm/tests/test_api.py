@@ -112,7 +112,26 @@ class TestFlujos(unittest.TestCase):
         self.assertNotIn("valor", jefe.get("/api/stock?ubicacion=RESTAURANTE").json()[0])  # euros, ahora confidencial
         self.assertEqual(jefe.get(perdidas).status_code, 403)
         self.assertIn("recetas", jefe.get("/api/me").json()["permisos"])
-        adm.put("/api/config/permisos", json={"jefe": ["euros", "stock", "perdidas", "traslados"]})  # como estaba
+        A.con.execute("DELETE FROM ajustes WHERE clave='permisos'")  # vuelta a los permisos por defecto
+        A.con.commit()
+
+    def test_jefe_pide_a_administracion_y_solo_pide_directo_lo_autorizado(self):
+        jefe, adm = cliente("rest"), cliente("adm")
+        sid = jefe.post("/api/solicitudes", json={"lineas": [{"producto": "PAN", "cantidad": 20}], "nota": "fin de semana"}).json()["id"]
+        self.assertEqual(adm.get("/api/solicitudes").json()[0]["lineas"][0]["cantidad"], 20)
+        self.assertTrue(any("de pedido del restaurante" in a["titulo"] for a in adm.get("/api/avisos").json()))
+        self.assertEqual(jefe.post(f"/api/solicitudes/{sid}/responder", json={"estado": "pedida"}).status_code, 403)
+        self.assertEqual(adm.post(f"/api/solicitudes/{sid}/responder", json={"estado": "rechazada"}).status_code, 400)  # di por qué
+        adm.post(f"/api/solicitudes/{sid}/responder", json={"estado": "pedida", "respuesta": "pedido para el viernes"})
+        self.assertEqual(jefe.get("/api/solicitudes").json()[0]["estado"], "pedida")
+        prov = A.con.execute("SELECT nombre FROM proveedores LIMIT 1").fetchone()[0]
+        pedido = {"proveedor": prov, "lineas": [{"producto": "PAN", "cantidad": 5}]}
+        self.assertEqual(jefe.post("/api/pedidos", json=pedido).status_code, 403)  # sin autorizar
+        self.assertEqual(jefe.get("/api/pedidos/directos").json()["pedidos"], [])
+        adm.put("/api/config/pedido-directo", json={"rol": "jefe", "proveedores": [prov]})
+        self.assertEqual(jefe.post("/api/pedidos", json=pedido).status_code, 200)
+        self.assertEqual(jefe.get("/api/pedidos/directos").json()["proveedores"], [prov])
+        adm.put("/api/config/pedido-directo", json={"rol": "jefe", "proveedores": []})
 
     def test_comandero_solo_comandas(self):
         c = cliente("com")

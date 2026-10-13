@@ -16,6 +16,7 @@ CATALOGO = [  # clave, nombre, qué abre, perfiles a los que se puede dar, perfi
     ("perdidas", "Pérdidas", "Análisis de mermas, comida de personal y diferencias (necesita «Ver euros»)", ("jefe",), ("jefe",)),
     ("traslados", "Traslados", "Ver y registrar traslados entre almacenes", ("jefe",), ("jefe",)),
     ("recetas", "Recetas", "Ver y ajustar las fichas de receta, con su coste", ("jefe",), ()),
+    ("solicitar", "Pedir a administración", "Enviar solicitudes de pedido a administración", ("jefe",), ("jefe",)),
     ("comandas", "Comandas de desayuno", "Apuntar los desayunos", ("cocina",), ()),
 ]
 CLAVES = [c[0] for c in CATALOGO]
@@ -40,7 +41,30 @@ def de(con: sqlite3.Connection, rol: str) -> list[str]:
 def todos(con: sqlite3.Connection) -> dict:
     perfiles = [r for r in ("jefe", "cocina", "comandero") if any(r in c[3] for c in CATALOGO)]  # por jerarquía
     return {"catalogo": [{"clave": c, "nombre": n, "detalle": d, "perfiles": list(p)} for c, n, d, p, _ in CATALOGO],
-            "actual": {r: de(con, r) for r in perfiles}}
+            "actual": {r: de(con, r) for r in perfiles},
+            "directos": {"jefe": proveedores_directos(con, "jefe")},
+            "proveedores": [x[0] for x in con.execute(  # los que se compran de verdad, más usados primero
+                """SELECT proveedor FROM bc_movs WHERE tipo='Compra' AND proveedor<>'' GROUP BY 1 ORDER BY COUNT(*) DESC""")]}
+
+
+def proveedores_directos(con: sqlite3.Connection, rol: str) -> list[str]:
+    """Proveedores a los que ese perfil puede hacer el pedido él mismo (lo decide administración). Gestión: todos."""
+    r = con.execute("SELECT valor FROM ajustes WHERE clave='pedido_directo'").fetchone()
+    try:
+        return json.loads(r[0]).get(rol, []) if r else []
+    except ValueError:
+        return []
+
+
+def guardar_proveedores(con: sqlite3.Connection, rol: str, proveedores: list[str]) -> None:
+    if rol != "jefe":
+        raise ValueError("Solo el jefe de restaurante puede tener pedido directo")
+    r = con.execute("SELECT valor FROM ajustes WHERE clave='pedido_directo'").fetchone()
+    actual = json.loads(r[0]) if r else {}
+    validos = {x[0] for x in con.execute("SELECT nombre FROM proveedores")}
+    actual[rol] = sorted(p for p in set(proveedores) if p in validos)
+    con.execute("INSERT OR REPLACE INTO ajustes VALUES('pedido_directo', ?)", (json.dumps(actual),))
+    con.commit()
 
 
 def guardar(con: sqlite3.Connection, elegido: dict[str, list[str]]) -> None:
