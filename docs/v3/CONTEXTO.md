@@ -112,5 +112,7 @@ evita duplicados. Todo exige https en producción. Pendiente de decisión: escri
     hace falta; quien avisó ve la respuesta.
     **Comandero** (`/comandero`, móvil): mesa o habitación, platos con un toque (personalizar igual que Comandas), cesta y
     «Enviar mesa» → `POST /api/comandas/mesa` (`comandas.enviar_mesa`, idempotente por `ref`; sin cobertura va a la cola).
-    `comanda_lineas.mesa`. Comandas (PC) queda para jefe y gestión. Pendiente: pantalla de cocina con las mesas pendientes.
+    `comanda_lineas.mesa`. Comandas (PC) queda para jefe y gestión. **Cocina no tendrá pantalla** (decisión del usuario):
+    usa el móvil para mermas y recuentos. **Merma** (`/merma`): escanear o buscar producto/plato, cantidad, motivo, guardar;
+    `POST /api/consumos` con `ref` idempotente (`movil:<ref>`), sin cobertura a la cola. Registrar consumo queda para jefe y gestión.
 - Entorno: Bash corta heredocs > ~7 KB (escribir ficheros en trozos); `gh` sin sesión (CI en GitHub sin verificar).

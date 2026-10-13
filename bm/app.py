@@ -294,13 +294,17 @@ class NuevoConsumo(BaseModel):
     nota: str | None = None
     ubicacion: str | None = None
     motivo: str | None = None
+    ref: str | None = None  # del móvil: si se reenvía sin cobertura, no se apunta dos veces
     items: list[Item]
 
 
 @app.post("/api/consumos")
 def crear_consumo(d: NuevoConsumo, u: dict = Depends(requiere(*EQUIPO))):
+    if d.ref and (ya := con.execute("SELECT id FROM consumos WHERE ref=?", (f"movil:{d.ref}",)).fetchone()):
+        return {"id": ya[0]}
     cid = _error(consumos.registrar, con, fecha=d.fecha, servicio=d.servicio, tipo=d.tipo, comensales=d.comensales,
-                 nota=d.nota, usuario=u["nombre"], ubicacion=d.ubicacion, motivo=d.motivo, items=[i.model_dump() for i in d.items])
+                 nota=d.nota, usuario=u["nombre"], ubicacion=d.ubicacion, motivo=d.motivo, items=[i.model_dump() for i in d.items],
+                 ref=f"movil:{d.ref}" if d.ref else None)
     return {"id": cid}
 
 

@@ -28,6 +28,7 @@ import { Recibir } from './paginas/Recibir';
 import { Pedir } from './paginas/Pedir';
 import { Avisar } from './paginas/Avisar';
 import { Comandero } from './paginas/Comandero';
+import { Merma } from './paginas/Merma';
 import { Traslados } from './paginas/Traslados';
 import { Caducidades } from './paginas/Caducidades';
 import { Rentabilidad } from './paginas/Rentabilidad';
@@ -55,11 +56,12 @@ const MENU = [
   { seccion: 'Operación', items: [
     { to: '/comandas', label: 'Comandas desayuno', icon: IconToolsKitchen2, roles: JEFE, permisos: ['comandas'], el: <Comandas /> },
     { to: '/comandero', label: 'Comandero (móvil)', icon: IconDeviceMobile, roles: COMANDAS, permisos: ['comandas'], el: <Comandero /> },
-    { to: '/registrar', label: 'Registrar consumo', icon: IconPencilPlus, roles: EQUIPO, el: <Registrar /> },
+    { to: '/registrar', label: 'Registrar consumo', icon: IconPencilPlus, roles: JEFE, el: <Registrar /> },
     { to: '/buffet', label: 'Buffet del día', icon: IconBread, roles: TODOS, el: <Buffet /> },
     { to: '/excel', label: 'Importar Excel', icon: IconFileSpreadsheet, roles: GESTION, el: <Excel /> },
     { to: '/recuento', label: 'Recuento', icon: IconClipboardCheck, roles: EQUIPO, el: <Recuento /> },
     { to: '/pedir', label: 'Pedir', icon: IconShoppingCart, roles: ['jefe'], permisos: ['solicitar'], ambos: true, el: <Pedir /> },
+    { to: '/merma', label: 'Merma', icon: IconTrashX, roles: EQUIPO, el: <Merma /> },
     { to: '/avisar', label: 'Avisar al jefe', icon: IconSpeakerphone, roles: ['cocina'], el: <Avisar /> },
     { to: '/recibir', label: 'Recibir mercancía', icon: IconTruckDelivery, roles: EQUIPO, el: <Recibir /> },
     { to: '/consulta', label: 'Consultar producto', icon: IconScan, roles: EQUIPO, el: <Consulta /> },

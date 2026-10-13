@@ -150,6 +150,14 @@ class TestFlujos(unittest.TestCase):
         self.assertEqual(jefe.post(f"/api/solicitudes/{mia}/responder", json={"estado": "pedida"}).status_code, 403)  # no se responde a sí mismo
         self.assertEqual(adm.post(f"/api/solicitudes/{mia}/responder", json={"estado": "pedida"}).status_code, 200)
 
+    def test_cocina_apunta_merma_desde_el_movil_sin_duplicar(self):
+        coc = cliente("coc")
+        merma = {"fecha": "2026-08-03", "tipo": "merma", "motivo": "rotura", "ubicacion": "RESTAURANTE", "ref": "m-55",
+                 "items": [{"producto": "HUEVO", "cantidad": 6}]}
+        a, b = coc.post("/api/consumos", json=merma).json(), coc.post("/api/consumos", json=merma).json()
+        self.assertEqual(a["id"], b["id"])  # reenvío sin cobertura
+        self.assertEqual(A.con.execute("SELECT motivo FROM consumos WHERE id=?", (a["id"],)).fetchone()[0], "rotura")
+
     def test_comandero_solo_comandas(self):
         c = cliente("com")
         self.assertEqual(c.get("/api/comandas").status_code, 200)
