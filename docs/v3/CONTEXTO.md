@@ -46,6 +46,15 @@ carpeta de entrada que importa sola TPV y Excel de BC (`bm/entrada.py`, `datos\e
 de subidas de ingredientes de carta; etiquetas de caducidad 60×40 mm (`web/src/etiqueta.ts`); escáner de códigos en el
 recuento (USB/Bluetooth siempre; cámara solo con https). Paleta de gráficos elegante (variables `--serie-*` en app.css).
 
+12-13/10/2026: maestro de Proveedores de BC importado (94; pocos con correo/teléfono). **Ingredientes intercambiables**
+(`bm/intercambiables.py`, Recetas → Intercambiables): se consume el que caduca antes o el más barato comprado en 30 días.
+`bm/semillas_carta.json` siembra grupos y 5 recetas estimadas (smoothie, croquetas, espagueti, paella, surtido ibérico).
+**En el hotel a BC lo llaman "Noray".** Conexión API con BC en curso: app "BM Royal Marina" registrada en Entra ID
+(tenant 980048cf-…, cliente 1140153d-…), permiso API.ReadWrite.All añadido, **falta el consentimiento de administrador**,
+el secreto, el alta en BC (Aplicaciones de Microsoft Entra, D365 READ) y publicar páginas 38/31/líneas factura como OData.
+**Servidor: en la nube**, accesible desde los PCs → necesita https (también hace falta para la cámara del móvil).
+Copia secundaria: "otra carpeta". Prueba con personal cuando todo esté perfecto; después, datos frescos.
+
 ## Pendiente de revisar por el usuario
 1. **TPV (47 sin asignar):** las sugerencias ya son fiables, pero revisar: *Pescado del día* (sugiere caldo de
    pescado: no aceptar), *Ración croquetas* → producto Croquetas de pollo (¿cuántas por ración?), *Smoothie* →
