@@ -227,16 +227,19 @@ def registrar_traslado(con, *, fecha: str, origen: str, destino: str, items: lis
 
 
 def registrar_recuento(con, *, fecha: str, ubicacion: str, lineas: list[dict],
-                       nota: str | None = None, usuario: str | None = None) -> int:
-    """Solo fija los productos contados (recuento parcial permitido). Guarda el teórico como foto."""
+                       nota: str | None = None, usuario: str | None = None, ref: str | None = None) -> int:
+    """Solo fija los productos contados (recuento parcial permitido). Guarda el teórico como foto.
+    `ref` = identificador puesto por el móvil: si llega dos veces (reenvío sin cobertura), se guarda una sola."""
+    if ref and (ya := con.execute("SELECT id FROM recuentos WHERE ref=?", (ref,)).fetchone()):
+        return ya["id"]
     date.fromisoformat(fecha)
     _validar_ubicacion(con, ubicacion)
     contados = _validar_items(con, lineas, "contado")
     if any(q < 0 for _, q in contados):
         raise ValueError("Una cantidad contada no puede ser negativa")
     teorico = {r["producto"]: r["stock"] for r in stock(con, ubicacion, hasta=fecha)}
-    rid = con.execute("INSERT INTO recuentos(fecha, ubicacion, nota, usuario) VALUES(?,?,?,?)",
-                      (fecha, ubicacion, nota, usuario)).lastrowid
+    rid = con.execute("INSERT INTO recuentos(fecha, ubicacion, nota, usuario, ref) VALUES(?,?,?,?,?)",
+                      (fecha, ubicacion, nota, usuario, ref)).lastrowid
     con.executemany("INSERT INTO recuento_lineas VALUES(?,?,?,?)",
                     [(rid, p, q, teorico.get(p, 0.0)) for p, q in contados])
     con.commit()

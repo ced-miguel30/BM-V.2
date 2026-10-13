@@ -83,6 +83,12 @@ class TestFlujos(unittest.TestCase):
         pan = next(f for f in c.get("/api/stock?ubicacion=RESTAURANTE").json() if f["producto"] == "PAN")
         self.assertEqual(pan["stock"], 7)
 
+    def test_recuento_reenviado_sin_cobertura_no_se_duplica(self):
+        c = cliente("rest")
+        cuerpo = {"fecha": "2026-09-03", "ubicacion": "RESTAURANTE", "ref": "movil-1", "lineas": [{"producto": "PAN", "contado": 5}]}
+        a, b = c.post("/api/recuentos", json=cuerpo).json(), c.post("/api/recuentos", json=cuerpo).json()
+        self.assertEqual(a["id"], b["id"])
+
     def test_servicio_inexistente_rechazado(self):
         r = cliente("dir").post("/api/consumos", json={"fecha": "2026-09-02", "servicio": "inventado", "items": [{"producto": "PAN", "cantidad": 1}]})
         self.assertEqual(r.status_code, 400)

@@ -12,6 +12,7 @@ import {
 } from '@tabler/icons-react';
 import { api, avisoError, avisoOk } from './api';
 import { Logo } from './comun';
+import { sincronizar } from './pendientes';
 import { Panel } from './paginas/Panel';
 import { Registrar } from './paginas/Registrar';
 import { Consumos } from './paginas/Consumos';
@@ -188,6 +189,13 @@ export function App() {
     return () => window.removeEventListener('bm:401', caducada);
   }, []);
   useEffect(close, [loc.pathname]);
+  // Lo contado sin cobertura se envía al entrar y en cuanto vuelve la conexión.
+  useEffect(() => {
+    if (!usuario) return;
+    sincronizar();
+    window.addEventListener('online', sincronizar);
+    return () => window.removeEventListener('online', sincronizar);
+  }, [usuario]);
 
   if (usuario === undefined) return <Center mih="100vh"><Loader /></Center>;
   if (!usuario) return <Login onLogin={setUsuario} />;
@@ -195,7 +203,11 @@ export function App() {
   const menu = MENU.map((s) => ({ ...s, items: s.items.filter((i) => i.roles.includes(usuario.rol)) })).filter((s) => s.items.length);
   const rutas = menu.flatMap((s) => s.items);
   const inicio = rutas.some((r) => r.to === '/') ? '/' : '/comandas';
-  const salir = async () => { await api('/logout', { method: 'POST' }).catch(() => null); setUsuario(null); };
+  const salir = async () => {
+    await api('/logout', { method: 'POST' }).catch(() => null);
+    await window.caches?.delete('bm-v1').catch(() => null);  // datos guardados para usar sin cobertura: no quedan en el móvil
+    setUsuario(null);
+  };
   const activo = (to: string) => (to === '/' ? loc.pathname === '/' : loc.pathname.startsWith(to));
 
   return (

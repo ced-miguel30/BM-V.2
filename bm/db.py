@@ -397,3 +397,7 @@ def _migrar(con: sqlite3.Connection) -> None:
     if "ubicacion" not in cols:  # de qué ubicación sale el stock de este consumo
         con.execute("ALTER TABLE consumos ADD COLUMN ubicacion TEXT REFERENCES ubicaciones(codigo)")
         con.commit()
+    if "ref" not in {r[1] for r in con.execute("PRAGMA table_info(recuentos)")}:  # id del móvil: un reenvío no duplica
+        con.execute("ALTER TABLE recuentos ADD COLUMN ref TEXT")
+        con.execute("CREATE UNIQUE INDEX IF NOT EXISTS recuentos_ref ON recuentos(ref)")
+        con.commit()

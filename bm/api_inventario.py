@@ -68,13 +68,14 @@ class NuevoRecuento(BaseModel):
     fecha: str
     ubicacion: str
     nota: str | None = None
+    ref: str | None = None
     lineas: list[LineaRecuento]
 
 
 @app.post("/api/recuentos")
 def crear_recuento(d: NuevoRecuento, u: dict = Depends(requiere(*OPERATIVO))):
     rid = _error(inventario.registrar_recuento, con, fecha=d.fecha, ubicacion=d.ubicacion, nota=d.nota,
-                 usuario=u["nombre"], lineas=[x.model_dump() for x in d.lineas])
+                 usuario=u["nombre"], lineas=[x.model_dump() for x in d.lineas], ref=d.ref)
     return {"id": rid}
 
 

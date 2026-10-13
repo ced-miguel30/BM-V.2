@@ -13,6 +13,9 @@ import { DatesProvider } from '@mantine/dates';
 import { Notifications } from '@mantine/notifications';
 import { App } from './App';
 
+// Instalable como app y usable sin cobertura (public/sw.js). Solo con https, como la cámara.
+if (import.meta.env.PROD && 'serviceWorker' in navigator && window.isSecureContext) navigator.serviceWorker.register('/sw.js').catch(() => null);
+
 // Azul marino Royal Marina + acento mar.
 const marina: MantineColorsTuple = [
   '#eef3fb', '#d9e2f2', '#afc3e6', '#82a2da', '#5d86cf', '#4574c9',

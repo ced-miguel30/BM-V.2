@@ -9,7 +9,8 @@ import { Cabecera, Vacio } from '../comun';
 import { nombreUbicacion, useUbicaciones } from '../centros';
 import { cantidad, euros, fecha, hoy } from '../formato';
 import { Tabla } from '../Tabla';
-import { Escaner, hayCamara } from '../Escaner';
+import { Camara, hayCamara, prepararLector } from '../Escaner';
+import { descartar, enviarOGuardar, pendientes, sincronizar, type Pendiente } from '../pendientes';
 
 type Linea = { producto: string; nombre: string; unidad: string | null; teorico?: number; zona?: string | null };
 
@@ -29,6 +30,30 @@ const guardarBorrador = (ub: string, v: Record<string, number | string>) => {
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
+// Recuentos guardados sin cobertura que esperan para enviarse.
+function EnCola() {
+  const [cola, setCola] = useState<Pendiente[]>(pendientes);
+  useEffect(() => {
+    const ver = () => setCola(pendientes());
+    window.addEventListener('bm:pendientes', ver);
+    return () => window.removeEventListener('bm:pendientes', ver);
+  }, []);
+  if (!cola.length) return null;
+  return (
+    <Alert color="orange" variant="light" title={cola.length === 1 ? '1 recuento sin enviar' : `${cola.length} recuentos sin enviar`}>
+      <Stack gap={4}>
+        {cola.map((x) => (
+          <Group key={x.ref} justify="space-between" gap="xs">
+            <Text size="sm">{x.texto}{x.error ? <Text span c="red" size="sm"> · rechazado: {x.error}</Text> : ' · se enviará solo al volver la cobertura'}</Text>
+            {x.error && <Button size="compact-xs" variant="subtle" color="red" onClick={() => descartar(x.ref)}>Descartar</Button>}
+          </Group>
+        ))}
+        <Group><Button size="compact-sm" variant="light" onClick={sincronizar}>Enviar ahora</Button></Group>
+      </Stack>
+    </Alert>
+  );
+}
+
 function Contar({ gestion }: { gestion: boolean }) {
   const ubicaciones = useUbicaciones();
   const [params, setParams] = useSearchParams();
@@ -47,7 +72,7 @@ function Contar({ gestion }: { gestion: boolean }) {
   const [camara, setCamara] = useState(false);
   const [nuevo, setNuevo] = useState<{ codigo: string; producto: string | null } | null>(null);
 
-  useEffect(() => { api<Record<string, string>>('/codigos').then(setCodigos).catch(() => null); }, []);
+  useEffect(() => { api<Record<string, string>>('/codigos').then(setCodigos).catch(() => null); if (hayCamara()) prepararLector(); }, []);
   // Ir a un producto escaneado: se añade a la lista si no estaba y se pone el cursor en su cantidad.
   const irA = (producto: string) => {
     const p = catalogo.find((c) => c.codigo === producto);
@@ -104,15 +129,18 @@ function Contar({ gestion }: { gestion: boolean }) {
   const guardar = async () => {
     setGuardando(true);
     try {
-      await api('/recuentos', { body: { fecha: hoy(), ubicacion: ub, nota: nota || null,
-        lineas: contados.map(([producto, v]) => ({ producto, contado: Number(v) })) } });
-      avisoOk(`${contados.length} productos contados en ${nombreUbicacion(ubicaciones, ub)}`, 'Recuento guardado');
+      const texto = `${contados.length === 1 ? '1 producto contado' : `${contados.length} productos contados`} en ${nombreUbicacion(ubicaciones, ub)} el ${fecha(hoy())}`;
+      const r = await enviarOGuardar('/recuentos', { fecha: hoy(), ubicacion: ub, nota: nota || null,
+        lineas: contados.map(([producto, v]) => ({ producto, contado: Number(v) })) }, texto);
+      avisoOk(r === 'enviado' ? texto : 'Sin cobertura: queda guardado en este móvil y se enviará solo al volver la conexión.',
+        r === 'enviado' ? 'Recuento guardado' : 'Recuento en espera');
       cambiar({}); setConfirmar(false); setNota('');
     } catch (e) { avisoError(e); } finally { setGuardando(false); }
   };
 
   return (
     <Stack>
+      <EnCola />
       <Group align="flex-end" wrap="wrap">
         <Select label="Ubicación que vas a contar" data={ubicaciones.map((u) => ({ value: u.codigo, label: u.nombre }))} value={ub}
           onChange={(x) => x && setParams({ ubicacion: x })} searchable w={260} placeholder="Elige ubicación" size="md" />
@@ -185,7 +213,9 @@ function Contar({ gestion }: { gestion: boolean }) {
           </Affix>
         </>
       )}
-      <Escaner abierto={camara} cerrar={() => setCamara(false)} leido={leido} />
+      <Modal opened={camara} onClose={() => setCamara(false)} title="Escanear código" centered>
+        {camara && <Camara activa leido={(c) => { setCamara(false); leido(c); }} />}
+      </Modal>
       <Modal opened={!!nuevo} onClose={() => setNuevo(null)} title="Código nuevo" centered>
         {nuevo && (
           <Stack>
