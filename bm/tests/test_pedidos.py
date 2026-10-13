@@ -45,5 +45,24 @@ class TestPedidos(unittest.TestCase):
         self.assertTrue(pedidos.listar(con)[0]["retrasado"])
 
 
+    def test_recepcion_en_puerta_dice_lo_que_falta_y_no_duplica(self):
+        con = _base()
+        pid = pedidos.crear(con, proveedor="GRANJA", entrega=dia(1), lineas=[{"producto": "P", "cantidad": 10}, {"producto": "Q", "cantidad": 4}])
+        hoy = date.today().isoformat()
+        r = pedidos.recibir(con, pedido_id=pid, proveedor="", fecha=hoy, ref="m1",
+                            lineas=[{"producto": "P", "cantidad": 7}, {"producto": "Q", "cantidad": 4}])
+        self.assertEqual([(f["producto"], f["diferencia"]) for f in r["faltan"]], [("P", -3)])
+        self.assertEqual(pedidos.recibir(con, pedido_id=pid, proveedor="", fecha=hoy, ref="m1", lineas=[])["id"], r["id"])  # reenvío
+        self.assertEqual({l["producto"]: l["recibido"] for l in pedidos.por_recibir(con)[0]["lineas"]}, {"P": 7, "Q": 4})
+
+    def test_albaran_de_noray_con_mas_de_lo_que_llego(self):
+        con = _base()
+        pid = pedidos.crear(con, proveedor="GRANJA", entrega=dia(-1), lineas=[{"producto": "P", "cantidad": 10}])
+        pedidos.recibir(con, pedido_id=pid, proveedor="", fecha=date.today().isoformat(), lineas=[{"producto": "P", "cantidad": 8}])
+        _albaran(con, 60, "ALB-9", "P", 10, date.today().isoformat())  # Noray registra 10
+        pedidos.conciliar(con)
+        self.assertEqual([(d["albaran"], d["puerta"]) for d in pedidos.descuadres(con)], [(10, 8)])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -85,3 +85,29 @@ class CierrePedido(BaseModel):
 def cerrar_pedido(pid: int, d: CierrePedido, u: dict = Depends(requiere(*GESTION))):
     _error(pedidos_mod.cerrar, con, pid, d.estado, d.nota, u["nombre"])
     return {"ok": True}
+
+
+@app.get("/api/recepcion/pedidos")
+def por_recibir(u: dict = Depends(requiere(*OPERATIVO))):
+    return {"pedidos": pedidos_mod.por_recibir(con),
+            "proveedores": [r[0] for r in con.execute("SELECT nombre FROM proveedores ORDER BY nombre")]}
+
+
+class LineaRecibida(BaseModel):
+    producto: str
+    cantidad: float
+
+
+class NuevaRecepcion(BaseModel):
+    pedido_id: int | None = None
+    proveedor: str = ""
+    fecha: str
+    nota: str | None = None
+    ref: str | None = None
+    lineas: list[LineaRecibida]
+
+
+@app.post("/api/recepciones")
+def recibir(d: NuevaRecepcion, u: dict = Depends(requiere(*OPERATIVO))):
+    return _error(pedidos_mod.recibir, con, pedido_id=d.pedido_id, proveedor=d.proveedor, fecha=d.fecha, nota=d.nota,
+                  ref=d.ref, usuario=u["nombre"], lineas=[x.model_dump() for x in d.lineas])

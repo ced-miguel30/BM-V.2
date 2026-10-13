@@ -91,4 +91,10 @@ evita duplicados. Todo exige https en producción. Pendiente de decisión: escri
 11. **Perfil Cocina** (13/10): solo Recuento, a ciegas de verdad (la API no le devuelve stock esperado ni valores) y solo
     avisos de qué contar. Usuario de pruebas `cocina` en `datos/DEV_LOGIN.txt`. Servidor: Dormakaba gestiona el Windows
     del hotel (sistema de cerraduras): no instalar ahí sin su permiso; aplazado por el usuario.
+12. **Escáner en más sitios** (13/10): lector común `web/src/EscanearProducto.tsx` (cámara + lector USB en toda la pantalla)
+    en Registrar (mermas), Caducidades, Reponer (tacha lo que se sube; lista guardada en el móvil) y **Consultar producto**
+    (`/consulta`, `/api/consulta/{p}`: dónde está, zona, último recuento, caducidades; precio solo gestión).
+    **Recibir mercancía** (`/recibir`, tablas `recepciones`): se escanea lo que llega, dice al momento qué falta del pedido
+    (también sin cobertura); no mueve stock. Aviso si el albarán de Noray tiene más de lo que llegó (`pedidos.descuadres`) o si
+    llegó y falta registrar el albarán. Pendiente: dividir la interfaz por perfil (y un perfil "owner" que lo vea todo).
 - Entorno: Bash corta heredocs > ~7 KB (escribir ficheros en trozos); `gh` sin sesión (CI en GitHub sin verificar).

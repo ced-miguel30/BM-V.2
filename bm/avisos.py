@@ -67,7 +67,16 @@ def avisos(con: sqlite3.Connection, rol: str) -> list[dict]:
         if incompletos:
             aviso("alta", f"{len(incompletos)} pedidos llegaron incompletos",
                   ", ".join(f"{x['proveedor']} (faltan {x['faltan']})" for x in incompletos[:3]) + ". Reclamar o cerrar", "/pedidos?vista=enviados")
-        retrasados = [x for x in lista if x["retrasado"]]
+        caro = pedidos.descuadres(con)
+        if caro:
+            aviso("alta", f"El albarán de Noray tiene más de lo que llegó en {len(caro)} productos",
+                  ", ".join(f"{x['proveedor']} ({x['albaran']:g} en Noray, {x['puerta']:g} recibidos)" for x in caro[:3])
+                  + ". Revisar antes de pagar la factura", "/pedidos?vista=enviados")
+        llegados = [x for x in lista if x["retrasado"] and x["llego"]]
+        if llegados:
+            aviso("media", f"{len(llegados)} pedidos recibidos sin albarán en Noray", ", ".join(x["proveedor"] for x in llegados[:3])
+                  + ". Llegaron (se recibieron en BM): falta registrar el albarán en Noray", "/pedidos?vista=enviados")
+        retrasados = [x for x in lista if x["retrasado"] and not x["llego"]]
         if retrasados:
             aviso("media", f"{len(retrasados)} pedidos sin albarán en BC", ", ".join(x["proveedor"] for x in retrasados[:3])
                   + ". ¿Llegaron? Si es así, falta registrarlos en BC", "/pedidos?vista=enviados")

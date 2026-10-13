@@ -24,6 +24,7 @@ import { Excel } from './paginas/Excel';
 import { Stock } from './paginas/Stock';
 import { Recuento } from './paginas/Recuento';
 import { Consulta } from './paginas/Consulta';
+import { Recibir } from './paginas/Recibir';
 import { Traslados } from './paginas/Traslados';
 import { Caducidades } from './paginas/Caducidades';
 import { Rentabilidad } from './paginas/Rentabilidad';
@@ -51,6 +52,7 @@ const MENU = [
     { to: '/buffet', label: 'Buffet del día', icon: IconBread, roles: TODOS, el: <Buffet /> },
     { to: '/excel', label: 'Importar Excel', icon: IconFileSpreadsheet, roles: TODOS, el: <Excel /> },
     { to: '/recuento', label: 'Recuento', icon: IconClipboardCheck, roles: CONTAR, el: <Recuento /> },
+    { to: '/recibir', label: 'Recibir mercancía', icon: IconTruckDelivery, roles: TODOS, el: <Recibir /> },
     { to: '/consulta', label: 'Consultar producto', icon: IconScan, roles: TODOS, el: <Consulta /> },
     { to: '/caducidades', label: 'Caducidades', icon: IconCalendarExclamation, roles: TODOS, el: <Caducidades /> },
     { to: '/reponer', label: 'Reponer restaurante', icon: IconStackPush, roles: TODOS, el: <Reponer /> },

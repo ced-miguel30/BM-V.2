@@ -296,6 +296,25 @@ CREATE TABLE IF NOT EXISTS pedido_lineas(
   PRIMARY KEY(pedido_id, producto)
 );
 
+-- Lo que llegó de verdad a la puerta (escaneado al descargar). No mueve stock: la compra la registra Noray.
+-- Sirve para reclamar en el momento y para comprobar que el albarán de Noray no cobra lo que no llegó.
+CREATE TABLE IF NOT EXISTS recepciones(
+  id INTEGER PRIMARY KEY,
+  pedido_id INTEGER REFERENCES pedidos(id),
+  proveedor TEXT NOT NULL,
+  fecha TEXT NOT NULL,
+  usuario TEXT,
+  nota TEXT,
+  ref TEXT UNIQUE,                     -- id puesto por el móvil: un reenvío sin cobertura no duplica
+  creado TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE IF NOT EXISTS recepcion_lineas(
+  recepcion_id INTEGER NOT NULL REFERENCES recepciones(id) ON DELETE CASCADE,
+  producto TEXT NOT NULL REFERENCES productos(codigo),
+  cantidad REAL NOT NULL CHECK(cantidad >= 0),
+  PRIMARY KEY(recepcion_id, producto)
+);
+
 -- Dónde está cada producto dentro de una ubicación (Nevera, Congelador, Estantería...): ordena el recuento.
 CREATE TABLE IF NOT EXISTS zonas_producto(
   producto TEXT NOT NULL REFERENCES productos(codigo),

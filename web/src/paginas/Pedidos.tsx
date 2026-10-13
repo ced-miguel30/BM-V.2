@@ -78,7 +78,7 @@ function TarjetaPedido({ p, alPedir }: { p: Pedido; alPedir: () => void }) {
 
 
 type Enviado = { id: number; proveedor: string; fecha: string; entrega: string | null; estado: string; albaranes: string | null; usuario: string | null;
-  nota: string | null; retrasado: boolean; faltan: number; lineas: { producto: string; nombre: string; unidad: string | null; cantidad: number; recibido: number }[] };
+  nota: string | null; retrasado: boolean; llego: string | null; faltan: number; lineas: { producto: string; nombre: string; unidad: string | null; cantidad: number; recibido: number; puerta: number | null }[] };
 const ESTADO: Record<string, { label: string; color: string }> = {
   enviado: { label: 'En camino', color: 'blue' }, recibido: { label: 'Recibido completo', color: 'teal' },
   incompleto: { label: 'Incompleto', color: 'red' }, cerrado: { label: 'Cerrado', color: 'gray' }, anulado: { label: 'Anulado', color: 'gray' },
@@ -92,7 +92,7 @@ function Enviados({ lista, recargar }: { lista: Enviado[] | null; recargar: () =
     try { await api(`/pedidos/${ver.id}/cerrar`, { body: { estado, nota } }); avisoOk(ver.proveedor, estado === 'cerrado' ? 'Pedido cerrado' : 'Pedido anulado'); setVer(null); setNota(''); recargar(); }
     catch (e) { avisoError(e); }
   };
-  const texto = (e: Enviado) => e.retrasado ? { label: 'Sin albarán', color: 'orange' } : ESTADO[e.estado] ?? { label: e.estado, color: 'gray' };
+  const texto = (e: Enviado) => e.retrasado ? { label: e.llego ? 'Llegó, sin albarán' : 'Sin albarán', color: 'orange' } : ESTADO[e.estado] ?? { label: e.estado, color: 'gray' };
   return (
     <>
       <Tabla datos={lista} clave={(e) => e.id} alPulsar={setVer} exportar="pedidos_enviados" orden={{ clave: 'fecha', desc: true }} anchoMin={720}
@@ -110,10 +110,11 @@ function Enviados({ lista, recargar }: { lista: Enviado[] | null; recargar: () =
             <Group gap="xs"><Badge variant="light" color={texto(ver).color}>{texto(ver).label}</Badge>
               <Text size="sm" c="dimmed">{ver.albaranes ? `Albarán ${ver.albaranes}` : `Entrega prevista ${fecha(ver.entrega)}`}{ver.usuario ? ` · pedido por ${ver.usuario}` : ''}</Text></Group>
             <Table>
-              <Table.Thead><Table.Tr><Table.Th>Producto</Table.Th><Table.Th className="num">Pedido</Table.Th><Table.Th className="num">Recibido</Table.Th></Table.Tr></Table.Thead>
+              <Table.Thead><Table.Tr><Table.Th>Producto</Table.Th><Table.Th className="num">Pedido</Table.Th><Table.Th className="num">Llegó (puerta)</Table.Th><Table.Th className="num">Albarán Noray</Table.Th></Table.Tr></Table.Thead>
               <Table.Tbody>{ver.lineas.map((l) => (
                 <Table.Tr key={l.producto}><Table.Td>{l.nombre}</Table.Td><Table.Td className="num">{cantidad(l.cantidad)} {l.unidad}</Table.Td>
-                  <Table.Td className="num"><Text size="sm" fw={600} c={ver.albaranes && l.recibido < l.cantidad * 0.98 ? 'red' : undefined}>{ver.albaranes ? `${cantidad(l.recibido)} ${l.unidad ?? ''}` : '—'}</Text></Table.Td></Table.Tr>
+                  <Table.Td className="num"><Text size="sm" c={l.puerta !== null && l.puerta < l.cantidad * 0.98 ? 'orange' : undefined}>{l.puerta !== null ? `${cantidad(l.puerta)} ${l.unidad ?? ''}` : '—'}</Text></Table.Td>
+                  <Table.Td className="num"><Text size="sm" fw={600} c={ver.albaranes && (l.recibido < l.cantidad * 0.98 || (l.puerta !== null && l.recibido > l.puerta * 1.02)) ? 'red' : undefined}>{ver.albaranes ? `${cantidad(l.recibido)} ${l.unidad ?? ''}` : '—'}</Text></Table.Td></Table.Tr>
               ))}</Table.Tbody>
             </Table>
             {ver.nota && <Text size="sm" c="dimmed">{ver.nota}</Text>}

@@ -92,12 +92,14 @@ def listar(con: sqlite3.Connection, dias: int = 60) -> list[dict]:
     out = []
     for p in con.execute("SELECT * FROM pedidos WHERE fecha>=? ORDER BY fecha DESC, id DESC", (desde,)).fetchall():
         albs = (p["albaranes"] or "").split(",") if p["albaranes"] else []
-        rec = _recibido(con, albs)
-        lineas = [{**dict(l), "recibido": round(rec.get(l["producto"], 0.0), 3)} for l in con.execute(
+        rec, puerta = _recibido(con, albs), en_puerta(con, p["id"])
+        lineas = [{**dict(l), "recibido": round(rec.get(l["producto"], 0.0), 3),
+                   "puerta": round(puerta[l["producto"]], 3) if l["producto"] in puerta else None} for l in con.execute(
             """SELECT l.producto, l.cantidad, pr.nombre, pr.unidad FROM pedido_lineas l LEFT JOIN productos pr ON pr.codigo=l.producto
                WHERE l.pedido_id=? ORDER BY pr.nombre""", (p["id"],))]
         retrasado = p["estado"] == "enviado" and p["entrega"] and p["entrega"] < (date.today() - timedelta(days=1)).isoformat()
-        out.append({**dict(p), "lineas": lineas, "retrasado": bool(retrasado),
+        llego = con.execute("SELECT MAX(fecha) FROM recepciones WHERE pedido_id=?", (p["id"],)).fetchone()[0]
+        out.append({**dict(p), "lineas": lineas, "retrasado": bool(retrasado), "llego": llego,
                     "faltan": sum(1 for l in lineas if albs and l["recibido"] < l["cantidad"] * MARGEN)})
     return out
 
@@ -111,3 +113,73 @@ def cerrar(con: sqlite3.Connection, pid: int, estado: str, nota: str | None, usu
     if not n:
         raise ValueError("No existe o ya está cerrado")
     con.commit()
+
+
+# ---------------------------------------------------------------- recepción en la puerta
+def en_puerta(con: sqlite3.Connection, pid: int) -> dict[str, float]:
+    return dict(con.execute("""SELECT l.producto, SUM(l.cantidad) FROM recepciones r JOIN recepcion_lineas l ON l.recepcion_id=r.id
+                               WHERE r.pedido_id=? GROUP BY 1""", (pid,)).fetchall())
+
+
+def por_recibir(con: sqlite3.Connection) -> list[dict]:
+    """Pedidos que aún esperan mercancía, con lo pedido y lo ya recibido en la puerta (sin precios: lo usa el personal)."""
+    out = []
+    for p in con.execute("SELECT id, proveedor, fecha, entrega FROM pedidos WHERE estado IN ('enviado','incompleto') ORDER BY entrega, fecha"):
+        puerta = en_puerta(con, p["id"])
+        lineas = [{**dict(l), "recibido": puerta.get(l["producto"], 0.0)} for l in con.execute(
+            """SELECT l.producto, l.cantidad pedido, pr.nombre, pr.unidad FROM pedido_lineas l LEFT JOIN productos pr ON pr.codigo=l.producto
+               WHERE l.pedido_id=? ORDER BY pr.nombre""", (p["id"],))]
+        out.append({**dict(p), "lineas": lineas})
+    return out
+
+
+def recibir(con: sqlite3.Connection, *, proveedor: str, fecha: str, lineas: list[dict], pedido_id: int | None = None,
+            usuario: str | None = None, nota: str | None = None, ref: str | None = None) -> dict:
+    """Guarda lo que llegó y lo compara con el pedido: qué falta y qué ha venido de más o sin pedir."""
+    if ref and (ya := con.execute("SELECT id, pedido_id FROM recepciones WHERE ref=?", (ref,)).fetchone()):
+        return {"id": ya["id"], **_comparar(con, ya["pedido_id"])}
+    date.fromisoformat(fecha)
+    if pedido_id is not None:
+        p = con.execute("SELECT proveedor FROM pedidos WHERE id=?", (pedido_id,)).fetchone()
+        if not p:
+            raise ValueError("El pedido no existe")
+        proveedor = p["proveedor"]
+    if not (proveedor or "").strip():
+        raise ValueError("Indica el proveedor")
+    buenas = [(l["producto"], float(l["cantidad"])) for l in lineas if l.get("cantidad") not in (None, "")]
+    if any(q < 0 for _, q in buenas):
+        raise ValueError("Una cantidad no puede ser negativa")
+    for prod, _ in buenas:
+        if not con.execute("SELECT 1 FROM productos WHERE codigo=?", (prod,)).fetchone():
+            raise ValueError(f"Producto desconocido: {prod}")
+    rid = con.execute("INSERT INTO recepciones(pedido_id, proveedor, fecha, usuario, nota, ref) VALUES(?,?,?,?,?,?)",
+                      (pedido_id, proveedor.strip(), fecha, usuario, nota, ref)).lastrowid
+    con.executemany("INSERT INTO recepcion_lineas VALUES(?,?,?)", [(rid, p, q) for p, q in buenas])
+    con.commit()
+    return {"id": rid, **(_comparar(con, pedido_id) if pedido_id else {"faltan": [], "sobran": []})}
+
+
+def _comparar(con, pid: int | None) -> dict:
+    if not pid:
+        return {"faltan": [], "sobran": []}
+    puerta = en_puerta(con, pid)
+    nombres = {r[0]: (r[1], r[2]) for r in con.execute("SELECT codigo, nombre, unidad FROM productos")}
+    pedido = dict(con.execute("SELECT producto, cantidad FROM pedido_lineas WHERE pedido_id=?", (pid,)).fetchall())
+    fila = lambda p, a, b: {"producto": p, "nombre": nombres.get(p, (p, None))[0], "unidad": nombres.get(p, (p, None))[1],
+                            "pedido": a, "recibido": b, "diferencia": round(b - a, 3)}
+    return {"faltan": [fila(p, q, puerta.get(p, 0.0)) for p, q in pedido.items() if puerta.get(p, 0.0) < q * MARGEN],
+            "sobran": [fila(p, pedido.get(p, 0.0), q) for p, q in puerta.items() if q > pedido.get(p, 0.0) * (2 - MARGEN) + 1e-9]}
+
+
+def descuadres(con: sqlite3.Connection) -> list[dict]:
+    """Albarán de Noray con más de lo que se recibió en la puerta: se pagaría lo que no llegó."""
+    out = []
+    for p in con.execute("""SELECT id, proveedor, albaranes FROM pedidos WHERE albaranes IS NOT NULL AND estado<>'anulado'
+                            AND id IN (SELECT pedido_id FROM recepciones)"""):
+        noray = _recibido(con, p["albaranes"].split(","))
+        puerta = en_puerta(con, p["id"])
+        for prod, q in noray.items():
+            if q > puerta.get(prod, 0.0) * (2 - MARGEN) + 1e-9:
+                out.append({"pedido_id": p["id"], "proveedor": p["proveedor"], "producto": prod,
+                            "albaran": round(q, 3), "puerta": round(puerta.get(prod, 0.0), 3)})
+    return out
