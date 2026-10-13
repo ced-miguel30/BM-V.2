@@ -26,7 +26,7 @@ con.executemany("INSERT INTO receta_lineas VALUES('r1', ?, ?)", [("HUEVO", 2), (
 con.commit()
 from bm import inventario  # noqa: E402
 inventario.sembrar(con)  # proveedores y almacenes de los movimientos de prueba
-for login, rol in (("dir", "direccion"), ("adm", "administracion"), ("rest", "restaurante")):
+for login, rol in (("dir", "direccion"), ("adm", "administracion"), ("rest", "restaurante"), ("coc", "cocina")):
     usuarios.guardar(con, login, login.upper(), rol, "clave-segura")
 
 
@@ -82,6 +82,16 @@ class TestFlujos(unittest.TestCase):
                                                          "lineas": [{"producto": "PAN", "contado": 7}]}).status_code, 200)
         pan = next(f for f in c.get("/api/stock?ubicacion=RESTAURANTE").json() if f["producto"] == "PAN")
         self.assertEqual(pan["stock"], 7)
+
+    def test_cocina_solo_cuenta_y_a_ciegas(self):
+        c = cliente("coc")
+        for ruta in ("/api/consumos", "/api/comandas", "/api/caducidades", "/api/traslados", "/api/recuentos", "/api/productos"):
+            self.assertEqual(c.get(ruta).status_code, 403, ruta)
+        filas = c.get("/api/stock?ubicacion=RESTAURANTE").json()
+        self.assertTrue(filas and all(set(f) == {"producto", "ubicacion", "nombre", "unidad", "zona"} for f in filas))  # sin cifras
+        self.assertEqual(c.post("/api/recuentos", json={"fecha": "2026-09-03", "ubicacion": "RESTAURANTE",
+                                                        "lineas": [{"producto": "PAN", "contado": 4}]}).status_code, 200)
+        self.assertTrue(all(a["ruta"].startswith("/recuento") for a in c.get("/api/avisos").json()))
 
     def test_cierre_para_noray_solo_gestion(self):
         self.assertEqual(cliente("rest").get("/api/cierre/noray?mes=2026-09").status_code, 403)

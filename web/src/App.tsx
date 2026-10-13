@@ -41,6 +41,7 @@ import { Comandas } from './paginas/Comandas';
 export type Usuario = { id: string; nombre: string; rol: string; login: string };
 const GESTION = ['direccion', 'administracion'];
 const TODOS = [...GESTION, 'recepcion', 'restaurante'];
+const CONTAR = [...TODOS, 'cocina']; // cocina: solo recuento
 
 const MENU = [
   { seccion: 'Operación', items: [
@@ -48,7 +49,7 @@ const MENU = [
     { to: '/registrar', label: 'Registrar consumo', icon: IconPencilPlus, roles: TODOS, el: <Registrar /> },
     { to: '/buffet', label: 'Buffet del día', icon: IconBread, roles: TODOS, el: <Buffet /> },
     { to: '/excel', label: 'Importar Excel', icon: IconFileSpreadsheet, roles: TODOS, el: <Excel /> },
-    { to: '/recuento', label: 'Recuento', icon: IconClipboardCheck, roles: TODOS, el: <Recuento /> },
+    { to: '/recuento', label: 'Recuento', icon: IconClipboardCheck, roles: CONTAR, el: <Recuento /> },
     { to: '/caducidades', label: 'Caducidades', icon: IconCalendarExclamation, roles: TODOS, el: <Caducidades /> },
     { to: '/reponer', label: 'Reponer restaurante', icon: IconStackPush, roles: TODOS, el: <Reponer /> },
     { to: '/traslados', label: 'Traslados', icon: IconArrowsExchange, roles: TODOS, el: <Traslados /> },
@@ -202,7 +203,7 @@ export function App() {
 
   const menu = MENU.map((s) => ({ ...s, items: s.items.filter((i) => i.roles.includes(usuario.rol)) })).filter((s) => s.items.length);
   const rutas = menu.flatMap((s) => s.items);
-  const inicio = rutas.some((r) => r.to === '/') ? '/' : '/comandas';
+  const inicio = rutas.some((r) => r.to === '/') ? '/' : rutas[0].to;
   const salir = async () => {
     await api('/logout', { method: 'POST' }).catch(() => null);
     await window.caches?.delete('bm-v1').catch(() => null);  // datos guardados para usar sin cobertura: no quedan en el móvil

@@ -29,6 +29,7 @@ STATIC = Path(__file__).resolve().parent / "static"
 # ---------------------------------------------------------------- sesión y permisos
 GESTION = ("direccion", "administracion")
 OPERATIVO = GESTION + ("recepcion", "restaurante")
+CONTAR = OPERATIVO + ("cocina",)  # cocina solo cuenta: no ve stock esperado, precios ni nada de gestión
 HORAS_SESION = 12
 INTENTOS_LOGIN = 10  # fallos seguidos por usuario antes de bloquear 15 minutos
 
@@ -289,7 +290,7 @@ def anular_consumo(cid: int, d: Anulacion, u: dict = Depends(requiere(*GESTION))
 
 
 @app.get("/api/catalogo")
-def catalogo(u: dict = Depends(requiere(*OPERATIVO))):
+def catalogo(u: dict = Depends(requiere(*CONTAR))):
     """Lo que se puede registrar: recetas activas y productos de alimentación/bebida."""
     return {
         "motivos": consumos.MOTIVOS_MERMA,

@@ -8,7 +8,7 @@ from datetime import date, timedelta
 from fastapi import Depends
 
 from bm import analisis, avisos, cierre, inventario, noray
-from bm.app import GESTION, OPERATIVO, _resumen, app, con, requiere, usuario
+from bm.app import CONTAR, GESTION, _resumen, app, con, requiere, usuario
 
 
 @app.get("/api/avisos")
@@ -56,9 +56,12 @@ def cierre_noray(mes: str, u: dict = Depends(requiere(*GESTION))):
 
 
 @app.get("/api/cierre/recomendados")
-def recomendados(ubicacion: str, desde: str | None = None, u: dict = Depends(requiere(*OPERATIVO))):
+def recomendados(ubicacion: str, desde: str | None = None, u: dict = Depends(requiere(*CONTAR))):
     """Fresco y caro sin contar desde `desde` (por defecto, desde el día 1 de este mes)."""
-    return cierre.recomendados(con, ubicacion, desde or date.today().replace(day=1).isoformat())
+    xs = cierre.recomendados(con, ubicacion, desde or date.today().replace(day=1).isoformat())
+    if u["rol"] not in GESTION:  # el personal ve qué contar, no cuánto espera BM ni lo que vale
+        xs = [{k: x[k] for k in ("producto", "nombre", "unidad", "motivos")} for x in xs]
+    return xs
 
 
 @app.get("/api/anomalias")

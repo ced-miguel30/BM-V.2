@@ -9,7 +9,7 @@ from fastapi import Depends, HTTPException
 from pydantic import BaseModel
 
 from bm import consumos, inventario
-from bm.app import GESTION, OPERATIVO, _error, app, con, requiere
+from bm.app import CONTAR, GESTION, OPERATIVO, _error, app, con, requiere
 
 
 @app.get("/api/centros")
@@ -18,14 +18,14 @@ def centros(u: dict = Depends(requiere(*OPERATIVO))):
 
 
 @app.get("/api/ubicaciones")
-def ubicaciones(u: dict = Depends(requiere(*OPERATIVO))):
+def ubicaciones(u: dict = Depends(requiere(*CONTAR))):
     return [dict(x) for x in con.execute(
         """SELECT u.*, (SELECT COUNT(*) FROM bc_movs m WHERE m.almacen=u.codigo) movimientos
            FROM ubicaciones u ORDER BY movimientos DESC, u.nombre""")]
 
 
 @app.get("/api/stock")
-def stock(ubicacion: str | None = None, u: dict = Depends(requiere(*OPERATIVO))):
+def stock(ubicacion: str | None = None, u: dict = Depends(requiere(*CONTAR))):
     filas = inventario.stock(con, ubicacion)
     info = {r["codigo"]: r for r in con.execute("SELECT codigo, nombre, unidad, categoria FROM productos")}
     ver_euros = u["rol"] in GESTION
@@ -44,6 +44,9 @@ def stock(ubicacion: str | None = None, u: dict = Depends(requiere(*OPERATIVO)))
             fila["valor"] = None if pu is None else round(max(f["stock"], 0) * pu, 2)
             fila["desviacion_valor"] = None if pu is None or f["desviacion"] is None else round(f["desviacion"] * pu, 2)
         out.append(fila)
+    if u["rol"] == "cocina":  # recuento a ciegas de verdad: solo qué hay que contar, sin lo que BM espera
+        out = [{k: f[k] for k in ("producto", "ubicacion", "nombre", "unidad", "zona")}
+               for f in out if f["stock"] > 1e-6 or f["salidas_desde_recuento"] > 0]
     return sorted(out, key=lambda x: (x["ubicacion"], x["nombre"]))
 
 
@@ -54,7 +57,7 @@ class Zona(BaseModel):
 
 
 @app.put("/api/zonas")
-def guardar_zona(d: Zona, u: dict = Depends(requiere(*OPERATIVO))):
+def guardar_zona(d: Zona, u: dict = Depends(requiere(*CONTAR))):
     _error(inventario.poner_zona, con, d.producto, d.ubicacion, d.zona)
     return {"ok": True}
 
@@ -73,7 +76,7 @@ class NuevoRecuento(BaseModel):
 
 
 @app.post("/api/recuentos")
-def crear_recuento(d: NuevoRecuento, u: dict = Depends(requiere(*OPERATIVO))):
+def crear_recuento(d: NuevoRecuento, u: dict = Depends(requiere(*CONTAR))):
     rid = _error(inventario.registrar_recuento, con, fecha=d.fecha, ubicacion=d.ubicacion, nota=d.nota,
                  usuario=u["nombre"], lineas=[x.model_dump() for x in d.lineas], ref=d.ref)
     return {"id": rid}
@@ -176,7 +179,7 @@ def cerrar_caducidad(cid: int, d: Cierre, u: dict = Depends(requiere(*OPERATIVO)
 
 
 @app.get("/api/codigos")
-def codigos_barras(u: dict = Depends(requiere(*OPERATIVO))):
+def codigos_barras(u: dict = Depends(requiere(*CONTAR))):
     return dict(con.execute("SELECT codigo, producto FROM codigos_barras").fetchall())
 
 
@@ -186,7 +189,7 @@ class CodigoBarras(BaseModel):
 
 
 @app.put("/api/codigos")
-def guardar_codigo(d: CodigoBarras, u: dict = Depends(requiere(*OPERATIVO))):
+def guardar_codigo(d: CodigoBarras, u: dict = Depends(requiere(*CONTAR))):
     codigo = d.codigo.strip()
     if not codigo or len(codigo) > 64:
         raise HTTPException(400, "Código no válido")

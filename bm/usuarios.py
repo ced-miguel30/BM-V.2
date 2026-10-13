@@ -9,7 +9,7 @@ import sys
 from bm import db
 from bm.passwords import hash_password
 
-ROLES = ("direccion", "administracion", "recepcion", "restaurante")
+ROLES = ("direccion", "administracion", "recepcion", "restaurante", "cocina")  # cocina: solo recuento, sin cifras
 
 
 def guardar(con, login: str, nombre: str, rol: str, password: str) -> None:

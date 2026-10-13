@@ -96,7 +96,7 @@ function Contar({ gestion }: { gestion: boolean }) {
   useEffect(() => {
     setLineas(null); setZona('todas'); setContado(ub ? leerBorrador(ub) : {});
     if (ub) api<any[]>(`/stock?ubicacion=${encodeURIComponent(ub)}`).then((xs) => {
-      const ls: Linea[] = xs.filter((x) => x.stock > 1e-6 || x.salidas_desde_recuento > 0)
+      const ls: Linea[] = xs.filter((x) => x.stock === undefined || x.stock > 1e-6 || x.salidas_desde_recuento > 0)  // cocina: ya filtrado
         .map((x) => ({ producto: x.producto, nombre: x.nombre, unidad: x.unidad, teorico: x.stock, zona: x.zona }))
         .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
       // Lo añadido a mano en un borrador anterior vuelve arriba de la lista.

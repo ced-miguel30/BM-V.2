@@ -88,4 +88,7 @@ evita duplicados. Todo exige https en producción. Pendiente de decisión: escri
    El usuario acepta la estimación de BM para lo no contado. Cierre → **Revisar** (`analisis.anomalias`): actividad de 14 días
    fuera de lo habitual (×2 o −60 %) y recuentos que no cuadran con lo gastado por recetas → contar y revisar receta.
    Siguiente paso cuando la API de BC esté activa: escribir esas líneas en el diario **sin registrar** (necesita permiso de escritura).
+11. **Perfil Cocina** (13/10): solo Recuento, a ciegas de verdad (la API no le devuelve stock esperado ni valores) y solo
+    avisos de qué contar. Usuario de pruebas `cocina` en `datos/DEV_LOGIN.txt`. Servidor: Dormakaba gestiona el Windows
+    del hotel (sistema de cerraduras): no instalar ahí sin su permiso; aplazado por el usuario.
 - Entorno: Bash corta heredocs > ~7 KB (escribir ficheros en trozos); `gh` sin sesión (CI en GitHub sin verificar).
