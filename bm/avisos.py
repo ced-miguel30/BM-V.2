@@ -117,6 +117,11 @@ def avisos(con: sqlite3.Connection, rol: str) -> list[dict]:
                 nombre = con.execute("SELECT nombre FROM ubicaciones WHERE codigo=?", (ub,)).fetchone()[0]
                 aviso("media", f"Contar {n} productos frescos o caros en {nombre}", "Poco a poco antes del cierre del mes; lo demás lo calcula BM",
                       f"/recuento?ubicacion={ub}&recomendados=1")
+    if rol == "jefe":
+        equipo = con.execute("SELECT COUNT(*) FROM solicitudes WHERE estado='pendiente' AND para='jefe'").fetchone()[0]
+        if equipo:
+            aviso("alta", f"{equipo} {'aviso' if equipo == 1 else 'avisos'} del equipo", "Algo queda poco o recomiendan pedirlo",
+                  "/pedir?vista=equipo")
     suyos = {"cocina": ("/recuento", "/caducidades", "/reponer"), "comandero": ("/comandas", "/buffet")}.get(rol)
     if suyos:  # cada perfil solo ve los avisos de lo que hace
         out = [x for x in out if x["ruta"].startswith(suyos)]

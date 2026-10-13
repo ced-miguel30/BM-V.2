@@ -6,7 +6,7 @@ from fastapi import Depends, HTTPException
 from pydantic import BaseModel
 
 from bm import pedidos as pedidos_mod, permisos, prevision, solicitudes
-from bm.app import EQUIPO, GESTION, JEFE, _error, app, con, permiso, requiere, ve_euros
+from bm.app import EQUIPO, GESTION, JEFE, _error, app, con, requiere, ve_euros
 
 
 @app.get("/api/prevision/pedidos")
@@ -134,25 +134,35 @@ def pedidos_directos(u: dict = Depends(requiere(*JEFE))):
 
 class LineaSolicitud(BaseModel):
     producto: str
-    cantidad: float
+    cantidad: float | None = None
 
 
 class NuevaSolicitud(BaseModel):
     lineas: list[LineaSolicitud]
     nota: str | None = None
+    para: str = "administracion"  # administracion (el jefe pide) | jefe (el equipo avisa)
+    tipo: str = "pedido"           # pedido | queda_poco
 
 
 @app.post("/api/solicitudes")
-def crear_solicitud(d: NuevaSolicitud, u: dict = Depends(permiso("solicitar"))):
-    return {"id": _error(solicitudes.crear, con, lineas=[x.model_dump() for x in d.lineas], nota=d.nota, usuario=u["nombre"])}
+def crear_solicitud(d: NuevaSolicitud, u: dict = Depends(requiere(*EQUIPO))):
+    if d.para == "administracion" and "solicitar" not in permisos.de(con, u["rol"]):
+        raise HTTPException(403, "Sin permiso para pedir a administración: avisa al jefe de restaurante")
+    return {"id": _error(solicitudes.crear, con, lineas=[x.model_dump() for x in d.lineas], nota=d.nota, usuario=u["nombre"],
+                         para=d.para, tipo=d.tipo)}
 
 
 @app.get("/api/solicitudes")
-def listar_solicitudes(u: dict = Depends(requiere(*JEFE))):
-    """Administración ve todas las que le llegan; el jefe, las suyas y cómo están."""
-    if u["rol"] in GESTION:
+def listar_solicitudes(de: str | None = None, u: dict = Depends(requiere(*EQUIPO))):
+    """de=mias (las que hice), equipo (avisos del equipo al jefe), administracion (las que llegan a administración)."""
+    de = de or ("administracion" if u["rol"] in GESTION else "mias")
+    if de == "administracion" and u["rol"] in GESTION:
         return solicitudes.listar(con, para="administracion")
-    return solicitudes.listar(con, usuario=u["nombre"])
+    if de == "equipo" and u["rol"] in JEFE:
+        return solicitudes.listar(con, para="jefe")
+    if de == "mias":
+        return solicitudes.listar(con, usuario=u["nombre"])
+    raise HTTPException(403, "Sin permiso para esta acción")
 
 
 class Respuesta(BaseModel):
@@ -161,6 +171,8 @@ class Respuesta(BaseModel):
 
 
 @app.post("/api/solicitudes/{sid}/responder")
-def responder_solicitud(sid: int, d: Respuesta, u: dict = Depends(requiere(*GESTION))):
+def responder_solicitud(sid: int, d: Respuesta, u: dict = Depends(requiere(*JEFE))):
+    if solicitudes.para_de(con, sid) == "administracion" and u["rol"] not in GESTION:
+        raise HTTPException(403, "Sin permiso para esta acción")  # el jefe solo responde los avisos de su equipo
     _error(solicitudes.responder, con, sid, d.estado, d.respuesta, u["nombre"])
     return {"ok": True}

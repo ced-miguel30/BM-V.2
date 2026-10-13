@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Badge, Button, Card, Group, Select, Stack, Text } from '@mantine/core';
-import { api, avisoError } from '../api';
+import { api, avisoError, avisoOk } from '../api';
 import { Cabecera, Vacio } from '../comun';
 import { nombreUbicacion, useUbicaciones } from '../centros';
 import { cantidad, euros, fecha } from '../formato';
@@ -21,7 +21,17 @@ export function Consulta() {
   const producto = params.get('producto');
   const [productos, setProductos] = useState<Producto[]>([]);
   const [f, setF] = useState<Ficha | null>(null);
-  useEffect(() => { api<{ productos: Producto[] }>('/catalogo').then((c) => setProductos(c.productos)).catch(avisoError); }, []);
+  const [rol, setRol] = useState('');
+  useEffect(() => {
+    api<{ productos: Producto[] }>('/catalogo').then((c) => setProductos(c.productos)).catch(avisoError);
+    api<{ rol: string }>('/me').then((u) => setRol(u.rol)).catch(() => null);
+  }, []);
+  const quedaPoco = async () => {  // atajo: tras escanear, avisar al jefe sin rellenar nada
+    try {
+      await api('/solicitudes', { body: { para: 'jefe', tipo: 'queda_poco', lineas: [{ producto }] } });
+      avisoOk('El jefe de restaurante lo verá en sus avisos', `Aviso enviado: queda poco ${f?.nombre ?? ''}`);
+    } catch (e) { avisoError(e); }
+  };
   useEffect(() => { setF(null); if (producto) api<Ficha>(`/consulta/${encodeURIComponent(producto)}`).then(setF).catch(avisoError); }, [producto]);
   const elegir = (p: string | null) => p && setParams({ producto: p });
 
@@ -38,6 +48,7 @@ export function Consulta() {
           <Card>
             <Text fw={700} fz="lg">{f.nombre}</Text>
             <Text size="sm" c="dimmed">{f.codigo} · {f.unidad ?? 'ud'}{f.codigos.length ? ` · códigos de barras: ${f.codigos.join(', ')}` : ''}</Text>
+            {rol === 'cocina' && <Button mt="sm" variant="light" color="orange" onClick={quedaPoco}>Avisar al jefe: queda poco</Button>}
             {f.precio !== null && (
               <Text size="sm" mt={4}>Precio: <b>{euros(f.precio)}</b> / {f.unidad ?? 'ud'}
                 {f.ultima_compra && <> · última compra {fecha(f.ultima_compra.fecha)} a {f.ultima_compra.proveedor}</>}</Text>

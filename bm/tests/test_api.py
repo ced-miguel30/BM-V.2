@@ -133,6 +133,23 @@ class TestFlujos(unittest.TestCase):
         self.assertEqual(jefe.get("/api/pedidos/directos").json()["proveedores"], [prov])
         adm.put("/api/config/pedido-directo", json={"rol": "jefe", "proveedores": []})
 
+    def test_cocina_avisa_al_jefe_de_lo_que_queda_poco(self):
+        coc, jefe, adm = cliente("coc"), cliente("rest"), cliente("adm")
+        poco = coc.post("/api/solicitudes", json={"para": "jefe", "tipo": "queda_poco", "lineas": [{"producto": "PAN", "cantidad": 0}]})
+        self.assertEqual(poco.status_code, 200)  # «no queda ninguno» también vale
+        coc.post("/api/solicitudes", json={"para": "jefe", "tipo": "pedido", "lineas": [{"producto": "HUEVO"}]})  # sin cantidad: no es pedido
+        self.assertEqual(coc.post("/api/solicitudes", json={"lineas": [{"producto": "PAN", "cantidad": 3}]}).status_code, 403)  # a admin no
+        equipo = jefe.get("/api/solicitudes?de=equipo").json()
+        self.assertEqual([s["tipo"] for s in equipo], ["queda_poco"])
+        self.assertTrue(any("del equipo" in a["titulo"] for a in jefe.get("/api/avisos").json()))
+        self.assertEqual(coc.get("/api/solicitudes?de=equipo").status_code, 403)
+        self.assertEqual(jefe.post(f"/api/solicitudes/{equipo[0]['id']}/responder", json={"estado": "pedida"}).status_code, 400)
+        jefe.post(f"/api/solicitudes/{equipo[0]['id']}/responder", json={"estado": "atendida", "respuesta": "pedido a administración"})
+        self.assertEqual(coc.get("/api/solicitudes").json()[0]["estado"], "atendida")  # quien avisó ve cómo quedó
+        mia = jefe.post("/api/solicitudes", json={"lineas": [{"producto": "PAN", "cantidad": 3}]}).json()["id"]
+        self.assertEqual(jefe.post(f"/api/solicitudes/{mia}/responder", json={"estado": "pedida"}).status_code, 403)  # no se responde a sí mismo
+        self.assertEqual(adm.post(f"/api/solicitudes/{mia}/responder", json={"estado": "pedida"}).status_code, 200)
+
     def test_comandero_solo_comandas(self):
         c = cliente("com")
         self.assertEqual(c.get("/api/comandas").status_code, 200)

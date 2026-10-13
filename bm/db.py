@@ -296,14 +296,15 @@ CREATE TABLE IF NOT EXISTS pedido_lineas(
   PRIMARY KEY(pedido_id, producto)
 );
 
--- Solicitudes de pedido: el jefe pide a administración (y, más adelante, el equipo al jefe). Administración
--- responde (pedida / rechazada); el pedido de verdad se hace aparte, por el flujo normal de Pedidos.
+-- Solicitudes: el jefe pide a administración (responde pedida / rechazada) y el equipo avisa al jefe de lo que queda
+-- poco o recomienda pedir (responde atendida / descartada). El pedido de verdad se hace aparte, por Pedidos.
 CREATE TABLE IF NOT EXISTS solicitudes(
   id INTEGER PRIMARY KEY,
   creado TEXT NOT NULL DEFAULT (datetime('now', 'localtime')),
   usuario TEXT,
-  para TEXT NOT NULL DEFAULT 'administracion',
-  estado TEXT NOT NULL DEFAULT 'pendiente',  -- pendiente | pedida | rechazada
+  para TEXT NOT NULL DEFAULT 'administracion',  -- administracion | jefe
+  tipo TEXT NOT NULL DEFAULT 'pedido',          -- pedido | queda_poco
+  estado TEXT NOT NULL DEFAULT 'pendiente',     -- pendiente | pedida | rechazada | atendida | descartada
   nota TEXT,
   respuesta TEXT,
   respondido TEXT,
@@ -312,7 +313,7 @@ CREATE TABLE IF NOT EXISTS solicitudes(
 CREATE TABLE IF NOT EXISTS solicitud_lineas(
   solicitud_id INTEGER NOT NULL REFERENCES solicitudes(id) ON DELETE CASCADE,
   producto TEXT NOT NULL REFERENCES productos(codigo),
-  cantidad REAL NOT NULL CHECK(cantidad > 0),
+  cantidad REAL CHECK(cantidad IS NULL OR cantidad >= 0),  -- pedido: cuánto pedir; queda_poco: cuánto queda (si se sabe)
   PRIMARY KEY(solicitud_id, producto)
 );
 
@@ -440,6 +441,9 @@ def _migrar(con: sqlite3.Connection) -> None:
     con.execute("UPDATE usuarios SET rol='jefe' WHERE rol='restaurante'")
     con.execute("UPDATE usuarios SET rol='comandero' WHERE rol='recepcion'")
     con.commit()
+    if "tipo" not in {r[1] for r in con.execute("PRAGMA table_info(solicitudes)")}:  # versión del 13/10 sin uso real
+        con.executescript("DROP TABLE IF EXISTS solicitud_lineas; DROP TABLE IF EXISTS solicitudes;")
+        con.executescript(SCHEMA)
     if "ref" not in {r[1] for r in con.execute("PRAGMA table_info(recuentos)")}:  # id del móvil: un reenvío no duplica
         con.execute("ALTER TABLE recuentos ADD COLUMN ref TEXT")
         con.execute("CREATE UNIQUE INDEX IF NOT EXISTS recuentos_ref ON recuentos(ref)")

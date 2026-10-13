@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ActionIcon, Alert, Button, Card, Group, NumberInput, Select, Stack, Tabs, Text, Textarea } from '@mantine/core';
 import { IconSend, IconTrash } from '@tabler/icons-react';
 import { api, avisoError, avisoOk } from '../api';
@@ -15,10 +16,14 @@ export function Pedir() {
   const [nota, setNota] = useState('');
   const [enviando, setEnviando] = useState(false);
   const [mias, setMias] = useState<Solicitud[] | null>(null);
+  const [equipo, setEquipo] = useState<Solicitud[] | null>(null);
+  const [params, setParams] = useSearchParams();
+  const vista = params.get('vista') ?? 'solicitar';
   const [directos, setDirectos] = useState<{ proveedores: string[] | null; pedidos: Pedido[] } | null>(null);
 
   const cargar = () => {
     api<Solicitud[]>('/solicitudes').then(setMias).catch(avisoError);
+    api<Solicitud[]>('/solicitudes?de=equipo').then(setEquipo).catch(avisoError);
     api<typeof directos>('/pedidos/directos').then(setDirectos).catch(avisoError);
   };
   useEffect(() => { cargar(); api<{ productos: Producto[] }>('/catalogo').then((c) => setProductos(c.productos)).catch(avisoError); }, []);
@@ -39,16 +44,30 @@ export function Pedir() {
     } catch (e) { avisoError(e); } finally { setEnviando(false); }
   };
   const listas = Object.values(lineas).filter((q) => Number(q) > 0).length;
+  // Avisos del equipo: o se pasan al pedido a administración (o directo), o se descartan. Quien avisó ve qué se hizo.
+  const responder = async (s: Solicitud, estado: 'atendida' | 'descartada', respuesta: string) => {
+    try { await api(`/solicitudes/${s.id}/responder`, { body: { estado, respuesta } }); cargar(); } catch (e) { avisoError(e); }
+  };
+  const alPedido = (s: Solicitud) => {
+    const nuevas = { ...lineas };
+    for (const l of s.lineas) if (nuevas[l.producto] === undefined) nuevas[l.producto] = s.tipo === 'pedido' && l.cantidad ? l.cantidad : '';
+    setLineas(nuevas);
+    responder(s, 'atendida', 'Lo he pasado al pedido');
+    setParams({ vista: 'solicitar' });
+    avisoOk('Revisa las cantidades y envíalo a administración', 'Añadido a tu pedido');
+  };
+  const avisosEquipo = equipo?.filter((s) => s.estado === 'pendiente').length ?? 0;
   const pendientes = mias?.filter((s) => s.estado === 'pendiente').length ?? 0;
   const autorizados = directos?.proveedores ?? [];
 
   return (
     <>
       <Cabecera titulo="Pedir" subtitulo="Pide a administración lo que necesitas, o haz tú el pedido a los proveedores que te han autorizado" />
-      <Tabs defaultValue="solicitar">
+      <Tabs value={vista} onChange={(v) => v && setParams({ vista: v })}>
         <Tabs.List mb="md">
           <Tabs.Tab value="solicitar">Pedir a administración</Tabs.Tab>
-          <Tabs.Tab value="mias">Mis solicitudes{pendientes ? ` (${pendientes} pendientes)` : ''}</Tabs.Tab>
+          <Tabs.Tab value="equipo" color="orange">Del equipo{avisosEquipo ? ` (${avisosEquipo})` : ''}</Tabs.Tab>
+          <Tabs.Tab value="mias">Mis solicitudes{pendientes ? ` (${pendientes} ${pendientes === 1 ? 'pendiente' : 'pendientes'})` : ''}</Tabs.Tab>
           {autorizados.length > 0 && <Tabs.Tab value="directo">Pedido directo ({autorizados.length})</Tabs.Tab>}
         </Tabs.List>
         <Tabs.Panel value="solicitar">
@@ -74,6 +93,15 @@ export function Pedir() {
             <Textarea label="Nota para administración (opcional)" placeholder="Para el fin de semana, evento del sábado…" value={nota} onChange={(e) => setNota(e.currentTarget.value)} autosize minRows={2} />
             <Group justify="flex-end"><Button leftSection={<IconSend size={16} />} onClick={enviar} loading={enviando} disabled={!listas}>Enviar a administración</Button></Group>
           </Stack>
+        </Tabs.Panel>
+        <Tabs.Panel value="equipo">
+          <ListaSolicitudes lista={equipo} acciones={(s) => (
+            <>
+              <Button size="xs" onClick={() => alPedido(s)}>Pasar a mi pedido</Button>
+              <Button size="xs" variant="light" color="teal" onClick={() => responder(s, 'atendida', 'Ya está pedido')}>Ya está pedido</Button>
+              <Button size="xs" variant="subtle" color="gray" onClick={() => responder(s, 'descartada', 'No hace falta por ahora')}>No hace falta</Button>
+            </>
+          )} />
         </Tabs.Panel>
         <Tabs.Panel value="mias"><ListaSolicitudes lista={mias} /></Tabs.Panel>
         <Tabs.Panel value="directo">

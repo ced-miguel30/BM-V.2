@@ -106,6 +106,8 @@ evita duplicados. Todo exige https en producción. Pendiente de decisión: escri
     Endpoints con `permiso("clave")`; cifras en euros con `ve_euros(u)`; `/api/me` devuelve `permisos` y el menú los usa.
     **Pedir** (`/pedir`, `bm/solicitudes.py`): el jefe envía solicitudes a administración (Pedidos → Solicitudes, aviso alto;
     responde «pedido» o «rechazada» con motivo) y hace él el pedido solo a los proveedores que administración le autorice
-    (Configuración → Permisos, `ajustes.pedido_directo`; `/api/pedidos` lo comprueba). Siguiente: cocina avisa de stock bajo y
-    recomienda pedido al jefe (`solicitudes.para='jefe'` ya existe); comandero digital en móviles de empresa.
+    (Configuración → Permisos, `ajustes.pedido_directo`; `/api/pedidos` lo comprueba).
+    **Avisar al jefe** (`/avisar`, solo cocina; atajo en Consultar): «queda poco» (cantidad opcional) o «recomiendo pedir»;
+    `solicitudes.para='jefe'`, `tipo`. El jefe los ve en Pedir → Del equipo (aviso alto): pasar a su pedido, ya pedido o no
+    hace falta; quien avisó ve la respuesta. Siguiente: comandero digital en móviles de empresa.
 - Entorno: Bash corta heredocs > ~7 KB (escribir ficheros en trozos); `gh` sin sesión (CI en GitHub sin verificar).

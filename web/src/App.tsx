@@ -5,7 +5,7 @@ import { Alert,
   PasswordInput, ScrollArea, Stack, Text, TextInput, Title, Tooltip, useMantineColorScheme,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconEye,  IconScan,
+import { IconSpeakerphone, IconEye,  IconScan,
   IconArrowsExchange, IconBook2, IconBuildingWarehouse, IconCalendarExclamation, IconChartBar, IconClipboardCheck,
   IconCloudUpload, IconFileSpreadsheet, IconListDetails, IconLogout, IconMoon, IconPackages, IconPencilPlus,
   IconReceipt2, IconSun, IconChartDots, IconScale, IconTrendingUp, IconSettings, IconKey, IconTruckDelivery, IconShoppingCart, IconStackPush, IconBread, IconTrashX, IconBell, IconCalendarCheck, IconToolsKitchen2,
@@ -26,6 +26,7 @@ import { Recuento } from './paginas/Recuento';
 import { Consulta } from './paginas/Consulta';
 import { Recibir } from './paginas/Recibir';
 import { Pedir } from './paginas/Pedir';
+import { Avisar } from './paginas/Avisar';
 import { Traslados } from './paginas/Traslados';
 import { Caducidades } from './paginas/Caducidades';
 import { Rentabilidad } from './paginas/Rentabilidad';
@@ -57,6 +58,7 @@ const MENU = [
     { to: '/excel', label: 'Importar Excel', icon: IconFileSpreadsheet, roles: GESTION, el: <Excel /> },
     { to: '/recuento', label: 'Recuento', icon: IconClipboardCheck, roles: EQUIPO, el: <Recuento /> },
     { to: '/pedir', label: 'Pedir', icon: IconShoppingCart, roles: ['jefe'], permisos: ['solicitar'], ambos: true, el: <Pedir /> },
+    { to: '/avisar', label: 'Avisar al jefe', icon: IconSpeakerphone, roles: ['cocina'], el: <Avisar /> },
     { to: '/recibir', label: 'Recibir mercancía', icon: IconTruckDelivery, roles: EQUIPO, el: <Recibir /> },
     { to: '/consulta', label: 'Consultar producto', icon: IconScan, roles: EQUIPO, el: <Consulta /> },
     { to: '/caducidades', label: 'Caducidades', icon: IconCalendarExclamation, roles: EQUIPO, el: <Caducidades /> },
