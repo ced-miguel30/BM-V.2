@@ -8,6 +8,7 @@ import { nombreUbicacion, useUbicaciones } from '../centros';
 import { cantidad, fecha, hoy } from '../formato';
 import { imprimirEtiqueta, type DatosEtiqueta } from '../etiqueta';
 import { Tabla } from '../Tabla';
+import { BotonEscanear } from '../EscanearProducto';
 
 type Cad = { id: number; producto: string; nombre: string; unidad: string | null; ubicacion: string | null; cantidad: number;
   caduca: string; dias: number; nota: string | null; usuario: string | null; estado: string; cerrado: string | null; creado: string };
@@ -61,6 +62,7 @@ export function Caducidades() {
               <Text fw={600}>Nueva caducidad</Text>
               <Select label="Producto" searchable limit={60} value={form.producto} onChange={(x) => setForm({ ...form, producto: x })}
                 data={productos.map((p) => ({ value: p.codigo, label: `${p.nombre} (${p.unidad ?? 'ud'})` }))} />
+              <BotonEscanear productos={productos} texto="Escanear el envase" elegido={(p) => setForm((f) => ({ ...f, producto: p }))} />
               <Select label="Ubicación" searchable value={form.ubicacion} onChange={(x) => setForm({ ...form, ubicacion: x })}
                 data={ubicaciones.map((u) => ({ value: u.codigo, label: u.nombre }))} />
               <Group grow>

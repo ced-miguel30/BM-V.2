@@ -8,6 +8,7 @@ import { api, avisoError, avisoOk } from '../api';
 import { Cabecera, Vacio } from '../comun';
 import { cantidad, hoy } from '../formato';
 import { useCentros, useUbicaciones } from '../centros';
+import { BotonEscanear } from '../EscanearProducto';
 
 type Catalogo = {
   recetas: { id: string; nombre: string; servicio: string | null }[];
@@ -131,6 +132,10 @@ export function Registrar() {
               <NumberInput ref={cantRef} label={sel ? `Cantidad (${info(sel).unidad})` : 'Cantidad'} value={cant} onChange={setCant}
                 min={0} decimalScale={3} w={160} onKeyDown={(e) => e.key === 'Enter' && anadir()} />
               <Button leftSection={<IconPlus size={16} />} onClick={anadir} disabled={!sel}>Añadir</Button>
+              <BotonEscanear productos={cat?.productos ?? []} elegido={(p) => {
+                if (!cat?.productos.some((x) => x.codigo === p)) { avisoError(new Error('Ese producto no está entre los de consumo (alimentación y bebida)')); return; }
+                setSel(`p:${p}`); setTimeout(() => cantRef.current?.select(), 50);
+              }} />
             </Group>
 
             {items.length ? (
