@@ -69,5 +69,7 @@ Pendiente para la puesta en marcha: carga de datos frescos, pruebas con el perso
 - [x] PVP objetivo por plato y aviso de subidas en ingredientes de carta
 - [x] Etiquetas de caducidad
 - [x] Recuento con escáner de códigos de barras
+- [x] Recuento como app en el móvil (Android e iPhone): instalable, modo escáner, sin cobertura con envío posterior
+- [ ] Recuento → Noray (BC): decidir API o fichero para administración
 - [ ] Conexión directa con la API de BC (necesita aplicación de servicio en BC)
 - [ ] Coste por habitación ocupada (necesita la ocupación diaria)

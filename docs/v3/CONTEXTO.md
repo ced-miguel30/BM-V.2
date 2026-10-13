@@ -53,7 +53,14 @@ recuento (USB/Bluetooth siempre; cámara solo con https). Paleta de gráficos el
 (tenant 980048cf-…, cliente 1140153d-…), permiso API.ReadWrite.All añadido, **falta el consentimiento de administrador**,
 el secreto, el alta en BC (Aplicaciones de Microsoft Entra, D365 READ) y publicar páginas 38/31/líneas factura como OData.
 **Servidor: en la nube**, accesible desde los PCs → necesita https (también hace falta para la cámara del móvil).
-Copia secundaria: "otra carpeta". Prueba con personal cuando todo esté perfecto; después, datos frescos.
+Copia secundaria: "otra carpeta".
+
+13/10/2026 — **recuento en el móvil como app**: BM es instalable (PWA: `web/public/manifest.json`, iconos, `sw.js`); abre sin
+cobertura con los últimos datos vistos. Lector de códigos propio (zxing en wasm, servido por BM) cuando el navegador no
+trae BarcodeDetector → funciona en iPhone. **Modo escáner** (`web/src/ModoEscaner.tsx`): cámara abierta, escanear →
+cantidad → Siguiente, zona elegida (se aprende sola), lista de lo que falta, sumar/sustituir, productos sin código.
+Recuentos sin cobertura quedan en cola en el móvil (`web/src/pendientes.ts`) y se envían solos al volver; `recuentos.ref`
+evita duplicados. Todo exige https en producción. Pendiente de decisión: escribir el recuento en Noray (ver abajo, punto 10). Prueba con personal cuando todo esté perfecto; después, datos frescos.
 
 ## Pendiente de revisar por el usuario
 1. **TPV (47 sin asignar):** las sugerencias ya son fiables, pero revisar: *Pescado del día* (sugiere caldo de
@@ -73,4 +80,6 @@ Copia secundaria: "otra carpeta". Prueba con personal cuando todo esté perfecto
    exportar Excel. Sería lo que más trabajo quita; requiere usuario/permiso de servicio en BC.
 9. Sigue faltando: export "Líneas factura compra registradas", contactos de proveedores, datos frescos, prueba con
    el personal, `instalar\instalar.ps1` en el servidor.
+10. **Recuento → Noray (BC):** opciones explicadas al usuario el 13/10 (escribir en el diario de inventario físico por API,
+   o fichero para que administración lo importe). Falta su decisión; la API de BC sigue a la espera del administrador.
 - Entorno: Bash corta heredocs > ~7 KB (escribir ficheros en trozos); `gh` sin sesión (CI en GitHub sin verificar).
