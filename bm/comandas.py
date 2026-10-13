@@ -120,6 +120,28 @@ def anadir(con, *, fecha: str, nombre: str, cantidad: float = 1, extras=(), omit
     return lid
 
 
+def enviar_mesa(con, *, fecha: str, mesa: str | None, lineas: list[dict], usuario: str | None = None, ref: str | None = None) -> int:
+    """Comandero digital: la comanda entera de una mesa de una vez. Con `ref`, un reenvío sin cobertura no duplica."""
+    if ref and con.execute("SELECT 1 FROM comanda_lineas WHERE ref=? LIMIT 1", (ref,)).fetchone():
+        return 0
+    f = date.fromisoformat(fecha)
+    res = excel.Resolver(con)
+    filas = []
+    for l in lineas:
+        q = float(l.get("cantidad") or 1)
+        if q <= 0:
+            raise ValueError("Cantidad mayor que 0")
+        extras, omitir = [tuple(x) for x in l.get("extras", [])], list(l.get("omitir", []))
+        res.fila(_fila(res, f, 0, l["nombre"], q, extras, omitir))  # si algo no se entiende, no se apunta nada
+        filas.append((fecha, l["nombre"], q, json.dumps([list(x) for x in extras], ensure_ascii=False),
+                      json.dumps(omitir, ensure_ascii=False), usuario, (mesa or "").strip()[:20] or None, ref))
+    if not filas:
+        raise ValueError("La comanda está vacía")
+    con.executemany("INSERT INTO comanda_lineas(fecha, nombre, cantidad, extras, omitir, usuario, mesa, ref) VALUES(?,?,?,?,?,?,?,?)", filas)
+    regenerar(con, fecha)
+    return len(filas)
+
+
 def quitar(con, lid: int) -> None:
     r = con.execute("SELECT fecha FROM comanda_lineas WHERE id=? AND anulada=0", (lid,)).fetchone()
     if not r:

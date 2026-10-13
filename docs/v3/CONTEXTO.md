@@ -109,5 +109,8 @@ evita duplicados. Todo exige https en producción. Pendiente de decisión: escri
     (Configuración → Permisos, `ajustes.pedido_directo`; `/api/pedidos` lo comprueba).
     **Avisar al jefe** (`/avisar`, solo cocina; atajo en Consultar): «queda poco» (cantidad opcional) o «recomiendo pedir»;
     `solicitudes.para='jefe'`, `tipo`. El jefe los ve en Pedir → Del equipo (aviso alto): pasar a su pedido, ya pedido o no
-    hace falta; quien avisó ve la respuesta. Siguiente: comandero digital en móviles de empresa.
+    hace falta; quien avisó ve la respuesta.
+    **Comandero** (`/comandero`, móvil): mesa o habitación, platos con un toque (personalizar igual que Comandas), cesta y
+    «Enviar mesa» → `POST /api/comandas/mesa` (`comandas.enviar_mesa`, idempotente por `ref`; sin cobertura va a la cola).
+    `comanda_lineas.mesa`. Comandas (PC) queda para jefe y gestión. Pendiente: pantalla de cocina con las mesas pendientes.
 - Entorno: Bash corta heredocs > ~7 KB (escribir ficheros en trozos); `gh` sin sesión (CI en GitHub sin verificar).

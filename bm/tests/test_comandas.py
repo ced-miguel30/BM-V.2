@@ -31,6 +31,19 @@ class TestComandas(unittest.TestCase):
         comandas.anadir(con, fecha=HOY, nombre="Desayuno ingles")
         self.assertEqual(comandas.dia(con, HOY)["comensales"], 3)
 
+    def test_comandero_envia_la_mesa_entera_una_sola_vez(self):
+        con = _base()
+        con.execute("UPDATE recetas SET servicio='desayuno' WHERE id='r1'")  # cada plato de desayuno es un huésped
+        mesa = [{"nombre": "Desayuno ingles", "extras": [["Bacon", 1]]}, {"nombre": "Desayuno ingles", "omitir": ["Sin huevo"]}]
+        self.assertEqual(comandas.enviar_mesa(con, fecha=HOY, mesa="12", lineas=mesa, ref="movil-7"), 2)
+        self.assertEqual(comandas.enviar_mesa(con, fecha=HOY, mesa="12", lineas=mesa, ref="movil-7"), 0)  # reenvío sin cobertura
+        d = comandas.dia(con, HOY)
+        self.assertEqual(([l["mesa"] for l in d["lineas"]], d["comensales"]), (["12", "12"], 2))
+        self.assertEqual(self._total(con)["BACON"], 0.055)  # 2 x 0,02 de ficha + 0,015 de extra
+        with self.assertRaises(ValueError):  # un plato que no se entiende: no se apunta nada de la mesa
+            comandas.enviar_mesa(con, fecha=HOY, mesa="3", lineas=[{"nombre": "Desayuno ingles"}, {"nombre": "Plato inventado"}])
+        self.assertEqual(len(comandas.dia(con, HOY)["lineas"]), 2)
+
     def test_plato_desconocido_no_se_apunta(self):
         con = _base()
         with self.assertRaises(ValueError):

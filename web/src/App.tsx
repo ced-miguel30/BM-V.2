@@ -5,7 +5,7 @@ import { Alert,
   PasswordInput, ScrollArea, Stack, Text, TextInput, Title, Tooltip, useMantineColorScheme,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { IconSpeakerphone, IconEye,  IconScan,
+import { IconDeviceMobile, IconSpeakerphone, IconEye,  IconScan,
   IconArrowsExchange, IconBook2, IconBuildingWarehouse, IconCalendarExclamation, IconChartBar, IconClipboardCheck,
   IconCloudUpload, IconFileSpreadsheet, IconListDetails, IconLogout, IconMoon, IconPackages, IconPencilPlus,
   IconReceipt2, IconSun, IconChartDots, IconScale, IconTrendingUp, IconSettings, IconKey, IconTruckDelivery, IconShoppingCart, IconStackPush, IconBread, IconTrashX, IconBell, IconCalendarCheck, IconToolsKitchen2,
@@ -27,6 +27,7 @@ import { Consulta } from './paginas/Consulta';
 import { Recibir } from './paginas/Recibir';
 import { Pedir } from './paginas/Pedir';
 import { Avisar } from './paginas/Avisar';
+import { Comandero } from './paginas/Comandero';
 import { Traslados } from './paginas/Traslados';
 import { Caducidades } from './paginas/Caducidades';
 import { Rentabilidad } from './paginas/Rentabilidad';
@@ -52,7 +53,8 @@ const TODOS = [...EQUIPO, 'comandero'];
 
 const MENU = [
   { seccion: 'Operación', items: [
-    { to: '/comandas', label: 'Comandas desayuno', icon: IconToolsKitchen2, roles: COMANDAS, permisos: ['comandas'], el: <Comandas /> },
+    { to: '/comandas', label: 'Comandas desayuno', icon: IconToolsKitchen2, roles: JEFE, permisos: ['comandas'], el: <Comandas /> },
+    { to: '/comandero', label: 'Comandero (móvil)', icon: IconDeviceMobile, roles: COMANDAS, permisos: ['comandas'], el: <Comandero /> },
     { to: '/registrar', label: 'Registrar consumo', icon: IconPencilPlus, roles: EQUIPO, el: <Registrar /> },
     { to: '/buffet', label: 'Buffet del día', icon: IconBread, roles: TODOS, el: <Buffet /> },
     { to: '/excel', label: 'Importar Excel', icon: IconFileSpreadsheet, roles: GESTION, el: <Excel /> },
@@ -94,7 +96,7 @@ const ROL: Record<string, string> = {
   direccion: 'Dueño', administracion: 'Administración', jefe: 'Jefe de restaurante', cocina: 'Cocina y sala', comandero: 'Comandero',
 };
 // Pantalla con la que empieza cada perfil (si no la tiene, la primera de su menú).
-const INICIO: Record<string, string> = { direccion: '/', administracion: '/', jefe: '/recuento', cocina: '/recuento', comandero: '/comandas' };
+const INICIO: Record<string, string> = { direccion: '/', administracion: '/', jefe: '/recuento', cocina: '/recuento', comandero: '/comandero' };
 const cambiarVista = (rol: string | null) => {
   try { if (rol) localStorage.setItem('bm.verComo', rol); else localStorage.removeItem('bm.verComo'); } catch { /* sin almacenamiento */ }
   window.location.href = '/';  // empezar limpio, con el menú y la pantalla de inicio de ese perfil

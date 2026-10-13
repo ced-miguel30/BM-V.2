@@ -30,6 +30,27 @@ def anadir(d: Linea, u: dict = Depends(permiso("comandas", "jefe", "comandero"))
     return comandas.dia(con, d.fecha) | {"id": lid}
 
 
+class Plato(BaseModel):
+    nombre: str
+    cantidad: float = 1
+    extras: list[tuple[str, float]] = []
+    omitir: list[str] = []
+
+
+class Mesa(BaseModel):
+    fecha: str
+    mesa: str | None = None
+    ref: str | None = None
+    lineas: list[Plato]
+
+
+@app.post("/api/comandas/mesa")
+def enviar_mesa(d: Mesa, u: dict = Depends(permiso("comandas", "jefe", "comandero"))):
+    n = _error(comandas.enviar_mesa, con, fecha=d.fecha, mesa=d.mesa, ref=d.ref, usuario=u["nombre"],
+               lineas=[x.model_dump() for x in d.lineas])
+    return comandas.dia(con, d.fecha) | {"apuntadas": n}
+
+
 @app.delete("/api/comandas/{lid}")
 def quitar(lid: int, u: dict = Depends(permiso("comandas", "jefe", "comandero"))):
     fecha = con.execute("SELECT fecha FROM comanda_lineas WHERE id=?", (lid,)).fetchone()

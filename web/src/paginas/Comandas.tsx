@@ -8,13 +8,13 @@ import { api, avisoError } from '../api';
 import { cantidad as fmt, euros, fecha as ffecha, hoy } from '../formato';
 import { Tabla } from '../Tabla';
 
-type Item = { nombre: string; uso: number; ingredientes: string[] };
+export type Item = { nombre: string; uso: number; ingredientes: string[] };
 type Atajo = { etiqueta: string; grupo: string; sustituye: string | null; uso: number };
-type Catalogo = { platos: Item[]; bebidas: Item[]; extras: Atajo[]; sustituir: Atajo[]; quitar: Atajo[] };
-type Linea = { id: number; hora: string; nombre: string; cantidad: number; extras: [string, number][]; omitir: string[] };
-type Dia = { fecha: string; comensales: number; comensales_auto: boolean; lineas: Linea[]; platos: number; catalogo?: Catalogo };
+export type Catalogo = { platos: Item[]; bebidas: Item[]; extras: Atajo[]; sustituir: Atajo[]; quitar: Atajo[] };
+export type Linea = { id: number; hora: string; mesa: string | null; nombre: string; cantidad: number; extras: [string, number][]; omitir: string[] };
+export type Dia = { fecha: string; comensales: number; comensales_auto: boolean; lineas: Linea[]; platos: number; catalogo?: Catalogo };
 
-function Boton({ nombre, onClick, onMas }: { nombre: string; onClick: () => void; onMas?: () => void }) {
+export function Boton({ nombre, onClick, onMas }: { nombre: string; onClick: () => void; onMas?: () => void }) {
   return (
     <Card p={0} withBorder style={{ position: 'relative' }}>
       <UnstyledButton onClick={onClick} p="md" w="100%" h={84} style={{ display: 'flex', alignItems: 'center' }}>
@@ -73,11 +73,11 @@ function interpretar(texto: string, cat: Catalogo): Interpretada {
   return { nombre, cantidad, extras, omitir, fallos };
 }
 
-function resumen(l: Linea) {
+export function resumen(l: Linea) {
   return [...l.extras.map(([e, n]) => `+${n > 1 ? `${n} ` : ''}${e}`), ...l.omitir.map((o) => (o.toLowerCase().startsWith('sin') ? o : `sin ${o}`))].join(' · ');
 }
 
-function Personalizar({ plato, cat, cerrar, anadir }: { plato: Item; cat: Catalogo; cerrar: () => void;
+export function Personalizar({ plato, cat, cerrar, anadir }: { plato: Item; cat: Catalogo; cerrar: () => void;
   anadir: (cantidad: number, extras: [string, number][], omitir: string[]) => void }) {
   const [n, setN] = useState(1);
   const [extras, setExtras] = useState<Record<string, number>>({});
@@ -215,7 +215,7 @@ export function Comandas() {
                   <Group key={l.id} justify="space-between" wrap="nowrap" p={6} style={{ borderBottom: '1px solid var(--mantine-color-default-border)' }}>
                     <div style={{ minWidth: 0 }}>
                       <Text size="sm" fw={600}>{l.cantidad !== 1 ? `${fmt(l.cantidad)} × ` : ''}{l.nombre}</Text>
-                      <Text size="xs" c="dimmed">{l.hora.slice(0, 5)}{resumen(l) ? ` · ${resumen(l)}` : ''}</Text>
+                      <Text size="xs" c="dimmed">{l.hora.slice(0, 5)}{l.mesa ? ` · mesa ${l.mesa}` : ''}{resumen(l) ? ` · ${resumen(l)}` : ''}</Text>
                     </div>
                     <ActionIcon variant="subtle" color="red" onClick={() => borrar(l.id)} aria-label={`Quitar ${l.nombre}`} disabled={ocupado}><IconTrash size={16} /></ActionIcon>
                   </Group>

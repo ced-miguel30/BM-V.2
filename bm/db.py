@@ -441,6 +441,11 @@ def _migrar(con: sqlite3.Connection) -> None:
     con.execute("UPDATE usuarios SET rol='jefe' WHERE rol='restaurante'")
     con.execute("UPDATE usuarios SET rol='comandero' WHERE rol='recepcion'")
     con.commit()
+    cols = {r[1] for r in con.execute("PRAGMA table_info(comanda_lineas)")}
+    for col in ("mesa", "ref"):  # comandero digital: mesa o habitación, y el envío del móvil (no se duplica)
+        if col not in cols:
+            con.execute(f"ALTER TABLE comanda_lineas ADD COLUMN {col} TEXT")
+    con.commit()
     if "tipo" not in {r[1] for r in con.execute("PRAGMA table_info(solicitudes)")}:  # versión del 13/10 sin uso real
         con.executescript("DROP TABLE IF EXISTS solicitud_lineas; DROP TABLE IF EXISTS solicitudes;")
         con.executescript(SCHEMA)
