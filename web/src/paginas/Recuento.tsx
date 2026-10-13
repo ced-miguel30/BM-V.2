@@ -3,16 +3,16 @@ import { useSearchParams } from 'react-router-dom';
 import {
   Affix, Alert, Badge, Button, Card, Chip, Group, Menu, Modal, NumberInput, Select, Stack, Switch, Tabs, Text, TextInput, Textarea,
 } from '@mantine/core';
-import { IconBarcode, IconCheck, IconMapPin, IconPlus, IconSearch } from '@tabler/icons-react';
+import { IconBarcode, IconCheck, IconMapPin, IconPlus, IconScan, IconSearch } from '@tabler/icons-react';
 import { api, avisoError, avisoOk } from '../api';
 import { Cabecera, Vacio } from '../comun';
 import { nombreUbicacion, useUbicaciones } from '../centros';
 import { cantidad, euros, fecha, hoy } from '../formato';
 import { Tabla } from '../Tabla';
-import { Camara, hayCamara, prepararLector } from '../Escaner';
+import { hayCamara, prepararLector } from '../Escaner';
+import { ModoEscaner, type Linea } from '../ModoEscaner';
 import { descartar, enviarOGuardar, pendientes, sincronizar, type Pendiente } from '../pendientes';
 
-type Linea = { producto: string; nombre: string; unidad: string | null; teorico?: number; zona?: string | null };
 
 // Zonas habituales; las que se creen a mano se suman a la lista.
 const ZONAS_BASE = ['Nevera', 'Congelador', 'Cámara', 'Estantería', 'Bar'];
@@ -74,9 +74,12 @@ function Contar({ gestion }: { gestion: boolean }) {
 
   useEffect(() => { api<Record<string, string>>('/codigos').then(setCodigos).catch(() => null); if (hayCamara()) prepararLector(); }, []);
   // Ir a un producto escaneado: se añade a la lista si no estaba y se pone el cursor en su cantidad.
-  const irA = (producto: string) => {
+  const anadirLinea = (producto: string) => {
     const p = catalogo.find((c) => c.codigo === producto);
     setLineas((ls) => (ls && !ls.some((l) => l.producto === producto) ? [{ producto, nombre: p?.nombre ?? producto, unidad: p?.unidad ?? null }, ...ls] : ls));
+  };
+  const irA = (producto: string) => {
+    anadirLinea(producto);
     setZona('todas'); setQ(producto);
     setTimeout(() => document.getElementById(`cuenta-${producto}`)?.focus(), 150);
   };
@@ -106,20 +109,22 @@ function Contar({ gestion }: { gestion: boolean }) {
   const cambiar = (v: Record<string, number | string>) => { setContado(v); if (ub) guardarBorrador(ub, v); };
 
   const contados = Object.entries(contado).filter(([, v]) => v !== '' && v != null);
+  const [soloFaltan, setSoloFaltan] = useState(false);
   const visibles = useMemo(() => (lineas ?? []).filter((l) => (!q || norm(`${l.nombre} ${l.producto}`).includes(norm(q)))
-    && (zona === 'todas' || (zona === '' ? !l.zona : l.zona === zona))), [lineas, q, zona]);
+    && (zona === 'todas' || (zona === '' ? !l.zona : l.zona === zona))
+    && (!soloFaltan || contado[l.producto] === undefined || contado[l.producto] === '')), [lineas, q, zona, soloFaltan, contado]);
   const zonas = useMemo(() => [...new Set([...ZONAS_BASE, ...(lineas ?? []).map((l) => l.zona).filter((z): z is string => !!z)])], [lineas]);
   const resumenZona = (z: string) => {
     const ls = (lineas ?? []).filter((l) => (z === '' ? !l.zona : l.zona === z));
     return { total: ls.length, hechos: ls.filter((l) => contado[l.producto] !== undefined && contado[l.producto] !== '').length };
   };
-  const ponerZona = async (l: Linea, z: string | null) => {
+  const ponerZona = async (l: Linea, z: string | null, silencioso = false) => {
     if (z === null) return;
     try {
       await api('/zonas', { method: 'PUT', body: { producto: l.producto, ubicacion: ub, zona: z } });
       const limpia = z.trim() ? z.trim()[0].toUpperCase() + z.trim().slice(1) : null;
       setLineas((ls) => (ls ?? []).map((x) => (x.producto === l.producto ? { ...x, zona: limpia } : x)));
-    } catch (e) { avisoError(e); }
+    } catch (e) { if (!silencioso) avisoError(e); }  // la zona aprendida al escanear sin cobertura no molesta: se aprende otro día
   };
   const anadir = () => {
     const p = catalogo.find((c) => c.codigo === extra);
@@ -161,6 +166,11 @@ function Contar({ gestion }: { gestion: boolean }) {
               </Group>
             </Alert>
           )}
+          {hayCamara() && (
+            <Button size="lg" leftSection={<IconScan size={22} />} onClick={() => setCamara(true)}>
+              Escanear con la cámara
+            </Button>
+          )}
           <Group align="flex-end">
             <Select placeholder="¿Hay algo que no está en la lista? Búscalo" searchable limit={50} value={extra} onChange={setExtra}
               data={catalogo.map((c) => ({ value: c.codigo, label: `${c.nombre} (${c.unidad ?? 'ud'})` }))} style={{ flex: 1 }} />
@@ -168,6 +178,7 @@ function Contar({ gestion }: { gestion: boolean }) {
           </Group>
           <Chip.Group value={zona} onChange={(v) => setZona(v as string)}>
             <Group gap={6}>
+              <Switch size="sm" label="Solo lo que falta" checked={soloFaltan} onChange={(e) => setSoloFaltan(e.currentTarget.checked)} mr="xs" />
               <Chip value="todas" size="sm">Todas</Chip>
               {[...zonas, ''].map((z) => {
                 const r = resumenZona(z);
@@ -213,9 +224,11 @@ function Contar({ gestion }: { gestion: boolean }) {
           </Affix>
         </>
       )}
-      <Modal opened={camara} onClose={() => setCamara(false)} title="Escanear código" centered>
-        {camara && <Camara activa leido={(c) => { setCamara(false); leido(c); }} />}
-      </Modal>
+      {ub && lineas && (
+        <ModoEscaner abierto={camara} cerrar={() => setCamara(false)} ubicacion={nombreUbicacion(ubicaciones, ub)} lineas={lineas} catalogo={catalogo}
+          contado={contado} cambiar={cambiar} anadirLinea={anadirLinea} zona={zona} setZona={setZona} zonas={zonas} ponerZona={ponerZona}
+          codigos={codigos} setCodigos={setCodigos} />
+      )}
       <Modal opened={!!nuevo} onClose={() => setNuevo(null)} title="Código nuevo" centered>
         {nuevo && (
           <Stack>
