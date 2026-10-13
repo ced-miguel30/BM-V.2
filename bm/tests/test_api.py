@@ -83,6 +83,13 @@ class TestFlujos(unittest.TestCase):
         pan = next(f for f in c.get("/api/stock?ubicacion=RESTAURANTE").json() if f["producto"] == "PAN")
         self.assertEqual(pan["stock"], 7)
 
+    def test_consulta_rapida_sin_precios_para_el_personal(self):
+        r = cliente("rest").get("/api/consulta/PAN").json()
+        self.assertEqual(r["codigo"], "PAN")
+        self.assertIsNone(r["precio"])
+        self.assertTrue(all(x["valor"] is None for x in r["sitios"]))
+        self.assertEqual(cliente("coc").get("/api/consulta/PAN").status_code, 403)
+
     def test_cocina_solo_cuenta_y_a_ciegas(self):
         c = cliente("coc")
         for ruta in ("/api/consumos", "/api/comandas", "/api/caducidades", "/api/traslados", "/api/recuentos", "/api/productos"):

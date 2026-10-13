@@ -198,3 +198,28 @@ def guardar_codigo(d: CodigoBarras, u: dict = Depends(requiere(*CONTAR))):
     con.execute("INSERT OR REPLACE INTO codigos_barras VALUES(?, ?)", (codigo, d.producto))
     con.commit()
     return {"ok": True}
+
+
+@app.get("/api/consulta/{producto}")
+def consulta(producto: str, u: dict = Depends(requiere(*OPERATIVO))):
+    """Ficha rápida al escanear: dónde está, zona, último recuento y caducidades; cifras y precio solo para gestión."""
+    p = con.execute("SELECT codigo, nombre, unidad FROM productos WHERE codigo=?", (producto,)).fetchone()
+    if not p:
+        raise HTTPException(404, "Producto desconocido")
+    gestion = u["rol"] in GESTION
+    pu = consumos.precio_actual(con, producto) if gestion else None
+    sitios = []
+    for s in inventario.stock(con, producto=producto):
+        if abs(s["stock"]) < 1e-6 and not s["salidas_desde_recuento"]:
+            continue
+        zona = con.execute("SELECT zona FROM zonas_producto WHERE producto=? AND ubicacion=?", (producto, s["ubicacion"])).fetchone()
+        sitios.append({"ubicacion": s["ubicacion"], "zona": zona[0] if zona else None, "stock": s["stock"],
+                       "ultimo_recuento": s["ultimo_recuento"], "valor": None if pu is None else round(max(s["stock"], 0) * pu, 2)})
+    hoy = date.today()
+    caducidades = [{**dict(c), "dias": (date.fromisoformat(c["caduca"]) - hoy).days} for c in con.execute(
+        "SELECT id, ubicacion, cantidad, caduca FROM caducidades WHERE producto=? AND estado='activa' ORDER BY caduca", (producto,))]
+    compra = con.execute("""SELECT fecha, proveedor FROM bc_movs WHERE producto=? AND tipo='Compra' AND cantidad>0
+                            ORDER BY fecha DESC LIMIT 1""", (producto,)).fetchone() if gestion else None
+    return {**dict(p), "sitios": sitios, "caducidades": caducidades, "precio": pu,
+            "ultima_compra": dict(compra) if compra else None,
+            "codigos": [r[0] for r in con.execute("SELECT codigo FROM codigos_barras WHERE producto=?", (producto,))]}
