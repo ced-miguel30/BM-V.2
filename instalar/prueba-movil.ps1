@@ -34,22 +34,40 @@ if (-not (Test-Path $cf)) {
 }
 
 Write-Host "3/4 Arrancando BM en el puerto $Puerto..." -ForegroundColor Cyan
+# Lo que quedara abierto de un intento anterior (cerrado a medias) ocupa el puerto: cerrarlo.
+$pids = "$datos\prueba.pids"
+if (Test-Path $pids) {
+    Get-Content $pids | ForEach-Object { Stop-Process -Id $_ -Force -ErrorAction SilentlyContinue }
+    Remove-Item $pids
+}
 $env:BM_DB = $db
 $servidor = Start-Process $python -ArgumentList "-m bm.servidor --puerto $Puerto --db `"$db`"" -WorkingDirectory $raiz `
     -WindowStyle Hidden -PassThru -RedirectStandardOutput "$datos\prueba-servidor.log" -RedirectStandardError "$datos\prueba-servidor.err"
 $tunel = $null
 try {
+    $servidor.Id | Set-Content $pids
     $listo = $false
-    foreach ($i in 1..30) {
-        try { Invoke-WebRequest "http://localhost:$Puerto/" -UseBasicParsing -TimeoutSec 2 | Out-Null; $listo = $true; break } catch { Start-Sleep 1 }
+    foreach ($i in 1..60) {
+        if ($servidor.HasExited) { break }
+        $c = New-Object Net.Sockets.TcpClient
+        try { $c.Connect('127.0.0.1', $Puerto); $listo = $true } catch { } finally { $c.Close() }
+        if ($listo) { break }
+        Write-Host -NoNewline '.'
+        Start-Sleep 1
     }
-    if (-not $listo) { throw "BM no arranca. Mira $datos\prueba-servidor.err" }
+    Write-Host ''
+    if (-not $listo) {
+        Write-Host 'BM no ha arrancado. Esto es lo que dice:' -ForegroundColor Red
+        Get-Content "$datos\prueba-servidor.err" -Tail 25 -ErrorAction SilentlyContinue
+        throw 'BM no arranca (mensaje de arriba).'
+    }
 
     Write-Host '4/4 Abriendo el enlace https...' -ForegroundColor Cyan
     $log = "$datos\prueba-tunel.log"
     Remove-Item $log -ErrorAction SilentlyContinue
-    $tunel = Start-Process $cf -ArgumentList "tunnel --no-autoupdate --url http://localhost:$Puerto" `
+    $tunel = Start-Process $cf -ArgumentList "tunnel --no-autoupdate --url http://127.0.0.1:$Puerto" `
         -WindowStyle Hidden -PassThru -RedirectStandardError $log -RedirectStandardOutput "$datos\prueba-tunel.out"
+    $servidor.Id, $tunel.Id | Set-Content $pids
     $url = $null
     foreach ($i in 1..60) {
         Start-Sleep 1
@@ -75,5 +93,6 @@ try {
 } finally {
     if ($tunel -and -not $tunel.HasExited) { Stop-Process -Id $tunel.Id -Force }
     if ($servidor -and -not $servidor.HasExited) { Stop-Process -Id $servidor.Id -Force }
+    Remove-Item $pids -ErrorAction SilentlyContinue
     Write-Host 'Cerrado. Los datos de prueba quedan en datos\prueba.sqlite (bórralo para empezar de cero).'
 }
