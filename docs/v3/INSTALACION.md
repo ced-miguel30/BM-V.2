@@ -23,6 +23,15 @@ BM copiada en el servidor (por ejemplo `C:\BM`). Si hay git: `git clone -b v3 ht
    Después, todo se importa desde la web (Importar de BC, Ventas TPV, Importar Excel).
 4. **Entrar**: desde cualquier equipo de la red, `http://NOMBRE-DEL-SERVIDOR:8000`.
 
+## Probar en el móvil antes de instalar (cualquier PC con Windows)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File C:\BM\instalar\prueba-movil.ps1
+```
+Sin administrador. Crea `datos\prueba.sqlite` con productos, platos y un usuario por perfil inventados (`dueno`, `admin`,
+`jefe`, `cocina`, `comandero`; contraseña `prueba2026`), arranca BM y abre un enlace https temporal de Cloudflare que
+muestra en pantalla (y copia). Ese enlace se abre en el móvil, con cámara. Enter lo cierra todo. No toca `bm.sqlite`.
+
 ## Actualizar a una versión nueva
 
 ```powershell
