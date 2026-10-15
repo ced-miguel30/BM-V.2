@@ -50,7 +50,8 @@ recuento (USB/Bluetooth siempre; cámara solo con https). Paleta de gráficos el
 (`bm/intercambiables.py`, Recetas → Intercambiables): se consume el que caduca antes o el más barato comprado en 30 días.
 `bm/semillas_carta.json` siembra grupos y 5 recetas estimadas (smoothie, croquetas, espagueti, paella, surtido ibérico).
 **En el hotel a BC lo llaman "Noray".** Conexión API con BC en curso: app "BM Royal Marina" registrada en Entra ID
-(tenant 980048cf-…, cliente 1140153d-…), permiso API.ReadWrite.All añadido, **falta el consentimiento de administrador**,
+(tenant 980048cf-9877-400f-9cef-3b39114cca2d «PROMOCIONES CALERO BEACH SL», cliente 1140153d-2942-48a5-9875-0c15f67ab27e),
+permiso API.ReadWrite.All (Aplicación) **con consentimiento concedido** (comprobado 15/10/2026) y 1 secreto creado; falta:
 el secreto, el alta en BC (Aplicaciones de Microsoft Entra, D365 READ) y publicar páginas 38/31/líneas factura como OData.
 **Servidor: en la nube**, accesible desde los PCs → necesita https (también hace falta para la cámara del móvil).
 Copia secundaria: "otra carpeta".
